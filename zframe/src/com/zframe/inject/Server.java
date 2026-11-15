@@ -21,8 +21,8 @@ import java.util.LinkedHashMap;
  */
 public class Server {
     static final long SLACK = 0x4a2d540L, SLACK_END = 0x4a2e000L;
-    static final long SEND_AT = 0xf950e0L, TICK_AT = 0xfb0218L;   // v1.62：收包改挂 UNZOnlineUpdateService::Tick（大厅每帧跑）
-    static final String SEND_ORIG = "f0482de910b08de2", TICK_ORIG = "104c2de908b08de2";
+    static final long SEND_AT = 0xf950e0L, TICK_AT = 0xb665a8L;   // v1.63：收包改挂 FEngineLoop::Tick（每帧必跑；v1.62 的 UpdateService::Tick 实测大厅不跑）
+    static final String SEND_ORIG = "f0482de910b08de2", TICK_ORIG = "f04f2de91cb08de2";
     static final int REQ_CAP = 1 << 20, RPL_CAP = 1 << 20, RH = 32;   // 回包区头 32 字节：写/读/已收/连接器/UpdateService/帧数
     static final long CONN_VT = 0x4c7deb4L, CONN_INIT = 0xf925d0L;       // ConnectorService 的 vtable（+0x11c 是 Init）
 
@@ -56,10 +56,10 @@ public class Server {
         return "f0412de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
             + "005094e5026085e0086086e2087094e5070056e11500008a107084e2057087e0002087e5047087e20060a0e3020056e1030000aa06c0d1e706c0c7e7016086e2f9ffffea045085e2025085e0035085e20350c5e35bf07ff5005084e5046094e5016086e2046084e50200a0e1f081bde80c6094e5016086e20c6084e50200a0e1f081bde8";
     }
-    /** TICK 段（v1.62）：挂在 UpdateService::Tick 开头。连接器对象（+12）找到前只记帧数，找到后把回包逐个交给 vt+0x164 */
+    /** TICK 段（v1.63）：挂在 FEngineLoop::Tick 开头。连接器对象（+12）找到前只记帧数，找到后把回包逐个交给 vt+0x164 */
     static String tickCave(int buf, int ret) {
         return "f3412de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
-            + "100084e5146094e5016086e2146084e50c8094e5000058e31600000a045094e5006094e55bf07ff5060055e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e8ffffeaf341bde8104c2de908b08de204f01fe5"
+            + "100084e5146094e5016086e2146084e50c8094e5000058e31600000a045094e5006094e55bf07ff5060055e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e8ffffeaf341bde8f04f2de91cb08de204f01fe5"
             + w32(ret);
     }
     static String hook(int target) { return "04f01fe5" + w32(target); }
@@ -102,22 +102,16 @@ public class Server {
             long b = Mods.base(), vt = b + CONN_VT;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
                 if (rd(m, vt + 0x11c) != b + CONN_INIT) { connState = "连接器：vtable 对不上，没找"; return; }
-                for (int i = 0; i < 100 && rpl.getInt(16) == 0; i++) Thread.sleep(100);
-                long upd = rpl.getInt(16) & 0xffffffffL, frames0 = rpl.getInt(20);
-                connState = "连接器：UpdateService " + (upd == 0 ? "没跑" : Long.toHexString(upd));
-                long c = 0;
-                if (upd != 0) {
-                    long outer = rd(m, upd + 0x18);
-                    if (outer != 0) for (long a = outer; a < outer + 0x4000 && c == 0; a += 4) { long p = rd(m, a); if (isConn(m, p, vt)) c = p; }
-                }
-                String how = "Outer 字段";
-                if (c == 0) { how = "扫内存"; c = scan(m, vt); }
-                if (c == 0) { connState = "连接器：没找到（" + connState + "）"; return; }
+                connState = "连接器：正在扫内存";
+                long t0 = System.currentTimeMillis(), c = scan(m, vt);
+                long ms = System.currentTimeMillis() - t0;
+                if (c == 0) { connState = "连接器：没找到（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）"; return; }
                 rpl.putInt(12, (int) c);
-                connState = "连接器：" + Long.toHexString(c) + "（" + how + "）";
+                connState = "连接器：" + Long.toHexString(c) + "（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）";
             }
         } catch (Throwable e) { connState = "连接器：出错 " + e; }
     }
+    static volatile long scanned;
     static long rd(RandomAccessFile m, long a) {
         if (a < 0x1000 || a > 0xfffffff0L || (a & 3) != 0) return 0;
         try { byte[] x = new byte[4]; m.seek(a); m.readFully(x); return (x[0] & 0xff) | (x[1] & 0xff) << 8 | (x[2] & 0xff) << 16 | (x[3] & 0xffL) << 24; }
@@ -146,15 +140,19 @@ public class Server {
             }
         }
         byte[] buf = new byte[1 << 20];
+        int[] w = new int[buf.length / 4];
         int v0 = (int) vt;
+        scanned = 0;
         for (long[] g : rs) {
             for (long a = g[0]; a < g[1]; a += buf.length) {
                 int n = (int) Math.min(buf.length, g[1] - a);
                 try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
-                ByteBuffer w = ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN);
-                for (int i = 0; i + 0x1c <= n; i += 4)
-                    if (w.getInt(i) == v0 && looksObj(w.getInt(i + 4) & 0xffffffffL, w.getInt(i + 8) & 0xffffffffL,
-                                                      w.getInt(i + 0xc) & 0xffffffffL, w.getInt(i + 0x18) & 0xffffffffL)) return a + i;
+                scanned += n;
+                int k = n / 4;
+                ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(w, 0, k);
+                for (int i = 0; i + 7 <= k; i++)
+                    if (w[i] == v0 && looksObj(w[i + 1] & 0xffffffffL, w[i + 2] & 0xffffffffL, w[i + 3] & 0xffffffffL, w[i + 6] & 0xffffffffL))
+                        return a + 4L * i;
             }
         }
         return 0;
@@ -372,7 +370,7 @@ public class Server {
         if (req == null) return sb.toString();
         sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
           .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n")
-          .append(connState).append("，大厅帧 ").append(rpl.getInt(20)).append('\n');
+          .append(connState).append("，帧 ").append(rpl.getInt(20)).append('\n');
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
         return sb.toString();

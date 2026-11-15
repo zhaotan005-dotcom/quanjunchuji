@@ -34,7 +34,7 @@ for i,pl in enumerate([b'hello',b'\x01\x02\x03\x04\x05\x06\x07\x08\x09']):
 hd=mu.mem_read(0x7a000000,16); wp=int.from_bytes(hd[:4],'little'); cnt=int.from_bytes(hd[4:8],'little')
 data=bytes(mu.mem_read(0x7a000010,wp)); print('SEND wp',wp,'cnt',cnt,data.hex())
 ok&= wp==28 and cnt==2 and data[:9]==b'\x05\0\0\0hello' and data[12:16]==b'\x09\0\0\0'
-# --- TICK（v1.62：挂在 UpdateService::Tick 开头，头 32 字节，+12 = 连接器对象）---
+# --- TICK（v1.63：挂在 FEngineLoop::Tick 开头，头 32 字节，+12 = 连接器对象）---
 mu.mem_write(0x18000,bytes.fromhex(L[1]))
 recs=[b'abc',b'0123456789']; buf=b''
 for rr in recs:
@@ -50,9 +50,10 @@ def tick():
     for r,v in ((UC_ARM_REG_R0,UPD),(UC_ARM_REG_R1,0x3c888889),(UC_ARM_REG_SP,SP),(UC_ARM_REG_R4,0x1111),(UC_ARM_REG_R8,0x8888),(UC_ARM_REG_R10,0xaaaa),(UC_ARM_REG_FP,0xbbbb),(UC_ARM_REG_LR,0xcccc)): mu.reg_write(r,v)
     mu.emu_start(0x18000,0x40000008,count=800)
     g=lambda r: mu.reg_read(r)
-    st=bytes(mu.mem_read(SP-16,16))
-    return (g(UC_ARM_REG_R0)==UPD and g(UC_ARM_REG_R1)==0x3c888889 and g(UC_ARM_REG_SP)==SP-16 and g(UC_ARM_REG_FP)==SP-8
-            and st==b''.join(x.to_bytes(4,'little') for x in (0x1111,0xaaaa,0xbbbb,0xcccc)) and g(UC_ARM_REG_R8)==0x8888)
+    st=bytes(mu.mem_read(SP-36,36))
+    exp=[0x1111]+[g(r) for r in (UC_ARM_REG_R5,UC_ARM_REG_R6,UC_ARM_REG_R7)]+[0x8888,g(UC_ARM_REG_R9),0xaaaa,0xbbbb,0xcccc]
+    return (g(UC_ARM_REG_R0)==UPD and g(UC_ARM_REG_R1)==0x3c888889 and g(UC_ARM_REG_SP)==SP-36 and g(UC_ARM_REG_FP)==SP-8
+            and st==b''.join(x.to_bytes(4,'little') for x in exp) and g(UC_ARM_REG_R8)==0x8888 and g(UC_ARM_REG_R4)==0x1111)
 hd=lambda o: int.from_bytes(mu.mem_read(0x7b000000+o,4),'little')
 # 1) 连接器还没找到：不投递，只记帧数和 this
 ok&= tick() and got==[] and hd(16)==UPD and hd(20)==1 and hd(8)==0

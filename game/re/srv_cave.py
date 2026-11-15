@@ -132,3 +132,11 @@ out:
 '''%(DMB,BLXIP)
 if __name__=='__main__':
     b,_=asm(TICK2,0); print('TICK2',len(b),b.hex())
+
+# v1.63：UpdateService::Tick 大厅里也不跑（实测帧数 0），改挂 FEngineLoop::Tick 0xb665a8（每帧必跑，游戏线程）。
+# 原两条：push {r4-sl,fp,lr} / add fp,sp,#0x1c，跳回 0xb665b0。回包区头和 TICK2 一样。
+TICK3=TICK2.replace(''' push {r4,sl,fp,lr}
+ add fp, sp, #8''',''' push {r4,r5,r6,r7,r8,sb,sl,fp,lr}
+ add fp, sp, #0x1c''')
+if __name__=='__main__':
+    b,_=asm(TICK3,0); print('TICK3',len(b),b.hex())

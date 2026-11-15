@@ -381,3 +381,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Java finds the ConnectorService object: vptr = base+0x4c7deb4 (checked: vt+0x11c = Init 0xf925d0, vt+0x164 = 0xf95298). First looks in UpdateService's Outer (+0x18) fields, else scans rw anon memory. Object check: not CDO (flags&0x10), InternalIndex 1..0x400000, class and outer aligned pointers.
   - Diagnostic now prints 连接器 state and 大厅帧. If 大厅帧 is 0 the UpdateService tick does not run either; if the connector is found but 游戏已收 stays 0, check the cave; if 已收 > 0 but nothing changes, the lobby drops replies (offline/login state).
   - Tests: emu_server.py (TICK2: no delivery before conn, 2 records after, regs/stack match original prologue) + ServerTest + ScanTest (skips CDO and bare vptr values) all pass.
+- 07:30 v1.62 device result: 连接器：UpdateService 没跑，大厅帧 0 → UNZOnlineUpdateService::Tick is not called in the lobby either (TickAppState only shows during app-state changes). Scan never finished/started because it waited for UpdateService.
+- v1.63 (vc64/core64), built (not tested on device):
+  - Recv hook moved to FEngineLoop::Tick 0xb665a8 (identified by strings t.IdleWhenNotForeground / r.OneFrameThreadLag / Media, size 0x1c44, vtable ref 0x4bbf0ac). Orig f04f2de9 1cb08de2 (push {r4-sl,fp,lr}; add fp,sp,#0x1c), return 0xb665b0. Cave TICK3 = TICK2 with that prologue.
+  - findConn no longer waits for UpdateService: scans rw anon memory right away (int[] bulk read), diagnostic shows MB scanned and ms. 「帧」 = FEngineLoop ticks since install.
+  - Tests: emu_server.py (stack after cave = original 9-reg push, fp = SP-8), ServerTest, ScanTest pass.
