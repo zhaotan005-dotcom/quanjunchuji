@@ -16,7 +16,7 @@ def op2(s):
     sh={'lsl':0,'lsr':1,'asr':2}[m.group(2)] if m.group(2) else 0
     return R[m.group(1)]|(int(m.group(3) or 0)<<7)|(sh<<5)
 def split(m):
-    for base in sorted(list(DP)+['ldr','str','ldrb','strb','b','bl','push','pop','umull','mla','movw','mul'],key=len,reverse=True):
+    for base in sorted(list(DP)+['ldr','str','ldrb','strb','b','bl','push','pop','umull','mla','movw','movt','mul'],key=len,reverse=True):
         if m.startswith(base):
             rest=m[len(base):]; s=0
             if base in DP and rest.startswith('s') and rest[1:] in CC: s=1; rest=rest[1:]
@@ -45,8 +45,8 @@ def asm(src,org,syms={}):
                 if '-' in r: x,y=r.split('-'); m|=sum(1<<i for i in range(R[x],R[y]+1))
                 else: m|=1<<R[r]
             w=cond|(0x92d<<16)|m if base=='push' else cond|(0x8bd<<16)|m
-        elif base=='movw':
-            v=int(a[1][1:],0); w=cond|0x03000000|((v>>12)<<16)|(R[a[0]]<<12)|(v&0xfff)
+        elif base in('movw','movt'):
+            v=int(a[1][1:],0); w=cond|(0x03000000 if base=='movw' else 0x03400000)|((v>>12)<<16)|(R[a[0]]<<12)|(v&0xfff)
         elif base=='umull':
             w=cond|0x00800090|(R[a[1]]<<16)|(R[a[0]]<<12)|(R[a[3]]<<8)|R[a[2]]
         elif base=='mla':
