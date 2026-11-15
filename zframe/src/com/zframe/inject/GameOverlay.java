@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.60"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.61"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -711,9 +711,9 @@ public class GameOverlay {
         note(a, u, root, coatText());
         note(a, u, root, Mods.hallState);
         LinearLayout dg = row(a, root);
-        btn(a, u, dg, "开始人物探针", () -> new Thread(() -> toastAny(Probe.start())).start());
-        btn(a, u, dg, "导出人物诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, "先点开始人物探针，再点一次男或女让大厅刷新，然后进仓库和角色页，最后回来点导出，把 下载/ZFrame 里的 avatar 文件发给我。");
+        btn(a, u, dg, "开启服务端", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
+        btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
+        note(a, u, root, Server.state + "。开启后大厅会重进一次，进仓库看人物和衣服，再回来点导出诊断，把 下载/ZFrame 里的 avatar 文件发给我。");
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
@@ -818,6 +818,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.60", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.61", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

@@ -32,6 +32,7 @@ def asm(src,org,syms={}):
     out=b''
     for pc,l in ins:
         mn,args=(l.split(None,1)+[''])[:2]
+        if mn=='.word': out+=struct.pack('<I',int(args,0)&0xffffffff); continue
         base,c,s=split(mn); cond=c<<28
         a=[x.strip() for x in re.split(r',(?![^\[]*\])(?![^{]*})',args)] if args else []
         if base in('b','bl'):

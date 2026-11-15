@@ -1,0 +1,6 @@
+
+__pycache__/
+zframe/build/
+zframe/ZFrame-v*-src.zip
+zframe/ZFrame-v*.apk
+game/proto/

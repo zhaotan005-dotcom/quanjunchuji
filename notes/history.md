@@ -357,3 +357,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - User decided: build the self-hosted server (自建服务端).
   - Answered that the user does not need to send mail by hand: the server sends it automatically on login, or a Z-menu button triggers it.
   - Blocker: v1.53 showed lobby requests never reach SendRawBuffer (bIsOffline / connector null). Step 1 is to make the lobby think it is online, using the fake connector at ConnectorService+0xfa054.
+- v1.61 WIP (not built; the user said stop and push at 07:04), 自建服务端:
+  - Protocol: CSPkg{head{cmd, client_sequence_id, result, key_pkg}, body}.
+    - The full .proto schemas are embedded in libUE4. game/re/protoext.py + protodump.py regenerate them into game/proto/ (gitignored).
+  - Deposit: 13001/13002 GetProps (Prop: id, gid, owner_id, num, equip_position (EEquipPosition), prop_role_attr{sex, faceid, hair_id}).
+    - 13003/13004 equip, 13005/13006 unequip. Mail 25001+.
+  - Send: SendRawBuffer 0xf950e0 is replaced by the SEND cave (append to the Java request ring, return len).
+  - Recv: ConnectorService Tick hook at 0xf92fb0 (reached every tick, even when not connected) → TICK cave feeds our reply records to vt+0x164 (0xf95298, recv: parse CSPkg + dispatch).
+  - Caves live in the libUE4 slack at 0x4a2d540 / +0x100. Probe.java was removed.
+  - Server.java answers 13001/13003/13005; other key_pkg requests get an empty success reply. It pushes 13002 on start, then reopens the lobby.
+  - Emulated: game/re/emu_server.py (caves + protobuf decode with the game's own schemas) passes, plus a Java poll test.
