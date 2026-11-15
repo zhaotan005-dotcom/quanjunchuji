@@ -67,11 +67,11 @@ public class GameOverlay {
             head.setGravity(Gravity.CENTER_VERTICAL);
             head.setPadding(u.dp(16), u.dp(10), u.dp(8), u.dp(2));
             TextView title = new TextView(a);
-            title.setText("全军出击"); title.setTextColor(TXT); title.setTextSize(14); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setText("艾挽 · 全军出击单机"); title.setTextColor(TXT); title.setTextSize(14); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.51"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.52"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -813,6 +813,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.51", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.52", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

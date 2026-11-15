@@ -27,13 +27,15 @@ public class Mods {
     static long base;
 
     /* 初始衣服 = 绝地风衣（30318000000）。
-     * InitAvatarProxy(0x10d7380) 在 0x10d7960 调 0xc62c54 复制「默认衣服」列表（TMap<性别, TArray<int64>>）。
-     * 把这一处 bl 改成跳到 GM 面板里没用的函数空位(0x171e4d0)：先照常复制，再把列表里的
-     * 上衣 30301000001 换成风衣 30318000000、去掉裤子 30302000000（风衣是套装）。人物出生时就穿着，不用进图再刷。 */
-    static final long COAT_HOOK = 0x10d7960L, COAT_CAVE = 0x171e4d0L;
-    static final String COAT_HOOK_O = "bb2ceeeb", COAT_HOOK_N = "da1a19eb";
+     * InitAvatarProxy(0x10d7380) 离线时人物列表只有角色编号，最后在 0x10d882c 调 0xc62d48(表, &列表, 性别)：
+     * 按 DefaultRoleClotheDataTable 把默认衣服补进列表，这个列表就是出生时发的衣服（OnAvatarAssembler In Items）。
+     * 把这一处 bl 改成跳到 GM 面板里没用的函数空位(0x171e4d0)：先照常补默认衣服，再把列表里的
+     * 上衣 30301000001 换成风衣 30318000000、去掉裤子 30302000000（风衣是套装）。
+     * （v1.51 改的是 0x10d7960 那份拷贝，那份只用来比对，不发衣服，所以没效果。） */
+    static final long COAT_HOOK = 0x10d882cL, COAT_CAVE = 0x171e4d0L;
+    static final String COAT_HOOK_O = "4529eeeb", COAT_HOOK_N = "271719eb";
     static final String COAT_CAVE_O = "00009fe7000090e520000be5040095e5007095e5000050e302008fe001708f00046080e25310a0e3040097e4010050e10500000a3f3ac6eb0040a0e1040016e53c3ac6eb000054e10b00001a040097e4041096e4002091e1f3ffff1aec029fe520101be500009fe7000090e5010050e018d04b02f08bbd08d439c6ebc40198e5000050e3f4ffff0a700090e5000050e31840901500005413";
-    static final String COAT_CAVE_N = "f0412de90040a0e1dd11d5eb005094e5046094e50070a0e3060057e11c0000aa878185e0000098e5041098e5412109e3142e40e3020050e1070051030600001a80270fe3172f40e3002088e50720a0e3042088e5017087e2eeffffea80230de3232e40e3020050e10700510301708712e8ffff1a016046e2863185e0000093e5041093e5000088e5041088e5046084e5e0ffffeaf081bde8";
+    static final String COAT_CAVE_N = "f0412de90140a0e11a12d5eb005094e5046094e50070a0e3060057e11c0000aa878185e0000098e5041098e5412109e3142e40e3020050e1070051030600001a80270fe3172f40e3002088e50720a0e3042088e5017087e2eeffffea80230de3232e40e3020050e10700510301708712e8ffff1a016046e2863185e0000093e5041093e5000088e5041088e5046084e5e0ffffeaf081bde8";
     public static volatile boolean coatOn;
     static void builtInCoat() {
         String r = write(COAT_CAVE, COAT_CAVE_O, COAT_CAVE_N, true);
@@ -101,7 +103,7 @@ public class Mods {
     // 偏移（UE4 反射表）：ACharacter Mesh +0x2f4 / CharacterMovement +0x2f8；AActor CustomTimeDilation +0x58；
     // CMC GravityScale +0x120、JumpZVelocity +0x128、MovementMode +0x138（3 = 空中）；
     // USkeletalMeshComponent AnimScriptInstance +0x750、GlobalAnimRateScale +0x7c4
-    static final int P_DIL = 0x58, P_MESH = 0x2f4, P_CMC = 0x2f8, C_JUMP = 0x128, C_MODE = 0x138, M_ANIM = 0x750, M_RATE = 0x7c4;
+    static final int P_DIL = 0x58, P_MESH = 0x2f4, P_CMC = 0x2f8, C_JUMP = 0x128, C_MODE = 0x138, C_VEL = 0xb4, M_ANIM = 0x750, M_RATE = 0x7c4;
     static final int MOVE_FALLING = 3;
     static volatile long cmc; static float baseJump, lastJump = Float.NaN;
     static Thread mover;
@@ -187,10 +189,20 @@ public class Mods {
         lastJump = want;
     }
 
-    /** 加速：人物自己的时间倍率 = 倍数（只快在位移上），动画按 slowMo 放慢；人在空中时恢复 1，跳跃才正常 */
+    /** 加速：人物自己的时间倍率 = 倍数（只快在位移上），动画按 slowMo 放慢；人在空中时恢复 1，跳跃才正常。
+     * v1.52：在空中时间恢复正常，起跳带出去的水平速度也就只有正常跑步那么快，看着像原地跳。
+     * 所以起跳那一刻把水平速度 Velocity(+0xb4 X,+0xb8 Y) 也乘上倍数，落地后游戏自己会重算速度。 */
+    static boolean wasAir;
     static void dilation(RandomAccessFile m, long b, long pawn, long c) throws java.io.IOException {
         int mode = rd(m, c + C_MODE) & 0xff;
         boolean air = mode == MOVE_FALLING;
+        if (air && !wasAir && speed > 1f) {
+            float vx = f(m, c + C_VEL), vy = f(m, c + C_VEL + 4);
+            if (Math.abs(vx) < 3000f && Math.abs(vy) < 3000f && vx * vx + vy * vy > 100f) {
+                wf(m, c + C_VEL, vx * speed); wf(m, c + C_VEL + 4, vy * speed);
+            }
+        }
+        wasAir = air;
         float wantDil = speed == 1f || air ? 1f : speed;
         float td = f(m, pawn + P_DIL);
         if (td > 0.05f && td < 20f && Math.abs(td - wantDil) > 0.001f) wf(m, pawn + P_DIL, wantDil);

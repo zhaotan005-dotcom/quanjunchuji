@@ -246,3 +246,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Logs removed: LogCap is now just android.util.Log; no logcat capture and no 下载/ZFrame export. CoatFind, AkDiag and CoatFindTest deleted. Diagnostic getall commands for the flow were removed.
   - Graphics: GFX_LOW / GFX_HIGH cvar lists (sg.* 0 vs 3, r.ShadowQuality, Bloom, MSAA, DetailMode, MaxAnisotropy, ViewDistance, Texture; names verified in libUE4). Persisted pref zframe/gfx_hi. Choosable in the lobby and in the 画面 tab; applied immediately and on every map load.
   - UI: 常用 page order is 保命 (无敌, 传送到地图中间), then 枪, then 跑跳 (sliders). Plain-language descriptions. Section headers have an accent bar. Tabs: 常用/武器/装备/衣服/画面. The lobby shows 模式, 角色, 画质 and the coat status.
+- v1.51 device test (05:32): no coat at spawn. Speed + jump together jumps "like in place".
+  - Coat RE: the 0x10d7960 copy (fp-0x108) is only a filter ("is this item a default?"). The real fill is at 0x10d882c, bl 0xc62d48(table r7, &fp-0x80 list, gender), which reads the table entry directly and appends defaults to fp-0x80. That list is given and logged as In Items.
+  - Jump: speed is pawn time dilation, and in the air dilation goes back to 1, so the horizontal velocity is only the normal run speed.
+- v1.52 (vc53/core53), 2026-11-16:
+  - Coat hook moved to 0x10d882c (orig 4529eeeb → bl cave 271719eb). The cave at 0x171e4d0 calls c62d48 and then edits [r1] (shirt → coat, trousers removed). Unicorn emulation passes on 6 cases (game/re/emu_coat_cave.py).
+  - Speed: on the ground→air transition, the CMC Velocity XY (+0xb4/+0xb8, UMovementComponent::Velocity from pn.py) is multiplied by speed.
+  - Menu title is "艾挽 · 全军出击单机".
+- User's roadmap (05:34): after v1.52, do the 服务端 work: fix the lobby front end, then vehicle spawning (刷车) and entering 训练营 (training ground resources). Also asked why the flare gun gives no airdrop (suspects GM permission). Not investigated yet; the guess is that the server-side airdrop logic is missing offline.
