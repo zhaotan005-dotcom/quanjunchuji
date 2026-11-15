@@ -1,0 +1,12 @@
+[
+  {
+    "bug": "1-doors (StandaloneUnloadAllDoor)",
+    "offset": "0x4c2f0f8",
+    "file_offset": "0x4c2e0f8",
+    "orig_hex": "05400000",
+    "new_hex": "05000000",
+    "mode": "data (little-endian uint32, low half of EPropertyFlags in FBoolPropertyParams for ANZSceneDoorManager::StandaloneUnloadAllDoor)",
+    "note": "Clears CPF_Config (0x4000) so the bool is no longer loaded from the NZSystemSetting config section; it then keeps the C++ constructor default 0 (strb r1,[r0,#0x378] with r1=0 at 0xce8e64). Field lives at object offset 0x378 (SetBitFunc 0xe854cc: mov r1,#1; strb r1,[r0,#0x378]); 0x380 is sizeof(ANZSceneDoorManager), not the field offset. Must be written BEFORE Z_Construct_UClass_ANZSceneDoorManager runs (engine PreInit / ProcessNewlyLoadedUObjects); the page is RELRO, which /proc/self/mem ignores. No native C++ reader of offset 0x378 was found, so the flag is most likely read by a Blueprint (BP door manager subclass). If that BP overrides the default in its own CDO, this patch does nothing; fallback is a runtime write of 0 to <DoorManager instance>+0x378 / CDO+0x378.",
+    "confidence": "low-medium"
+  }
+]

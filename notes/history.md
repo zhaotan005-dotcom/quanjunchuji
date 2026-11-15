@@ -1,0 +1,210 @@
+# ZFrame / 全军出击 history (moved from project skill 2026-11-15 19:20)
+See project skill v27 text (archived below in summary). Key RE facts live in /workspace/work/qjcj/re/report.md.
+
+## 19:13 round
+- User: only 无敌 works; GM/给枪/刷车/人机/训练营 no effect. Wants shorter plane wait, start kit (三级套+M4+配件), bots at start, doors.
+- RE: exec thunks GiveItem 0xe40c58, TestSpawnVehicle 0xe3df3c, AddBot 0xe43e04, SpawnPickupBox/EnterTraining 0xe43f54 all call 0xb63a30 (bx lr) = stripped. ShowGMPanel vtable +0xb54, QuickStartMatch +0xe14 unverified.
+- Engine CheatManager alive (God works). SET/GETALL/OPEN/TRAVEL strings present (utf-32 TCHAR).
+- Props: NZBRGameState {WaitingPlayersCountDownTime, StartMatchCountDownTime, WaitingSkydivingCountDownTime, NumPlayersBeforeCountDown}; NZGameMode {bEnableGiveBotEquip, bEnableAIDefaultWeap, bEnableGridMap, DoorManager}; NZBattleRoyaleGame {MaxBotLimit, BotArray, BotSpawnPointActorArray}; NZSceneDoorManager {StandaloneUnloadAllDoor}.
+- v1.11 delivered (versionCode 12, CORE_VER 12).
+- Plane route bug (19:03): CalcAirLineByRestrictedAreaInfo random center unclamped; v1.10 added teleport-to-circle (now BugItGo).
+
+## 19:28 round → v1.12 (versionCode 13, CORE_VER 13)
+- User: teleport + God work; Fly no; wants Chinese toasts; wait still 43s, no countdown first tens of seconds; no sound.
+- Log (19:04 session): phase0 WaitingPlayers 60s (no UI), phase1 StartMatch 45s. ResetStartMatchCountDownTime at GameState+0x73c (GameMode code ~0x100cb04, GameState = GameMode+0x908).
+- Training: engine "map ... BR-Training_Mobile_Main does not exist"; TrainingIsland pak 11 MB = pieces only → main map missing. Button removed.
+- Sound: Wwise plugin mounted, "Wwise(R) SDK Version" init line never printed → AkAudio device not initialised. Open.
+- LogCap bug: same-named PUBGM.log from several dirs overwrote each other; now tagged app/int/sd and only files <2h old.
+- v1.12: Patches.shortenWait heap scan (+0x73c==5.0, 60/45 within 0x71c–0x760 → 3.0), auto after NZBRGameState.cpp:304 line; button 缩短本局等待; Chinese toasts; removed 飞行/落地/进训练营/重发开局设置.
+
+## 19:40 round → v1.13 (versionCode 14, CORE_VER 14)
+- Sound RE: FAkAudioDevice::Init = 0x3c32e24 (StartupModule 0x3c3a730 calls wrapper 0x3c32c00; on fail deletes device). Gates: -nosound (not on cmdline), two GOT bools, static bInitialized byte at 0x53b5d50 (written 1 at 0x3c3309c on success). LogAkAudio category verbosity byte at 0x53b5d58; the "Wwise(R) SDK Version" log needs >=5, so missing line ≠ failed init (category likely muted).
+- v1.13: Patches.audioProbe forces 0x53b5d58=5 for 30 s from lib load, then logs flag (ZFrame log line "声音: Wwise 标志=…"); menu shows 声音 status. TWEAKS add "log LogAkAudio Log"/"log LogAudio Log".
+- FPS: game ApplyFrameRateOption max option 3 = 40 fps. v1.13 menu 60/90/120/默认 → t.MaxFPS N + window preferredDisplayModeId; saved in prefs "zframe" fps; re-applied after each ApplyFrameRateOption line and at tweaks.
+
+## 19:42 → v1.14 (versionCode 15, CORE_VER 15)
+- v1.13 crashed every launch right after Tencent splash. Likely cause: forcing LogAkAudio verbosity byte (0x53b5d58=5) → previously-muted Wwise log path crashes, or byte isn't verbosity. v1.14 removes the write and the "log LogAkAudio/LogAudio" commands; audioProbe only reads flag after 25 s. Lesson: don't unmute LogAkAudio.
+
+## 19:45 → v1.15 (versionCode 16, CORE_VER 16)
+- User: v1.14 still crashes after Tencent splash. Suspect v1.12 shortenWait: triggered by any LogNet Browse (lobby load too), loose pattern (+0x73c==5.0 with 60/45 nearby) could hit random heap and write 3.0 → crash. v1.15: trigger only on NZBRGameState.cpp:304 line; require vtable at obj+0 inside libUE4 range and 120.0 + 1.0 in window. If still crashing, ask for newest Download/ZFrame logs; v1.11 is last known-good.
+
+## 19:50 crash analysis → v1.16 (versionCode 17, CORE_VER 17)
+- ZFrame.zip (120 files): runs 194138–194212 (core 15) and 194443–194501 (core 16) died <10 s (logcat only 26 lines, UE log never opened). 194428 (core 16) reached UE: layers fixed on 1st scan, then UE log ends 19:44:41 at APP_EVENT_STATE_ON_PAUSE (identical to good 19:22:53 run up to there); died ~4 s after UE start.
+- Earlier "闪退两次" sessions had the same ~104 KB truncated UE logs → same crash, now persistent. No signal/backtrace captured (sync every 10 s). TerSafe active (TERSAFE:HandleAntiData) → hypothesis: TP kill, possibly persisted after v1.13's rapid /proc/self/mem writes. Unconfirmed.
+- v1.16: LogCap syncs every 1 s for first 40 s; header lists game files modified in last 2 h. Asked user to try v1.11 first (A/B: ours vs persistent state).
+- 19:56: user's "v1.16 不闪退" run actually used built-in core 5 (provider com.zframe.mods not found; ZFrame app missing after uninstall). Old core does not crash → crash is in newer core features (v1.12+). Asked the user to install and open v1.16, then send the 1 s-sync logcat if it crashes.
+- 19:59 v1.16 logs (core 17): 3 runs die ~10 s after start with no fatal line (silent exit → likely TerSafe kill). No "补丁" note synced, so death happens right when libUE4 shows up (late load) = the moment layerFix starts reading /proc/self/mem. In 194428, libUE4 was found at 0.9 s and that run lived longer. Hypothesis: TP watches /proc/self/mem access.
+- v1.17 (versionCode 18, CORE_VER 18): safe mode Patches.MEM=false (no audioProbe, layerFix or scanWait). findBase polls every 200 ms. Console features (teleport, God, set tweaks, FPS) kept.
+- 20:02 v1.17 safe mode STILL crashed (~6 s) → memory access was not the cause. New suspect: Con watcher read the previous session's PUBGM.log, so engineSeenAt was set at once and runTweaks (set commands plus t.MaxFPS and a display-mode change from the saved fps pref) fired about 8 s in, before the engine was up. This also explains the old occasional "闪退两次".
+- v1.18 (versionCode 19, CORE_VER 19): the watcher skips logs older than process start. Tweaks fire 10 s after "LogLoad: Took" in the new log. MEM still false.
+- GitHub connected (zhaotan005-dotcom), but the integration can't create repos (403 "Resource not accessible by integration"). Asked the user to create an empty private repo zframe-pubgm.
+
+## 20:55 round → v1.19 (versionCode 20, CORE_VER 20)
+- v1.18 (core 19) logs: no crash, matches play. Sound still missing.
+- Finding: 单机版 flow goes StartupMap → (after update err 107) Browse BR-Savage_Mobile_Main directly, never the lobby. UNZFrontEndAudioManager init/LoadAllBank (BGMLobbyBank, C01_UI_New_Bank) and UNZPlatformAudioHelper::OnInitialize only logged when FrontEndMap_NEW loads (20:34:55, after quitting a match). Hypothesis: lobby BP also does UAkGameplayStatics::LoadInitBank etc. → match silent when lobby skipped.
+- `set NZBattleRoyaleGame MaxBotLimit` → "Unrecognized class"; class is NZBattleRoyaleGameMode (utf32 0x43b6228). Fixed in TWEAKS.
+- v1.19: Con.tickAudio: after first BR LoadMap with no lobby audio init seen this process → `open /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW`, wait for FrontEndAudioManager init + 4 s → `open <same BR map>`. Menu: 经大厅重进本局 button, 自动修声音 toggle (prefs zframe/audio_auto).
+- AkDiag: writes [Core.Log] LogAkAudio=Verbose, LogAudio=Log into …/UE4Game/PUBGM/PUBGM/Saved/Config/Android/Engine.ini before engine start (file only). Crash guard via prefs akdiag_boot/akdiag_off. Lines containing AkAudio/Audiokinetic/Wwise(R) copied into ZFrame log head as "声音日志:".
+- Patches: MEM still false, but audioProbe re-enabled read-only (1 byte at base+0x53b5d50 after 25 s) → "声音: Wwise 标志=".
+- Build env here is aarch64: x86 aapt2 unusable, so v1.19 APK was assembled from v1.18 APK (binary manifest patched versionCode 19→20, versionName 1.18→1.19), new classes.dex + assets/inject.dex, signed with zframe.jks. build.sh paths updated but aapt2 step needs x86_64.
+- 21:05 v1.19 test: still no sound. Game not listed in Android per-app volume panel → no audio stream opened at all. Probe: Wwise 标志=0, LogAkAudio verbosity=5. Lobby bounce ran (FrontEnd banks "loaded") but no effect.
+- Root cause (RE): wrapper 0x3c32c00 logs "Audiokinetic Audio Device initialized."/"...initialization failed." via LogInit (GOT 0x5124fd0 → 0x51b8678, same category as "LogInit: Using libcurl") at Log level. Neither line ever appears → FAkAudioModule::StartupModule (0x3c3a730, vtable ref 0x50a81c8) never runs → AkAudio module is never loaded (no ModuleManager "not found" warning either, so plugin manager never asks for it). FAkAudioDevice::Get (0x3c318a0) only returns a device if module already loaded → all Wwise calls no-op.
+- Init 0x3c32e24 gates: nosound (utf32 0x4730770), GOT bools 0x5125008/0x5124fe4, static bInitialized 0x53b5d50 (merged globals; LogAkAudio verbosity at +8 = 0x53b5d58).
+- AkDiag useless: game reads Saved/Config/Android/Engine.ini via LoadCryptFileToString → "invalid config file" (expects Tencent-encrypted ini). Remove AkDiag + strip our lines next version.
+- Proposed fix (needs user OK, breaks MEM=false): renderer fn 0x22e7f58 does once-only FModuleManager::LoadModule(FName(L"SoftwareOcclusionCulling")) (utf32 at 0x45e7104, ~2.8 s after log open, warning "not found"); result only stored at 0x4a35634, never used. Overwrite that utf32 string with L"AkAudio\0" before then → engine loads Wwise module itself. 0x101bfb8 is an existing IsModuleLoaded/LoadModule("AkAudio") helper with no callers.
+- v1.20 (versionCode 21, CORE_VER 21): user allowed modifying the game package ("可以改游戏安装包，只要确保不闪退"). ZFrame app game card gets a 「声音补丁」 button: reads the installed injected base.apk, Patcher.patchSound rewrites lib/armeabi-v7a/libUE4.so at file offset 0x45e7104 (L"SoftwareOcclusionCulling" → L"AkAudio\0" + rest unchanged, 32 bytes differ). It works for both STORED and DEFLATED entries and CRC is recomputed. It re-signs with gkey and update-installs with no uninstall (aborts if the game isn't signed by gkey; on install failure the uninstall prompt is never shown). The same button restores. soundState checks the exact bytes, so an unknown libUE4 version gets no patch. Tested on the real libUE4 in the sandbox: patch → state 2, restore → md5 identical.
+- Call site 0x22e7f58 = FRendererModule vtable slot 9 (BeginRenderingViewFamily, game thread), once-only, result only stored → safe target. Module missing → only a "not found" warning.
+- Core: AkDiag now only cleans its old lines out of Engine.ini (deletes the file if empty); the auto lobby bounce defaults off (pref audio_auto2); the manual button stays.
+- v1.21 (vc 22, core 22): the user's ZFrame app had an empty games list and they started re-injecting the already-injected game, which would add classes3 and prompt an uninstall. Fixes: patchBase refuses a manifest that already contains com.zframe.inject.ZInit; pickInstalled on a gkey-signed game just re-adds it to the list; the 声音补丁 button shows for any installed non-tool game; install() skips the uninstall prompt when the game is gkey-signed.
+- 21:27 sound confirmed working: "Audiokinetic Audio Device initialized." appears in the logs.
+- Map paths (from the libMczi window run, 21:30): 海岛 /Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main; 海岛2 /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main (BP_NZBRIslandGameMode_C, starts on the spawn island, no guns; CachedPickupSPList=0); 雨林 Savage; lobby FrontEndMap_NEW.
+- Old in-game "ZFrame 修改器" = built-in fallback core 5 (memory editor). It appears when the game can't reach the ZFrame provider (Honor 关联启动 block) → that's why "only launching from ZFrame gives the new version".
+- v1.22 (vc 23, core 23): Z menu renamed 艾挽 (ball text 艾), with tabs 地图/功能/设置; map buttons 海岛/海岛2/雨林/进入大厅. A map button goes via the lobby first when lobby audio hasn't been seen yet this launch (pref audio_auto3 default on). ZInit caches the last provider core in filesDir (zcore_last.dex/.ver) and uses it when the provider fails, if it's newer than the built-in core. The app's 修补游戏 also replaces the injected ZFrame dex in the game APK (detected by the Lcom/zframe/inject/ZInit; string), so the built-in core becomes current.
+- Declined: renaming/re-skinning the libMczi window and cracking its network verification.
+- TODO: guns on the 海岛2 spawn island.
+- v1.23 (vc 24, core 24), changes requested 21:43–21:45:
+  - In-game UI is now a resident panel like the libMczi window instead of a ball + dialog: a draggable title bar ("艾挽 · 全军出击单机版"; tap it to fold ▼/▶), a left tab column (地图/功能/设置), and content on the right. View tag zframe_panel.
+  - Lobby logic: on boot, ~3 s after StartupMap loads, `open FrontEndMap_NEW` runs once (audio inits in the lobby). After that, map buttons go straight to the map. The old BR→lobby→BR bounce stays only as a fallback, used if something enters a BR map before lobby audio has been seen. Pref audio_auto3.
+  - FPS/quality: device level comes from Tencent APM QCC config (plain asset assets/QCC_APM_PUBGM; cached copies apm_qcc* in app data). Adreno 810 isn't in the table → level 2. Qcc.fix() at boot adds Build.MODEL to level6 filter-model "6" in the cached copies; 修补游戏 also patches the asset. The menu's FPS buttons were removed, and applyFps is disabled (the game's own setting decides).
+- v1.23 test, 21:53: QCC took effect: MobileLevel went 2→5 and PipelineQuality 2→5. But the 超高 framerate option still says 「您的手机暂不支持」, and the lobby character renders as a gray mannequin (default material look). Settings log shows CalcRenderQuality InDeviceLevel:0. UE has MobileLevel2DeviceLevelMap / GetDeviceLevelByQcc / DeviceLevelForTest; the FPS gate is not found yet (probably UMG/blueprint).
+- QCC algorithm, from the dex: com.tencent.hawk.bridge.QccConfig.judgeDcls tries filter-model, then gpu, soc and manu, then "and opts" (res/ram/cpufreq/cores/gpu tables).
+- libMczi is loaded by System.loadLibrary("Mczi") in com.tencent.tpshell.TPShellApplication.preInitial. It has no JNI_OnLoad (init_array only) and imports EGL/GLES (the ImGui window).
+- v1.24 (vc 25, core 25):
+  - The QCC model bump is now off by default. Qcc.fix removes the model unless the pref qcc_up is set, and 修补游戏 also reverts the asset. The panel's 设置 tab has a 高档机型 toggle.
+  - 修补游戏 is now a list: 更新内核 / 更新内核 + 关掉原作者窗口 (replaces libMczi.so in the APK with a copy of libzlib.so and backs the original up to ZFrame filesDir/libMczi.orig.so) / 恢复原作者窗口 / 去掉声音补丁.
+  - User confirmed 21:53 that "他那个" (the libMczi window) should go.
+- Open requests: lobby character fix, and putting all wardrobe clothes into the 仓库 (server inventory, offline). Not done; needs RE.
+- 22:00 user: the gray lobby avatar was always there; it comes from the package, not from QCC. Simple ask: spawn 风衣 in-match, into the backpack or on the ground. Found that the exec functions GiveItem/GiveItemCount/SpawnPickupBox are stubbed to bx lr. ServerGiveItem (thunk 0xe67c20) calls vtable+0x378, implementation not checked yet. Asked the user whether to attempt a libUE4 patch that routes GiveItem to the real pickup/add-to-backpack path. Awaiting answer.
+- 22:08: the libMczi window still showed. The 22:04 file listing has libMczi.so at its original 3866712 bytes and the lib dir is still from 21:19, so the v1.24 修补 never installed. Asked the user what happened. TPShell preInitial loads fucktp, then Mczi, then tprt from nativeLibraryDir.
+- In-match outfit: ANZBRCharacter::InitAvatarProxy (0x10d7380) has no DS playerinfo offline, so it falls back to DefaultRoleClotheDataTable and gets the list 10200000000, 30302000000, 30301000001, 30306000000, 30213000003, 30303000006, then runs Give Inventory. Plan: a libUE4 patch that adds the coat ID. Asked the user for the 黑色连帽风衣 ID; known coats are 30315000050 and 30315000061. Starting guns come later.
+- Gray avatar: the 'Lower Device for Original Mesh' check (0xea5b4c) is gated on quality >= 2, but the avatar stays gray even at level 5, so the cause is something else. Deprioritised.
+- v1.25 (vc 26, core 26):
+  - 功能 tab adds 查物品编号（只读）. It scans the heap through /proc/self/mem (read-only) for UTF-32 names containing 风衣 or 连帽, finds pointers to those names, and collects nearby int64 values in 1e10–1e11. ItemFind.java.
+  - 设置 tab shows the 原作者窗口 status by comparing the libMczi.so and libzlib.so sizes in nativeLibraryDir.
+  - Next: once the user sends the coat ID, patch the InitAvatarProxy default list in libUE4.
+- 22:20 v1.25 test:
+  - libMczi.so in the lib dir is now 67088 bytes (the stub), so the 原作者窗口 is closed.
+  - ItemFind found the 风衣 names, including 黑色风衣 and 绝地风衣 (the hooded one; 脱帽版 is separate). But the "IDs" next to them are FString {ptr,Num} pairs (hi = length), not item IDs, so the tool is useless as written.
+  - The user asked to remove it.
+- Coat plan: only two Coat models are mounted (30315000050 F_Jacket, 30315000061), so try 30315000061 as the 绝地风衣.
+- User's next ask: find the gun-spawn code and ammo. GiveItem and its siblings are stubs (0xb63a30, bx lr), so look at the pickup spawn path instead (SpawnPickup / ItemGenerator / PickupManager).
+- 22:25 RE for gun/ammo spawn:
+  - The GM panel (class with CloseGMPanel/GiveEquip/OnBtnGiveM416…, funcs ~0x1716xxx–0x171exxx) is dead. GiveEquip only issues the console command "GiveItem <id>" (IDs 30307000006, 40100000001/2, 20101000002, 20503000004, 20105000002, 30304000003, 30305000002, 20504000001, 20501000001, 20502000001/2, 20501000003). OnBtnGiveM416 builds FString "2101001..." and calls the 0xb63a30 stub.
+  - The exec GiveItem thunk 0xe40c58 parses one FString and calls 0xb63a30 (stub) at 0xe40ccc: `mov r0,r4(this); mov r1,sp(&FString); bl`. The stub call can be redirected into a code cave (e.g. the dead GM function bodies).
+  - Real give path, used by bots: ForceGiveAllEquipToAI 0xc1a534 iterates [ctrl+0x410] entries (0x18 bytes; id64 at +8, count at +0x10) and calls 0xc11f04(entry.., ctrl, pawn).
+    - Inside it, Type = id/10000 (0xce0248) and TSID = id%10000 (0xce0260).
+    - Then 0xc12370(ctrl, pawn, &{Type,TSID}, count) does: backpack = [pawn+0x838] (0xcc8274); n = 0xccecbc(bp, Type, TSID, count, 0, -1, -1, 0); then 0xcd3bdc(pawn, Type, TSID, 0, [sp]=n, -1, uidlo, uidhi, n, &zero, 0…). uid comes from 0xc1194c(ctrl) = [[ctrl+0x420]+0x3b0] (0 if null).
+  - Plan: a cave that parses "GiveItem <id> [count]" and calls ccecbc + cd3bdc with uid 0. Open problem: the ID format for guns/ammo (split /10000) is still unconfirmed.
+- 22:35 v1.26 (vc 27, core 27):
+  - Removed ItemFind.
+  - 修补游戏 now also applies the 刷物品补丁 (applied together with the sound patch, restored together), 3 patches:
+    - bl at 0xe40ccc changed from 0xb63a30 to 0x17169c0.
+    - 0x173c91c (grenade thunk tail-b) becomes bx lr.
+    - 0x17169c0 holds the cave (404 bytes, source game/re/cave_giveitem.s, assembler game/re/asm.py).
+  - Cave logic: it parses the FString (UTF-32) as "<id>[x<count>]" with count capped at 999, then splits Type=id/10000 and TSID=id%10000 via __aeabi_ldivmod 0x8ad168. bp=[char+0x838]. It calls ccecbc(bp,T,S,cnt,0,-1,-1,0) and uses n (or cnt if n<1), then cd3bdc(char,T,S,0,n,-1,uid0,0,n,&zero,0...).
+  - IDs decoded from the GM panel:
+    - Guns: M416 20101000001, AK47 20101000002, UMP9 20105000001.
+    - 手雷 20401000001.
+    - Ammo 20600000001/2/3 (given after each gun by 0x171e920).
+    - GM list (guesses): 30304000003 头盔?, 30305000002 甲?, 30307000006 背包?
+    - Other IDs in the 0x8b4368 table: 201xx guns, 205xx, 401xx.
+  - InitAvatarProxy also gives avatar items via cd3bdc directly (0x10d8c14), so the coat should work through the same path.
+  - 功能 tab: 一键开局装备, gun/ammo/gear/coat buttons, and custom ID + count. Patch status is read from libUE4 at 0xe40ccc.
+  - Build: zframe/rel.py (swap dex and bump manifest from the previous APK).
+- 22:48 v1.26 test:
+  - The patch was installed (刷物品补丁状态 2) and there was no crash, but nothing was given.
+  - The game log shows no StaticGiveToImpl or "Can't Find Item" lines. GridMap shows Players:1.
+  - The sd log is XOR 0x73 over the WHOLE file (decode fully; the per-line decode was wrong).
+  - GiveItem is on ANZCharacter with flags 0x20601 (Exec|Native|Public|Final).
+- v1.27 (vc 28, core 28):
+  - The cave now takes a 3rd number: the address of a Java direct ByteBuffer (Buffer.address via reflection). It writes diagnostics there:
+    - magic 0x5a01 on entry, 0x5a02 when done
+    - +4 this, +8 bp, +12 Type, +16 TSID, +20 cnt, +24 ccecbc ret, +28 cd3bdc ret
+  - New cave is 0x22c bytes. Patcher recognizes the v1.26 cave (giveState 3) and upgrades it.
+  - Panel toasts and logs "刷物品诊断".
+  - Removed the sound and QCC toggles from the panel; audioAuto and Qcc.up are forced on.
+  - Tweaks added: set NZSystemSettingData FrameRateOption 4, RenderQualityOption 0; set GameEngine bSmoothFrameRate 0; t.MaxFPS = the screen's max refresh rate, plus a window preferredDisplayMode at max refresh.
+  - ApplyFrameRateOption (0xca24ac) takes its FPS table from [this+0x88][DeviceLevel]; at level 5, option 4 = 60.
+- 23:03 v1.27 test: every diagnostic said "补丁代码没被调用". The GiveItem exec on the pawn is never reached (God/BugItGo on CheatManager do work).
+- RE findings:
+  - Thunk 0xe40c58 is identical-code-folded. It is shared by ANZCharacter::GiveItem, ANZBRPlayerController::AddAvaItem / RemoveAvaItem, and ANZPlayerController::ServerCmd, so all of them now reach the cave.
+  - AController offsets: Pawn +0x2b4, Character +0x2c0, PlayerState +0x2c4.
+  - Exec function list: /tmp/execs2.txt. Regenerate with the scan of FFunctionParams (name, 0x45, 0, flags & 0x200).
+- v1.28 (vc 29, core 29):
+  - The cave acts only when the string starts with 'P'. It then takes pawn = [PC+0x2c0].
+  - Java sends "AddAvaItem P<id>x<n>x<dbgaddr>".
+  - Patcher recognizes the v1.26 and v1.27 caves as old (state 3). In-game status checks the word at 0x17169dc (e3560002).
+  - Removed: the layer/wait status lines, the custom ID input, the console, the 原作者窗口 section, and the 恢复原作者窗口 option.
+- 23:22 v1.28 test: GIVE WORKS through AddAvaItem P... on the PC. Every diagnostic came back as 走完 with result 1.
+  - User feedback: the helmet given was level 2 (30304000003 = Avatar/Common/Helmet/30304000003/Helmet02_*). The armor 30305000002 was level 1. No attachments were given. The coat was wrong: both 30315000061 and 050 are not the 风衣.
+- ID sources: UTF-32 strings in libUE4.
+  - Auto-pickup DF list at 0x42c9c64: 401000000x1-3, 401010000x1-3, 2040100000x1-4, attachments 20503000001/3/8/4/9/5, 20504000001, 20501000001, 20502000001, 20505000001.
+  - GM list at 0x44502cc.
+  - Gun folders W2010x000y map to id 2010x00000y.
+- getall works and prints into the sd log. Server DoCmd ("spawn", "avehicle") is stripped from the client. CheatManager Summon exists ("Fabricate %s").
+- v1.29 (vc 30, core 30):
+  - App label changed to 艾挽补丁更新 (same UTF-16 length; rel.py patches it). Single page: 更新 + 启动游戏 (import only when not injected). The nav and modules are hidden.
+  - 更新 now runs runSound(toAk=true) directly. Shorter progress and toast text. Done toast: "更新完成，打开游戏就行".
+  - Panel: more guns, a 全套配件 button (ATT list), and toasts shortened to "已刷 X" / "X 没刷出来".
+  - 刷车: getall WheeledVehicle/NZVehicleMotoCycle bHidden, Con.line parses the *_C class names, then EnableCheats + Summon <cls>, cycling through the classes.
+  - Logs "身上装备编号:" from OnAvatarAssembler, to discover level-3 helmet/armor IDs and the coat ID.
+- v1.30 (vc 31, core 31):
+  - 刷车 root cause: no vehicle ever spawns offline (NZBRVehicleManager VehicleSpawnComponentList.Num()=0, GridMap Vehicle:0/0), so `getall WheeledVehicle bHidden` returns nothing → v1.29 always said "过两秒再点".
+  - RE: GM panel OnSpawnVehicleSelectChange 0x171e4b0 → 0x11dc7c4(BRPC,id) = ProcessEvent ServerSpawnVehicleById; its _Implementation (PC vtables +0xd54) is 0xb63a30 (bx lr) = stripped. Summon (0x28898dc) only uses StaticFindObject, so the class must already be loaded.
+  - New PakScan.java: read-only scan of obb (zip, stored paks) / loose .pak file-name indexes (no decryption; encrypted indexes are skipped and counted). Collects vehicle BP class paths (/Vehicles/, BP_/VH_) and Avatar/<cat>/<11-digit id>/<file> names. Logs "车型候选", "外观 ...", "3级头= 3级甲= 风衣= 外套候选=".
+  - 刷车: scan on first tap and auto-spawn when done; load BP via `set GameModeBase SpectatorClass <path>` + `set PlayerController CheatClass <path>` (FindImportedObject load fallback; metaclass mismatch means nothing is changed), then `Summon <path>`; on "Failed to summon/find class" tries next candidate (max 6).
+  - 头盔/护甲 → 3级头/3级甲: scan result (Helmet03/Armor03/lv3 in file names), fallback 30304000004 / 30305000004 (pattern: 30304000003=Helmet02, 30305000002=1级甲).
+  - 风衣 button: scan match (trench/windcoat/…); otherwise cycles Coat/LongShirt ids and toasts each id so the user can report which is the 风衣.
+  - Build env now: tools from build-tools r36 (android-16) + platform-34 android.jar + JDK21 aarch64.
+- v1.31 (vc 32, core 32):
+  - v1.30 PakScan found 0 paks: data paks are not in obb / Android/data (only files/update, IFS first_source.ifs = base.apk?assets/nzres.png). Now also scans the game's own base.apk + splits (zip, stored .pak entries) and logs pak counts.
+  - Device test: 30304000004 (Helmet02_2) gives OK; 30305000004 gives 可放=-6 结果=0. 3级甲 now tries 30305000003,05,06,01,07,08 in order (auto-next on 结果=0), remembers the one that works, toast shows id.
+  - 传送到安全区 → 传送到地图中心: BugItGo 0 0 12000 (world origin = map centre; ground samples 5–50 m), auto God on if not on (tracked Con.godOn, reset each map), auto God off after 15 s.
+  - Launcher: 「更新」→「更新补丁」 only shown when checkUpdate finds sound/give patch missing or game-embedded ZFrame dex != assets/inject.dex; otherwise chip 补丁已是最新. After sign shows dialog 「补丁已做好 / 即将跳转安装…」 2 s, then installer.
+  - Not done: map select on the game's own 开始游戏 (needs lobby UI RE), costumes via mail (lobby/mail data is server-side).
+- v1.32 (vc 33, core 33):
+  - Device test v1.31: 30305000003 = 3级甲 (耐久 250, first try). 30304000004 = 2级头 (耐久 150). Base.apk has 0 .pak entries: paks come from Tencent IFS (assets/nzres.png = first_source.ifs) → PakScan useless, no longer auto-started.
+  - 开始游戏选图: lobby 开始 → MatchUI; pressing its 开始 logs "UNZOnlineMatch::RequestStartSingleMatch add_maps_chose:N" then server msg 15001 is discarded (connector invalid, offline). Con.line watches that line → goMap: 1 老海岛, 3 新海岛(GameMapId 3), 4 雨林(GameMapId 4), 5 训练场 (not mapped), 4 s debounce.
+  - 刷车: libUE4 has real exec SpawnVehicle(int type, FVector, FRotator) thunk 0x11df118 → impl 0x1102ca4 (World→AuthGameMode, GameMode+0x914 VehicleManager → 0x100600c). ENZVehicleType order: 0 None,1 Uaz_ClosedTop,2 Dacia1300,3 Boat,4 Uaz_MetalTop,5 Uaz_OpenTop,6 Buggy,7 Reserver,8 MotoCycle,9 MotoBike,10 MiniBus,...,17 Uaz_BulletProof. Player pos via "getall CapsuleComponent RelativeLocation" (line with BP_NZBRCharacter...). Spawn at +500 X, +150 Z; success = getall WheeledVehicle/NZVehicleMotoCycle bHidden lines > 0; tries 4 types.
+  - 3级头 tries 30304000005..09; 一键开局装备 uses 30305000003.
+  - 风衣: cycles Coat 30315000001..080, skips failed, toasts id.
+  - Warehouse/mail: lobby has no server (ConnectorService connector invalidate), inventory never arrives — not done.
+- v1.33 (vc 34, core 34):
+  - Device test v1.32: 3级头 = 30304000005 (Helmet03, 耐久 230). Start-button map select works. 刷车 failed.
+  - 刷车 verdict: PC SpawnVehicle(int ResId, FVector, FRotator) is FUNC 0x00c20401 (BlueprintCallable, NOT Exec) → console never reaches it. Even natively, it needs the vehicle data table at VehicleManager+0x2c0 (row name = "%d" of ResId); no vehicle table is loaded offline (no NewDataTable for vehicles, VehicleSpawnComponentList 0). Server GM RPCs (ServerSpawnVehicleById/AddBot/AddBotEx/AddSpecialBot/TransBotToPlayer/TestSpawnAirSupplyBox/QuickAirStrick/DirectStartMatchSkipPlane/TestModifyAvaItem) all have _Implementation = 0xb63a30 (bx lr) in PC vtable 0x4c92d64. → 刷车 and 放机器人 button removed.
+  - Also v1.32 position bug: LOC regex matched ProneCollisionComponent (0,0,0) and the 2nd character; would need CollisionCylinder of BP_NZBRCharacter_..._C_0.
+  - Maps: only ErangelMobile, ErangeMobileRenew, SavageMobile_4x4 have main maps; TrainingIsland_Runtime has pieces only.
+  - Avatar categories (from texture paths): Coat 30315, CoatWithHat 30316, Overall 30323, WholeBody 30325, Shirt 30302, Trousers 30301, Shoes 30303, Helmet 30304, Armor 30305, Gloves 30306, Bagpack 30307, Facing 30308, Hair F 30213, BareMidriff 30232, Character F 10200000000. 找风衣 now cycles WholeBody→CoatWithHat→Overall 000..019.
+  - UI: removed 地图 tab (map select via game start button), 进入大厅, 重载门, 刷车. Title "全军出击单机版", launcher header "补丁更新".
+  - Lobby 选角色/仓库: lobby has no server (connector invalidate) — not feasible.
+- 01:04 device test v1.33: WholeBody 30325 always 可放=-5 (backpack vfunc +0x6ec CanAdd false, before item-table lookup); CoatWithHat only 30316000007 ok; Overall only 30323000002 ok. Coat 30315 ok: 1-6,8-12,14-18,20-22,26,33,36,37,39,41-44,48,49,52-55,57-61. 30315000001 texture F_Jacket_Lon_01 (long jacket, likely 风衣). Offered: button cycles only known-good ids starting 30315000001.
+- v1.34 (vc35/core35): user reports many coats say 与当前角色不符 (gender). 找风衣 cycles only known-good ids (39 coats from 30315000001 + 30316000007 + 30323000002). New 切换男/女(试验): set NZCharacter CharacterGender CharacterGender_Male/Female + set NZPlayerState PlayerGender PlayerGender_Male/Female (props at char+0x70c, PS+0x460), getall before/after logged.
+- v1.35 (vc36/core36): user asked (01:10) for 游戏流程 toggles: 不上飞机 (stay on 出生岛) and 不刷毒. Also wants later to "改服务端" so warehouse has items / cars / bots (deferred; offline has no server).
+  - Found: `set` works (FrameRateOption), but NZBRGameState reads 60/45 from table at init (NZBRGameState.cpp:304) after our 进图 tweaks → old TWEAKS never took effect (logs: phase 0→1 after 60 s, 1→2 after 45 s). Now applyFlow runs 3 s after the cpp:304 line: set WaitingPlayers/StartMatch/ResetStartMatch CountDownTime = 99999 (不上飞机) or 5.
+  - Poison: ARestrictedAreaSystem.CurrRoundRestrictedAreaRepInfo at +0x2b8, struct field bStart at +0x41 (=0x2f9). Circle Tick 0xd97df0 skips everything when bStart==0. 不刷毒 runs `set RestrictedAreaSystem CurrRoundRestrictedAreaRepInfo (bStart=False)` every 5 s. Unverified on device.
+  - Exec StopRestrictedArea/TestRestrictedArea on PC are stripped (b 0xb63a30); Debug_PoisonFog_* are on a non-console class. StartRestrictedArea = NZBattleRoyaleGameMode vtable(0x4c85d44)+0x604 → 0x100f0dc.
+- 01:34 user (v1.35 test): gender switch, 不上飞机, 不刷毒 all had no effect. Logs: `set` on in-world actors is ignored (getall still 60/45, CharacterGender_Female, PlayerGender_None); `set` only took effect on NZSystemSettingData (config props, transient) → shipping build likely limits SET to config properties. A red long coat did get worn (screenshot).
+- v1.36 (vc37/core37):
+  - Removed 缩短等待, 游戏流程 toggles, 切换男/女. Panel: 无敌, 传送, 平板视角 (FOV exec: 默认/90/100/110), guns M416/AKM/AWM + search box (GUNS table), ammo 5.56/7.62/子弹3, 信号枪 (giveTry candidates) + 信号弹 20600000009, 特别的东西 (平底锅, 弩+箭, 苹果, 毒气弹, 烟雾弹, 燃烧瓶, 全套药品, 绝地风衣(男款) 30315000048).
+  - Weapon ID rule: 201 + mid(01 Rifle,02 Machine,03 Shotgun,04 Snipe,05 SMG,06 Special) + 6-digit subtype index from ENZ*SubType enums (Rifle: M416,AKM,M16A4,SCAR_L,GROZA; Snipe: Kar98k,AWM,SKS,M24,MK14,MINI14,VSS; SMG: UMP9,UZI,Vector,Tommy; Shotgun: S1897,S686,S12K; Machine: M249; Special: CrossBow). Pistols 2020100000N (P92,P1911,R1895,P18C) and melee 2030100000N (EmptyHand,Pan,Machete,Sickle,CrowBar) and throw 2040100000N (Frag,Stun,Smoke,Molotov,Apple,PoisonGas) are inferred. Ammo EItemAmmo: 1 5.56, 2 7.62, 3 9mm, 4 .45, 5 12G, 6 .300, 7 Bolt, 8 5.8, 9 FLARE. Flare gun class ANZWeap_FlareGun exists, ID unknown.
+  - Avatar coat 30315000048 textures M_JDYS_D (male; likely 绝地风衣). Male-only items give 与当前角色不符; body comes from DefaultRoleClotheDataTable fallback in InitAvatarProxy 0x10d7380 (female row). Male switch would need a libUE4 patch (not done).
+  - App installer sets SessionParams.abiOverride="armeabi-v7a" via reflection to suppress Android 16 deprecated-ABI dialog (此应用与最新版Android不兼容). Unverified.
+  - Exec catalog: TestSetMoveSpeed → stub (mov r0,#1); InfiniteAmmo/TestSwitchRole/StopRestrictedArea/QuickStartNextFlight stripped. Speed/jump need a libUE4 patch.
+  - Open: which "更新弹窗" the user wants removed (libMczi window? needs confirmation).
+- v1.37 (vc38/core38): user asked to remove the yellow startup popup 更新中(100) 模块其他错误 Err:107 (game's GCloud first_extract fails offline), make default role male (绝地风衣 30315000048 is male), and add 加速/高跳/不上飞机/不刷毒.
+  - File patch in 更新 (Patcher UPD_OFF 0x15de030 = UNZUpdateUIView::ShowUpdateError → bx lr). Startup flow does not wait on it (core opens lobby itself).
+  - New Mods.java: runtime /proc/self/mem writes (verify orig bytes): 不刷毒 0xd97df0 → bx lr; 不上飞机 hook 0xffc1e4 (SetGamePhase 0xffc1d8, phase byte at +0x71c) → cave in GM OnSpawnVehicleSelectChange 0x171e4b0 (uxtb ip,r1; cmp ip,#2; subeq sp,fp,#0x10; popeq {r4-r7,fp,pc}; mov r4,r0; b 0xffc1e8); 男角色 0x10d76d8 movw/movt 10200000000 → 10100000000 (male literal also used at 0x10d7d1c). Toggles saved in prefs zmods, re-applied when overlay attaches.
+  - 加速/高跳: pawn from give cave (AddAvaItem P0x1x<buf> → [buf+4]=pawn), CMC=[pawn+0x34c], MaxWalkSpeed +0x164, Crouched +0x168, JumpZVelocity +0x128 (from FPropertyParams). Thread rewrites every 250 ms, rebasing when the game changes the value.
+  - All unverified on device. Male body assets may be missing (pak index only showed Avatar/Male/Character/ dir).
+- v1.37 test: 男角色 works (body 10100000000). 30315000048 not the 绝地风衣 the user means. 信号枪 candidate 20201000005 = 92式手枪 (pistol); flare gun is not in any ENZ*SubType enum → no item ID, dropped. 毒气弹 rejected (-6). Speed/jump never applied: AddAvaItem P0x1x<pbuf> never filled the pawn (cause unknown).
+- Weapon enum order (UEnum tables): Rifle M416,AKM,M16A4,SCAR_L,GROZA; Machine M249; Shotgun S1897,S686,S12K; Snipe Kar98k,AWM,SKS,M24,MK14,MINI14,VSS; SMG UMP9,MicroUZI,Vector,TommyGun; Special CrossBow; Assi P92,P1911,R1895,P18C (+20201000005=92式); Melee EmptyHand,Pan,Machete,Sickle,CrowBar; Throw Frag,Stun,Smoke,Molotov,Apple,PoisonGas.
+- v1.38 (vc39/core39): branding AW / 艾挽 全军出击单机版; volume +/- show/hide panel with animation (Window.Callback proxy); gun search box → category picker (CATS, each gun gives matching ammo); speed/jump SeekBars 1.0–5.0; pawn also taken from the give diag buffer; coat browser 上一件/下一件 over 30315 1-70, 30316 1-20, 30323 1-10; male toggle labelled 大厅设置; 正在进图 toast hidden unless abnormal. 不兼容 dialog = Android's 32-bit (deprecated ABI) warning, cannot be removed from the app side. Throwable arc not following pitch: not investigated yet.
+- v1.39 (vc40/core40): 不兼容弹窗 — Android 16 AppWarnings.showDeprecatedAbiDialogIfNeeded has no "don't show again" flag, shows on every activity start, skipped only when ApplicationInfo has PRIVATE_FLAG_EXT_CPU_OVERRIDE (install with abiOverride). v1.36 set the hidden field by reflection (blocked). Now MainActivity.withAbi rebuilds SessionParams through a Parcel with abiOverride="armeabi-v7a" (A16 parcel order). Needs 更新 reinstall. Flare gun: "找信号枪" in 特殊武器 tries FLARE candidates, reads weapon name from game log (Con.lastWeap). Added R45 20201000006, 短管喷子 20201000007, QBU88 20104000008 (from pak mount points W<9-digit>_<Name>). Speed/jump slider up to 10x. Throw arc not following pitch also without FOV: not fixed yet.
+- v1.40 (vc41/core41): left tabs = 功能 + gun categories (CATS) + 衣服 + 设置 (left column scrolls), right side shows the guns; 信号枪 button (probe found it on device, id persisted in prefs zmods "flare"); success toasts removed. Volume keys removed → five-finger tap opens panel (Window.Callback proxy on dispatchTouchEvent), ✕ in title bar closes it. 不上飞机 cave now maps SetGamePhase 1/2 → 4 (phases: 0 waiting 60s no UI, 1 StartMatch countdown, 2 plane, 3 ?, 4 landed/fighting, 10 end), so no countdown and no flight route. Speed fix: ACharacter CMC is +0x2f8 (Mesh 0x2f4, Capsule 0x2fc); 0x34c was wrong. New gun mods via pawn+0x890 CurrWeapon: RecoilScaleBase 0x584/0x588/0x58c=0, spread 0x578/0x57c/0x580/0x5ac=0, ammo 0x608/0x604 refilled to ClipAmmoCount 0x52c. Coat browser auto-skips rejected IDs and also tries 30115/30116/30123/30215. Throw arc still open.
+- v1.41 (vc42/core42): 正常演习/非正常演习 = setFree: plane cave + poison + WAIT patch 0x1019774 (ldr r0,[r6,#0x38] WaitingPlayers 60s → mov r0,#1.0). 子弹 tab added. Coat page has 11-digit input (giveTry single id; -5 = 不能放/性别不符, -6 = 没有). Speed: MaxWalkSpeed is recomputed by game; now writes pawn CustomTimeDilation +0x58. Jump (CMC+0x2f8 → JumpZ +0x128) confirmed working by user. RecoilScaleBase 0x584/588/58c are randomized obfuscation multipliers (func 0xf07970 re-rolls to 1..10 if ≤0.5) → zeroing made recoil fly up; now heuristic-find component with RecoilParamTable +0x118 / CameraRecoil +0x17c / Spread +0xb4 and zero those. 真无限子弹: patch 0xefd104 sub r5,r5,r6 → mov r5,r5. Flare gun class = BP_NZWeap_FlareGun. 不上飞机 confirmed working.
+- v1.42 (vc43/core43): 无限子弹 now also sets ClipAmmoCount 0x52c and ammo 0x608/0x604 to 999 (user wants count shown as unlimited).
+- v1.43 (vc44/core44): 999 dropped. Game has Exec console cmd InfiniteAmmo on PlayerController (flags 0x20601, near DirectStartMatchSkipPlane/KillBot/BotNum) → button sends it (HUD ∞ expected, toggle). Patch 0xefd104 kept as fallback. Also noted Exec DirectStartMatchSkipPlane exists.
+- v1.44 (vc45/core45): v1.43 crashed a few seconds into the Tencent splash. Suspected integrity check on ammo code → removed the 0xefd104 code patch entirely. Infinite ammo = InfiniteAmmo cmd + data refill only. If it still crashes, next suspect is the WAIT patch 0x1019774 (applied at startup when 非正常演习 is on).
+- v1.45 (vc46/core46): v1.44 still crashed at splash (SIGSEGV fault 0x644 MainThread-UE4, before UE log opens). WAIT patch 0x1019774 no longer applied (only restored when turning off). 非正常演习 = plane + poison only.
+- v1.46 (vc47/core47): v1.45 still crashed. Mods.restore no longer auto-applies anything at startup (no patches, no mover/askPawn); user re-enables toggles per launch.
+- v1.46 confirmed: no startup crash. Root cause = auto-restore of toggles during splash (patches or mover's AddAvaItem exec). Never write memory / exec console during splash.

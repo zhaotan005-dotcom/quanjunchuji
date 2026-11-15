@@ -1,0 +1,922 @@
+Signature-Version: 1.0
+Created-By: Android Gradle 8.0.2
+SHA1-Digest-Manifest: yCe+MjNDt+zRe7RXXwpTE88nTR4=
+X-Android-APK-Signed: 2,3
+
+Name: AndroidManifest.xml
+SHA1-Digest: T5EL0oLb3JE/K6CnBy487PWuHNw=
+
+Name: BeaconVersion.txt
+SHA1-Digest: ddwPsD7fOeexY0DrzFBVOUHYtiM=
+
+Name: assets/GCloudVoice/config.json
+SHA1-Digest: MwlGev7Zxp7N+NPFDnnUa7TyW/g=
+
+Name: assets/QCC_APM_PUBGM
+SHA1-Digest: AVWkPpqpNYlUvljMiJtlEcEm/dk=
+
+Name: assets/__tpcfinfo.tsa
+SHA1-Digest: 3EfqIBb0RlPL1z0UKQiTTov8wsA=
+
+Name: assets/__tpinfo.tsa
+SHA1-Digest: KK7f8CWXaNPPmv/bonjIp8Il0r8=
+
+Name: assets/background.9.png
+SHA1-Digest: qhOQ3ngE+j2c+mdw2X9EDe+9wEI=
+
+Name: assets/buttonNegt.png
+SHA1-Digest: 4o1YDUNngbF3CgBHoOD0vWpWJaE=
+
+Name: assets/buttonPost.png
+SHA1-Digest: /fEb+4rXqJotvz4Vj6DbBN4cEZs=
+
+Name: assets/button_green.9.png
+SHA1-Digest: ctMCFIi90petPMj+T1+X+UGc2J0=
+
+Name: assets/button_red.9.png
+SHA1-Digest: K9BecmdMpxJgQw4q5lD7zEhthxc=
+
+Name: assets/channel.ini
+SHA1-Digest: s4FjguLswDvYUfHtBbkHk9fjFCc=
+
+Name: assets/com.tencent.open.config.json
+SHA1-Digest: kKCNfM9bnC/BPB0q7+Tx+Co4sC8=
+
+Name: assets/com.tencent.plus.bar.png
+SHA1-Digest: gKvfO6EOTH1BlhRGpf4y7FRw4KM=
+
+Name: assets/com.tencent.plus.blue_disable.png
+SHA1-Digest: i4v7dMBOQRJVnLz32bAAomMyRkM=
+
+Name: assets/com.tencent.plus.blue_down.png
+SHA1-Digest: jFHjp7j9TYQ9IxsMMq6jlceyfJg=
+
+Name: assets/com.tencent.plus.blue_normal.png
+SHA1-Digest: EA8wzMSaeieGA5ZAX0AHXVSAhBg=
+
+Name: assets/com.tencent.plus.gray_disable.png
+SHA1-Digest: lp1BX2H+D9DH6xVV2oweyISz9bE=
+
+Name: assets/com.tencent.plus.gray_down.png
+SHA1-Digest: lzg9od8HZOBuPHl29CiARHbpUxE=
+
+Name: assets/com.tencent.plus.gray_normal.png
+SHA1-Digest: 63fILhV5Vef8EhM6/IVAWqChGtA=
+
+Name: assets/com.tencent.plus.ic_error.png
+SHA1-Digest: lRbEuIMJ2GWNr7JYE8MTMfy7ltc=
+
+Name: assets/com.tencent.plus.ic_success.png
+SHA1-Digest: ce2w3l0LEC8XIR4xf6aHmjqsgks=
+
+Name: assets/com.tencent.plus.logo.png
+SHA1-Digest: NF8cS1wBpMY5QhguaSiYUSbP1uI=
+
+Name: assets/comm.t.p.sin
+SHA1-Digest: jKMlsP6vKDpYWsIqJlPDtKpKthY=
+
+Name: assets/dnsconfig.ini
+SHA1-Digest: CY96On3Tvt63ze972hUFNLjw3H4=
+
+Name: assets/libwbsafeedit
+SHA1-Digest: FDKAijDjd6tuza3xyTmJ7apNZUY=
+
+Name: assets/libwbsafeedit_64
+SHA1-Digest: r0DunFIWgB8/Hv1qcAK5VlNSU2w=
+
+Name: assets/libwbsafeedit_x86
+SHA1-Digest: ykeVVw797kaDk1OuZCgdNhQr/uM=
+
+Name: assets/libwbsafeedit_x86_64
+SHA1-Digest: 4sUtx7bxSfcF2w0MdV+N5zqWXVE=
+
+Name: assets/main.obb.png
+SHA1-Digest: 0PotMukTaQfIgUQI0AUv6q0tcbQ=
+
+Name: assets/msdk_agreement.txt
+SHA1-Digest: orAew701D7Wj9sI0SLAL4Z9PskQ=
+
+Name: assets/msdkconfig.ini
+SHA1-Digest: 5hRiBAOHl4/llu2HpGdBAp6JKqQ=
+
+Name: assets/msdkinfo.ini
+SHA1-Digest: ME7gdt54LNjsqt65t4teduRRmA0=
+
+Name: assets/plugins/qmi/ScreenRecorderPlugin.apk
+SHA1-Digest: JGxkPJOyjGr386iXaifVMCKjV6A=
+
+Name: assets/plugins/qmi/config.xml
+SHA1-Digest: 7IVyeRpy8UIE6Lq2zcB0J2M7efw=
+
+Name: assets/record_config.cfg
+SHA1-Digest: 1oLafhTUcy4i0kiCzGC1XDfcnfg=
+
+Name: assets/tpginf.dat
+SHA1-Digest: cKaGBkqYpreg/A6ldLwRnxlnrNA=
+
+Name: assets/yyb_appdetail_bg_floatingwindow.9.png
+SHA1-Digest: QIgWGWpVCjcljThndxi0zQLD9bc=
+
+Name: assets/yyb_appdetail_showmore.png
+SHA1-Digest: JKtvywUy8YIBTcLsOUhiSaZ7Wog=
+
+Name: assets/yyb_friends.png
+SHA1-Digest: 7R4+GqlBDL0EYRNyI09xrJcNECo=
+
+Name: assets/yyb_icon_back.png
+SHA1-Digest: ntnQrljwHbktDdFq37C1kzI1tow=
+
+Name: assets/yyb_qq.png
+SHA1-Digest: VU19Y6dcK1sOcOZOlnxu6ENKFIo=
+
+Name: assets/yyb_qzone.png
+SHA1-Digest: BADOuMmdA4Fd3ubcIbwcFtA1yVQ=
+
+Name: assets/yyb_topbar.9.png
+SHA1-Digest: enxB/kekyWuDzn0GlcNw0a+3/Tw=
+
+Name: assets/yyb_weixin.png
+SHA1-Digest: PLvENXi5FnlWy/QXVKOeEED8lZg=
+
+Name: build-data.properties
+SHA1-Digest: SBxJcAdq3bvZlwAzxtmKazpsBPE=
+
+Name: classes.dex
+SHA1-Digest: A4TggWJgEEe+4s0OM+TSlfMrwxE=
+
+Name: com/tencent/tp/res/sync_src_from_tpsafe.py
+SHA1-Digest: X62Q+kclYP2vU76oqbv/18anxmY=
+
+Name: jsr305_annotations/Jsr305_annotations.gwt.xml
+SHA1-Digest: nmv5U418DLbK/IpqG+mxsvjsH5U=
+
+Name: lib/armeabi-v7a/libAkDelayWG.so
+SHA1-Digest: 0oiHVqaOuyyCLS2hxGvHvurnQ34=
+
+Name: lib/armeabi-v7a/libBugly-msdk.so
+SHA1-Digest: iavyZpOYzvNpkwrBpgndxYqcwgI=
+
+Name: lib/armeabi-v7a/libGCloudVoice.so
+SHA1-Digest: NbzxdJuUThVPCoS5fH5tpc4uhxs=
+
+Name: lib/armeabi-v7a/libMSDK.so
+SHA1-Digest: bdhs7F5cvhmbEOHkgBVMHslH0BQ=
+
+Name: lib/armeabi-v7a/libMSDKWeb.so
+SHA1-Digest: C6c+MFNER8YwjpL2DxiyT4pPj9U=
+
+Name: lib/armeabi-v7a/libMczi.so
+SHA1-Digest: coGRQcZtBgDuBrYFu9qaWcp2vq0=
+
+Name: lib/armeabi-v7a/libMsdkAdapter.so
+SHA1-Digest: kxvZZO6MAonKo5GjLi5cODc85O8=
+
+Name: lib/armeabi-v7a/libTDataMaster.so
+SHA1-Digest: mFq3ott2tvT/Pzdyq0Sux8bllXM=
+
+Name: lib/armeabi-v7a/libUE4.so
+SHA1-Digest: BP4F1kBBDyeonqkYse6rD8bGHJ8=
+
+Name: lib/armeabi-v7a/libWGRecorder.so
+SHA1-Digest: un+39Nn8asd8ll2q6Ac8oTIjPRI=
+
+Name: lib/armeabi-v7a/libabase.so
+SHA1-Digest: S2OIz2Qy19/FCUGYJq+f9HsNvng=
+
+Name: lib/armeabi-v7a/libcubehawk.so
+SHA1-Digest: 7M2txZE7Tt7EXo/ZqPnG5RC1ttI=
+
+Name: lib/armeabi-v7a/libfucktp.so
+SHA1-Digest: 4XFhd3AAO4XQZnhl1swqNWunGtY=
+
+Name: lib/armeabi-v7a/libgcloud.so
+SHA1-Digest: LK696Mvh57ODK0JEU6TofaQI2fg=
+
+Name: lib/armeabi-v7a/libgnustl_shared.so
+SHA1-Digest: 7stSWw+j0t6gwhKkzqnk9x02Vf8=
+
+Name: lib/armeabi-v7a/libhwthread.so
+SHA1-Digest: 6KKSbTi8OHs3X2mJ+WClNo8CeVw=
+
+Name: lib/armeabi-v7a/libnetworkhelper.so
+SHA1-Digest: qGTzlPntBUAJz4hIyzwAEYj6WJU=
+
+Name: lib/armeabi-v7a/libtersafe.so
+SHA1-Digest: U4myUmxGGHuphRg+l32udY/9lz8=
+
+Name: lib/armeabi-v7a/libtpnsSecurity.so
+SHA1-Digest: BzQt8jGxcd4Sg+WKutk/5fGaWtQ=
+
+Name: lib/armeabi-v7a/libtprt.so
+SHA1-Digest: vrMeDiF1Ic2p1tx2fB2we8qDrGI=
+
+Name: lib/armeabi-v7a/libxguardian.so
+SHA1-Digest: 9AtX8wnCrwWfYfknXsWk9CYwEWo=
+
+Name: lib/armeabi-v7a/libzip.so
+SHA1-Digest: JA1Qi5USSvraeEYTW2Fd1SN8uB0=
+
+Name: lib/armeabi-v7a/libzlib.so
+SHA1-Digest: kbb2tmLsPGHVxGgHGHNToXyBHug=
+
+Name: org/apache/http/entity/mime/version.properties
+SHA1-Digest: iiszYWc7HEW/7aIlCjOXTowXGjQ=
+
+Name: res/anim/com_tencent_msdk_webview_titlebar_hide.xml
+SHA1-Digest: YpwBYpvibwkV4brhUxggd6svpRE=
+
+Name: res/anim/com_tencent_msdk_webview_titlebar_show.xml
+SHA1-Digest: DW9ncX9okEjG6FCxHN67o1ERjsc=
+
+Name: res/anim/com_tencent_msdk_webview_toolbar_hide.xml
+SHA1-Digest: 6jypme0sMDGVH9hGkNm3J+owAG0=
+
+Name: res/anim/com_tencent_msdk_webview_toolbar_show.xml
+SHA1-Digest: 8SI7tPF08JW/Yq0SbvxELblepLM=
+
+Name: res/anim/msdk_thrdcall_more_dialog_enter.xml
+SHA1-Digest: foGfHYMDvHA2BJruLAShMhcQmVI=
+
+Name: res/anim/msdk_thrdcall_more_dialog_exit.xml
+SHA1-Digest: TSTkIgOW14q1gKQJd+xlxmUgGMI=
+
+Name: res/anim/noaction.xml
+SHA1-Digest: 18fSaPmalBCnwEErm8WrJR2Nc8s=
+
+Name: res/color/common_google_signin_btn_text_dark.xml
+SHA1-Digest: WYMiGVkVGVnR5DPCedtCS1kF4JQ=
+
+Name: res/color/common_google_signin_btn_text_light.xml
+SHA1-Digest: 9yndyy/xX5RKCfeQqjGhnLjk51s=
+
+Name: res/color/common_google_signin_btn_tint.xml
+SHA1-Digest: 3+4b746F7mncJcAW/4IhnAVdlFo=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_notice_web_loading.png
+SHA1-Digest: jhoTs7iweBkk4iVE0qyinUvvZ/o=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_push_icon.png
+SHA1-Digest: tL8GSV4FPV6qTM/oJ0O8WGuky10=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_close.png
+SHA1-Digest: q9SkOWaC30Y1uiCm8UnwldsMLIA=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_left.png
+SHA1-Digest: YtYKZg1Vmxw/dC/7rkDfBWpjd6c=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_left_unclickable.p
+ ng
+SHA1-Digest: rRYxUNekbPDf2UK3mlhLtFHWoeE=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_more.png
+SHA1-Digest: vzOHuS2tHZgDtM4Co3yTzeeZ5gY=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_qqbrowser.png
+SHA1-Digest: xS1kvpkN73tPK/i/2n8z8X8iji0=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_refresh.png
+SHA1-Digest: 283S0lV7KhWg8yD8tLt1bt1rW4w=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_right.png
+SHA1-Digest: qlVP9bjCucnZi27Q+UFWfCOF5Zo=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_right_unclickable.
+ png
+SHA1-Digest: eIv6WZsyCAOXNAWvhu8rjzhJADE=
+
+Name: res/drawable-hdpi-v4/com_tencent_msdk_webview_stop.png
+SHA1-Digest: cfTgxYhAz4H7jQE9a3qfCmHG8xM=
+
+Name: res/drawable-hdpi-v4/com_tencent_tmassistant_sdk_button_bg.9.png
+SHA1-Digest: FojUo3HnpvUau01gmfxcnEL/CUE=
+
+Name: res/drawable-hdpi-v4/com_tencent_tmassistant_sdk_button_blue.9.p
+ ng
+SHA1-Digest: MgdR2zhgof09R1QDB8V/Wy0m1X8=
+
+Name: res/drawable-hdpi-v4/com_tencent_tmassistant_sdk_button_gray.9.p
+ ng
+SHA1-Digest: Ec52dfMDjW1Rctrjak6iGXSNEMg=
+
+Name: res/drawable-hdpi-v4/com_tencent_tmassistant_sdk_button_green.9.
+ png
+SHA1-Digest: 7gsmad0wLbi70kwXsHJFeCaRoe4=
+
+Name: res/drawable-hdpi-v4/com_tencent_tmassistant_sdk_popup_bg.9.png
+SHA1-Digest: /4teXsUafPrZvdN2PG5QLLZ2Zgw=
+
+Name: res/drawable-hdpi-v4/common_full_open_on_phone.png
+SHA1-Digest: IYhERD2r3O1CfXk1KLb3SP8B6vo=
+
+Name: res/drawable-hdpi-v4/common_google_signin_btn_icon_dark_normal_b
+ ackground.9.png
+SHA1-Digest: WPuzX2mN+o9Ytnx/jvQfoZYjdas=
+
+Name: res/drawable-hdpi-v4/common_google_signin_btn_icon_light_normal_
+ background.9.png
+SHA1-Digest: HkiLkY/8EpSujOzbdVYouf6/yIo=
+
+Name: res/drawable-hdpi-v4/common_google_signin_btn_text_dark_normal_b
+ ackground.9.png
+SHA1-Digest: /nCf0b/1C9vQRp1DAiF2kQNDDOY=
+
+Name: res/drawable-hdpi-v4/common_google_signin_btn_text_light_normal_
+ background.9.png
+SHA1-Digest: zyemz4KmHQUCvYKLkiBmCaHmsM4=
+
+Name: res/drawable-hdpi-v4/googleg_disabled_color_18.png
+SHA1-Digest: OkbkW+NcUrLsg9rAKxv6hFRMxEc=
+
+Name: res/drawable-hdpi-v4/googleg_standard_color_18.png
+SHA1-Digest: R/cfRlPHR+dLhiJl4Ig3zv+duJk=
+
+Name: res/drawable-hdpi-v4/ic_plusone_medium_off_client.png
+SHA1-Digest: OVpgu6PZPFszMiA/KM1Hrm3/V04=
+
+Name: res/drawable-hdpi-v4/ic_plusone_small_off_client.png
+SHA1-Digest: o9AV1R5TfAmgfYTKa8nvGMDCVMk=
+
+Name: res/drawable-hdpi-v4/ic_plusone_standard_off_client.png
+SHA1-Digest: L23s+xhk3WDoxIk5qLmwgOghDZM=
+
+Name: res/drawable-hdpi-v4/ic_plusone_tall_off_client.png
+SHA1-Digest: F70fX0KMWpqd/NFM4cUowYwgALI=
+
+Name: res/drawable-hdpi-v4/icon.png
+SHA1-Digest: zaq2ojDt0lTo4an+5So2j27pp6M=
+
+Name: res/drawable-hdpi-v4/msdk_thrdcall_action_sheet_base_9.9.png
+SHA1-Digest: bvpyhlfFaKHpOKVp2Iq4x1vaRUo=
+
+Name: res/drawable-hdpi-v4/msdk_thrdcall_action_sheet_button_cancel_cl
+ ick.9.png
+SHA1-Digest: SGCNfzDRE7B3XHIGhDuCFnbwnP4=
+
+Name: res/drawable-hdpi-v4/msdk_thrdcall_action_sheet_button_cancel_no
+ rmal.9.png
+SHA1-Digest: EirywaBOgLJpNMNH/Gg4PRoK8ME=
+
+Name: res/drawable-hdpi-v4/msdk_thrdcall_bg_light.9.png
+SHA1-Digest: evX5DSntlE9kj0HLkkloxpck81U=
+
+Name: res/drawable-hdpi-v4/notify_panel_notification_icon_bg.png
+SHA1-Digest: N3YC9zLEOE13apSi7g9icPmaLG8=
+
+Name: res/drawable-ldpi-v4/com_tencent_msdk_notice_web_loading.png
+SHA1-Digest: LsLIalIxsQmPlz5+G58Ej6ty1lA=
+
+Name: res/drawable-ldpi-v4/com_tencent_msdk_push_icon.png
+SHA1-Digest: hl573OTEWSaG9oFMaXgtpHLcR5c=
+
+Name: res/drawable-ldpi-v4/icon.png
+SHA1-Digest: ocaSf5bL6mZiQv4Zk3ZbWLdujNM=
+
+Name: res/drawable-mdpi-v4/com_tencent_msdk_notice_web_loading.png
+SHA1-Digest: uS0r97epXn9JN94Me9niIBnbC6E=
+
+Name: res/drawable-mdpi-v4/com_tencent_msdk_push_icon.png
+SHA1-Digest: myIGRm7bZDgERfW8tYzgn3ATeQM=
+
+Name: res/drawable-mdpi-v4/common_google_signin_btn_icon_dark_normal_b
+ ackground.9.png
+SHA1-Digest: oRI2hfON4+8Bpr+zT62+NTFLukY=
+
+Name: res/drawable-mdpi-v4/common_google_signin_btn_icon_light_normal_
+ background.9.png
+SHA1-Digest: f+CdlZDLRZ1RJs9nzA8MqMupcVs=
+
+Name: res/drawable-mdpi-v4/common_google_signin_btn_text_dark_normal_b
+ ackground.9.png
+SHA1-Digest: j8RuzNZdC4eBMEufaTGc/3vN81k=
+
+Name: res/drawable-mdpi-v4/common_google_signin_btn_text_light_normal_
+ background.9.png
+SHA1-Digest: wCUGqGNAHKZk0BZS2jhg7AD94Ok=
+
+Name: res/drawable-mdpi-v4/googleg_disabled_color_18.png
+SHA1-Digest: rBuc7iAgT0ukOdYA9FKMSHbrSuk=
+
+Name: res/drawable-mdpi-v4/googleg_standard_color_18.png
+SHA1-Digest: d/kao6VbnyfcmBDFG6/7lW8S7z0=
+
+Name: res/drawable-mdpi-v4/ic_plusone_medium_off_client.png
+SHA1-Digest: oJRV/QmC2xodVczo97iq5N8mSVw=
+
+Name: res/drawable-mdpi-v4/ic_plusone_small_off_client.png
+SHA1-Digest: OrRv+mirx08AFXCdpygRMDUdXAQ=
+
+Name: res/drawable-mdpi-v4/ic_plusone_standard_off_client.png
+SHA1-Digest: oQok9H2ahFIZCxpISgcW2y2PXws=
+
+Name: res/drawable-mdpi-v4/ic_plusone_tall_off_client.png
+SHA1-Digest: eezLB9Bs8W2C8vxw5Rp1u/SLFo0=
+
+Name: res/drawable-mdpi-v4/icon.png
+SHA1-Digest: ltQXj2wh0uz8IM6PZ6PKjjS1+gU=
+
+Name: res/drawable-mdpi-v4/notify_panel_notification_icon_bg.png
+SHA1-Digest: tIhoHZP0GQ/rCqpDNN7U3oam8R4=
+
+Name: res/drawable-nodpi-v4/appfw_home_list_devider.9.png
+SHA1-Digest: tVmZ1Z7U4doxCirhEjVzPSggPKs=
+
+Name: res/drawable-tvdpi-v4/ic_plusone_medium_off_client.png
+SHA1-Digest: Ca9TFODsM1DjaG5oD2V9qC6HZY4=
+
+Name: res/drawable-tvdpi-v4/ic_plusone_small_off_client.png
+SHA1-Digest: 7+9QcTVRjO1K4tMMh059M1NYkM8=
+
+Name: res/drawable-tvdpi-v4/ic_plusone_standard_off_client.png
+SHA1-Digest: Ewk5bsRNTfYm2xJ4U7AZ+dxk9I0=
+
+Name: res/drawable-tvdpi-v4/ic_plusone_tall_off_client.png
+SHA1-Digest: dhgc7R4n6ARTcdjwXeyQ5/WxfkM=
+
+Name: res/drawable-watch-v20/common_google_signin_btn_text_dark_normal
+ .xml
+SHA1-Digest: twjQRFzwc6zQ8k0HH6DXxB4OSXY=
+
+Name: res/drawable-watch-v20/common_google_signin_btn_text_disabled.xm
+ l
+SHA1-Digest: pyWauhQBKi07sZAkXwSRc0LyKdo=
+
+Name: res/drawable-watch-v20/common_google_signin_btn_text_light_norma
+ l.xml
+SHA1-Digest: IRq8kIBOll7CURLU2iz2PdUjQqQ=
+
+Name: res/drawable-xhdpi-v4/check_permission_tip.png
+SHA1-Digest: Xt43rXkcUACu31t1mGrT0tDpib0=
+
+Name: res/drawable-xhdpi-v4/checkbox_off.png
+SHA1-Digest: 8IoyqLrfLwFGgh2xYEff+MfSL5c=
+
+Name: res/drawable-xhdpi-v4/checkbox_on.png
+SHA1-Digest: sxJDasQlK3ceIt+AGlVh2NnwACM=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_notice_popup.png
+SHA1-Digest: 8FWCSAc7v89Hze/f3Uoddg/cC4E=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_notice_roll.png
+SHA1-Digest: CLRxFJ0/fiDGLmb6JPM+KLAL2l8=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_push_icon.png
+SHA1-Digest: FXh+Eh10280gudC623PI9ErOcfc=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_close.png
+SHA1-Digest: MMPfGZTVqgz1O2uNWVCyLUKqLZY=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_left.png
+SHA1-Digest: QRKlQIpGxeA1C0VS0sn3oEFSUu8=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_left_unclickable.
+ png
+SHA1-Digest: CKOTgzpWeJEiApRGz4we93DlKNE=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_more.png
+SHA1-Digest: v2W2gdLTx+sWTYNwkots6C4Lso0=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_qqbrowser.png
+SHA1-Digest: bbc8GSxn/oXhbBt8xYuR1xrzr+Y=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_refresh.png
+SHA1-Digest: nD7y1cd3n3RM/GL+RDHj3mRVraE=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_right.png
+SHA1-Digest: QhDcy7YQztZPW8HtlO0JwZqLnaE=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_right_unclickable
+ .png
+SHA1-Digest: Fcy078NoUqt2gHpqaihjufN008I=
+
+Name: res/drawable-xhdpi-v4/com_tencent_msdk_webview_stop.png
+SHA1-Digest: XGC/ls49LGIN5unrFojaM/oVnWw=
+
+Name: res/drawable-xhdpi-v4/common_full_open_on_phone.png
+SHA1-Digest: eugP4LXZwrLWnhyn0WFL5vSlEbM=
+
+Name: res/drawable-xhdpi-v4/common_google_signin_btn_icon_dark_normal_
+ background.9.png
+SHA1-Digest: 3I2mFd+rDNL03uvYwrNS4l2B1Nk=
+
+Name: res/drawable-xhdpi-v4/common_google_signin_btn_icon_light_normal
+ _background.9.png
+SHA1-Digest: 9wL4rRIoLY/u5R0CHgCAYaritpU=
+
+Name: res/drawable-xhdpi-v4/common_google_signin_btn_text_dark_normal_
+ background.9.png
+SHA1-Digest: /ZnjUh1VaBtC12hx+hN6cfnuB9Q=
+
+Name: res/drawable-xhdpi-v4/common_google_signin_btn_text_light_normal
+ _background.9.png
+SHA1-Digest: 98WEq4d8g8j1PdnH3WvmYH2ipAI=
+
+Name: res/drawable-xhdpi-v4/googleg_disabled_color_18.png
+SHA1-Digest: F2sBaOYeJAZYI66E3web0NhudUQ=
+
+Name: res/drawable-xhdpi-v4/googleg_standard_color_18.png
+SHA1-Digest: 114JeE0V4TraBZ9dV1Y48zQ6VCY=
+
+Name: res/drawable-xhdpi-v4/ic_plusone_medium_off_client.png
+SHA1-Digest: Jyo6y7TypzugsmbyqQ6CQRKHhf0=
+
+Name: res/drawable-xhdpi-v4/ic_plusone_small_off_client.png
+SHA1-Digest: eeURJxFolNk8Zjw5OGDRvbWvIFE=
+
+Name: res/drawable-xhdpi-v4/ic_plusone_standard_off_client.png
+SHA1-Digest: xI5BadsEMsXldh2ljDmzmdu2XdM=
+
+Name: res/drawable-xhdpi-v4/ic_plusone_tall_off_client.png
+SHA1-Digest: t6pyf26TXIq5I3eodXOrIyWp5oc=
+
+Name: res/drawable-xhdpi-v4/icon.png
+SHA1-Digest: 7qr2A+gO23F2r70azsMesA9IhlU=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_btn_nor.9.png
+SHA1-Digest: bF/C8C85yA9Nc+SeqR9qO2DwLwI=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_btn_sel.9.png
+SHA1-Digest: 95EBMPnC+XZV4ej/jYoDIM6icck=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_check_nor.png
+SHA1-Digest: MuKtv/pU5YU39xx7ZRpVyY/fNKc=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_check_sel.png
+SHA1-Digest: iC9cTbVxlJJhJA4moSiZc16P9RM=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_close_nor.png
+SHA1-Digest: V7rv2Pw9uwc9J950jj+0vE+qA2I=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_close_sel.png
+SHA1-Digest: wn1UmFreHrfw/BAnsQasDIbyRG0=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_correct.png
+SHA1-Digest: RK4MiLJwNdviLr24ywx9MH1KxSg=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_error.png
+SHA1-Digest: rNzSZSc1Oy3FCe1JpMCo+KOC0NA=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_item_bg.9.png
+SHA1-Digest: eXTu7B1OWRvf5X1yXy9FdalwrF0=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_must.png
+SHA1-Digest: izw4Nz6M/2L8wVFnU2uywHGR80k=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_success.png
+SHA1-Digest: mGD5fVqNZah0ZTSpLPZgNVKyTQ4=
+
+Name: res/drawable-xhdpi-v4/msdk_name_auth_warning.png
+SHA1-Digest: KEHFQMibKH2WNeIKEwMDjkLnhAA=
+
+Name: res/drawable-xhdpi-v4/qmi_notyfy_dialog_bg.png
+SHA1-Digest: BX/huROQqCQAAgUhUHFDd1U+IWo=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_close.png
+SHA1-Digest: 6r7/q4U5/OH2N1VE0O6i0qvbLX8=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_left.png
+SHA1-Digest: ChrL5PGL/im+DulPaWJ/T7pSm5M=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_left_unclickable
+ .png
+SHA1-Digest: WIzP8OpM6YkZ9Q0LhtPcMqqOpEU=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_more.png
+SHA1-Digest: ZTRXJPL+kPDWhHM4U6TaHJI1vzY=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_qqbrowser.png
+SHA1-Digest: i0+Mtk9vHAqkKADF+YIeQhR5jWQ=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_refresh.png
+SHA1-Digest: psjhwhWmqKI2pPGe+ibsBNbmB1g=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_right.png
+SHA1-Digest: K/F69/AK/VlfXG9ijRldPBOE8cg=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_right_unclickabl
+ e.png
+SHA1-Digest: PM2rZiVV7/1jXWPGitR0M0qtWb4=
+
+Name: res/drawable-xxhdpi-v4/com_tencent_msdk_webview_stop.png
+SHA1-Digest: vrMd85ycVqtmBpbH4VawbickYXo=
+
+Name: res/drawable-xxhdpi-v4/common_google_signin_btn_icon_dark_normal
+ _background.9.png
+SHA1-Digest: E3b8zCKS17GRMez6fcytwmsN4LA=
+
+Name: res/drawable-xxhdpi-v4/common_google_signin_btn_icon_light_norma
+ l_background.9.png
+SHA1-Digest: BUPYn1xQqq+mKzFm9TT/LOVzhy8=
+
+Name: res/drawable-xxhdpi-v4/common_google_signin_btn_text_dark_normal
+ _background.9.png
+SHA1-Digest: r/qImtNld0slEkSpWzHHH6Q+t30=
+
+Name: res/drawable-xxhdpi-v4/common_google_signin_btn_text_light_norma
+ l_background.9.png
+SHA1-Digest: gwvpF3NTgNDnMr5nlU9trmOsTvM=
+
+Name: res/drawable-xxhdpi-v4/googleg_disabled_color_18.png
+SHA1-Digest: wrd3vVK7F3Vs1CGleFRABAfJtEA=
+
+Name: res/drawable-xxhdpi-v4/googleg_standard_color_18.png
+SHA1-Digest: b3G0a0t11ZIEZCBNHbHQ3a8pJOI=
+
+Name: res/drawable-xxhdpi-v4/ic_plusone_medium_off_client.png
+SHA1-Digest: tF7wcn3JVIex902KAZv0dUEh1bI=
+
+Name: res/drawable-xxhdpi-v4/ic_plusone_small_off_client.png
+SHA1-Digest: 3qEi3653bGVkzJwNcgioMbuMM3Y=
+
+Name: res/drawable-xxhdpi-v4/ic_plusone_standard_off_client.png
+SHA1-Digest: 07TxqaRL4aRs4ujrw24AzR9dlyQ=
+
+Name: res/drawable-xxhdpi-v4/ic_plusone_tall_off_client.png
+SHA1-Digest: agsHm/+iWMKmTm7pIPipcvR7Q8o=
+
+Name: res/drawable-xxhdpi-v4/icon.png
+SHA1-Digest: heHyNwvpZCYMKBcL3b88FQliMgE=
+
+Name: res/drawable-xxhdpi-v4/msdk_ad_first_btn_back_bkg_normal.9.png
+SHA1-Digest: B/BXx4Kn/9kSPX9fBg89esbSGI4=
+
+Name: res/drawable-xxhdpi-v4/msdk_ad_first_btn_back_bkg_pressed.9.png
+SHA1-Digest: SL/fVKbcyohZNt/UCemRZfGuPfo=
+
+Name: res/drawable-xxhdpi-v4/msdk_ad_second_btn_back_bkg_normal.9.png
+SHA1-Digest: 5FQRgvn0W7gFUQa5rQS05jCfXp4=
+
+Name: res/drawable-xxhdpi-v4/msdk_ad_second_btn_back_bkg_pressed.9.png
+SHA1-Digest: f3RRS1KVWBcfeNucJEKI1GwEF/0=
+
+Name: res/drawable-xxhdpi-v4/msdk_ad_third_btn_back_bkg_normal.9.png
+SHA1-Digest: DRzEkrWdDiwHTqvnJHNPTpw4Nkw=
+
+Name: res/drawable-xxhdpi-v4/msdk_ad_third_btn_back_bkg_pressed.9.png
+SHA1-Digest: A1RBUzfLcOUNmZyKEfaWqMH/gSM=
+
+Name: res/drawable-xxhdpi-v4/msdk_thrdcall_open_by_other_browser.png
+SHA1-Digest: hbqdy8GpAbyvzb/ez3jyVBo4mRM=
+
+Name: res/drawable-xxhdpi-v4/msdk_thrdcall_open_by_qq_browser.png
+SHA1-Digest: FV62gK9NiFunOv6d0MUv41kX5f4=
+
+Name: res/drawable-xxhdpi-v4/msdk_thrdcall_share_friend.png
+SHA1-Digest: /SWYNgkdzI10ApxW3o46vQOFvpE=
+
+Name: res/drawable-xxhdpi-v4/msdk_thrdcall_share_qq.png
+SHA1-Digest: l89UWnsyEbiUF92x7dbCjNH4Eq4=
+
+Name: res/drawable-xxhdpi-v4/msdk_thrdcall_share_qzone.png
+SHA1-Digest: wyJ4YblcdUBm3jcvjbTk7YuWaMQ=
+
+Name: res/drawable-xxhdpi-v4/msdk_thrdcall_share_weixin.png
+SHA1-Digest: RwSV4aQFKaDzD/1WXF1hl4/YdXM=
+
+Name: res/drawable-xxxhdpi-v4/icon.png
+SHA1-Digest: udazuobJJ41hjRiSMbYUMIKBQLM=
+
+Name: res/drawable/close_dialog_bg.9.png
+SHA1-Digest: YShHXtkDQ6CMDxmlh7IupCvGLtc=
+
+Name: res/drawable/com_tencent_msdk_notice_alert_page_round_top_bkg.xm
+ l
+SHA1-Digest: YJXCkzcuncrH1SCPyD0B2Y9MxtM=
+
+Name: res/drawable/com_tencent_msdk_notice_popup_page_round_top_bkg.xm
+ l
+SHA1-Digest: baCLtpY+iSkQRtK6r20B9nohzH4=
+
+Name: res/drawable/com_tencent_msdk_notice_popup_round_bottom_bkg.xml
+SHA1-Digest: QZpoPHtBDpDneAH4xa6xsox7YwQ=
+
+Name: res/drawable/com_tencent_msdk_notice_popup_round_bottom_btn.xml
+SHA1-Digest: wzmKKnruNi8s5Cj00WbrHN24XDw=
+
+Name: res/drawable/com_tencent_msdk_notice_popup_round_bottom_pressed.
+ xml
+SHA1-Digest: MlqN8G9pL14QU0M0PeBNcPtlqqY=
+
+Name: res/drawable/com_tencent_msdk_webview_btn_bg.xml
+SHA1-Digest: 84iiY5vD3v/ZQ7+Sm8y+RV9OSxE=
+
+Name: res/drawable/com_tencent_tmassistant_sdk_negtive_btn.xml
+SHA1-Digest: kCwumTaixMR4XNv30Ii2tM4jJoo=
+
+Name: res/drawable/com_tencent_tmassistant_sdk_negtive_btn_pressed.xml
+SHA1-Digest: Ee/mtKVXzfkB+LJKkhkgkGZMQWQ=
+
+Name: res/drawable/com_tencent_tmassistant_sdk_positive_btn.xml
+SHA1-Digest: o+FdDgz0RQFmCAOPhp2aRHxkDLE=
+
+Name: res/drawable/com_tencent_tmassistant_sdk_positive_btn_pressed.xm
+ l
+SHA1-Digest: zo8UP11xuJrH1T8lBb0xWQVROyA=
+
+Name: res/drawable/com_tencent_tmassistant_sdk_pregress_button.xml
+SHA1-Digest: OpmZD+mK/JjHttjf0i8MPAzhHeY=
+
+Name: res/drawable/common_google_signin_btn_icon_dark.xml
+SHA1-Digest: Gz7zyNdzFd9I7z/j3gpH/h25YQA=
+
+Name: res/drawable/common_google_signin_btn_icon_dark_focused.xml
+SHA1-Digest: Ys1USGORlvoIyYzDJ0Og7UJhYKg=
+
+Name: res/drawable/common_google_signin_btn_icon_dark_normal.xml
+SHA1-Digest: vsJgQ+dBi0hcvvAM1T84aa7y9GM=
+
+Name: res/drawable/common_google_signin_btn_icon_disabled.xml
+SHA1-Digest: jEJ/TCjx6e8fAr1m1ZTZeG+JTP8=
+
+Name: res/drawable/common_google_signin_btn_icon_light.xml
+SHA1-Digest: /2lad+NFNB3mx0p45ivLYFdEtFo=
+
+Name: res/drawable/common_google_signin_btn_icon_light_focused.xml
+SHA1-Digest: +Gx0jTiHAfPE5BXnekvAA1RGHHc=
+
+Name: res/drawable/common_google_signin_btn_icon_light_normal.xml
+SHA1-Digest: YvA3IanHAxW7stXcnvELmABT0vA=
+
+Name: res/drawable/common_google_signin_btn_text_dark.xml
+SHA1-Digest: p2NHLUM2s+bkBS9967izFL9Gp+A=
+
+Name: res/drawable/common_google_signin_btn_text_dark_focused.xml
+SHA1-Digest: x5l0SznHk0buFacoQJq5aik3oPA=
+
+Name: res/drawable/common_google_signin_btn_text_dark_normal.xml
+SHA1-Digest: CvSzMCgpB1LpAGJnjgAPtbEUAsg=
+
+Name: res/drawable/common_google_signin_btn_text_disabled.xml
+SHA1-Digest: UJPWJ057GowKAISkG5tCnzMM1hY=
+
+Name: res/drawable/common_google_signin_btn_text_light.xml
+SHA1-Digest: 1IbnfLiLI9CDaw+m12V/lE03nYI=
+
+Name: res/drawable/common_google_signin_btn_text_light_focused.xml
+SHA1-Digest: 1eHTHK61i7dB+tN8z/G54/3XxuE=
+
+Name: res/drawable/common_google_signin_btn_text_light_normal.xml
+SHA1-Digest: ETPIDCBTpZY9tsWQPiWMX+lLZf0=
+
+Name: res/drawable/downloadimageh.png
+SHA1-Digest: 10Iv+Phdyyv25QU0Ac9nm5JnW0k=
+
+Name: res/drawable/icon.png
+SHA1-Digest: ansE8RRVNrZUPIyayI3KykECnDM=
+
+Name: res/drawable/msdk_ad_first_btn_back_bkg.xml
+SHA1-Digest: kiSf6Cu1Wt/juHEqsT8PBDUdDck=
+
+Name: res/drawable/msdk_ad_second_btn_back_bkg.xml
+SHA1-Digest: zJqiUbeQ2iRU2FniuUBbEGRfe7w=
+
+Name: res/drawable/msdk_ad_third_btn_back_bkg.xml
+SHA1-Digest: HqFZPG1FwSfw0DB7K3Rii0k5VJ8=
+
+Name: res/drawable/msdk_name_auth_btn_bg.xml
+SHA1-Digest: UzwMUkEYdsH5DOSRi/ZYy94v5cY=
+
+Name: res/drawable/msdk_name_auth_btn_close.xml
+SHA1-Digest: rOcAeupW+Ls/IblzZmkwHCjL38k=
+
+Name: res/drawable/msdk_name_auth_btn_frame_bg.xml
+SHA1-Digest: bywtSnMWRXtFBhYxx/w9DVgRQTY=
+
+Name: res/drawable/msdk_name_auth_btn_text_color.xml
+SHA1-Digest: fp1+QUy+5CZ95Xw1/8ilRHy6mVg=
+
+Name: res/drawable/msdk_name_auth_btn_text_frame_color.xml
+SHA1-Digest: v1JBwedA89DcriZqV1VZ6OJ4RWw=
+
+Name: res/drawable/msdk_name_auth_checkbox_style.xml
+SHA1-Digest: R4QxKBOfIQUfvZDH1k+29vBXrEU=
+
+Name: res/drawable/msdk_thrdcall_browser_dialog_btn_cancel_bkg.xml
+SHA1-Digest: B4E3KMN4gjZMSFzqzIFLm6BJefg=
+
+Name: res/drawable/msdk_thrdcall_delete_fg.xml
+SHA1-Digest: 0SyHUgMTrxh+uudbEp4cb8R9Pfo=
+
+Name: res/drawable/msdk_thrdcall_sheet_btn_cancel_bkg.xml
+SHA1-Digest: ZyAcHrX+DL09/3rSBacCdIlUh7k=
+
+Name: res/drawable/qim_notify_v6_checkbox.xml
+SHA1-Digest: n2UFHD6R3x+MijJOK0bk+yUmutU=
+
+Name: res/drawable/qmi_ic_close_dialog_selector.xml
+SHA1-Digest: Ska+vTLQqoJjTqSbqrZy70m4dWo=
+
+Name: res/drawable/qmi_shape_alert_dialog_background.xml
+SHA1-Digest: DN59CZbJwGwxnENXIDcY18iSBjs=
+
+Name: res/drawable/splashscreen_landscape.png
+SHA1-Digest: injnGjSNp80DAPP8UJ2hmHlLK3M=
+
+Name: res/layout-land/com_tencent_msdk_notice_image.xml
+SHA1-Digest: Omaf1DJD/dAtAcg6cotaUrKGork=
+
+Name: res/layout-land/com_tencent_msdk_notice_image_url.xml
+SHA1-Digest: Y3gsPVvHxfFR2MctcW2NwBxIycM=
+
+Name: res/layout-land/com_tencent_msdk_notice_web.xml
+SHA1-Digest: 1PRYPJvJ2vBHG0vrJP6NabcO2MQ=
+
+Name: res/layout-land/com_tencent_msdk_notice_web_url.xml
+SHA1-Digest: 6Ex5i3EUitdbXlyojYLMHcI+oGw=
+
+Name: res/layout-land/downloader_progress.xml
+SHA1-Digest: sh8EeijL+11Khg4Yc4fLodt/ICk=
+
+Name: res/layout-ldpi-v4/com_tencent_tmassistant_sdk_white_list_dlg.xm
+ l
+SHA1-Digest: 8Z26e0rDGr26zJ8sOwU3XI+kLJk=
+
+Name: res/layout-port/com_tencent_msdk_notice_image.xml
+SHA1-Digest: Iy9EbgOGpxexpSArdfzjPU9hZV0=
+
+Name: res/layout-port/com_tencent_msdk_notice_image_url.xml
+SHA1-Digest: 4XuFmGaO1j5SeRDGRJeJiES+cPI=
+
+Name: res/layout-port/com_tencent_msdk_notice_web.xml
+SHA1-Digest: 115T6H+zFCVsAMtvCHu2BA5jx4k=
+
+Name: res/layout-port/com_tencent_msdk_notice_web_url.xml
+SHA1-Digest: BVa5HcACD7Fx9IsdltuSLFT9JCU=
+
+Name: res/layout/check_permission_dialog.xml
+SHA1-Digest: VBhiYSBAoFvE+LWtgJX7QjhGfD4=
+
+Name: res/layout/check_permission_layout.xml
+SHA1-Digest: Ia0WWtaUJrLP6ofxJhnONG2tZtY=
+
+Name: res/layout/com_tencent_msdk_notice_roll.xml
+SHA1-Digest: jev8SHH5/SBIcmVE2mvMNuOmTvM=
+
+Name: res/layout/com_tencent_msdk_notice_text.xml
+SHA1-Digest: MW7suiUV3o9zGlUItGFRicr5u2g=
+
+Name: res/layout/com_tencent_msdk_notice_text_url.xml
+SHA1-Digest: B4OrvCR3uNBiE1BJ2UzhXKhFgX8=
+
+Name: res/layout/com_tencent_msdk_qrcode_window.xml
+SHA1-Digest: ryFNFyci745zisIWoLJLBreRh4w=
+
+Name: res/layout/com_tencent_msdk_webview_window.xml
+SHA1-Digest: qkZ3rTjfof+IAGzkH1IXSQbSfJU=
+
+Name: res/layout/com_tencent_tmassistant_sdk_white_list_dlg.xml
+SHA1-Digest: nMHqJ/J65wEDtuc+AXYoWWBW4rQ=
+
+Name: res/layout/downloader_progress.xml
+SHA1-Digest: uh4sKpFFmx+kAB3ZkjvqpgFOuFs=
+
+Name: res/layout/msdk_ad_pause_three_default.xml
+SHA1-Digest: 9D76LZkwAjKHrV6o39v2rKt2T5M=
+
+Name: res/layout/msdk_ad_pause_three_show.xml
+SHA1-Digest: WFxzYqk+ngSf/Ywkddtwz90kU70=
+
+Name: res/layout/msdk_ad_pause_two_default.xml
+SHA1-Digest: 0IdwXFjuYM14JaP4nNmGyiisYik=
+
+Name: res/layout/msdk_ad_pause_two_show.xml
+SHA1-Digest: kMbuOIa3FkfTRVTIBqcVBTpbaXU=
+
+Name: res/layout/msdk_ad_stop_three_default.xml
+SHA1-Digest: iiHbxCZadPimHbKdWvW/24LbTKo=
+
+Name: res/layout/msdk_ad_stop_three_show.xml
+SHA1-Digest: SPX9doEW4KP11ISpc+YzMspiRD0=
+
+Name: res/layout/msdk_ad_stop_two_default.xml
+SHA1-Digest: CpCyLn2AB8a+I1EoLp3FIUG4wyE=
+
+Name: res/layout/msdk_ad_stop_two_show.xml
+SHA1-Digest: ZDP6MzBJBIe914CmwhJt2mS2/Ns=
+
+Name: res/layout/msdk_name_auth_dialog.xml
+SHA1-Digest: mRp7F99hNN5BR2YZcvUCTLZKskw=
+
+Name: res/layout/msdk_name_auth_main.xml
+SHA1-Digest: 4cKp6gMUgY2vyJixXv0xEtJNc+o=
+
+Name: res/layout/msdk_name_auth_web_dialog.xml
+SHA1-Digest: Fsi4yW6gzdIHH4rTwZ18H1qJ4zU=
+
+Name: res/layout/msdk_thrdcall_dlg_griditem.xml
+SHA1-Digest: 6EtK6BBUr3xjSmK8XSTRQ24JQHE=
+
+Name: res/layout/msdk_thrdcall_dlg_sheet.xml
+SHA1-Digest: 9od6tXdyVnmTB3UNNjFOiDyCOPU=
+
+Name: res/layout/msdk_webviewx_titlebar.xml
+SHA1-Digest: NMY5+otQgkz2S8BqJAmsW9m5yKU=
+
+Name: res/layout/status_bar_ongoing_event_progress_bar.xml
+SHA1-Digest: D3DYaJifJA7Ns9XFOL2Rvmg3xuw=
+
+Name: res/xml/apollo_file_paths.xml
+SHA1-Digest: PXwsO9AP6rdBsNZ5bbxuVEpetLc=
+
+Name: resources.arsc
+SHA1-Digest: vBlXcq5hO8BEaS7C1cOXVkkIFU4=
+
