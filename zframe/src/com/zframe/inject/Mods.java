@@ -23,20 +23,26 @@ public class Mods {
 
     public static volatile boolean noPoison, noPlane, male, noRecoil, noShake, infAmmo;
     public static volatile float speed = 1f, jump = 1f;
-    /** 找到的绝地风衣编号（存 prefs "coat"，只在点「穿上」时用，不自动穿） */
-    public static volatile String coatId = "";
+    public static final String COAT = "30318000000";
     static long base;
 
-    static android.content.SharedPreferences sp;
-    /** v1.50：只记住找到的衣服编号。其他开关每次启动都是默认（关），不自动打上 */
-    static void save() { if (sp != null) sp.edit().putString("coat", coatId).apply(); }
-    static void restore(final android.content.Context c) {
-        if (sp != null) return;
-        sp = c.getSharedPreferences("zmods", 0);
-        coatId = sp.getString("coat", "");
-        if ("30316000007".equals(coatId)) coatId = "";   // 以前的占位编号，不是绝地风衣
+    /* 初始衣服 = 绝地风衣（30318000000）。
+     * InitAvatarProxy(0x10d7380) 在 0x10d7960 调 0xc62c54 复制「默认衣服」列表（TMap<性别, TArray<int64>>）。
+     * 把这一处 bl 改成跳到 GM 面板里没用的函数空位(0x171e4d0)：先照常复制，再把列表里的
+     * 上衣 30301000001 换成风衣 30318000000、去掉裤子 30302000000（风衣是套装）。人物出生时就穿着，不用进图再刷。 */
+    static final long COAT_HOOK = 0x10d7960L, COAT_CAVE = 0x171e4d0L;
+    static final String COAT_HOOK_O = "bb2ceeeb", COAT_HOOK_N = "da1a19eb";
+    static final String COAT_CAVE_O = "00009fe7000090e520000be5040095e5007095e5000050e302008fe001708f00046080e25310a0e3040097e4010050e10500000a3f3ac6eb0040a0e1040016e53c3ac6eb000054e10b00001a040097e4041096e4002091e1f3ffff1aec029fe520101be500009fe7000090e5010050e018d04b02f08bbd08d439c6ebc40198e5000050e3f4ffff0a700090e5000050e31840901500005413";
+    static final String COAT_CAVE_N = "f0412de90040a0e1dd11d5eb005094e5046094e50070a0e3060057e11c0000aa878185e0000098e5041098e5412109e3142e40e3020050e1070051030600001a80270fe3172f40e3002088e50720a0e3042088e5017087e2eeffffea80230de3232e40e3020050e10700510301708712e8ffff1a016046e2863185e0000093e5041093e5000088e5041088e5046084e5e0ffffeaf081bde8";
+    public static volatile boolean coatOn;
+    static void builtInCoat() {
+        String r = write(COAT_CAVE, COAT_CAVE_O, COAT_CAVE_N, true);
+        if ("ok".equals(r)) r = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
+        coatOn = "ok".equals(r);
+        LogCap.note("初始衣服 绝地风衣 → " + r);
+        GameOverlay.refreshAny();
     }
-    /** v1.50：每次进图（包括回大厅）局内功能全部回到默认 */
+
     static void resetMatch() {
         speed = 1f; jump = 1f; noRecoil = false; noShake = false; infAmmo = false;
         cmc = 0; lastJump = Float.NaN; tableAi = 0; tableAt = 0;

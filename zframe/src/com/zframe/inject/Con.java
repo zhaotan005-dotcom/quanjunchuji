@@ -172,28 +172,29 @@ public class Con {
         "set NZGameMode bEnableAIDefaultWeap 1",
         "set NZGameMode bEnableGiveBotEquip 1",
         "set NZBattleRoyaleGameMode MaxBotLimit 30",
-        // v1.27：默认最高帧率档、最低画质档；关掉引擎的帧率平滑上限（游戏表里最高只给 60）
+        // 最高帧率档；关掉引擎的帧率平滑上限（游戏表里最高只给 60）
         "set NZSystemSettingData FrameRateOption 4",
-        "set NZSystemSettingData RenderQualityOption 0",
         "set GameEngine bSmoothFrameRate 0",
-        // v1.49：只要帧率不要画质。游戏自己的画质档（RenderQualityOption）离线时不生效（bCanApplyRenderQuality:0），直接改引擎画质项
         "r.AutoAdjustRenderQuality 0",
-        "sg.ShadowQuality 0",
-        "sg.PostProcessQuality 0",
-        "sg.EffectsQuality 0",
-        "sg.FoliageQuality 0",
-        "r.ShadowQuality 0",
-        "r.BloomQuality 0",
-        "r.MobileMSAA 1",
-        "r.DetailMode 0",
-        "getall NZSystemSettingData FrameRateOption",
-        "getall NZSystemSettingData RenderQualityOption",
-        "getall NZBRGameState WaitingPlayersCountDownTime",
-        "getall NZBRGameState StartMatchCountDownTime",
-        "getall NZSceneDoorManager StandaloneUnloadAllDoor",
-        "getall NZBattleRoyaleGameMode MaxBotLimit",
     };
-    static volatile long engineSeenAt, tweakAt, browseAt;
+    // ===== 画质：流畅（最低画质、帧率最高）/ 最高画质。游戏自己的画质档离线不生效，直接改引擎画质项 =====
+    static final String[] GFX_LOW = {"sg.ShadowQuality 0", "sg.PostProcessQuality 0", "sg.EffectsQuality 0", "sg.FoliageQuality 0",
+        "sg.TextureQuality 1", "sg.AntiAliasingQuality 0", "r.ShadowQuality 0", "r.BloomQuality 0", "r.MobileMSAA 1", "r.DetailMode 0"};
+    static final String[] GFX_HIGH = {"sg.ShadowQuality 3", "sg.PostProcessQuality 3", "sg.EffectsQuality 3", "sg.FoliageQuality 3",
+        "sg.TextureQuality 3", "sg.AntiAliasingQuality 3", "sg.ViewDistanceQuality 3", "r.ShadowQuality 5", "r.BloomQuality 5",
+        "r.MobileMSAA 4", "r.DetailMode 2", "r.MaxAnisotropy 8"};
+    /** 画质选择会记住（这是偏好，不是功能开关） */
+    public static volatile boolean hiGfx;
+    static void loadGfx() { Activity a = act; if (a != null) hiGfx = a.getSharedPreferences("zframe", 0).getBoolean("gfx_hi", false); }
+    public static void setGfx(boolean hi) {
+        hiGfx = hi;
+        Activity a = act;
+        if (a != null) a.getSharedPreferences("zframe", 0).edit().putBoolean("gfx_hi", hi).apply();
+        if (engineSeenAt > 0) applyGfx();
+    }
+    static void applyGfx() { for (String c : hiGfx ? GFX_HIGH : GFX_LOW) exec(c); }
+
+    static volatile long engineSeenAt, tweakAt, browseAt, coatAt;
     static volatile int tweakDone; static volatile long waitAt, brAt;
     /** v1.49：当前是不是在对局地图里（大厅 = false）。加速/高跳/刷物品只在对局里用 */
     public static volatile boolean inMatch;
@@ -244,6 +245,7 @@ public class Con {
         if (fps == 0) loadFps();
         applyFps();
         for (String c : TWEAKS) if (exec(c)) n++;
+        applyGfx();
         tweakAt = System.currentTimeMillis();
         tweakStatus = why + "：已发送 " + n + " 条（等待时间5秒/门/人机）";
     }
@@ -275,9 +277,6 @@ public class Con {
         exec("set NZBRGameState StartMatchCountDownTime " + t);
         exec("set NZBRGameState ResetStartMatchCountDownTime " + t);
         if (noPoison) exec(STOP_POISON);
-        exec("getall NZBRGameState WaitingPlayersCountDownTime");
-        exec("getall NZBRGameState StartMatchCountDownTime");
-        exec("getall RestrictedAreaSystem CurrRoundRestrictedAreaRepInfo");
         LogCap.note("游戏流程(" + why + "): 不上飞机=" + noPlane + " 不刷毒=" + noPoison);
     }
 
@@ -286,6 +285,8 @@ public class Con {
         if (browseAt > tweakAt && now - browseAt > 1500) runTweaks("进图时");
         if (fpsAt > 0 && now - fpsAt > 800) { fpsAt = 0; applyFps(); }
         if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.lastPawnAsk = 0; }
+        // 大厅加载完 6 秒后打上「初始衣服 = 绝地风衣」（启动画面阶段不动内存）
+        if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); }
         tickAudio(now);
     }
 
@@ -440,7 +441,7 @@ public class Con {
         }
         int av = l.indexOf("OnAvatarAssembler In Items");
         if (av >= 0) LogCap.note("身上装备编号: " + l.substring(av).trim());
-        if (engineSeenAt == 0 && l.contains("LogLoad: Took")) { engineSeenAt = System.currentTimeMillis(); LogCap.note("引擎就绪，10秒后发送设置"); AkDiag.engineUp(act); loadAudioPref(); }
+        if (engineSeenAt == 0 && l.contains("LogLoad: Took")) { engineSeenAt = System.currentTimeMillis(); LogCap.note("引擎就绪，10秒后发送设置"); loadAudioPref(); }
         if (l.contains("UNZFrontEndAudioManager: init") || l.contains("UNZPlatformAudioHelper::OnInitialize")) {
             if (!feAudioSeen) { feAudioSeen = true; feSeenAt = System.currentTimeMillis(); LogCap.note("声音修复: 看到大厅音频初始化"); }
             if (bounce != 1) audioFix = "大厅音频已初始化";
@@ -452,7 +453,7 @@ public class Con {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
-                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); }  // v1.49：大厅/对局显示不同的菜单
+                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
@@ -484,13 +485,22 @@ public class Con {
 
     static File findUeLog(android.content.Context ctx) {
         List<File> all = new ArrayList<>();
-        LogCap.findLogs(ctx.getExternalFilesDir(null), all, 0);
-        LogCap.findLogs(ctx.getFilesDir(), all, 0);
-        LogCap.findLogs(new File("/storage/emulated/0/UE4Game"), all, 0);
+        findLogs(ctx.getExternalFilesDir(null), all, 0);
+        findLogs(ctx.getFilesDir(), all, 0);
+        findLogs(new File("/storage/emulated/0/UE4Game"), all, 0);
         File best = null;
         for (File f : all) if (f.getName().equals("PUBGM.log") || (f.getName().endsWith(".log") && !f.getName().contains("backup") && f.getPath().contains("Logs"))) {
             if (best == null || f.lastModified() > best.lastModified()) best = f;
         }
         return best;
+    }
+    static void findLogs(File d, java.util.List<File> out, int depth) {
+        if (d == null || depth > 8) return;
+        File[] fs = d.listFiles();
+        if (fs == null) return;
+        for (File f : fs) {
+            if (f.isDirectory()) findLogs(f, out, depth + 1);
+            else if (f.getName().endsWith(".log") && f.length() > 0) out.add(f);
+        }
     }
 }

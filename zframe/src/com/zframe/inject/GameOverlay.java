@@ -43,9 +43,9 @@ public class GameOverlay {
     static void refreshAny() { final Runnable r = refresher; if (r != null) { MAIN.removeCallbacks(r); MAIN.post(r); } }
 
     static void attach(final Activity a) {
-        Mods.restore(a);
         try {
             Con.setActivity(a);
+            Con.loadGfx();
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
             final Ui u = new Ui(a);
@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.49"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.51"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -93,7 +93,7 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.HORIZONTAL);
             tabsRow.setPadding(u.dp(10), 0, u.dp(10), 0);
-            final String[] tabs = {"常用", "武器", "装备", "衣服", "设置"};
+            final String[] tabs = {"常用", "武器", "装备", "衣服", "画面"};
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -438,7 +438,6 @@ public class GameOverlay {
     static int flareAt = 0;
     static void flare(final Activity a) {
         String k = okId.get("信号枪");
-        if (k == null && Mods.sp != null) { k = Mods.sp.getString("flare", null); if (k != null) okId.put("信号枪", k); }
         if (k != null) { give(a, k, 1); give(a, "20600000009", 5); after(a, "信号枪"); return; }
         flareStep(a, 0);
     }
@@ -455,7 +454,6 @@ public class GameOverlay {
             if (!ok) { if (tries < 20) flareStep(a, tries + 1); return; }
             if (w.toLowerCase(java.util.Locale.ROOT).contains("flare")) {
                 okId.put("信号枪", id); give(a, "20600000009", 5);
-                if (Mods.sp != null) Mods.sp.edit().putString("flare", id).apply();
             } else toast(a, "刷出的是 " + (w.isEmpty() ? "别的东西" : w) + "，再点一次信号枪");
         }, 1500);
     }
@@ -484,11 +482,16 @@ public class GameOverlay {
         p.addView(r, new LinearLayout.LayoutParams(-1, -2));
         return r;
     }
-    /** 小标题 */
+    /** 小标题：左边一条短竖线 + 白字 */
     static void head(Activity a, Ui u, ViewGroup p, String s) {
-        TextView t = label(a, p, s, 10.5f, false, SUBT);
-        t.setLetterSpacing(0.06f);
-        t.setPadding(u.dp(2), u.dp(14), 0, u.dp(6));
+        TextView t = label(a, p, s, 11.5f, false, TXT);
+        t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        t.setLetterSpacing(0.04f);
+        GradientDrawable bar = box(ACC, u.dp(1));
+        bar.setSize(u.dp(3), u.dp(11));
+        t.setCompoundDrawablesWithIntrinsicBounds(bar, null, null, null);
+        t.setCompoundDrawablePadding(u.dp(7));
+        t.setPadding(u.dp(2), u.dp(16), 0, u.dp(7));
     }
     /** 卡片容器 */
     static LinearLayout card(Activity a, Ui u, ViewGroup p) {
@@ -672,35 +675,6 @@ public class GameOverlay {
         while (n % 3 != 0) { r.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); n++; }
     }
 
-    // ================= 绝地风衣 =================
-    static java.util.List<String> lastCands; static int lastCandAt; static String noHoodId = "";
-    static void coatFind(final Activity a, final Ui u, final LinearLayout root) {
-        if (giveSt == 1 || giveSt == 3) { toast(a, "先在补丁更新里点「更新补丁」"); return; }
-        if (CoatFind.running) { toast(a, "正在找，稍等"); return; }
-        toast(a, "开始找绝地风衣，大约 1~2 分钟，可以继续玩");
-        new Thread(() -> {
-            CoatFind.Result r = CoatFind.run();
-            if (!r.noHood.isEmpty()) noHoodId = r.noHood.get(0);
-            java.util.List<String> c = new java.util.ArrayList<>(r.hood);
-            a.runOnUiThread(() -> { if (tab == 3) fill(a, u, root); tryCoats(a, u, root, c, 0); });
-        }, "zframe-coat").start();
-    }
-    static void tryCoats(final Activity a, final Ui u, final LinearLayout root, final java.util.List<String> ids, final int i) {
-        if (i >= ids.size() || i >= 12) { CoatFind.state = ids.isEmpty() ? CoatFind.state : "候选都没穿上，日志已记下（下载/ZFrame）"; if (tab == 3) fill(a, u, root); return; }
-        final String id = ids.get(i);
-        give(a, id, 1);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            boolean ok = dbg != null && dbg.getInt(0) == 0x5a02 && dbg.getInt(28) != 0;
-            LogCap.note("找风衣 试穿 " + id + " → " + (ok ? "穿上了" : dbgText()));
-            if (ok) {
-                Mods.coatId = id; Mods.save(); coatNow = id;
-                CoatFind.state = "绝地风衣 = " + id + "（已记住）" + (noHoodId.isEmpty() ? "" : "\n脱帽版 = " + noHoodId);
-                lastCands = ids; lastCandAt = i;
-                if (tab == 3) fill(a, u, root);
-            } else tryCoats(a, u, root, ids, i + 1);
-        }, 1200);
-    }
-
     // ================= 页面 =================
     static void fill(final Activity a, final Ui u, final LinearLayout root) {
         root.removeAllViews();
@@ -717,40 +691,51 @@ public class GameOverlay {
         String gt = giveText(a); if (giveSt != 2 && !gt.isEmpty()) label(a, root, gt, 10.5f, false, ORANGE);
     }
     static void result(Activity a, String r) { if (!"ok".equals(r)) toast(a, "没改成：" + r); refreshAny(); }
+    static void note(Activity a, Ui u, ViewGroup p, String s) {
+        label(a, p, s, 10.5f, false, SUBT).setPadding(u.dp(3), u.dp(2), 0, u.dp(2));
+    }
 
-    /** 大厅：只有游戏模式和男女（都是下一局生效） */
+    /** 大厅：开局前选好模式、角色、画质 */
     static void lobbyPage(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "游戏模式");
         LinearLayout fl = row(a, root);
-        pick(a, u, fl, "正常模式", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
+        pick(a, u, fl, "正常", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
         pick(a, u, fl, "不上飞机", Mods.noPlane, () -> result(a, Mods.setPlane(!Mods.noPlane)));
         pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
-        label(a, root, "不上飞机和不刷圈可以一起选，点正常模式两个都关", 10, false, SUBT).setPadding(u.dp(3), u.dp(2), 0, 0);
+        note(a, u, root, "不上飞机：直接在出生岛开打。不刷圈：没有毒圈。两个可以一起选。");
         head(a, u, root, "角色");
         LinearLayout gr = row(a, root);
         pick(a, u, gr, "女", !Mods.male, () -> result(a, Mods.male ? Mods.setMale(false) : "ok"));
         pick(a, u, gr, "男", Mods.male, () -> result(a, Mods.male ? "ok" : Mods.setMale(true)));
-        label(a, root, "进下一局生效；加速、高跳、刷枪进图后才显示", 10, false, SUBT).setPadding(u.dp(3), u.dp(2), 0, 0);
+        gfxRow(a, u, root);
+        note(a, u, root, coatText());
+        note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
+    }
+    static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，出生就穿着" : "绝地风衣：大厅加载好后自动设为初始衣服"; }
+    static void gfxRow(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "画质");
+        LinearLayout r = row(a, root);
+        pick(a, u, r, "流畅（帧率最高）", !Con.hiGfx, () -> { Con.setGfx(false); refreshAny(); });
+        pick(a, u, r, "最高画质", Con.hiGfx, () -> { Con.setGfx(true); refreshAny(); });
     }
 
+    /** 常用：最上面无敌和传送，然后枪，最下面加速/高跳 */
     static void mainPage(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "移动");
-        slider(a, u, root, "加速", "只加移动速度", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", "跳跃高度", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
-        slider(a, u, root, "动作快慢", "加速时动作放慢，1 = 正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
-        head(a, u, root, "枪械");
-        LinearLayout gc = card(a, u, root);
-        switchRow(a, u, gc, "无后座", "枪口不上跳、镜头不抖", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "聚点", "准星不散，跳跃/走动也不散", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "无限子弹", "手里的枪一直 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
-        head(a, u, root, "其他");
+        head(a, u, root, "保命");
         LinearLayout oc = card(a, u, root);
-        switchRow(a, u, oc, "无敌", "不掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
+        switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
         LinearLayout tr = row(a, root);
-        btn(a, u, tr, "传送到地图中心", () -> toast(a, Con.tpCenter()));
-        head(a, u, root, "视野");
-        LinearLayout fv = row(a, root);
-        for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
+        btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
+        head(a, u, root, "枪");
+        LinearLayout gc = card(a, u, root);
+        switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
+        switchRow(a, u, gc, "聚点", "子弹不散开，打得更准", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
+        switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
+        head(a, u, root, "跑跳");
+        slider(a, u, root, "加速", "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
+        note(a, u, root, "每进一局，这一页的功能都会回到关。");
     }
 
     static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
@@ -797,19 +782,15 @@ public class GameOverlay {
     static void coatPage(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "绝地风衣");
         LinearLayout c = card(a, u, root);
-        label(a, c, "风衣编号：" + (Mods.coatId.isEmpty() ? "还没找到" : Mods.coatId), 13, false, TXT).setPadding(0, u.dp(6), 0, 0);
-        if (!CoatFind.state.isEmpty()) label(a, c, CoatFind.state, 11, false, CoatFind.running ? ORANGE : SUBT);
+        label(a, c, coatText(), 12, false, TXT).setPadding(0, u.dp(8), 0, u.dp(2));
         LinearLayout fr = row(a, c);
-        primary(a, u, fr, CoatFind.running ? "正在找…" : "找绝地风衣", () -> coatFind(a, u, root));
-        btn(a, u, fr, "穿上", () -> { if (Mods.coatId.isEmpty()) toast(a, "先点「找绝地风衣」"); else give(a, Mods.coatId, 1, "绝地风衣"); });
-        if (!noHoodId.isEmpty()) btn(a, u, fr, "脱帽版", () -> give(a, noHoodId, 1, "脱帽版"));
-        if (lastCands != null && lastCandAt + 1 < lastCands.size()) btn(a, u, fr, "下一个候选", () -> tryCoats(a, u, root, lastCands, lastCandAt + 1));
-        head(a, u, root, "浏览衣服（自动跳过穿不上的）");
+        primary(a, u, fr, "现在穿上", () -> give(a, Mods.COAT, 1, "绝地风衣"));
+        head(a, u, root, "换别的衣服（穿不上的会自动跳过）");
         LinearLayout cr = row(a, root);
         btn(a, u, cr, "上一件", () -> giveCoat(a, -1));
         btn(a, u, cr, "下一件", () -> giveCoat(a, 1));
         coatLbl = label(a, root, coatNow.isEmpty() ? "" : "刚穿上：" + coatNow, 11, false, SUBT);
-        head(a, u, root, "输入编号");
+        head(a, u, root, "按编号穿");
         LinearLayout ir = row(a, root);
         final EditText et = new EditText(a);
         et.setHint("11 位编号"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
@@ -826,15 +807,12 @@ public class GameOverlay {
     }
 
     static void settingsPage(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "日志");
-        LinearLayout c = card(a, u, root);
-        final TextView st = label(a, c, LogCap.status(), 11, false, SUBT);
-        st.setPadding(0, u.dp(6), 0, 0);
-        LinearLayout r5 = row(a, c);
-        btn(a, u, r5, "立即保存日志", () -> new Thread(() -> {
-            LogCap.syncNow(a);
-            a.runOnUiThread(() -> { st.setText(LogCap.status()); toast(a, "已保存到 下载/ZFrame"); });
-        }).start());
-        label(a, root, "内核 " + ZInit.CORE_VER + " · v1.49", 11, false, SUBT).setPadding(0, u.dp(10), 0, 0);
+        gfxRow(a, u, root);
+        note(a, u, root, "流畅：画面简单，帧率最高。最高画质：阴影、特效、远景全开，手机会更热。");
+        head(a, u, root, "视野");
+        LinearLayout fv = row(a, root);
+        for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
+        note(a, u, root, "数字越大看得越宽。");
+        label(a, root, "v1.51", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
