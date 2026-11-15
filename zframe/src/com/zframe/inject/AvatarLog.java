@@ -16,10 +16,10 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v1.57 人物诊断\n").append(Mods.hallState).append('\n');
+            sb.append("ZFrame v1.58 人物诊断\n").append(Mods.hallState).append('\n');
             long b = Mods.base();
             sb.append("libUE4=").append(Long.toHexString(b)).append('\n');
-            sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 135b104=").append(peek(b, 0x135b104L, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("  cave 171e610=").append(peek(b, 0x171e610L, 32))
+            sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 1877bfc=").append(peek(b, 0x1877bfcL, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("\n").append(Mods.storeInfo()).append("  cave 171e610=").append(peek(b, 0x171e610L, 32))
               .append("\n风衣 1503680=").append(peek(b, 0x1503680L, 4)).append("  171e600=").append(peek(b, 0x171e600L, 16)).append("\n\n");
             long len = f.length(), from = Math.max(0, len - 6_000_000L);
             int n = 0;

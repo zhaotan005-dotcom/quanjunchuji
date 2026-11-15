@@ -312,3 +312,18 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - Server-branch default fill bl c62d48 at 0x1503494 → coat cave 0x171e4d0 (drops trousers).
   - Emulated: emu_store.py (3 cases), Java armMov matches the assembler. Not tested on device.
   - Unknowns: whether role ids are type 1 in the item table; whether EquipItemsForHallRole accepts them.
+- v1.58 (vc59/core59), 2026-11-16:
+  - v1.57 device result:
+    - Patch bytes OK, but the lobby and 仓库 are still gray and 仓库 is empty. The 角色 page is now also empty (male, no model).
+    - Conclusion: InitAvatar 0x135b104 most likely never runs in the lobby, which also explains why the v1.54 patch had no effect.
+  - Changes:
+    - The fake-store hook moved to the GetCurrentRole entry 0x1877bfc (push {r4,r5,fp,lr} → b 0x171e630). All 9 avatar callers use it.
+    - New cave (0x60 bytes):
+      - counts calls at buf+0xc and saves ds (r1) at buf+0x10;
+      - if enabled (num) and ds+0x60 == 0, calls CacheStoreProp(ds, buf) and saves the new ds+0x60 at buf+0x14;
+      - then runs the original push and continues at 0x1877c00.
+    - Items now start at buf+0x40.
+    - On a gender change, Java pokes ds+0x60 = 0 so the next call re-caches.
+    - The diagnostic prints Mods.storeInfo().
+  - Emulated: emu_store.py (4 cases: empty/non-empty/disabled, regs + stack OK).
+  - Next step depends on the counters: if calls are 0, the lobby uses another path; if calls > 0 but the count after caching is 0, the role type check fails in CacheStoreProp's lookups.

@@ -78,48 +78,51 @@ public class Mods {
         hallOn = true;
         return "ok";
     }
-    /* v1.57 换思路：假仓库数据。
+    /* v1.58 假仓库数据（v1.57 挂在 InitAvatar 上，手机上证明那里根本没跑，仓库仍空）。
      * 大厅/仓库的人物都从 UNZStoreDataServer 的物品表(+0x5c TArray，每条 0x38)里找「当前角色」(类型 1 且 +0x10 非 0)
-     * 和这个角色身上的衣服(类型 3，+0x10 == 角色 +0x08)。单机没有服务器，这张表是空的，所以人物灰、仓库空。
-     * 做法：大厅 InitAvatar 0x135b104 跳到 0x171e630 cave，用我们自己的一组「服务器物品」调用游戏自己的
-     * CacheStoreProp(0x1872b04)，和服务器发来时走同一条路。物品(每条 0x68，按游戏读的位置填)：
-     *   +0x10 物品编号  +0x18 本物品 gid  +0x20 归属(穿在哪个角色上 = 角色的 gid；角色自己填 1)  +0x34 状态 1(不是限时)
-     * InitAvatarClotheTry 的服务器分支 0x1503494 的 bl c62d48(补默认衣服) 也接风衣 cave，去掉裤子。 */
-    static final long STORE_HOOK = 0x135b104L, STORE_CAVE = 0x171e630L, HALL_FILL = 0x1503494L;
-    static final String STORE_HOOK_O = "0100a0e3", STORE_HOOK_N = "490d0fea";
-    static final String STORE_CAVE_O = "0020a0e30060a0e30530a0e10270b3e75f0057e30300000a042082e2020051e1f8ffff1a680000ea051043e0";
-    static final String STORE_CAVE_T = "0f502de9%s%s040091e5000050e30100000a0500a0e12c5105eb0f50bde80100a0e3aaf2f0ea";
+     * 和这个角色身上的衣服(类型 3，+0x10 == 角色 +0x08)。单机没有服务器，这张表是空的。
+     * 改挂在「取当前角色」0x1877bfc(out, ds) 入口：所有大厅/仓库/角色页都会调它。cave 0x171e630：
+     *   计数+1，记下 ds；若开关开且 ds 物品表为空 → 调游戏自己的 CacheStoreProp(0x1872b04, ds, 我们的物品)，记下入库后条数；
+     *   再执行原指令 push {r4,r5,fp,lr}，回到 0x1877c00。
+     * 缓冲区：+0 TArray{data,num,max}  +0xc 调用次数  +0x10 ds  +0x14 入库后条数  +0x40 起物品，每条 0x68：
+     *   +0x10 物品编号  +0x18 gid  +0x20 归属(穿在哪个角色上 = 角色 gid；角色自己填 1)  +0x34 状态 1(不是限时)
+     * 服务器分支补默认衣服 0x1503494 的 bl c62d48 也接风衣 cave，去掉裤子。 */
+    static final long STORE_HOOK = 0x1877bfcL, STORE_CAVE = 0x171e630L, HALL_FILL = 0x1503494L;
+    static final String STORE_HOOK_O = "30482de9", STORE_HOOK_N = "8b9afaea";
+    static final String STORE_CAVE_O = "0020a0e30060a0e30530a0e10270b3e75f0057e30300000a042082e2020051e1f8ffff1a680000ea051043e00060a0e30020e0e3410152e16300000a016040e24121a0e1020056e10030a0e30260a0c1000051e3006000b3018086e2000056e3";
+    static final String STORE_CAVE_T = "0f502de9%s%s0c0092e5010080e20c0082e5101082e5040092e5000050e30a00000a600091e5000050e30700001a0100a0e10210a0e1245105eb%s%s04009de5600090e5140082e50f50bde830482de95b6505ea";
     static final String HALL_FILL_O = "2b7eddeb", HALL_FILL_N = "0d6c08eb";
     static final long[] STORE_ITEMS = { 30318000000L, 30301000001L, 30302000000L, 30303000006L, 30306000000L,
             30213000003L, 30307000006L, 30304000003L, 30305000002L };
-    static java.nio.ByteBuffer storeBuf; static long storeAddr;
-    public static volatile String storeState = "";
+    static final int STORE_HDR = 0x40, STORE_REC = 0x68;
+    static java.nio.ByteBuffer storeBuf; static long storeAddr; static boolean storeHooked;
 
     static String armMov(boolean top, int rd, int imm) {
         int w = (top ? 0xe3400000 : 0xe3000000) | ((imm >> 12) & 0xf) << 16 | rd << 12 | (imm & 0xfff);
         return String.format("%02x%02x%02x%02x", w & 0xff, (w >> 8) & 0xff, (w >> 16) & 0xff, (w >>> 24) & 0xff);
     }
 
-    /** 往自己的内存里填「服务器物品」，当前性别的角色排第一，风衣穿在角色身上，其余放仓库 */
+    /** 填「服务器物品」：当前性别的角色排第一，风衣穿在角色身上，其余放仓库。计数和 ds 不动 */
     static void fillStore(boolean m) {
-        int n = 2 + STORE_ITEMS.length, rec = 0x68;
+        int n = 2 + STORE_ITEMS.length;
         if (storeBuf == null) {
-            storeBuf = java.nio.ByteBuffer.allocateDirect(16 + rec * n + 64).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            storeBuf = java.nio.ByteBuffer.allocateDirect(STORE_HDR + STORE_REC * n + 64).order(java.nio.ByteOrder.LITTLE_ENDIAN);
             storeAddr = GameOverlay.bufAddr(storeBuf);
         }
         java.nio.ByteBuffer b = storeBuf;
-        for (int i = 0; i < b.capacity(); i++) b.put(i, (byte) 0);
+        b.putInt(4, 0);                                   // 先关，填好再开
+        for (int i = STORE_HDR; i < b.capacity(); i++) b.put(i, (byte) 0);
         long role = m ? 10100000000L : 10200000000L, other = m ? 10200000000L : 10100000000L;
         long roleGid = 0x5a460001L;
         int i = 0;
-        i = putItem(b, i, role, roleGid, 1);            // 当前角色
-        i = putItem(b, i, other, roleGid + 1, 0);       // 另一个角色（有，但不是当前）
-        for (int k = 0; k < STORE_ITEMS.length; k++)    // 风衣穿上，其余在仓库
+        i = putItem(b, i, role, roleGid, 1);
+        i = putItem(b, i, other, roleGid + 1, 0);
+        for (int k = 0; k < STORE_ITEMS.length; k++)
             i = putItem(b, i, STORE_ITEMS[k], roleGid + 0x100 + k, k == 0 ? roleGid : 0);
-        b.putInt(0, (int) (storeAddr + 16)); b.putInt(4, i); b.putInt(8, i);
+        b.putInt(0, (int) (storeAddr + STORE_HDR)); b.putInt(8, i); b.putInt(4, i);
     }
     static int putItem(java.nio.ByteBuffer b, int i, long id, long gid, long owner) {
-        int o = 16 + i * 0x68;
+        int o = STORE_HDR + i * STORE_REC;
         b.putLong(o + 0x10, id); b.putLong(o + 0x18, gid); b.putLong(o + 0x20, owner); b.putInt(o + 0x34, 1);
         return i + 1;
     }
@@ -127,26 +130,34 @@ public class Mods {
     static String setStore(boolean m) {
         fillStore(m);
         if (storeAddr == 0) return "拿不到内存地址";
-        int a = (int) storeAddr;
-        String cave = String.format(STORE_CAVE_T, armMov(false, 1, a & 0xffff), armMov(true, 1, (a >>> 16) & 0xffff));
-        String r = write(STORE_CAVE, STORE_CAVE_O, cave, true);
-        if (r.startsWith("原字节不符")) {  // 重进游戏前地址不会变；保险起见按当前地址重写
-            r = writeRaw(STORE_CAVE, cave);
-        }
-        if (!"ok".equals(r)) return r;
-        if (coatOn) LogCap.note("服务端分支风衣 → " + write(HALL_FILL, HALL_FILL_O, HALL_FILL_N, true));
-        return write(STORE_HOOK, STORE_HOOK_O, STORE_HOOK_N, true);
-    }
-    /** 只在 cave 区域（已确认是我们写过的）用 */
-    static String writeRaw(long off, String n) {
         long b = base(); if (b == 0) return "找不到游戏库";
-        byte[] want = Patches.hex(n), cur = new byte[want.length];
+        // 换性别：游戏表里已经有我们的数据 → 把条数清 0，下次取角色时按新性别重新入库
+        int ds = storeBuf.getInt(0x10);
+        if (storeHooked && ds != 0) LogCap.note("清空旧物品 → " + pokeInt((ds & 0xffffffffL) + 0x60, 0));
+        if (!storeHooked) {
+            int a = (int) storeAddr;
+            String mw = armMov(false, 2, a & 0xffff), mt = armMov(true, 2, (a >>> 16) & 0xffff);
+            String r = write(STORE_CAVE, STORE_CAVE_O, String.format(STORE_CAVE_T, mw, mt, mw, mt), true);
+            if (!"ok".equals(r)) return "cave " + r;
+            if (coatOn) LogCap.note("服务端分支风衣 → " + write(HALL_FILL, HALL_FILL_O, HALL_FILL_N, true));
+            r = write(STORE_HOOK, STORE_HOOK_O, STORE_HOOK_N, true);
+            if (!"ok".equals(r)) return "入口 " + r;
+            storeHooked = true;
+        }
+        return "ok";
+    }
+    static String pokeInt(long addr, int v) {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-            m.seek(b + off); m.readFully(cur);
-            if (!(cur[0] == (byte) 0x0f && cur[1] == (byte) 0x50 && cur[2] == (byte) 0x2d && cur[3] == (byte) 0xe9)) return "原字节不符 " + Patches.hexs(cur);
-            m.seek(b + off); m.write(want); m.seek(b + off); m.readFully(cur);
-            return java.util.Arrays.equals(cur, want) ? "ok" : "写入没生效";
+            byte[] w = { (byte) v, (byte) (v >> 8), (byte) (v >> 16), (byte) (v >> 24) };
+            m.seek(addr); m.write(w); return "ok";
         } catch (Throwable t) { return "出错 " + t.getMessage(); }
+    }
+    /** 诊断用：取角色被调用几次、ds、入库后条数 */
+    public static String storeInfo() {
+        if (storeBuf == null) return "假仓库：没启用";
+        java.nio.ByteBuffer b = storeBuf;
+        return "假仓库：取角色 " + b.getInt(0xc) + " 次，ds=" + Integer.toHexString(b.getInt(0x10))
+                + "，入库后 " + b.getInt(0x14) + " 条（准备了 " + b.getInt(4) + " 条），缓冲 " + Long.toHexString(storeAddr);
     }
 
     /** 改好后重开大厅，让人物重新生成 */
