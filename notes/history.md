@@ -280,3 +280,12 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Mods.setHall / hallAndReload run after builtInCoat (6 s after the first lobby load) and on the lobby 男/女 pick. They then `open` the lobby once so the avatar rebuilds.
   - Verified by emulation (game/re/emu_hall.py, plus the arg emulation inline). Not tested on device.
   - Next if it works: 换脸/换头发 (probably face/hair items in the same list), then 仓库换装.
+- v1.55 (vc56/core56), 2026-11-16: user reported v1.54 showed "no change". Their screenshot was the 仓库 screen: gray male mannequin while the gender setting was 女.
+  - InitAvatarClotheTry 0x1503208 has 8 callers (0x135b15c lobby, 0x13a91dc, 0x13aa6d0, 0x13d6ff8, 0x148fed4, 0x1493380, 0x1512984, 0x1523854), each paired with a get-role call 0x1877bfc. v1.54 patched only the lobby caller.
+  - v1.55 patches the function entry instead, covering all 8: 0x1503230 (ldr sb,[fp,#0xc]) → b 0x171e610.
+    - Cave: load the args; if roleID==0, use 10200000000 (F) or 10100000000 (M); then b 0x1503238. Gender lives in the movw/movt at 0x171e620.
+    - Lobby coat cave2 (0x171e600 → 0x171e4dc) is unchanged.
+    - The v1.54 0x135b140 patch has been removed.
+  - Lobby menu now shows 大厅人物 status (ok / reason) so the user can report it.
+  - Emulated (emu_hall2.py, 8 cases). Not tested on device.
+  - If the character is still gray: the cause is in EquipItemsForHallRole 0x1207d40 (it checks each item through cc69cc and may reject items that aren't owned), or in 0x1877a1c.

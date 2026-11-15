@@ -6,7 +6,6 @@ g=lambda k: bytes.fromhex(re.search(k+r' = "([0-9a-f]+)"',s).group(1))
 coat=g('COAT_CAVE_N'); cave2=g('HALL_CAVE_N'); hook=g('HALL_COAT_N')
 lib=open('game/x/lib/armeabi-v7a/libUE4.so','rb').read()
 assert lib[0x1503680:0x1503684]==g('HALL_COAT_O') and lib[0x171e600:0x171e610]==g('HALL_CAVE_O')
-assert lib[0x135b140:0x135b14c]==g('HALL_O') and lib[0x135b158:0x135b15c]==g('HALL_RO') and lib[0x135b170:0x135b174]==g('HALL_RO')
 def run(lst):
     mu=U.Uc(U.UC_ARCH_ARM,U.UC_MODE_ARM)
     for a in (0xc62000,0x171e000,0x1503000,0x200000,0x300000): mu.mem_map(a,0x1000 if a<0x200000 else 0x10000)

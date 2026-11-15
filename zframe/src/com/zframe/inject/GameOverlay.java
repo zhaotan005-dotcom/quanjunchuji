@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.54"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.55"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -709,6 +709,7 @@ public class GameOverlay {
         pick(a, u, gr, "男", Mods.male, () -> { if (!Mods.male) { String r = Mods.setMale(true); if ("ok".equals(r)) Mods.hallAndReload(); result(a, r); } });
         gfxRow(a, u, root);
         note(a, u, root, coatText());
+        note(a, u, root, Mods.hallState);
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
@@ -813,6 +814,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.54", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.55", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
