@@ -352,3 +352,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - ev = BP event wrappers starting `ldr r0,[pc,#n]; ldr r0,[pc,r0]`. These get a pcrel trampoline variant: `ldr r0,=abs; ldr r0,[r0]`, with abs computed at runtime.
   - Emulated: 40/40, including ev (compared against the original instructions).
   - User found a bilibili screenshot of someone's private server sending role/face items (默认男角色, 白人男2号, faces…) by mail with 领取. So faces/roles are inventory items delivered by the server, which confirms the fake-store direction.
+- 06:52 v1.60 probe result: 40/40 installed. Only x RoleSettingBtnClick 1 and x OnRoleStateChanged 1 fired, both from +1b125e8 (generic UFunction invoke). cc69cc 4 from +eb6278. Everything else 0, including all ev wrappers.
+  - So the role/face/仓库 UI is driven from BP/Lua and reads data we can't see natively.
+  - User decided: build the self-hosted server (自建服务端).
+  - Answered that the user does not need to send mail by hand: the server sends it automatically on login, or a Z-menu button triggers it.
+  - Blocker: v1.53 showed lobby requests never reach SendRawBuffer (bIsOffline / connector null). Step 1 is to make the lobby think it is online, using the fake connector at ConnectorService+0xfa054.
