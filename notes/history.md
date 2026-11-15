@@ -295,3 +295,20 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - (a) Patches not applied, or the lobby didn't reload.
     - (b) InitAvatarClotheTry now sees role 10200000000, but EquipItemsForHallRole 0x1207d40 rejects the items (cc69cc ownership check / "Num Error ... bHasCharacter").
     - (c) The UI avatar assembler (IsUI:1) never runs, or fails loading skin assets.
+- v1.57 (vc58/core58), 2026-11-16, new approach: fake store (inventory) data.
+  - v1.56 device result:
+    - Patches applied (bytes OK), hallState ok.
+    - PUBGM.log on device has 0 avatar lines (the log is only 343 KB; verbose logging is off).
+    - The 角色 page shows the right female model (default shirt) after toggling the game's own 男/女, but the lobby and 仓库 stay gray. Face/hair lists are empty.
+  - RE:
+    - UNZStoreDataServer (StaticClass 0x1890800) holds item records at +0x5c/+0x60 (0x38 bytes each). Filled by CacheStoreProp 0x1872b04(ds, TArray<proto 0x68>), which calls vtable+0x124 first (clear).
+    - Proto → record mapping: id = p+0x10 → r+0; p+0x18 → r+8 (gid); p+0x20 → r+0x10 (owner); p+0x28 → r+0x18; p+0x34 → r+0x20 and r+0x34 (state; 2 = time-limited, checked against expire r+0x24 = p+0x38); p+0xc = submsg ptr (byte +0x1c → r+0x2c; null = default). r+0x2e..0x31 come from item-table lookups c45310/c45330/c4536c/c453a8 (r+0x2e = type).
+    - GetCurrentRole 0x1877bfc: first record with type 1 and r+0x10 != 0.
+    - Owned check 0x1877a1c: id match, and state != 2 or not expired.
+    - Equipped clothes 0x1877ec8: type-3 records with r+0x10 == role r+8.
+  - Patch:
+    - InitAvatar 0x135b104 (mov r0,#1; r5 = store ds) → b 0x171e630 cave: push; r1 = Java direct buffer (movw/movt patched at runtime); if num != 0, CacheStoreProp(r5, r1); pop; mov r0,#1; b 0x135b108.
+    - Buffer: current-gender role (gid 0x5a460001, owner 1), other role (owner 0), coat 30318000000 owned by the role (equipped), plus 8 more clothes unequipped.
+    - Server-branch default fill bl c62d48 at 0x1503494 → coat cave 0x171e4d0 (drops trousers).
+  - Emulated: emu_store.py (3 cases), Java armMov matches the assembler. Not tested on device.
+  - Unknowns: whether role ids are type 1 in the item table; whether EquipItemsForHallRole accepts them.
