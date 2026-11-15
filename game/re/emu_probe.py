@@ -17,11 +17,19 @@ for i,l in enumerate(open(sys.argv[1] if len(sys.argv)>1 else '/tmp/pt/out.txt')
     SP=0x308000; regs={UC_ARM_REG_R0:0x11,UC_ARM_REG_R1:0x22,UC_ARM_REG_R2:0x33,UC_ARM_REG_R3:0x44,UC_ARM_REG_R4:0x55,UC_ARM_REG_LR:0x1234560,UC_ARM_REG_R11:0x7700}
     for r,v in regs.items(): mu.reg_write(r,v)
     mu.reg_write(UC_ARM_REG_SP,SP)
+    def mapdata(u):
+        # ev 型会读数据段里的全局指针（VA = 文件偏移 + 0x1000），按需映射
+        def h(uc,acc,addr,sz,v,ud):
+            pg=addr&~0xfff; uc.mem_map(pg,0x1000); fo=pg-B-0x1000
+            if 0<=fo<len(lib): uc.mem_write(pg,lib[fo:fo+0x1000])
+            return True
+        u.hook_add(U.UC_HOOK_MEM_READ_UNMAPPED,h)
+    mapdata(mu)
     mu.emu_start(B+off,B+off+8,count=50)
     # 对照：原始函数前两条
     m2=U.Uc(U.UC_ARCH_ARM,U.UC_MODE_ARM); m2.mem_map(fpg,0x3000); m2.mem_write(fpg,lib[fpg-B:fpg-B+0x3000]); m2.mem_map(0x300000,0x10000); m2.mem_map(0,0x1000)
     for r,v in regs.items(): m2.reg_write(r,v)
-    m2.reg_write(UC_ARM_REG_SP,SP); m2.emu_start(B+off,B+off+8,count=2)
+    mapdata(m2); m2.reg_write(UC_ARM_REG_SP,SP); m2.emu_start(B+off,B+off+8,count=2)
     same=all(mu.reg_read(r)==m2.reg_read(r) for r in [UC_ARM_REG_R0,UC_ARM_REG_R1,UC_ARM_REG_R2,UC_ARM_REG_R3,UC_ARM_REG_R4,UC_ARM_REG_SP,UC_ARM_REG_R11,UC_ARM_REG_LR])
     sp2=m2.reg_read(UC_ARM_REG_SP); same=same and mu.mem_read(sp2,SP-sp2)==m2.mem_read(sp2,SP-sp2)
     n,lr=struct.unpack('<II',mu.mem_read(CNT,8))

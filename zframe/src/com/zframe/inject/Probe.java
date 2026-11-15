@@ -17,23 +17,49 @@ import java.io.RandomAccessFile;
 public class Probe {
     static final long SLACK = 0x4a2d540L, SLACK_END = 0x4a2e000L;
     static final int STRIDE = 0x40;
+    /* x = UFUNCTION 的 exec 入口（蓝图/Lua 调 C++ 时走），ev = C++ 调蓝图事件的包装（开头是 ldr r0,[pc,#n]; ldr r0,[pc,r0]，
+     * 跳板里换成 ldr r0,=绝对地址; ldr r0,[r0]，绝对地址装的时候按游戏里的实际字节算） */
     static final Object[][] FN = {
-        { "InitAvatar 大厅人物初始化", 0x135afd0L, "f04b2de918b08de2" },
-        { "InitAvatarClotheTry 试穿", 0x1503208L, "f04f2de91cb08de2" },
-        { "CacheStoreProp 物品入库", 0x1872b04L, "f04f2de91cb08de2" },
-        { "UpdateStoreCache 仓库缓存", 0x1872dc8L, "f04f2de91cb08de2" },
-        { "c62d48 补默认衣服", 0xc62d48L, "f04f2de91cb08de2" },
-        { "EquipItemsForHallRole 大厅穿衣", 0x1207d40L, "f04f2de91cb08de2" },
-        { "1205d60 代理管理器", 0x1205d60L, "30482de908b08de2" },
-        { "InitAvatarProxy 局内穿衣", 0x10d7380L, "f04f2de91cb08de2" },
-        { "exec EquipItemsForHallRole", 0x16a60a4L, "f0482de910b08de2" },
-        { "exec GetDefaultCharacterClothes", 0x16a63f0L, "f0482de910b08de2" },
-        { "exec ShowLobbyDisplayType", 0x16a6b34L, "30482de908b08de2" },
-        { "exec RotateHallRole", 0x16a69a4L, "704c2de910b08de2" },
-        { "1877a1c 是否拥有", 0x1877a1cL, "f04b2de918b08de2" },
-        { "18739b8 按编号找物品", 0x18739b8L, "30482de960e090e5" },
-        { "1877ec8 角色身上衣服", 0x1877ec8L, "f04f2de91cb08de2" },
+        { "InitAvatar", 0x135afd0L, "f04b2de918b08de2" },
+        { "EquipItemsForHallRole impl", 0x1207d40L, "f04f2de91cb08de2" },
         { "cc69cc 物品检查", 0xcc69ccL, "00482de90db0a0e1" },
+        { "x HandleDisplayAvatar", 0x16a6630L, "f0482de910b08de2" },
+        { "x ShowHallRole", 0x16a6aacL, "30482de908b08de2" },
+        { "x GetDefaultCharacterID", 0x16a64f0L, "704c2de910b08de2" },
+        { "x GetDefaultCharacterClothes", 0x16a63f0L, "f0482de910b08de2" },
+        { "x EquipItemsForHallRole", 0x16a60a4L, "f0482de910b08de2" },
+        { "x ShowLobbyDisplayType", 0x16a6b34L, "30482de908b08de2" },
+        { "x RotateHallRole", 0x16a69a4L, "704c2de910b08de2" },
+        { "x ShowAvatar", 0x161ba1cL, "f04d2de918b08de2" },
+        { "x TryDressItem", 0x161bb98L, "f04d2de918b08de2" },
+        { "x OnSexComboBoxChanged", 0x1638198L, "704c2de910b08de2" },
+        { "x RoleSettingBtnClick", 0x1687e34L, "102091e5000052e3" },
+        { "x FittingRoomBtnClick", 0x1687a20L, "102091e5000052e3" },
+        { "x OnRoleStateChanged", 0x16886b4L, "30482de908b08de2" },
+        { "x OnFaceCBStateChanged", 0x1687bb4L, "30482de908b08de2" },
+        { "x OnEquipBtnClick", 0x1688e5cL, "102091e5000052e3" },
+        { "x ShowWarehouseUI", 0x16980e0L, "102091e5000052e3" },
+        { "x OnClickTabRole", 0x1815420L, "102091e5000052e3" },
+        { "x OnChangeSkinButton", 0x1815330L, "104c2de908b08de2" },
+        { "x OnHairMoreBtnClick", 0x16751a4L, "102091e5000052e3" },
+        { "x OnFaceMoreBtnClick", 0x167517cL, "102091e5000052e3" },
+        { "x OnRoleSelectionConfirm", 0x1673804L, "102091e5000052e3" },
+        { "x OnAvatarClick", 0x166de90L, "102091e5000052e3" },
+        { "x InitAvatarIcons", 0x1653230L, "104c2de908b08de2" },
+        { "x SetCharacter", 0xe7f064L, "30482de908b08de2" },
+        { "x OnBtnFaceClick", 0x1625e30L, "102091e5000052e3" },
+        { "x OnFaceBtnClick", 0x1683a34L, "102091e5000052e3" },
+        { "LuaGet_FaceIndex", 0x3d9301cL, "104c2de908b08de2" },
+        { "LuaSet_FaceIndex", 0x3d93048L, "30482de908b08de2" },
+        { "ev HandleDisplayAvatar", 0x16a7354L, "34009fe500009fe7" },
+        { "ev ShowHallRole", 0x16a7624L, "34009fe500009fe7" },
+        { "ev InitDefaultRole", 0x16a7474L, "34009fe500009fe7" },
+        { "ev EquipItemsForHallRole", 0x16a7084L, "34009fe500009fe7" },
+        { "ev GetDefaultCharacterClothes", 0x16a71ecL, "34009fe500009fe7" },
+        { "ev ShowLobbyDisplayType", 0x16a766cL, "34009fe500009fe7" },
+        { "ev TryDressItem", 0x161ae0cL, "b8009fe500009fe7" },
+        { "ev ShowAvatar", 0x161c08cL, "34009fe500009fe7" },
+        { "ev ShowWarehouseUI", 0x16988f0L, "34009fe500009fe7" },
     };
     static java.nio.ByteBuffer cnt; static long cntAddr;
     public static volatile String state = "人物探针：没开";
@@ -50,6 +76,15 @@ public class Probe {
             + orig8
             + "04f01fe5" + w32(ret);                        // ldr pc,[pc,#-4]; .word ret
     }
+    /** ev 型：原两条是 ldr r0,[pc,#imm]; ldr r0,[pc,r0]，等价于 r0 = *(abs) */
+    static String trampPcrel(int counter, int abs, int ret) {
+        return "03002de9"
+            + Mods.armMov(false, 0, counter & 0xffff) + Mods.armMov(true, 0, (counter >>> 16) & 0xffff)
+            + "001090e5" + "011081e2" + "001080e5" + "04e080e5" + "0300bde8"
+            + "08009fe5" + "000090e5"                       // ldr r0,[pc,#8] (= abs); ldr r0,[r0]
+            + "04f01fe5" + w32(ret) + w32(abs);
+    }
+    static boolean isPcrel(String orig) { return orig.startsWith("9fe5", 4) && orig.endsWith("00009fe7") && orig.startsWith("0", 2); }
     static String hook(int target) { return "04f01fe5" + w32(target); }
 
     static boolean slackIsCode(long b) {
@@ -83,7 +118,14 @@ public class Probe {
                 byte[] cur = new byte[8]; m.seek(b + off); m.readFully(cur);
                 if (!Patches.hexs(cur).replace(" ", "").equalsIgnoreCase(orig)) { skip.append(' ').append(i); continue; }
                 long t = b + SLACK + (long) i * STRIDE;
-                m.seek(t); m.write(Patches.hex(tramp((int) (cntAddr + i * 8), orig, (int) (b + off + 8))));
+                String tr;
+                if (isPcrel(orig)) {
+                    int imm = Integer.parseInt(orig.substring(2, 4) + orig.substring(0, 2), 16) & 0xfff;  // 低 12 位
+                    byte[] lw = new byte[4]; m.seek(b + off + 8 + imm); m.readFully(lw);
+                    int lit = (lw[0] & 0xff) | (lw[1] & 0xff) << 8 | (lw[2] & 0xff) << 16 | (lw[3] & 0xff) << 24;
+                    tr = trampPcrel((int) (cntAddr + i * 8), (int) (b + off + 12 + lit), (int) (b + off + 8));
+                } else tr = tramp((int) (cntAddr + i * 8), orig, (int) (b + off + 8));
+                m.seek(t); m.write(Patches.hex(tr));
                 m.seek(b + off); m.write(Patches.hex(hook((int) t)));
                 ok++;
             }

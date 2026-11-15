@@ -342,3 +342,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - Original bytes are verified before patching.
   - Emulated: emu_probe.py, all 16 pass (regs, stack, counter, LR). The trampoline hex comes from the real Java code.
   - The report goes into the avatar diagnostic.
+- v1.60 (vc61/core61), 2026-11-16:
+  - v1.59 probe result:
+    - Probes installed 16/16 and worked: cc69cc was hit 4 times, from +eb6278.
+    - Every avatar function was hit 0 times: InitAvatar, ClotheTry, CacheStoreProp, UpdateStoreCache, c62d48, EquipItemsForHallRole impl and exec, the UIAvatarProxyManager execs, 1877a1c/18739b8/1877ec8, InitAvatarProxy.
+    - So the native C++ avatar paths are not used in the offline lobby/仓库/角色 pages. Likely Lua (slua LuaGet_*) or BP.
+  - The probe list grew to 40, auto-picked from the FNameNativePtrPair tables:
+    - x = exec thunks: HandleDisplayAvatar, ShowHallRole, GetDefaultCharacterID, ShowAvatar, TryDressItem, OnSexComboBoxChanged, RoleSettingBtnClick, FittingRoomBtnClick, OnRoleStateChanged, ShowWarehouseUI, OnClickTabRole, Hair/Face buttons, SetCharacter, LuaGet/Set_FaceIndex, and others;
+    - ev = BP event wrappers starting `ldr r0,[pc,#n]; ldr r0,[pc,r0]`. These get a pcrel trampoline variant: `ldr r0,=abs; ldr r0,[r0]`, with abs computed at runtime.
+  - Emulated: 40/40, including ev (compared against the original instructions).
+  - User found a bilibili screenshot of someone's private server sending role/face items (默认男角色, 白人男2号, faces…) by mail with 领取. So faces/roles are inventory items delivered by the server, which confirms the fake-store direction.
