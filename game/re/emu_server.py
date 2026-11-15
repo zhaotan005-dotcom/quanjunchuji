@@ -53,4 +53,17 @@ ok&= [g[1] for g in got]==recs and all(g[0]==THIS and g[2]==0 for g in got) and 
 ok&= int.from_bytes(mu.mem_read(0x7b000008,4),'little')==2
 # 第二次 Tick：没有新包，不调用
 got.clear(); mu.reg_write(UC_ARM_REG_SP,SP); mu.emu_start(0x18000,0x40000008,count=500); ok&= got==[]
+# --- v1.61 邮件 ---
+k=M('msg.CSPkg').FromString(bytes.fromhex(L[5])); n=M('msg.CSMailPushNewMailNtf').FromString(k.body)
+m=n.mail_list.mails[0]; print('25007:',k.head.cmd,'type',n.mail_list.type,'index',m.index,m.title,'附件',len(m.attachment.props),'已读',m.read_flag)
+ok&= k.head.cmd==25007 and n.mail_list.type==1 and m.index==1 and m.title=='补给' and len(m.attachment.props)>=20 and not m.read_flag and m.recv_time>0
+ok&= m.attachment.props[0].prop_role_attr.sex==1 and m.attachment.props[1].prop_role_attr.sex==2
+g=M('msg.CSGetMailListRes').FromString(bytes.fromhex(L[6])); print('25002:',g.result,len(g.mail_lists),len(g.mail_lists[0].mails))
+ok&= g.result==0 and g.mail_lists[0].type==1 and len(g.mail_lists[0].mails)==1
+r=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[7])); ids=[p.id for p in r.change.prop_changes]
+print('25004:',r.result,'type',r.type,'read',list(r.read_indexs),'新物品',len(ids))
+ok&= r.result==0 and list(r.read_indexs)==[1] and 30325000003 in ids and 30318000000 not in ids and 10200000000 not in ids and len(set(ids))==len(ids)
+d=M('msg.CSDepositGetPropsRes').FromString(bytes.fromhex(L[8])); print('领取后 13002:',len(d.prop_list),'个')
+ok&= len(d.prop_list)==8+len(ids) and all(p.owner_id==10200000000 for p in d.prop_list if p.id//100000000!=101 and p.id//100000000!=102)
+r2=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[9])); print('再领:',len(r2.change.prop_changes)); ok&= len(r2.change.prop_changes)==0
 print('全部通过' if ok else '失败')

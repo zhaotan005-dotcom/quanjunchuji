@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
  *  - 收：ConnectorService 每帧的 Tick 在 0xf92fb0 跳到 TICK 段：把回包区里我们放好的包，逐个交给
  *    游戏自己的收包函数 vt+0x164 (0xf95298)，和真服务器回来的包走同一条路。
  * Java 线程读请求、按协议回包：13001 取仓库 → 13002 物品列表（角色带性别、衣服、风衣），13003/13005 穿/脱，
+ * 邮件：开启时推一封补给邮件（25007），25001 列表、25003 领取（附件进仓库再推 13002），Z 菜单可再发。
  * 其它需要回应的关键请求（key_pkg）回一个空的成功包，免得大厅一直等。
  */
 public class Server {
@@ -81,6 +82,7 @@ public class Server {
             m.seek(tc); m.write(Patches.hex(tickCave((int) ra, (int) (b + TICK_AT + 8))));
             req = q; rpl = r; reqAddr = qa; rplAddr = ra;
             push(13002, 0, false, depositProps());         // 一开就先把仓库物品推过去
+            newMail();                                     // 再推一封带附件的系统邮件（25007），去邮箱里领取
             m.seek(b + TICK_AT); m.write(Patches.hex(hook((int) tc)));
             m.seek(b + SEND_AT); m.write(Patches.hex(hook((int) sc)));
         } catch (Throwable e) { req = null; rpl = null; return state = "自建服务端：出错 " + e.getMessage(); }
@@ -126,6 +128,9 @@ public class Server {
             case 13001: push(13002, seq, key, depositProps()); what = "仓库物品"; break;
             case 13003: push(13004, seq, key, equip(body)); what = "穿上"; break;
             case 13005: push(13006, seq, key, unequip(body)); what = "脱下"; break;
+            case 25001: push(25002, seq, key, mailList()); what = "邮件列表 " + mails.size() + " 封"; break;
+            case 25003: what = "领取邮件"; push(25004, seq, key, readMails(body)); push(13002, 0, false, depositProps()); break;
+            case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
             default:
                 if (key) { push(cmd + 1, seq, true, new PB().u(1, 0).bytes()); what = "空的成功包"; }
                 else what = "不回";
@@ -205,6 +210,88 @@ public class Server {
         return res.bytes();
     }
 
+    // ---------------- 邮件 ----------------
+    // 25001/25002 取列表，25003/25004 读+领取（附件进仓库），25007 新邮件推送。邮件类型 1 = 系统邮件。
+    static final int MAIL_SYS = 1;
+    /** 附件：{编号, 性别(角色才有，1 男 2 女), 脸, 发型}。脸/发型编号和多数衣服编号没在手机上验证过，游戏不认的会被忽略。 */
+    static final long[][] GIFT = {
+        { ROLE_M, 1, 1, 0 }, { ROLE_F, 2, 1, 0 },
+        { 30213000000L }, { 30213000001L }, { 30213000002L }, { 30213000003L }, { 30213000004L }, { 30213000005L },
+        { 30301000000L }, { 30301000071L }, { 30303000005L }, { 30307000007L }, { 30232000006L },
+        { 30315000050L }, { 30315000061L }, { 30323000002L },
+        { 30325000000L }, { 30325000001L }, { 30325000002L }, { 30325000003L }, { 30325000004L }, { 30325000005L },
+        { 30318000000L },
+    };
+    static final ArrayList<long[]> mails = new ArrayList<>();   // {index, 已读}
+    static int mailSeq;
+
+    static PB mail(long[] m) {
+        PB att = new PB();
+        for (long[] g : GIFT) {
+            PB p = new PB().u(1, g[0]).u(4, 1);
+            if (g.length > 1) p.m(13, new PB().u(1, g[1]).u(2, g[2]));
+            att.m(1, p);
+        }
+        return new PB().u(1, m[2]).s(3, "补给").s(4, "服务端已开启，点领取把角色、发型和衣服放进仓库。")
+            .m(6, att).u(7, m[1]).u(8, m[0]).u(10, 0);
+    }
+    static PB mailListOf(java.util.List<long[]> ms) {
+        PB l = new PB().u(1, MAIL_SYS);
+        for (long[] m : ms) l.m(2, mail(m));
+        return l;
+    }
+    static synchronized byte[] mailList() { return new PB().u(1, 0).m(2, mailListOf(mails)).bytes(); }
+
+    /** 新建一封邮件并推给游戏（25007） */
+    static synchronized void newMail() {
+        long[] m = { ++mailSeq, 0, System.currentTimeMillis() / 1000 };
+        mails.add(m);
+        push(25007, 0, false, new PB().m(1, mailListOf(java.util.Collections.singletonList(m))).bytes());
+    }
+    /** Z 菜单「发邮件」：服务端开着才行 */
+    public static String sendMail() {
+        if (req == null) return state = "自建服务端：先按「开启服务端」";
+        newMail();
+        return "已发一封补给邮件，去邮箱领取";
+    }
+
+    /** 读邮件 = 领取附件：没有的物品加进仓库，回 PlayerDataChange */
+    static synchronized byte[] readMails(byte[] body) {
+        initProps();
+        ArrayList<Integer> idx = new ArrayList<>(); int type = MAIL_SYS; boolean del = false;
+        PB.R r = new PB.R(body);
+        while (r.next()) {
+            if (r.field == 1 && r.wire == 0) type = (int) r.val;
+            else if (r.field == 2 && r.wire == 0) idx.add((int) r.val);
+            else if (r.field == 2 && r.wire == 2) { PB.R q = r.sub(); while (q.next()) idx.add((int) q.val); }   // packed
+            else if (r.field == 3) del = r.val != 0;
+        }
+        PB change = new PB(); PB res = new PB().u(1, 0);
+        for (long[] m : new ArrayList<>(mails)) {
+            if (!idx.contains((int) m[0])) continue;
+            if (m[1] == 0) {
+                m[1] = 1;
+                for (long[] g : GIFT) {
+                    long gid = addProp(g);
+                    if (gid != 0) change.m(2, prop(gid, props.get(gid)));
+                }
+            }
+            if (del) mails.remove(m);
+        }
+        res.m(2, change).u(3, type);
+        for (int i : idx) res.u(4, i);
+        if (del) res.u(5, 1);
+        return res.bytes();
+    }
+    /** 仓库里没有就加，返回 gid；已有返回 0 */
+    static long addProp(long[] g) {
+        for (long[] p : props.values()) if (p[0] == g[0]) return 0;
+        if (g.length > 1) { props.put(g[0], new long[] { g[0], 0, g[1] }); return g[0]; }
+        long gid = 1001; while (props.containsKey(gid)) gid++;
+        props.put(gid, new long[] { g[0], 0, 0 });
+        return gid;
+    }
+
     static String hexHead(byte[] d, int n) {
         StringBuilder s = new StringBuilder();
         for (int i = 0; i < Math.min(n, d.length); i++) s.append(String.format("%02x", d[i] & 0xff));
@@ -216,6 +303,7 @@ public class Server {
         if (req == null) return sb.toString();
         sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
           .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n");
+        sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
         return sb.toString();
     }

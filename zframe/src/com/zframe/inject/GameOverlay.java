@@ -712,8 +712,9 @@ public class GameOverlay {
         note(a, u, root, Mods.hallState);
         LinearLayout dg = row(a, root);
         btn(a, u, dg, "开启服务端", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
+        btn(a, u, dg, "发邮件", () -> new Thread(() -> toastAny(Server.sendMail())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。开启后大厅会重进一次，进仓库看人物和衣服，再回来点导出诊断，把 下载/ZFrame 里的 avatar 文件发给我。");
+        note(a, u, root, Server.state + "。开启后大厅会重进一次，并自动发一封补给邮件，去邮箱点领取；领完进仓库看人物和衣服，再回来点导出诊断，把 下载/ZFrame 里的 avatar 文件发给我。");
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }

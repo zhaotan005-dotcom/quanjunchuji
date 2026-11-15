@@ -9,6 +9,7 @@ public final class PB {
     PB varint(long v) { while ((v & ~0x7fL) != 0) { o.write((int) ((v & 0x7f) | 0x80)); v >>>= 7; } o.write((int) v); return this; }
     PB u(int field, long v) { return varint((long) field << 3).varint(v); }
     PB b(int field, byte[] v) { varint(((long) field << 3) | 2).varint(v.length); o.write(v, 0, v.length); return this; }
+    PB s(int field, String v) { return b(field, v.getBytes(java.nio.charset.StandardCharsets.UTF_8)); }
     PB m(int field, PB v) { return b(field, v.bytes()); }
     byte[] bytes() { return o.toByteArray(); }
 

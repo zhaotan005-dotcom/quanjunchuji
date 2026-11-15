@@ -367,3 +367,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Caves live in the libUE4 slack at 0x4a2d540 / +0x100. Probe.java was removed.
   - Server.java answers 13001/13003/13005; other key_pkg requests get an empty success reply. It pushes 13002 on start, then reopens the lobby.
   - Emulated: game/re/emu_server.py (caves + protobuf decode with the game's own schemas) passes, plus a Java poll test.
+- v1.61 (vc62/core62), 2026-11-16 07:20, built (not tested on device), 自建服务端 + 邮件:
+  - Mail protocol (cs_mail.proto): 25001/25002 GetMailList (CSMailList{type, mails}), 25003/25004 ReadMails (type, indexs, del_flg → PlayerDataChange.prop_changes), 25005/25006 SendMails, 25007 CSMailPushNewMailNtf{mail_list}. Mail{recv_time, title, content, attachment{props}, read_flag, index}.
+  - Server.java: on 「开启服务端」 pushes 13002 then a 补给 system mail (type 1) via 25007. 25001 → list; 25003 → marks read, adds the attachment props the deposit lacks (new gid, owner = current role), replies 25004 with the change, then pushes a fresh 13002. 25005 → success. Claiming twice gives nothing.
+  - Attachments (GIFT): both roles with prop_role_attr {sex, faceid 1}, hair 30213000000–05, clothes seen in logs (30301000000/071, 30303000005, 30307000007, 30232000006, 30315000050/061, 30323000002, 30325000000–05), coat 30318000000. Face/hair/most cloth IDs are unverified.
+  - Z menu (lobby): new 「发邮件」 button sends another 补给 mail (server must be on). Diagnostic shows the mail count.
+  - Tests: zframe/test/ServerTest.java writes /tmp/pt/o.txt; game/re/emu_server.py decodes 25007/25002/25004/13002 with the game's schemas and runs both caves — all pass.
+  - Build env (x86_64 sandbox): apt openjdk-21, build-tools r36 + platform-36 zips from dl.google.com unpacked to /workspace/work/sdk; release via rel.py from v1.60.
