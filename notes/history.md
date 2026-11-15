@@ -254,3 +254,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Speed: on the ground→air transition, the CMC Velocity XY (+0xb4/+0xb8, UMovementComponent::Velocity from pn.py) is multiplied by speed.
   - Menu title is "艾挽 · 全军出击单机".
 - User's roadmap (05:34): after v1.52, do the 服务端 work: fix the lobby front end, then vehicle spawning (刷车) and entering 训练营 (training ground resources). Also asked why the flare gun gives no airdrop (suspects GM permission). Not investigated yet; the guess is that the server-side airdrop logic is missing offline.
+- 2026-11-16 05:51 服务端 recon (static):
+  - The lobby talks over the GCloud Connector ("KeyLobbyMsg").
+    - ConnectorService::SendRawBuffer(this, buf, len, x) is at 0xf950e0. The connector ptr is at this+0xfa054. If it is null, or its vtable+0x38 (IsConnected?) returns 0, it logs "connector is invalidate" and returns 0. Otherwise it calls vtable+0x1c(conn, buf, len, x, 0) (Write).
+    - OnDataRecvedProc(this, conn, err) is at 0xf95b1c. It gets an object via this->vtable+0x128, then calls 0xfa9f40(obj, conn, err), which reads from the connector.
+  - Plan: a fake in-process connector (our vtable: IsConnected=1, Write = copy to a ring buffer, Read = our reply buffer) stored at this+0xfa054. A Java thread decodes requests and builds replies. Recv is triggered from the game thread.
+  - Step 1 is to capture real request bytes so the message format can be learned.
+  - The 训练营 map pak is mounted (Content/Maps/TrainingIsland_Runtime/), but its map name is not in libUE4, so it lives in pak data and Lua. OnTrainingModeEntranceBtnClick is at 0x1375b68 (it calls a BP/Lua function by name via 0x3173a40).
