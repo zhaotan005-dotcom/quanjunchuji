@@ -269,3 +269,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - Turning it off restores both hooks and saves a hex+ASCII text to Download/ZFrame/lobby-MMdd-HHmmss.txt.
   - The startup login send happens during the splash, so it is NOT captured (splash rule).
   - Not tested on device.
+- 06:04 v1.53 capture test: 0 records, no crash (libUE4 0xabe5a000, buffer 0x91e78000). Lobby UI requests never reach KeyLobby SendMsg or SendRawBuffer, so they are blocked earlier by the offline state (UNZOnlineLobby bIsOffline / connector null). Next: drop LobbyCap and fill lobby role/avatar data locally, starting with the gray character. The user was told the switch will be removed next version.
