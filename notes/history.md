@@ -327,3 +327,18 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - The diagnostic prints Mods.storeInfo().
   - Emulated: emu_store.py (4 cases: empty/non-empty/disabled, regs + stack OK).
   - Next step depends on the counters: if calls are 0, the lobby uses another path; if calls > 0 but the count after caching is 0, the role type check fails in CacheStoreProp's lookups.
+- v1.59 (vc60/core60), 2026-11-16, a pure measurement build:
+  - v1.58 device result:
+    - Hook bytes are in, but GetCurrentRole was called 0 times, even after opening 仓库 and 角色 and the 角色 page rendering the female model.
+    - So none of the 9 InitAvatar-family callers run in the offline lobby. The lobby, 仓库 and 角色 avatars come from a different path; UIAvatarProxyManager is the candidate.
+    - UIAvatarProxyManager natives: execEquipItemsForHallRole 0x16a60a4 → vt+0x314 = 0x1207d40; execGetDefaultCharacterClothes 0x16a63f0 → vt+0x33c; execShowLobbyDisplayType 0x16a6b34 → vt+0x304. FNameNativePtrPair table at 0x4da5a48.
+  - Added Probe.java, a 人物探针 started from a new button. It puts call counters plus the last caller (LR) on 16 functions:
+    - InitAvatar, InitAvatarClotheTry, CacheStoreProp, UpdateStoreCache, c62d48, EquipItemsForHallRole, 1205d60, InitAvatarProxy;
+    - 4 UIAvatarProxyManager execs;
+    - 1877a1c, 18739b8, 1877ec8, cc69cc.
+  - How it works:
+    - Each function's first 8 bytes become `ldr pc,[pc,#-4]` plus the trampoline address.
+    - Trampolines live in the libUE4 text-segment slack 0x4a2d540..0x4a2e000 (filesz 0x4a2d528, page end 0x4a2e000; r-x is checked via /proc/self/maps). Spacing is 0x40.
+    - Original bytes are verified before patching.
+  - Emulated: emu_probe.py, all 16 pass (regs, stack, counter, LR). The trampoline hex comes from the real Java code.
+  - The report goes into the avatar diagnostic.
