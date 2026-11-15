@@ -38,7 +38,9 @@ public class GameOverlay {
     static GradientDrawable grad(float r) { return box(ON_BG, r); }
 
     static Runnable refresher;
-    static void refreshAny() { final Runnable r = refresher; Activity a = Con.act; if (r != null && a != null) a.runOnUiThread(r); }
+    /** v1.50：界面重建一律排到下一帧。以前在主线程上会立刻重建，松开滑条的那一刻把滑条自己删掉 → 闪退 */
+    static final android.os.Handler MAIN = new android.os.Handler(android.os.Looper.getMainLooper());
+    static void refreshAny() { final Runnable r = refresher; if (r != null) { MAIN.removeCallbacks(r); MAIN.post(r); } }
 
     static void attach(final Activity a) {
         Mods.restore(a);
@@ -620,7 +622,7 @@ public class GameOverlay {
                     invalidate(); return true;
                 }
                 case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL:
-                    drag = false; getParent().requestDisallowInterceptTouchEvent(false); invalidate(); refreshAny(); return true;
+                    drag = false; getParent().requestDisallowInterceptTouchEvent(false); invalidate(); return true;
             }
             return true;
         }
@@ -692,7 +694,7 @@ public class GameOverlay {
             LogCap.note("找风衣 试穿 " + id + " → " + (ok ? "穿上了" : dbgText()));
             if (ok) {
                 Mods.coatId = id; Mods.save(); coatNow = id;
-                CoatFind.state = "绝地风衣 = " + id + "（已设为开局衣服）" + (noHoodId.isEmpty() ? "" : "\n脱帽版 = " + noHoodId);
+                CoatFind.state = "绝地风衣 = " + id + "（已记住）" + (noHoodId.isEmpty() ? "" : "\n脱帽版 = " + noHoodId);
                 lastCands = ids; lastCandAt = i;
                 if (tab == 3) fill(a, u, root);
             } else tryCoats(a, u, root, ids, i + 1);
@@ -735,7 +737,7 @@ public class GameOverlay {
         head(a, u, root, "移动");
         slider(a, u, root, "加速", "只加移动速度", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
         slider(a, u, root, "高跳", "跳跃高度", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
-        slider(a, u, root, "动作快慢", "加速时动作放慢，1 = 正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> { Mods.slowMo = v; Mods.save(); });
+        slider(a, u, root, "动作快慢", "加速时动作放慢，1 = 正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
         head(a, u, root, "枪械");
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "枪口不上跳、镜头不抖", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
@@ -795,22 +797,17 @@ public class GameOverlay {
     static void coatPage(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "绝地风衣");
         LinearLayout c = card(a, u, root);
-        label(a, c, "开局衣服：" + (Mods.coatId.isEmpty() ? "还没设" : Mods.coatId), 13, false, TXT).setPadding(0, u.dp(6), 0, 0);
+        label(a, c, "风衣编号：" + (Mods.coatId.isEmpty() ? "还没找到" : Mods.coatId), 13, false, TXT).setPadding(0, u.dp(6), 0, 0);
         if (!CoatFind.state.isEmpty()) label(a, c, CoatFind.state, 11, false, CoatFind.running ? ORANGE : SUBT);
-        switchRow(a, u, c, "开局自动穿", "每局进图后自动穿上", Mods.autoCoat, v -> { Mods.autoCoat = v; Mods.save(); return "ok"; });
         LinearLayout fr = row(a, c);
         primary(a, u, fr, CoatFind.running ? "正在找…" : "找绝地风衣", () -> coatFind(a, u, root));
-        btn(a, u, fr, "现在穿上", () -> give(a, Mods.coatId, 1, "衣服"));
+        btn(a, u, fr, "穿上", () -> { if (Mods.coatId.isEmpty()) toast(a, "先点「找绝地风衣」"); else give(a, Mods.coatId, 1, "绝地风衣"); });
         if (!noHoodId.isEmpty()) btn(a, u, fr, "脱帽版", () -> give(a, noHoodId, 1, "脱帽版"));
         if (lastCands != null && lastCandAt + 1 < lastCands.size()) btn(a, u, fr, "下一个候选", () -> tryCoats(a, u, root, lastCands, lastCandAt + 1));
         head(a, u, root, "浏览衣服（自动跳过穿不上的）");
         LinearLayout cr = row(a, root);
         btn(a, u, cr, "上一件", () -> giveCoat(a, -1));
         btn(a, u, cr, "下一件", () -> giveCoat(a, 1));
-        btn(a, u, cr, "设为开局", () -> {
-            if (coatNow.isEmpty()) { toast(a, "先穿一件"); return; }
-            Mods.coatId = coatNow; Mods.save(); toast(a, "开局衣服 = " + coatNow); fill(a, u, root);
-        });
         coatLbl = label(a, root, coatNow.isEmpty() ? "" : "刚穿上：" + coatNow, 11, false, SUBT);
         head(a, u, root, "输入编号");
         LinearLayout ir = row(a, root);

@@ -21,35 +21,25 @@ public class Mods {
     static final long AMMO = 0xefd104L; static final String AMMO_O = "065045e0", AMMO_N = "0550a0e1";
     static final String MALE_O = "00560ae30210a0e3f75f45e3", MALE_N = "00550ce30210a0e3015a45e3";
 
-    public static volatile boolean noPoison, noPlane, male, noRecoil, noShake, infAmmo, autoCoat = true;
+    public static volatile boolean noPoison, noPlane, male, noRecoil, noShake, infAmmo;
     public static volatile float speed = 1f, jump = 1f;
-    /** v1.47：开局衣服编号（绝地风衣，找到后存 prefs "coat"） */
-    public static volatile String coatId = "30316000007";
+    /** 找到的绝地风衣编号（存 prefs "coat"，只在点「穿上」时用，不自动穿） */
+    public static volatile String coatId = "";
     static long base;
 
-    static android.content.SharedPreferences sp; static boolean restored;
-    static void save() { if (sp != null) sp.edit().putBoolean("np", wantPlane).putBoolean("npo", wantPoison).putBoolean("male", wantMale).putBoolean("nr", noRecoil).putBoolean("ns", noShake).putBoolean("ia", infAmmo).putFloat("spd", speed).putFloat("jmp", jump).putBoolean("ac", autoCoat).putString("coat", coatId).putFloat("slow", slowMo).apply(); }
-    /** 记住的开关：游戏界面出来时重新打上（内存改动每次启动都要重做） */
+    static android.content.SharedPreferences sp;
+    /** v1.50：只记住找到的衣服编号。其他开关每次启动都是默认（关），不自动打上 */
+    static void save() { if (sp != null) sp.edit().putString("coat", coatId).apply(); }
     static void restore(final android.content.Context c) {
-        if (restored) return; restored = true;
+        if (sp != null) return;
         sp = c.getSharedPreferences("zmods", 0);
-        // v1.46：启动画面阶段不能改内存（v1.41~1.45 闪退）。v1.47：只读回记住的值，等大厅地图加载完 6 秒后（Con.lobbyReady）再打上
-        autoCoat = sp.getBoolean("ac", true); coatId = sp.getString("coat", "30316000007"); slowMo = sp.getFloat("slow", 0.75f);
-        speed = sp.getFloat("spd", 1f); jump = sp.getFloat("jmp", 1f);
-        noRecoil = sp.getBoolean("nr", false); noShake = sp.getBoolean("ns", false); infAmmo = sp.getBoolean("ia", false);
-        wantMale = sp.getBoolean("male", false); wantPlane = sp.getBoolean("np", false); wantPoison = sp.getBoolean("npo", false);
+        coatId = sp.getString("coat", "");
+        if ("30316000007".equals(coatId)) coatId = "";   // 以前的占位编号，不是绝地风衣
     }
-    static boolean wantMale, wantPlane, wantPoison, lateDone;
-    /** v1.47：进大厅（引擎和大厅地图都加载完）以后再恢复上次的开关，不在启动画面阶段动内存 */
-    static void lateRestore() {
-        if (lateDone) return; lateDone = true;
-        StringBuilder b = new StringBuilder("延后恢复开关:");
-        if (wantMale) b.append(" 男角色=").append(setMale(true));
-        if (wantPlane) b.append(" 不上飞机=").append(setPlane(true));
-        if (wantPoison) b.append(" 不刷圈=").append(setPoison(true));
-        if (speed != 1f || jump != 1f || noRecoil || noShake || infAmmo) { b.append(" 枪/移动线程"); startMover(); }
-        LogCap.note(b.toString());
-        GameOverlay.refreshAny();
+    /** v1.50：每次进图（包括回大厅）局内功能全部回到默认 */
+    static void resetMatch() {
+        speed = 1f; jump = 1f; noRecoil = false; noShake = false; infAmmo = false;
+        cmc = 0; lastJump = Float.NaN; tableAi = 0; tableAt = 0;
     }
 
     static synchronized long base() {
@@ -74,7 +64,7 @@ public class Mods {
     public static String setPoison(boolean on) {
         String r = write(POISON, POISON_O, POISON_N, on);
         LogCap.note("不刷圈 " + on + " → " + r);
-        if ("ok".equals(r)) { noPoison = on; wantPoison = on; save(); }
+        if ("ok".equals(r)) { noPoison = on; }
         return r;
     }
 
@@ -83,18 +73,10 @@ public class Mods {
         if (on) r = write(CAVE, CAVE_O, CAVE_N, true);
         if ("ok".equals(r)) r = write(HOOK, HOOK_O, HOOK_N, on);
         LogCap.note("不上飞机 " + on + " → " + r);
-        if ("ok".equals(r)) { noPlane = on; wantPlane = on; save(); }
+        if ("ok".equals(r)) { noPlane = on; }
         return r;
     }
 
-    /** v1.47：进图后自动穿开局衣服（默认绝地风衣，编号在衣服页「找绝地风衣」找到后记住） */
-    static void onMatch() {
-        lastPawnAsk = 0;
-        final String id = coatId;
-        if (!autoCoat || id == null || !id.matches("\\d{11}")) return;
-        final android.app.Activity a = Con.act; if (a == null) return;
-        a.runOnUiThread(() -> { GameOverlay.give(a, id, 1); LogCap.note("开局自动穿衣服 " + id); });
-    }
     /** v1.47：正常模式 = 不上飞机、不刷圈都关掉 */
     public static String setNormal() {
         String r = setPlane(false);
@@ -105,7 +87,7 @@ public class Mods {
     public static String setMale(boolean on) {
         String r = write(MALE, MALE_O, MALE_N, on);
         LogCap.note("男角色 " + on + " → " + r);
-        if ("ok".equals(r)) { male = on; wantMale = on; save(); }
+        if ("ok".equals(r)) { male = on; }
         return r;
     }
 
@@ -138,13 +120,13 @@ public class Mods {
     }
 
     public static void setGun(boolean r, boolean s, boolean ia) {
-        noRecoil = r; noShake = s; infAmmo = ia; save();
+        noRecoil = r; noShake = s; infAmmo = ia;
         LogCap.note("无后座=" + r + " 聚点=" + s + " 无限子弹=" + ia);
         startMover();
     }
     /** 滑条 0~10：小于 1 就是关（×1） */
     public static void setMove(float s, float j) {
-        speed = Math.max(1f, s); jump = Math.max(1f, j); save();
+        speed = Math.max(1f, s); jump = Math.max(1f, j);
         startMover();
     }
     static boolean active() { return speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }

@@ -285,8 +285,7 @@ public class Con {
         if (engineSeenAt > 0 && tweakDone == 0 && now - engineSeenAt > 10000) { tweakDone = 1; runTweaks("启动时"); }
         if (browseAt > tweakAt && now - browseAt > 1500) runTweaks("进图时");
         if (fpsAt > 0 && now - fpsAt > 800) { fpsAt = 0; applyFps(); }
-        if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.onMatch(); } // v1.47：进图 4 秒后自动穿开局衣服
-        if (mapAt > 0 && now - mapAt > 6000) { mapAt = 0; Mods.lateRestore(); } // v1.47：大厅/地图加载完 6 秒后再恢复记住的开关
+        if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.lastPawnAsk = 0; }
         tickAudio(now);
     }
 
@@ -413,7 +412,6 @@ public class Con {
     }
 
     static final long bootAt = System.currentTimeMillis();
-    static volatile long mapAt;
 
     static volatile String lastWeap = ""; static volatile long lastWeapAt;
     static final java.util.regex.Pattern WEAP = java.util.regex.Pattern.compile("BP_NZWeap_(\\w+?)_C|WeaponBase/W\\d+_(\\w+)/");
@@ -453,7 +451,6 @@ public class Con {
             if (lm >= 0) {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
-                if (m.startsWith("/Game/Maps/") && !Mods.lateDone && mapAt == 0) mapAt = System.currentTimeMillis();
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); }  // v1.49：大厅/对局显示不同的菜单
                 if (m.startsWith("/Game/Maps/") && !lobby) {
@@ -472,7 +469,7 @@ public class Con {
         if (l.contains("ApplyFrameRateOption")) fpsAt = System.currentTimeMillis();
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0) { synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.cmc = 0; GameOverlay.refreshAny(); return; }
+        if (i >= 0) { synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();
