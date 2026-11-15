@@ -273,7 +273,8 @@ public class Con {
         if (engineSeenAt > 0 && tweakDone == 0 && now - engineSeenAt > 10000) { tweakDone = 1; runTweaks("启动时"); }
         if (browseAt > tweakAt && now - browseAt > 1500) runTweaks("进图时");
         if (fpsAt > 0 && now - fpsAt > 800) { fpsAt = 0; applyFps(); }
-        if (brAt > 0 && now - brAt > 3000) { brAt = 0; } // v1.36：游戏流程开关已去掉（set 改不了游戏里的对象）
+        if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.onMatch(); } // v1.47：进图 4 秒后自动穿开局衣服
+        if (mapAt > 0 && now - mapAt > 6000) { mapAt = 0; Mods.lateRestore(); } // v1.47：大厅/地图加载完 6 秒后再恢复记住的开关
         tickAudio(now);
     }
 
@@ -400,6 +401,7 @@ public class Con {
     }
 
     static final long bootAt = System.currentTimeMillis();
+    static volatile long mapAt;
 
     static volatile String lastWeap = ""; static volatile long lastWeapAt;
     static final java.util.regex.Pattern WEAP = java.util.regex.Pattern.compile("BP_NZWeap_(\\w+?)_C|WeaponBase/W\\d+_(\\w+)/");
@@ -439,6 +441,7 @@ public class Con {
             if (lm >= 0) {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
+                if (m.startsWith("/Game/Maps/") && !Mods.lateDone && mapAt == 0) mapAt = System.currentTimeMillis();
                 if (m.startsWith("/Game/Maps/") && !m.contains("RoleHall") && !m.contains("FrontEnd")) {
                     brMap = m;
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
