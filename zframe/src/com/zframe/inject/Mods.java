@@ -102,11 +102,6 @@ public class Mods {
         write(WAIT, WAIT_O, WAIT_N, false);
         return "ok".equals(r) ? r2 : r;
     }
-    public static String flowText() {
-        if (!noPlane && !noPoison) return "正常模式（正常上飞机、正常刷圈）";
-        if (noPlane && noPoison) return "不上飞机 + 不刷圈";
-        return noPlane ? "不上飞机（毒圈照常刷）" : "不刷圈（照常上飞机）";
-    }
     public static String setMale(boolean on) {
         String r = write(MALE, MALE_O, MALE_N, on);
         LogCap.note("男角色 " + on + " → " + r);
@@ -115,80 +110,109 @@ public class Mods {
     }
 
     // ---------- 加速 / 高跳 ----------
-    static long cmc; static float baseWalk, baseCrouch, baseJump, lastWalk, lastCrouch, lastJump;
+    // 偏移（UE4 反射表）：ACharacter Mesh +0x2f4 / CharacterMovement +0x2f8；AActor CustomTimeDilation +0x58；
+    // CMC GravityScale +0x120、JumpZVelocity +0x128、MovementMode +0x138（3 = 空中）；
+    // USkeletalMeshComponent AnimScriptInstance +0x750、GlobalAnimRateScale +0x7c4
+    static final int P_DIL = 0x58, P_MESH = 0x2f4, P_CMC = 0x2f8, C_JUMP = 0x128, C_MODE = 0x138, M_ANIM = 0x750, M_RATE = 0x7c4;
+    static final int MOVE_FALLING = 3;
+    static volatile long cmc; static float baseJump, lastJump = Float.NaN;
     static Thread mover;
+    /** 动作放慢系数：1 = 动作和平时一样快；越小越像「科技」那种滑步 */
+    public static volatile float slowMo = 0.75f;
+    static volatile String moveState = "";
 
     static int rd(RandomAccessFile m, long a) throws java.io.IOException {
         byte[] b = new byte[4]; m.seek(a); m.readFully(b);
         return (b[0] & 255) | (b[1] & 255) << 8 | (b[2] & 255) << 16 | (b[3] & 255) << 24;
     }
-    static void wf(RandomAccessFile m, long a, float f) throws java.io.IOException {
-        int v = Float.floatToIntBits(f);
+    static long rp(RandomAccessFile m, long a) throws java.io.IOException { return rd(m, a) & 0xffffffffL; }
+    static float f(RandomAccessFile m, long a) throws java.io.IOException { return Float.intBitsToFloat(rd(m, a)); }
+    static void wf(RandomAccessFile m, long a, float f) throws java.io.IOException { wi(m, a, Float.floatToIntBits(f)); }
+    static void wi(RandomAccessFile m, long a, int v) throws java.io.IOException {
         m.seek(a); m.write(new byte[]{(byte) v, (byte) (v >> 8), (byte) (v >> 16), (byte) (v >> 24)});
     }
+    /** 是不是游戏里的 UObject：第一个字（虚表）落在 libUE4 里 */
+    static boolean isObj(RandomAccessFile m, long b, long o) {
+        if (o < 0x10000 || (o & 3) != 0) return false;
+        try { long vt = rp(m, o); return vt >= b && vt <= b + 0x5500000L; } catch (Throwable e) { return false; }
+    }
 
-    /** pawn 地址来自刷物品补丁的诊断缓冲区（AddAvaItem P0 只填人物地址，不刷东西） */
     public static void setGun(boolean r, boolean s, boolean ia) {
         noRecoil = r; noShake = s; infAmmo = ia; save();
-        LogCap.note("无后座=" + r + " 防抖=" + s + " 无限子弹=" + ia);
+        LogCap.note("无后座=" + r + " 聚点=" + s + " 无限子弹=" + ia);
         startMover();
     }
+    /** 滑条 0~10：小于 1 就是关（×1） */
     public static void setMove(float s, float j) {
-        speed = s; jump = j; save();
+        speed = Math.max(1f, s); jump = Math.max(1f, j); save();
         startMover();
     }
+    static boolean active() { return speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }
+
     static synchronized void startMover() {
         if (mover != null) return;
         mover = new Thread(() -> {
             while (true) {
-                try { tickMove(); } catch (Throwable t) { LogCap.note("加速出错 " + t); }
-                try { Thread.sleep(150); } catch (InterruptedException e) { return; }
+                try { tickMove(); } catch (Throwable t) { LogCap.note("移动线程出错 " + t); }
+                // 开加速时要及时发现「起跳」，40ms 查一次；其他时候 200ms
+                try { Thread.sleep(speed != 1f ? 40 : 200); } catch (InterruptedException e) { return; }
             }
         }, "zframe-move");
         mover.setDaemon(true);
         mover.start();
     }
 
-    static long lastPawnAsk; static String moveState = "";
-    static long animMesh; static float animSet = Float.NaN;
+    static long lastPawnAsk, lastMesh;
+    /** v1.49：只在对局里动人物（大厅里的人物模型不是对局里的角色，写了会闪退） */
     static void tickMove() throws Exception {
-        if (speed == 1f && jump == 1f && cmc == 0 && !noRecoil && !noShake && !infAmmo) return;
+        if (!Con.inMatch) { if (cmc != 0) { cmc = 0; GameOverlay.forgetPawn(); } moveState = "进图后生效"; return; }
+        if (!active()) return;
         long b = base(); if (b == 0) return;
-        long now = System.currentTimeMillis();
         long pawn = GameOverlay.pawnAddr();
-        if (pawn == 0 && now - lastPawnAsk > 4000) { lastPawnAsk = now; GameOverlay.askPawn(); }
-        if (pawn == 0) { moveState = "等进图（进图后自动生效）"; return; }
+        long now = System.currentTimeMillis();
+        if (pawn == 0) {
+            if (now - lastPawnAsk > 4000) { lastPawnAsk = now; GameOverlay.askPawn(); }
+            moveState = "等人物"; return;
+        }
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            if (!isObj(m, b, pawn)) { GameOverlay.forgetPawn(); cmc = 0; moveState = "等人物"; return; }
+            long c = rp(m, pawn + P_CMC);
+            if (!isObj(m, b, c)) { cmc = 0; moveState = "等人物"; return; }
+            if (c != cmc) { cmc = c; baseJump = f(m, c + C_JUMP); lastJump = Float.NaN; LogCap.note(String.format("移动组件 %x 跳=%.0f", c, baseJump)); }
             gun(m, b, pawn);
-            // ACharacter：Mesh +0x2f4，CharacterMovement +0x2f8，Capsule +0x2fc
-            long c = rd(m, pawn + 0x2f8) & 0xffffffffL;
-            if (c == 0) { moveState = "没有移动组件"; return; }
-            long vt = rd(m, c) & 0xffffffffL;
-            if (vt < b || vt > b + 0x5500000L) { moveState = "等人物"; cmc = 0; GameOverlay.forgetPawn(); return; }
-            float jz = Float.intBitsToFloat(rd(m, c + 0x128));
-            if (c != cmc) { cmc = c; baseJump = jz; lastJump = Float.NaN; animMesh = 0; animSet = Float.NaN;
-                LogCap.note(String.format("移动组件 %x 跳=%.0f", c, jz)); }
-            if (jz != lastJump) baseJump = jz;
-            // v1.47 加速（科技那种）：人物自己的时间倍率 CustomTimeDilation(+0x58)=倍数 → 走/跑位移变快；
-            // 同时把人物骨骼网格 GlobalAnimRateScale(USkeletalMeshComponent +0x7c4) 设成 1/倍数，动作放慢回正常速度，只快在移动上
-            float td = Float.intBitsToFloat(rd(m, pawn + 0x58));
-            if (td > 0.05f && td < 20f && td != speed) wf(m, pawn + 0x58, speed);
-            long mesh = rd(m, pawn + 0x2f4) & 0xffffffffL;
-            if (mesh != 0) {
-                long mvt = rd(m, mesh) & 0xffffffffL;
-                if (mvt >= b && mvt <= b + 0x5500000L) {
-                    float ar = Float.intBitsToFloat(rd(m, mesh + 0x7c4));
-                    float want = speed == 1f ? 1f : Math.max(0.1f, 1f / speed * slowMo);
-                    if (mesh != animMesh) { animMesh = mesh; LogCap.note(String.format("骨骼网格 %x 动作倍率=%.2f", mesh, ar)); }
-                    if (ar > 0.01f && ar < 20f && Math.abs(ar - want) > 0.001f) wf(m, mesh + 0x7c4, want);
-                }
-            }
-            if (baseJump > 0 && baseJump < 5000) { lastJump = baseJump * jump; wf(m, c + 0x128, lastJump); }
+            jump(m, c);
+            dilation(m, b, pawn, c);
             moveState = "已生效";
         }
     }
-    /** 动作放慢系数：1 = 动作看起来和平时一样快；0.6 = 比平时还慢一点（像科技那种滑步） */
-    public static volatile float slowMo = 0.75f;
+
+    /** 高跳：JumpZVelocity = 原值 × 倍数。只在读到的是原值或我们上次写的值时才写（对象换了就不写） */
+    static void jump(RandomAccessFile m, long c) throws java.io.IOException {
+        float jz = f(m, c + C_JUMP);
+        boolean ours = !Float.isNaN(lastJump) && Math.abs(jz - lastJump) < 0.01f;
+        if (!ours) {
+            if (!(jz >= 100f && jz <= 2000f)) return;     // 不像跳跃速度，不碰
+            baseJump = jz;                                // 游戏自己改过（换人物/状态）→ 重新记原值
+        }
+        float want = baseJump * jump;
+        if (Math.abs(jz - want) > 0.01f) wf(m, c + C_JUMP, want);
+        lastJump = want;
+    }
+
+    /** 加速：人物自己的时间倍率 = 倍数（只快在位移上），动画按 slowMo 放慢；人在空中时恢复 1，跳跃才正常 */
+    static void dilation(RandomAccessFile m, long b, long pawn, long c) throws java.io.IOException {
+        int mode = rd(m, c + C_MODE) & 0xff;
+        boolean air = mode == MOVE_FALLING;
+        float wantDil = speed == 1f || air ? 1f : speed;
+        float td = f(m, pawn + P_DIL);
+        if (td > 0.05f && td < 20f && Math.abs(td - wantDil) > 0.001f) wf(m, pawn + P_DIL, wantDil);
+        long mesh = rp(m, pawn + P_MESH);
+        if (!isObj(m, b, mesh)) return;
+        if (mesh != lastMesh) { lastMesh = mesh; LogCap.note(String.format("骨骼网格 %x", mesh)); }
+        float ar = f(m, mesh + M_RATE);
+        float want = wantDil == 1f ? 1f : Math.max(0.1f, slowMo / wantDil);
+        if (ar > 0.01f && ar < 20f && Math.abs(ar - want) > 0.001f) wf(m, mesh + M_RATE, want);
+    }
 
     // ---------- 枪械：人物 CurrWeapon(+0x890) ----------
     // 子弹：ClipAmmoCount 0x52c（弹匣容量），ServerWeaponAmmoCount 0x604，WeaponAmmoCount 0x608
@@ -196,128 +220,72 @@ public class Mods {
     static long lastGunLog;
     static void gun(RandomAccessFile m, long b, long pawn) throws java.io.IOException {
         if (!noRecoil && !noShake && !infAmmo) return;
-        long w = rd(m, pawn + 0x890) & 0xffffffffL;
-        if (w == 0) return;
-        long vt = rd(m, w) & 0xffffffffL;
-        if (vt < b || vt > b + 0x5500000L) return;
+        long w = rp(m, pawn + 0x890);
+        if (!isObj(m, b, w)) return;
         int clip = rd(m, w + 0x52c);
         long now = System.currentTimeMillis();
         if (now - lastGunLog > 10000) { lastGunLog = now; LogCap.note(String.format("当前武器 %x 弹匣=%d 子弹=%d", w, clip, rd(m, w + 0x608))); }
-        if (noRecoil || noShake) paramTables(m, b, pawn, w);
+        if (noRecoil || noShake) paramTable(m, b, pawn);
         if (noShake) { wf(m, w + 0x574, 0f); wf(m, w + 0x578, 0f); wf(m, w + 0x57c, 0f); wf(m, w + 0x580, 0f); wf(m, w + 0x5ac, 0f); }
-        // v1.47 无限子弹：枪里一直是 999 发（只给枪，近战/投掷弹匣是 0 不动）
-        if (infAmmo && clip > 0 && clip <= 200) {
-            if (rd(m, w + 0x608) != 999) { wi(m, w + 0x608, 999); wi(m, w + 0x604, 999); }
-        }
+        // 无限子弹：枪里一直是 999 发（只给枪，近战/投掷弹匣是 0 不动）
+        if (infAmmo && clip > 0 && clip <= 200 && rd(m, w + 0x608) != 999) { wi(m, w + 0x608, 999); wi(m, w + 0x604, 999); }
     }
 
-    /* v1.47 无后座修复：
-     * 后座/扩散参数不在武器组件里，而是一整块 NZWeapParamsTable（0x254 字节）：
-     *   +0x004 SpreadAccuracyRatios、+0x05c CrosshairAccuracyRatios（AccuracyRatio_Jump 0x3c / Prone 0x40 / ProneWalk 0x44 / Stand 0x48 / StandWalk 0x4c / Crouch 0x50 / CrouchWalk 0x54）
-     *   +0x0b4 SpreadParamTable（SpreadMin 0x3c, Max 0x40, ModifierBase 0x44, Inc 0x48, ModMax 0x4c, IncreaseSpeed 0x50, IncreaseSpeed_Firing 0x54）
-     *   +0x118 RecoilParamTable（RecoilTime 0x3c, UpMin 0x44, UpModifier 0x48, UpMax 0x4c, UpTotalMax 0x50, SideMin 0x54, SideModifier 0x58, SideMax 0x5c, SideRange 0x60）
+    /* 后座/扩散参数表 NZWeapParamsTable（0x254 字节）：
+     *   +0x004 SpreadAccuracyRatios、+0x05c CrosshairAccuracyRatios（Jump 0x3c / Prone 0x40 / ProneWalk 0x44 / Stand 0x48 / StandWalk 0x4c / Crouch 0x50 / CrouchWalk 0x54）
+     *   +0x0b4 SpreadParamTable（Min 0x3c .. IncreaseSpeed_Firing 0x54）
+     *   +0x118 RecoilParamTable（Time 0x3c, UpMin 0x44 .. SideRange 0x60）
      *   +0x17c CameraRecoilParamTable（Base 0x8, Modifier 0xc, Max 0x10）
-     *   +0x1ac bUseCFMFireMode（为 1 时走穿越火线式后座，用下面这块，v1.46 没改这块所以还有后座）
-     *   +0x1b0 CFMParams（m_MaxInaccuracy 0x8, m_MinInaccuracy 0xc, m_DisperseBase 0x10, Disperse 站/跳/走 0x14-0x1c,
-     *          m_RecoilUpBase 0x28, UpModifier 0x2c, UpMax 0x30, LateralBase 0x34, LateralModifier 0x38, LateralMax 0x3c,
-     *          RecoilScale 站/走/跳 0x48-0x50, 准星 Size/Length 普通 0x5c-0x68 / 走 0x6c-0x78 / 跳 0x7c-0x88, InaccuracyIncrement 0x8c）
-     * 游戏把这块从表 WeapParamsTable_AllWeapons 复制到动画/武器管理对象（例如 +0x18c4），复制件不止一份 →
-     * 在人物、武器以及它们指向的对象里按特征找出所有副本，全部改掉。 */
-    static final java.util.Map<Long, long[]> tables = new java.util.HashMap<>();
-    static long tableScanAt;
-    static float f(RandomAccessFile m, long a) throws java.io.IOException { return Float.intBitsToFloat(rd(m, a)); }
-    static boolean looksTable(byte[] buf, int t) {
-        if (t + 0x254 > buf.length) return false;
-        java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(buf).order(java.nio.ByteOrder.LITTLE_ENDIAN);
-        int r = t + 0x118;
-        float rt = bb.getFloat(r + 0x3c), upMin = bb.getFloat(r + 0x44), upMax = bb.getFloat(r + 0x4c), sMin = bb.getFloat(r + 0x54), sMax = bb.getFloat(r + 0x5c);
-        if (!(rt >= 0 && rt < 5 && upMin >= 0 && upMin <= upMax && upMax < 60 && sMin <= sMax && Math.abs(sMax) < 60 && Math.abs(sMin) < 60)) return false;
-        int c = t + 0x17c; float cb = bb.getFloat(c + 8), cmx = bb.getFloat(c + 0x10);
-        if (!(cb >= 0 && cb < 60 && cmx >= 0 && cmx < 200)) return false;
-        int s = t + 0xb4; float spMin = bb.getFloat(s + 0x3c), spMax = bb.getFloat(s + 0x40);
-        if (!(spMin >= 0 && spMin <= spMax && spMax < 100)) return false;
-        int u = buf[t + 0x1ac] & 0xff; if (u > 1) return false;
-        int a = t + 0x4 + 0x48; float st = bb.getFloat(a);
-        if (!(st >= 0 && st < 20)) return false;
-        // 至少要有一个非零的后座值，排除全 0 的空内存
-        return upMax > 0 || sMax > 0 || cb > 0 || bb.getFloat(t + 0x1b0 + 0x28) > 0;
-    }
-    /** v1.48：v1.47 在 0x2400 字节里到处按特征找，误认了 896 处（多数不是后座表）→ 乱写内存进图闪退。
-     *  现在只认 GetWeaponParamsTable 返回的那一份：某个对象 +0x18c4（0xec9b70: add r0,r0,#0x18c4）。
-     *  只查人物和当前武器直接指向、且虚表在游戏库里的对象，固定偏移，特征也更严，最多认 2 份。 */
+     *   +0x1ac bUseCFMFireMode，+0x1b0 CFMParams（不准度 0x8/0xc，散布 0x10-0x1c，后座 0x28-0x3c，后座倍数 0x48-0x50，准星 0x5c-0x88，0x8c）
+     * v1.49：游戏只把它复制到人物动画实例的 WeaponParamsTable（AnimInstance +0x18c4）。
+     * 路径固定：人物 → Mesh(+0x2f4) → AnimScriptInstance(+0x750) → +0x18c4，不再按特征到处找（v1.47 误写 896 处闪退）。 */
     static final int WPT = 0x18c4;
-    static long[] findTables(RandomAccessFile m, long b, long pawn, long w) throws java.io.IOException {
-        java.util.LinkedHashSet<Long> objs = new java.util.LinkedHashSet<>();
-        objs.add(pawn); objs.add(w);
-        for (long base : new long[]{pawn, w}) {
-            byte[] bb = new byte[0x1000];
-            try { m.seek(base); m.readFully(bb); } catch (Throwable e) { continue; }
-            for (int o = 0; o + 4 <= bb.length; o += 4) {
-                long p = (bb[o] & 255) | (bb[o + 1] & 255) << 8 | (bb[o + 2] & 255) << 16 | (long) (bb[o + 3] & 255) << 24;
-                if (p < 0x10000 || (p & 3) != 0) continue;
-                try { long vt = rd(m, p) & 0xffffffffL; if (vt >= b && vt <= b + 0x5500000L) objs.add(p); } catch (Throwable ignored) {}
+    static long tableAi, tableAt;
+    static void paramTable(RandomAccessFile m, long b, long pawn) throws java.io.IOException {
+        long mesh = rp(m, pawn + P_MESH);
+        if (!isObj(m, b, mesh)) return;
+        long ai = rp(m, mesh + M_ANIM);
+        if (!isObj(m, b, ai)) return;
+        if (ai != tableAi) {
+            byte[] buf = new byte[0x254];
+            m.seek(ai + WPT); m.readFully(buf);
+            boolean ok = looksTable(buf);
+            LogCap.note(String.format("后座参数表 动画实例 %x → %s CFM=%d", ai, ok ? "认出" : "不像，不改", buf[0x1ac]));
+            tableAi = ai; tableAt = ok ? ai + WPT : 0;
+        }
+        if (tableAt == 0) return;
+        long t = tableAt;
+        if (noRecoil) {
+            for (int k = 0x44; k <= 0x60; k += 4) wf(m, t + 0x118 + k, 0f);                          // 后座 上/左右
+            wf(m, t + 0x17c + 8, 0f); wf(m, t + 0x17c + 0xc, 0f); wf(m, t + 0x17c + 0x10, 0f);       // 镜头后座
+            for (int k = 0x28; k <= 0x3c; k += 4) wf(m, t + 0x1b0 + k, 0f);                          // CFM 后座
+            for (int k = 0x48; k <= 0x50; k += 4) wf(m, t + 0x1b0 + k, 0f);                          // CFM 后座倍数
+        }
+        if (noShake) {
+            for (int k = 0x3c; k <= 0x54; k += 4) wf(m, t + 0xb4 + k, 0f);                           // 扩散
+            for (long a : new long[]{t + 0x4, t + 0x5c}) {                                           // 跳/走/趴 的准度 = 站立
+                float st = f(m, a + 0x48);
+                if (st > 0 && st < 20) for (int k = 0x3c; k <= 0x54; k += 4) wf(m, a + k, st);
             }
+            long cf = t + 0x1b0;
+            wf(m, cf + 0x8, 0f); wf(m, cf + 0xc, 0f);
+            for (int k = 0x10; k <= 0x1c; k += 4) wf(m, cf + k, 0f);
+            float sz = f(m, cf + 0x5c), ln = f(m, cf + 0x64);
+            wf(m, cf + 0x6c, sz); wf(m, cf + 0x74, ln); wf(m, cf + 0x7c, sz); wf(m, cf + 0x84, ln);
+            for (int k : new int[]{0x60, 0x68, 0x70, 0x78, 0x80, 0x88, 0x8c}) wf(m, cf + k, 0f);
         }
-        java.util.List<Long> hits = new java.util.ArrayList<>();
-        byte[] buf = new byte[0x254];
-        for (long o : objs) {
-            try { m.seek(o + WPT); m.readFully(buf); } catch (Throwable e) { continue; }
-            if (looksTable(buf, 0) && strict(buf)) { if (!hits.contains(o + WPT)) hits.add(o + WPT); }
-            if (hits.size() >= 2) break;
-        }
-        long[] r = new long[hits.size()]; for (int i = 0; i < r.length; i++) r[i] = hits.get(i);
-        StringBuilder sb = new StringBuilder();
-        for (long h : r) sb.append(Long.toHexString(h - WPT)).append("+18c4(CFM=").append(readByte(m, h + 0x1ac)).append(") ");
-        LogCap.note(String.format("后座参数表 武器%x 查了%d个对象 → %d份 %s", w, objs.size(), r.length, sb));
-        return r;
     }
-    /** 更严的特征：后座时间 >0，镜头后座/后座上跳至少一项 >0，CFM 开关后面 3 个填充字节是 0，所有浮点数都不是 NaN/超大 */
-    static boolean strict(byte[] buf) {
+    /** 表的特征（固定路径上再核对一次）：数值都在合理范围，没有 NaN */
+    static boolean looksTable(byte[] buf) {
         java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(buf).order(java.nio.ByteOrder.LITTLE_ENDIAN);
-        if (buf[0x1ad] != 0 || buf[0x1ae] != 0 || buf[0x1af] != 0) return false;
-        float rt = bb.getFloat(0x118 + 0x3c); if (!(rt > 0.001f && rt < 5f)) return false;
-        int[][] rg = {{0x118 + 0x3c, 0x118 + 0x60}, {0x17c, 0x17c + 0x1c}, {0xb4 + 0x3c, 0xb4 + 0x60}, {0x1b0 + 0x4, 0x1b0 + 0x90}, {0x4 + 0x3c, 0x4 + 0x54}, {0x5c + 0x3c, 0x5c + 0x54}};
+        if ((buf[0x1ac] & 0xff) > 1 || buf[0x1ad] != 0 || buf[0x1ae] != 0 || buf[0x1af] != 0) return false;
+        int[][] rg = {{0x118 + 0x3c, 0x118 + 0x60}, {0x17c + 8, 0x17c + 0x10}, {0xb4 + 0x3c, 0xb4 + 0x54}, {0x1b0 + 0x8, 0x1b0 + 0x8c}, {0x4 + 0x3c, 0x4 + 0x54}, {0x5c + 0x3c, 0x5c + 0x54}};
         for (int[] q : rg) for (int k = q[0]; k <= q[1]; k += 4) {
-            float f = bb.getFloat(k);
-            if (Float.isNaN(f) || Float.isInfinite(f) || Math.abs(f) > 100000f) return false;
-            if (f != 0f && Math.abs(f) < 1e-6f) return false;   // 指针/整数当浮点看会是极小数
+            float v = bb.getFloat(k);
+            if (Float.isNaN(v) || Float.isInfinite(v) || Math.abs(v) > 10000f) return false;
+            if (v != 0f && Math.abs(v) < 1e-6f) return false;     // 指针/整数当浮点看是极小数
         }
-        return true;
-    }
-    static int readByte(RandomAccessFile m, long a) { try { m.seek(a); return m.read(); } catch (Throwable e) { return -1; } }
-    static void paramTables(RandomAccessFile m, long b, long pawn, long w) throws java.io.IOException {
-        long[] ts = tables.get(w);
-        long now = System.currentTimeMillis();
-        // 换枪后动画对象里的副本会被重新复制，所以每 3 秒重新找一次
-        if (ts == null || now - tableScanAt > 5000) { tableScanAt = now; ts = findTables(m, b, pawn, w); tables.put(w, ts); }
-        for (long t : ts) {
-            if (noRecoil) {
-                long r = t + 0x118;
-                for (int k = 0x44; k <= 0x60; k += 4) wf(m, r + k, 0f);          // 后座 上/左右
-                long c = t + 0x17c; wf(m, c + 8, 0f); wf(m, c + 0xc, 0f); wf(m, c + 0x10, 0f); // 镜头后座
-                long cf = t + 0x1b0;
-                for (int k = 0x28; k <= 0x3c; k += 4) wf(m, cf + k, 0f);         // CFM 后座 上/横向
-                wf(m, cf + 0x48, 0f); wf(m, cf + 0x4c, 0f); wf(m, cf + 0x50, 0f); // CFM 站/走/跳 后座倍数
-            }
-            if (noShake) {
-                // 聚点：准星缩到最小、不随跳跃/走动/开枪变大
-                long s = t + 0xb4; for (int k = 0x3c; k <= 0x54; k += 4) wf(m, s + k, 0f);
-                for (long a : new long[]{t + 0x4, t + 0x5c}) {
-                    float st = f(m, a + 0x48);
-                    for (int k = 0x3c; k <= 0x54; k += 4) wf(m, a + k, Math.min(st, f(m, a + 0x50)) > 0 ? Math.min(st, f(m, a + 0x50)) : st);
-                }
-                long cf = t + 0x1b0;
-                wf(m, cf + 0x8, 0f); wf(m, cf + 0xc, 0f);                      // 最大/最小不准度
-                for (int k = 0x10; k <= 0x1c; k += 4) wf(m, cf + k, 0f);       // 散布（站/跳/走）
-                float sz = f(m, cf + 0x5c), ln = f(m, cf + 0x64);
-                wf(m, cf + 0x60, 0f); wf(m, cf + 0x68, 0f);
-                wf(m, cf + 0x6c, sz); wf(m, cf + 0x70, 0f); wf(m, cf + 0x74, ln); wf(m, cf + 0x78, 0f); // 走路准星 = 站立
-                wf(m, cf + 0x7c, sz); wf(m, cf + 0x80, 0f); wf(m, cf + 0x84, ln); wf(m, cf + 0x88, 0f); // 跳跃准星 = 站立
-                wf(m, cf + 0x8c, 0f);                                          // 开枪准星不再变大
-            }
-        }
-    }
-    static void wi(RandomAccessFile m, long a, int v) throws java.io.IOException {
-        m.seek(a); m.write(new byte[]{(byte) v, (byte) (v >> 8), (byte) (v >> 16), (byte) (v >> 24)});
+        float upMin = bb.getFloat(0x118 + 0x44), upMax = bb.getFloat(0x118 + 0x4c);
+        return upMin >= 0 && upMax >= 0 && upMax < 100;
     }
 }

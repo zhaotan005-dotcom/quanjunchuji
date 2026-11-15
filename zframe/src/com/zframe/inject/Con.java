@@ -176,6 +176,16 @@ public class Con {
         "set NZSystemSettingData FrameRateOption 4",
         "set NZSystemSettingData RenderQualityOption 0",
         "set GameEngine bSmoothFrameRate 0",
+        // v1.49：只要帧率不要画质。游戏自己的画质档（RenderQualityOption）离线时不生效（bCanApplyRenderQuality:0），直接改引擎画质项
+        "r.AutoAdjustRenderQuality 0",
+        "sg.ShadowQuality 0",
+        "sg.PostProcessQuality 0",
+        "sg.EffectsQuality 0",
+        "sg.FoliageQuality 0",
+        "r.ShadowQuality 0",
+        "r.BloomQuality 0",
+        "r.MobileMSAA 1",
+        "r.DetailMode 0",
         "getall NZSystemSettingData FrameRateOption",
         "getall NZSystemSettingData RenderQualityOption",
         "getall NZBRGameState WaitingPlayersCountDownTime",
@@ -185,6 +195,8 @@ public class Con {
     };
     static volatile long engineSeenAt, tweakAt, browseAt;
     static volatile int tweakDone; static volatile long waitAt, brAt;
+    /** v1.49：当前是不是在对局地图里（大厅 = false）。加速/高跳/刷物品只在对局里用 */
+    public static volatile boolean inMatch;
     public static volatile String tweakStatus = "等待游戏启动";
 
     // ===== 帧率 =====
@@ -442,7 +454,9 @@ public class Con {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 if (m.startsWith("/Game/Maps/") && !Mods.lateDone && mapAt == 0) mapAt = System.currentTimeMillis();
-                if (m.startsWith("/Game/Maps/") && !m.contains("RoleHall") && !m.contains("FrontEnd")) {
+                boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
+                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); }  // v1.49：大厅/对局显示不同的菜单
+                if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
@@ -458,7 +472,7 @@ public class Con {
         if (l.contains("ApplyFrameRateOption")) fpsAt = System.currentTimeMillis();
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0) { synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; GameOverlay.forgetPawn(); Mods.cmc = 0; return; }
+        if (i >= 0) { synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.cmc = 0; GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();
