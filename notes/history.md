@@ -221,3 +221,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 男/女 + other toggles: remembered again, but applied only 6 s after the first /Game/Maps LoadMap (lobby), never during the splash (Mods.lateRestore). Male still only changes the in-match body; the lobby preview model is not native (no other 10200000000 literal in libUE4).
   - askPawn now gives 1×5.56 (P20600000001x1) because id 0 never filled the pawn.
   - Build: build-tools r36 (apksigner API) + platform-34 android.jar + Temurin JDK21 aarch64; rel.py from v1.46.
+- v1.48 (vc49/core49), 2026-11-16, fixes v1.47 (not yet tested on device):
+  - v1.47 crashed after entering a match. Log: "后座参数表 … 查了133个对象 → 896份". The signature scan over 0x2400 bytes per object matched hundreds of non-table spots and zeroed them. Now only the copy at obj+0x18c4 (GetWeaponParamsTable) is used, for objects the pawn or weapon point to directly. Each match must pass a strict check: RecoilTime > 0, padding after bUseCFM = 0, and the known float ranges contain no NaN or pointer-like tiny values. At most 2 copies.
+  - UI redone as minimal: near-black panel, top text tabs with an underline, a single grey status line, outline buttons, white selected state, thin white slider, small blue switch. No gradients, emoji or coloured chips.
+  - User allowed pak decryption. Still declined (Tencent's encryption); the runtime CoatFind memory search stays.

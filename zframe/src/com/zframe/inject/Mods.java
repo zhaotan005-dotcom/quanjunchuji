@@ -242,10 +242,14 @@ public class Mods {
         // 至少要有一个非零的后座值，排除全 0 的空内存
         return upMax > 0 || sMax > 0 || cb > 0 || bb.getFloat(t + 0x1b0 + 0x28) > 0;
     }
+    /** v1.48：v1.47 在 0x2400 字节里到处按特征找，误认了 896 处（多数不是后座表）→ 乱写内存进图闪退。
+     *  现在只认 GetWeaponParamsTable 返回的那一份：某个对象 +0x18c4（0xec9b70: add r0,r0,#0x18c4）。
+     *  只查人物和当前武器直接指向、且虚表在游戏库里的对象，固定偏移，特征也更严，最多认 2 份。 */
+    static final int WPT = 0x18c4;
     static long[] findTables(RandomAccessFile m, long b, long pawn, long w) throws java.io.IOException {
         java.util.LinkedHashSet<Long> objs = new java.util.LinkedHashSet<>();
-        objs.add(w); objs.add(pawn);
-        for (long base : new long[]{w, pawn}) {
+        objs.add(pawn); objs.add(w);
+        for (long base : new long[]{pawn, w}) {
             byte[] bb = new byte[0x1000];
             try { m.seek(base); m.readFully(bb); } catch (Throwable e) { continue; }
             for (int o = 0; o + 4 <= bb.length; o += 4) {
@@ -255,20 +259,30 @@ public class Mods {
             }
         }
         java.util.List<Long> hits = new java.util.ArrayList<>();
-        byte[] buf = new byte[0x2400];
+        byte[] buf = new byte[0x254];
         for (long o : objs) {
-            int n = 0;
-            for (int len : new int[]{0x2400, 0x1000, 0x600}) {
-                try { m.seek(o); m.readFully(buf, 0, len); n = len; break; } catch (Throwable e) { n = 0; }
-            }
-            if (n < 0x300) continue;
-            for (int t = 0; t + 0x254 <= n; t += 4) if (looksTable(buf, t)) { hits.add(o + t); t += 0x250; }
+            try { m.seek(o + WPT); m.readFully(buf); } catch (Throwable e) { continue; }
+            if (looksTable(buf, 0) && strict(buf)) { if (!hits.contains(o + WPT)) hits.add(o + WPT); }
+            if (hits.size() >= 2) break;
         }
         long[] r = new long[hits.size()]; for (int i = 0; i < r.length; i++) r[i] = hits.get(i);
         StringBuilder sb = new StringBuilder();
-        for (long h : r) sb.append(Long.toHexString(h)).append(m == null ? "" : String.format("(CFM=%d) ", readByte(m, h + 0x1ac)));
+        for (long h : r) sb.append(Long.toHexString(h - WPT)).append("+18c4(CFM=").append(readByte(m, h + 0x1ac)).append(") ");
         LogCap.note(String.format("后座参数表 武器%x 查了%d个对象 → %d份 %s", w, objs.size(), r.length, sb));
         return r;
+    }
+    /** 更严的特征：后座时间 >0，镜头后座/后座上跳至少一项 >0，CFM 开关后面 3 个填充字节是 0，所有浮点数都不是 NaN/超大 */
+    static boolean strict(byte[] buf) {
+        java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(buf).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        if (buf[0x1ad] != 0 || buf[0x1ae] != 0 || buf[0x1af] != 0) return false;
+        float rt = bb.getFloat(0x118 + 0x3c); if (!(rt > 0.001f && rt < 5f)) return false;
+        int[][] rg = {{0x118 + 0x3c, 0x118 + 0x60}, {0x17c, 0x17c + 0x1c}, {0xb4 + 0x3c, 0xb4 + 0x60}, {0x1b0 + 0x4, 0x1b0 + 0x90}, {0x4 + 0x3c, 0x4 + 0x54}, {0x5c + 0x3c, 0x5c + 0x54}};
+        for (int[] q : rg) for (int k = q[0]; k <= q[1]; k += 4) {
+            float f = bb.getFloat(k);
+            if (Float.isNaN(f) || Float.isInfinite(f) || Math.abs(f) > 100000f) return false;
+            if (f != 0f && Math.abs(f) < 1e-6f) return false;   // 指针/整数当浮点看会是极小数
+        }
+        return true;
     }
     static int readByte(RandomAccessFile m, long a) { try { m.seek(a); return m.read(); } catch (Throwable e) { return -1; } }
     static void paramTables(RandomAccessFile m, long b, long pawn, long w) throws java.io.IOException {

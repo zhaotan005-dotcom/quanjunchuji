@@ -21,10 +21,10 @@ public class GameOverlay {
     static boolean collapsed = false;
     static int tab = 0, weapCat = 0;
 
-    // 配色
-    static final int PANEL = 0xF2121620, SIDE = 0xFF0C0F16, CARD = 0xFF1B2130, CARD2 = 0xFF242B3D, LINE = 0x22FFFFFF,
-            TXT = 0xFFF1F4FA, SUBT = 0xFF8C96AB, ACC1 = 0xFF3B82F6, ACC2 = 0xFF8B5CF6, GREEN = 0xFF22C55E, ORANGE = 0xFFF59E0B,
-            RED = 0xFFEF4444, CHIP = 0xFF262D40;
+    // 配色（v1.48 简约：近黑半透明底 + 白/灰文字 + 一个低饱和蓝，只用细线分隔，不用渐变和彩色标签）
+    static final int PANEL = 0xF00E0F12, CARD = 0x0AFFFFFF, CARD2 = 0x0FFFFFFF, LINE = 0x17FFFFFF,
+            TXT = 0xFFEDEEF0, SUBT = 0xFF7D8088, ACC = 0xFF6E9BFF, ON_BG = 0xFFEDEEF0, ON_TXT = 0xFF111215,
+            ORANGE = 0xFFE0A24A, CHIP = 0x0FFFFFFF;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -34,10 +34,8 @@ public class GameOverlay {
     static GradientDrawable boxLine(int color, int line, float r, int w) {
         GradientDrawable g = box(color, r); g.setStroke(w, line); return g;
     }
-    static GradientDrawable grad(float r) {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{ACC1, ACC2});
-        g.setCornerRadius(r); return g;
-    }
+    /** 选中态：白底（深色字） */
+    static GradientDrawable grad(float r) { return box(ON_BG, r); }
 
     static Runnable refresher;
     static void refreshAny() { final Runnable r = refresher; Activity a = Con.act; if (r != null && a != null) a.runOnUiThread(r); }
@@ -51,95 +49,79 @@ public class GameOverlay {
             final Ui u = new Ui(a);
             android.util.DisplayMetrics dm = a.getResources().getDisplayMetrics();
             int sw = Math.max(dm.widthPixels, dm.heightPixels), sh = Math.min(dm.widthPixels, dm.heightPixels);
-            final int pw = Math.min((int) (sw * 0.58f), u.dp(470)), ph = Math.min((int) (sh * 0.80f), u.dp(340));
+            final int pw = Math.min((int) (sw * 0.46f), u.dp(400)), ph = Math.min((int) (sh * 0.80f), u.dp(330));
 
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, LINE, u.dp(16), 1));
-            panel.setElevation(u.dp(10));
+            panel.setBackground(boxLine(PANEL, LINE, u.dp(14), 1));
+            panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
-            // ---- 标题栏 ----
+            // ---- 标题栏：名字 + 版本，右边 – × ----
             LinearLayout head = new LinearLayout(a);
             head.setOrientation(LinearLayout.HORIZONTAL);
             head.setGravity(Gravity.CENTER_VERTICAL);
-            head.setPadding(u.dp(12), u.dp(8), u.dp(8), u.dp(6));
-            TextView logo = new TextView(a);
-            logo.setText("AW"); logo.setTextColor(0xFFFFFFFF); logo.setTextSize(12); logo.setTypeface(Typeface.DEFAULT_BOLD);
-            logo.setGravity(Gravity.CENTER); logo.setBackground(grad(u.dp(9)));
-            head.addView(logo, new LinearLayout.LayoutParams(u.dp(30), u.dp(30)));
-            LinearLayout tt = new LinearLayout(a); tt.setOrientation(LinearLayout.VERTICAL); tt.setPadding(u.dp(10), 0, 0, 0);
+            head.setPadding(u.dp(16), u.dp(10), u.dp(8), u.dp(2));
             TextView title = new TextView(a);
-            title.setText("艾挽 全军出击单机版"); title.setTextColor(TXT); title.setTextSize(14); title.setTypeface(Typeface.DEFAULT_BOLD);
-            tt.addView(title);
+            title.setText("全军出击"); title.setTextColor(TXT); title.setTextSize(14); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setLetterSpacing(0.04f);
+            head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("v1.47 · 五指点屏打开 · 拖这里移动"); ver.setTextColor(SUBT); ver.setTextSize(10);
-            tt.addView(ver);
-            head.addView(tt, new LinearLayout.LayoutParams(0, -2, 1));
-            final TextView fold = iconBtn(a, u, "—");
-            head.addView(fold, new LinearLayout.LayoutParams(u.dp(34), u.dp(30)));
-            final TextView close = iconBtn(a, u, "✕");
+            ver.setText("  v1.48"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
+            final TextView fold = iconBtn(a, u, "–");
+            head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
+            final TextView close = iconBtn(a, u, "×");
             close.setOnClickListener(v -> showPanel(panel, false, u));
-            LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(u.dp(34), u.dp(30)); clp.leftMargin = u.dp(4);
-            head.addView(close, clp);
+            head.addView(close, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
             panel.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
-            // ---- 状态条：当前开了什么 ----
-            final HorizontalScrollView stSv = new HorizontalScrollView(a);
-            stSv.setHorizontalScrollBarEnabled(false);
-            final LinearLayout status = new LinearLayout(a);
-            status.setOrientation(LinearLayout.HORIZONTAL);
-            status.setPadding(u.dp(12), 0, u.dp(12), u.dp(6));
-            stSv.addView(status);
-            panel.addView(stSv, new LinearLayout.LayoutParams(-1, -2));
+            // ---- 当前状态：一行灰字 ----
+            final TextView status = new TextView(a);
+            status.setTextSize(10.5f); status.setTextColor(SUBT); status.setSingleLine(true);
+            status.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            status.setPadding(u.dp(16), 0, u.dp(16), u.dp(8));
+            panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
 
-            // ---- 主体：左边分页 + 右边内容 ----
+            // ---- 主体（可收起）：顶部文字分页 + 内容 ----
             final LinearLayout body = new LinearLayout(a);
-            body.setOrientation(LinearLayout.HORIZONTAL);
-            final LinearLayout side = new LinearLayout(a);
-            side.setOrientation(LinearLayout.VERTICAL);
-            side.setPadding(u.dp(6), u.dp(6), u.dp(6), u.dp(6));
-            side.setBackground(box(SIDE, 0));
+            body.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout tabsRow = new LinearLayout(a);
+            tabsRow.setOrientation(LinearLayout.HORIZONTAL);
+            tabsRow.setPadding(u.dp(10), 0, u.dp(10), 0);
+            final String[] tabs = {"常用", "武器", "装备", "衣服", "设置"};
+            final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
             final LinearLayout content = new LinearLayout(a);
             content.setOrientation(LinearLayout.VERTICAL);
-            content.setPadding(u.dp(10), u.dp(8), u.dp(10), u.dp(12));
+            content.setPadding(u.dp(14), u.dp(4), u.dp(14), u.dp(14));
             sv.addView(content);
-            final String[][] tabs = {{"⚡", "常用"}, {"🔫", "武器"}, {"🛡", "装备"}, {"🧥", "衣服"}, {"⚙", "设置"}};
-            final View[] tv = new View[tabs.length];
             for (int k = 0; k < tabs.length; k++) {
                 final int idx = k;
-                LinearLayout t = new LinearLayout(a);
-                t.setOrientation(LinearLayout.VERTICAL); t.setGravity(Gravity.CENTER);
+                TextView t = new TextView(a);
+                t.setText(tabs[k]); t.setTextSize(12.5f); t.setGravity(Gravity.CENTER);
                 t.setPadding(0, u.dp(7), 0, u.dp(7));
-                TextView ic = new TextView(a); ic.setText(tabs[k][0]); ic.setTextSize(15); ic.setGravity(Gravity.CENTER); ic.setTextColor(TXT);
-                TextView nm = new TextView(a); nm.setText(tabs[k][1]); nm.setTextSize(11); nm.setGravity(Gravity.CENTER); nm.setTextColor(TXT); nm.setTypeface(Typeface.DEFAULT_BOLD);
-                t.addView(ic); t.addView(nm);
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2);
-                lp.bottomMargin = u.dp(5);
-                side.addView(t, lp);
+                tabsRow.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
                 tv[k] = t;
                 t.setOnClickListener(v -> { tab = idx; paintTabs(tv, u); fill(a, u, content); sv.scrollTo(0, 0); });
             }
             paintTabs(tv, u);
-            ScrollView sideSv = new ScrollView(a);
-            sideSv.setVerticalScrollBarEnabled(false);
-            sideSv.addView(side);
-            body.addView(sideSv, new LinearLayout.LayoutParams(u.dp(62), -1));
-            body.addView(sv, new LinearLayout.LayoutParams(0, -1, 1));
-            panel.addView(body, new LinearLayout.LayoutParams(-1, ph - u.dp(80)));
+            body.addView(tabsRow, new LinearLayout.LayoutParams(-1, -2));
+            View hr = new View(a); hr.setBackgroundColor(LINE);
+            body.addView(hr, new LinearLayout.LayoutParams(-1, 1));
+            body.addView(sv, new LinearLayout.LayoutParams(-1, ph - u.dp(96)));
+            panel.addView(body, new LinearLayout.LayoutParams(-1, -2));
 
-            refresher = () -> { paintStatus(a, u, status); fill(a, u, content); };
-            paintStatus(a, u, status);
+            refresher = () -> { paintStatus(status); fill(a, u, content); };
+            paintStatus(status);
             fill(a, u, content);
-            // 状态条每秒刷新一次（加速线程/延后恢复会改状态）
             final Runnable[] tick = new Runnable[1];
-            tick[0] = () -> { if (panel.getParent() == null) return; if (panel.getVisibility() == View.VISIBLE) paintStatus(a, u, status); panel.postDelayed(tick[0], 1000); };
+            tick[0] = () -> { if (panel.getParent() == null) return; if (panel.getVisibility() == View.VISIBLE) paintStatus(status); panel.postDelayed(tick[0], 1000); };
             panel.postDelayed(tick[0], 1000);
 
-            Runnable apply = () -> { body.setVisibility(collapsed ? View.GONE : View.VISIBLE); fold.setText(collapsed ? "▢" : "—"); };
+            Runnable apply = () -> { body.setVisibility(collapsed ? View.GONE : View.VISIBLE); fold.setText(collapsed ? "+" : "–"); };
             apply.run();
             fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
@@ -151,7 +133,6 @@ public class GameOverlay {
             panel.setX(px); panel.setY(py);
             if (hidden) panel.setVisibility(View.GONE);
 
-            // 拖标题栏移动；点一下收起/展开
             head.setOnTouchListener(new View.OnTouchListener() {
                 float dx, dy, sx, sy; boolean moved;
                 public boolean onTouch(View v, MotionEvent e) {
@@ -176,42 +157,42 @@ public class GameOverlay {
 
     static TextView iconBtn(Activity a, Ui u, String s) {
         TextView b = new TextView(a);
-        b.setText(s); b.setTextColor(TXT); b.setTextSize(14); b.setTypeface(Typeface.DEFAULT_BOLD);
-        b.setGravity(Gravity.CENTER); b.setBackground(box(CARD2, u.dp(9)));
+        b.setText(s); b.setTextColor(SUBT); b.setTextSize(17);
+        b.setGravity(Gravity.CENTER);
         return b;
     }
 
-    static void paintTabs(View[] tv, Ui u) {
+    static void paintTabs(TextView[] tv, Ui u) {
         for (int j = 0; j < tv.length; j++) {
-            tv[j].setBackground(j == tab ? grad(u.dp(10)) : box(0x00000000, u.dp(10)));
-            tv[j].setAlpha(j == tab ? 1f : 0.72f);
+            boolean on = j == tab;
+            tv[j].setTextColor(on ? TXT : SUBT);
+            tv[j].setTypeface(on ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
+            // 选中：底部一条细白线
+            GradientDrawable line = new GradientDrawable(); line.setColor(on ? TXT : 0);
+            android.graphics.drawable.LayerDrawable ld = new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{line});
+            int w = u.dp(16);
+            ld.setLayerGravity(0, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL); ld.setLayerSize(0, w, u.dp(2));
+            tv[j].setBackground(on ? ld : null);
         }
     }
 
-    /** 顶部状态标签 */
-    static void paintStatus(Activity a, Ui u, LinearLayout st) {
-        st.removeAllViews();
-        if (!Mods.noPlane && !Mods.noPoison) chip(a, u, st, "● 正常模式", GREEN);
-        if (Mods.noPlane) chip(a, u, st, "✈ 不上飞机", ORANGE);
-        if (Mods.noPoison) chip(a, u, st, "◎ 不刷圈", ORANGE);
-        chip(a, u, st, Mods.male ? "♂ 男角色" : "♀ 女角色", ACC1);
-        if (Mods.speed != 1f) chip(a, u, st, "加速 ×" + fmt(Mods.speed), ACC2);
-        if (Mods.jump != 1f) chip(a, u, st, "高跳 ×" + fmt(Mods.jump), ACC2);
-        if (Mods.noRecoil) chip(a, u, st, "无后座", GREEN);
-        if (Mods.noShake) chip(a, u, st, "聚点", GREEN);
-        if (Mods.infAmmo) chip(a, u, st, "子弹 999", GREEN);
-        if (Con.godOn) chip(a, u, st, "无敌", RED);
+    /** 当前状态：一行文字，例如「● 不上飞机 · 不刷圈 · 男 · 加速 2 · 无后座 · 聚点 · 子弹 999」 */
+    static void paintStatus(TextView st) {
+        StringBuilder b = new StringBuilder();
+        if (!Mods.noPlane && !Mods.noPoison) b.append("正常模式");
+        else { if (Mods.noPlane) b.append("不上飞机"); if (Mods.noPoison) b.append(b.length() > 0 ? " · " : "").append("不刷圈"); }
+        b.append(" · ").append(Mods.male ? "男" : "女");
+        if (Mods.speed != 1f) b.append(" · 加速 ").append(fmt(Mods.speed));
+        if (Mods.jump != 1f) b.append(" · 高跳 ").append(fmt(Mods.jump));
+        if (Mods.noRecoil) b.append(" · 无后座");
+        if (Mods.noShake) b.append(" · 聚点");
+        if (Mods.infAmmo) b.append(" · 子弹 999");
+        if (Con.godOn) b.append(" · 无敌");
         if ((Mods.speed != 1f || Mods.jump != 1f || Mods.noRecoil || Mods.noShake || Mods.infAmmo) && !Mods.moveState.isEmpty() && !"已生效".equals(Mods.moveState))
-            chip(a, u, st, "⏳ " + Mods.moveState, SUBT);
-    }
-    static TextView chip(Activity a, Ui u, LinearLayout p, String s, int color) {
-        TextView t = new TextView(a);
-        t.setText(s); t.setTextColor(color); t.setTextSize(11); t.setTypeface(Typeface.DEFAULT_BOLD);
-        t.setPadding(u.dp(8), u.dp(3), u.dp(8), u.dp(3));
-        t.setBackground(boxLine((color & 0x00FFFFFF) | 0x22000000, (color & 0x00FFFFFF) | 0x66000000, u.dp(20), 1));
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
-        p.addView(t, lp);
-        return t;
+            b.append("（").append(Mods.moveState).append("）");
+        android.text.SpannableString ss = new android.text.SpannableString("●  " + b);
+        ss.setSpan(new android.text.style.ForegroundColorSpan(0xFF4ADE80), 0, 1, 0);
+        st.setText(ss);
     }
 
     // v1.40：五指同时点屏幕 → 打开菜单；标题栏右边 ✕ → 关掉（带出场/退场动画）
@@ -532,16 +513,16 @@ public class GameOverlay {
     }
     /** 小标题 */
     static void head(Activity a, Ui u, ViewGroup p, String s) {
-        TextView t = label(a, p, s, 11, true, SUBT);
-        t.setLetterSpacing(0.08f);
-        t.setPadding(u.dp(2), u.dp(10), 0, u.dp(5));
+        TextView t = label(a, p, s, 10.5f, false, SUBT);
+        t.setLetterSpacing(0.06f);
+        t.setPadding(u.dp(2), u.dp(14), 0, u.dp(6));
     }
     /** 卡片容器 */
     static LinearLayout card(Activity a, Ui u, ViewGroup p) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackground(box(CARD, u.dp(12)));
-        c.setPadding(u.dp(10), u.dp(6), u.dp(10), u.dp(6));
+        c.setBackground(boxLine(CARD, LINE, u.dp(10), 1));
+        c.setPadding(u.dp(12), u.dp(4), u.dp(12), u.dp(4));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.bottomMargin = u.dp(4);
         p.addView(c, lp);
         return c;
@@ -549,11 +530,11 @@ public class GameOverlay {
     /** 普通按钮（卡片样式，按下有缩放反馈） */
     static TextView btn(Activity a, Ui u, LinearLayout row, String text, final Runnable r) {
         TextView b = new TextView(a);
-        b.setText(text); b.setTextColor(TXT); b.setTextSize(12); b.setTypeface(Typeface.DEFAULT_BOLD);
+        b.setText(text); b.setTextColor(TXT); b.setTextSize(12);
         b.setGravity(Gravity.CENTER);
         b.setSingleLine(false); b.setMaxLines(2);
         b.setPadding(u.dp(4), u.dp(9), u.dp(4), u.dp(9));
-        b.setBackground(boxLine(CARD2, LINE, u.dp(10), 1));
+        b.setBackground(boxLine(CARD2, LINE, u.dp(8), 1));
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -562,7 +543,7 @@ public class GameOverlay {
         return b;
     }
     static TextView primary(Activity a, Ui u, LinearLayout row, String text, Runnable r) {
-        TextView b = btn(a, u, row, text, r); b.setBackground(grad(u.dp(10))); return b;
+        TextView b = btn(a, u, row, text, r); b.setBackground(grad(u.dp(8))); b.setTextColor(ON_TXT); return b;
     }
     static void press(final View v) {
         v.setOnTouchListener((x, e) -> {
@@ -574,10 +555,11 @@ public class GameOverlay {
     /** 选择标签（选中=渐变+✓），用来做「游戏模式」「角色」「视野」这类多选一/多选 */
     static TextView pick(Activity a, Ui u, LinearLayout row, String text, boolean on, Runnable r) {
         TextView b = new TextView(a);
-        b.setText(on ? "✓ " + text : text); b.setTextColor(on ? 0xFFFFFFFF : SUBT); b.setTextSize(12); b.setTypeface(Typeface.DEFAULT_BOLD);
+        b.setText(text); b.setTextColor(on ? ON_TXT : SUBT); b.setTextSize(12);
+        if (on) b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
         b.setPadding(u.dp(4), u.dp(8), u.dp(4), u.dp(8));
-        b.setBackground(on ? grad(u.dp(10)) : boxLine(CARD2, LINE, u.dp(10), 1));
+        b.setBackground(on ? grad(u.dp(8)) : boxLine(0, LINE, u.dp(8), 1));
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -598,17 +580,11 @@ public class GameOverlay {
         }
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), h = getHeight(), r = h / 2f;
-            int off = 0xFF39425A;
-            if (pos > 0) {
-                p.setShader(new LinearGradient(0, 0, w, 0, ACC1, ACC2, Shader.TileMode.CLAMP));
-                p.setAlpha((int) (255 * pos));
-                c.drawRoundRect(new RectF(0, 0, w, h), r, r, p);
-                p.setShader(null); p.setAlpha(255);
-            }
-            if (pos < 1) { p.setColor(off); p.setAlpha((int) (255 * (1 - pos))); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
+            int off = 0x33FFFFFF;
+            if (pos > 0) { p.setColor(ACC); p.setAlpha((int) (255 * pos)); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
+            if (pos < 1) { p.setColor(off); p.setAlpha((int) (0x33 * (1 - pos))); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
             float cx = r + (w - 2 * r) * pos;
-            p.setColor(0x33000000); c.drawCircle(cx, r + 1.5f, r - 3, p);
-            p.setColor(0xFFFFFFFF); c.drawCircle(cx, r, r - 3.5f, p);
+            p.setColor(0xFFFFFFFF); c.drawCircle(cx, r, r - 2.5f, p);
         }
     }
     interface BCb { String on(boolean v); }
@@ -616,15 +592,15 @@ public class GameOverlay {
     static void switchRow(final Activity a, final Ui u, ViewGroup p, String name, String sub, boolean on, final BCb cb) {
         LinearLayout r = new LinearLayout(a);
         r.setOrientation(LinearLayout.HORIZONTAL); r.setGravity(Gravity.CENTER_VERTICAL);
-        r.setPadding(0, u.dp(6), 0, u.dp(6));
+        r.setPadding(0, u.dp(8), 0, u.dp(8));
         LinearLayout t = new LinearLayout(a); t.setOrientation(LinearLayout.VERTICAL);
-        TextView n = new TextView(a); n.setText(name); n.setTextColor(TXT); n.setTextSize(13); n.setTypeface(Typeface.DEFAULT_BOLD);
+        TextView n = new TextView(a); n.setText(name); n.setTextColor(TXT); n.setTextSize(13);
         t.addView(n);
         final TextView s = new TextView(a); s.setText(sub); s.setTextColor(SUBT); s.setTextSize(10);
         if (sub != null && !sub.isEmpty()) t.addView(s);
         r.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
         final Sw sw = new Sw(a, on);
-        r.addView(sw, new LinearLayout.LayoutParams(u.dp(42), u.dp(24)));
+        r.addView(sw, new LinearLayout.LayoutParams(u.dp(34), u.dp(19)));
         r.setOnClickListener(v -> {
             boolean want = !sw.on;
             String res = cb.on(want);
@@ -643,28 +619,26 @@ public class GameOverlay {
         Slider(Context c, float min, float max, float step, float v, FCb cb) {
             super(c); this.min = min; this.max = max; this.step = step; this.val = v; this.cb = cb;
             dens = c.getResources().getDisplayMetrics().density;
-            tp.setColor(TXT); tp.setTextSize(12 * dens); tp.setTypeface(Typeface.DEFAULT_BOLD); tp.setTextAlign(Paint.Align.RIGHT);
+            tp.setColor(TXT); tp.setTextSize(11.5f * dens); tp.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL)); tp.setTextAlign(Paint.Align.RIGHT);
         }
         float labelW() { return 44 * dens; }
         @Override protected void onDraw(Canvas c) {
-            float h = getHeight(), w = getWidth() - labelW(), cy = h / 2f, th = 6 * dens, pad = 10 * dens;
+            float h = getHeight(), w = getWidth() - labelW(), cy = h / 2f, th = 2.5f * dens, pad = 8 * dens;
             float x0 = pad, x1 = w - pad, f = (val - min) / (max - min), cx = x0 + (x1 - x0) * f;
-            p.setShader(null); p.setColor(0xFF2E3548);
+            p.setShader(null); p.setColor(0x26FFFFFF);
             c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
             if (cx > x0) {
-                p.setShader(new LinearGradient(x0, 0, x1, 0, ACC1, ACC2, Shader.TileMode.CLAMP));
+                p.setColor(TXT);
                 c.drawRoundRect(new RectF(x0, cy - th / 2, cx, cy + th / 2), th, th, p);
-                p.setShader(null);
             }
-            float r = (drag ? 10 : 8.5f) * dens;
-            p.setColor(0x553B82F6); if (drag) c.drawCircle(cx, cy, r + 5 * dens, p);
+            float r = (drag ? 8 : 6.5f) * dens;
+            p.setColor(0x22FFFFFF); if (drag) c.drawCircle(cx, cy, r + 6 * dens, p);
             p.setColor(0xFFFFFFFF); c.drawCircle(cx, cy, r, p);
-            p.setColor(ACC2); c.drawCircle(cx, cy, r * 0.38f, p);
             String s = unit + fmt(val);
             c.drawText(s, getWidth(), cy + 4.5f * dens, tp);
         }
         @Override public boolean onTouchEvent(MotionEvent e) {
-            float pad = 10 * dens, w = getWidth() - labelW();
+            float pad = 8 * dens, w = getWidth() - labelW();
             switch (e.getActionMasked()) {
                 case MotionEvent.ACTION_DOWN: drag = true; getParent().requestDisallowInterceptTouchEvent(true);
                 case MotionEvent.ACTION_MOVE: {
@@ -685,7 +659,7 @@ public class GameOverlay {
     static void slider(final Activity a, final Ui u, ViewGroup root, String name, String sub, float min, float max, float step, float v, float[] presets, final FCb cb) {
         LinearLayout c = card(a, u, root);
         LinearLayout tr = row(a, c);
-        TextView n = new TextView(a); n.setText(name); n.setTextColor(TXT); n.setTextSize(13); n.setTypeface(Typeface.DEFAULT_BOLD);
+        TextView n = new TextView(a); n.setText(name); n.setTextColor(TXT); n.setTextSize(13);
         tr.addView(n, new LinearLayout.LayoutParams(-2, -2));
         TextView s = new TextView(a); s.setText("  " + sub); s.setTextColor(SUBT); s.setTextSize(10);
         tr.addView(s, new LinearLayout.LayoutParams(0, -2, 1));
@@ -696,9 +670,9 @@ public class GameOverlay {
             for (final float f : presets) {
                 TextView b = new TextView(a);
                 boolean on = Math.abs(f - v) < 0.001f;
-                b.setText("×" + fmt(f)); b.setTextSize(11); b.setTypeface(Typeface.DEFAULT_BOLD); b.setGravity(Gravity.CENTER);
-                b.setTextColor(on ? 0xFFFFFFFF : SUBT);
-                b.setBackground(on ? grad(u.dp(8)) : box(CHIP, u.dp(8)));
+                b.setText(fmt(f)); b.setTextSize(10.5f); b.setGravity(Gravity.CENTER);
+                b.setTextColor(on ? ON_TXT : SUBT);
+                b.setBackground(on ? grad(u.dp(6)) : boxLine(0, LINE, u.dp(6), 1));
                 b.setPadding(0, u.dp(4), 0, u.dp(4));
                 press(b);
                 b.setOnClickListener(x -> { sl.setVal(f); cb.on(f); refreshAny(); });
@@ -770,9 +744,9 @@ public class GameOverlay {
                 for (int k = 0; k < CATS.length; k++) {
                     final int idx = k;
                     TextView t = new TextView(a);
-                    t.setText(CATS[k][0]); t.setTextSize(12); t.setTypeface(Typeface.DEFAULT_BOLD);
-                    t.setTextColor(k == weapCat ? 0xFFFFFFFF : SUBT);
-                    t.setBackground(k == weapCat ? grad(u.dp(14)) : box(CHIP, u.dp(14)));
+                    t.setText(CATS[k][0]); t.setTextSize(11.5f);
+                    t.setTextColor(k == weapCat ? ON_TXT : SUBT);
+                    t.setBackground(k == weapCat ? grad(u.dp(14)) : boxLine(0, LINE, u.dp(14), 1));
                     t.setPadding(u.dp(12), u.dp(6), u.dp(12), u.dp(6));
                     t.setOnClickListener(v -> { weapCat = idx; fill(a, u, root); });
                     LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
@@ -782,11 +756,11 @@ public class GameOverlay {
                 root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
                 head(a, u, root, CATS[weapCat][0] + "（点一下放进背包，枪会带一组对应子弹）");
                 gunGrid(a, u, root, weapCat);
-                String gt = giveText(a); if (giveSt != 2 && !gt.isEmpty()) label(a, root, gt, 11, false, ORANGE);
+                String gt = giveText(a); if (giveSt != 2 && !gt.isEmpty()) label(a, root, gt, 10.5f, false, ORANGE);
                 return;
             }
             case 2: { // 装备
-                String gt = giveText(a); if (giveSt != 2 && !gt.isEmpty()) label(a, root, gt, 11, false, ORANGE);
+                String gt = giveText(a); if (giveSt != 2 && !gt.isEmpty()) label(a, root, gt, 10.5f, false, ORANGE);
                 head(a, u, root, "一键");
                 LinearLayout g0 = row(a, root);
                 primary(a, u, g0, "一键开局装备\nM416 + 三级套 + 全配件", () -> {
@@ -855,7 +829,7 @@ public class GameOverlay {
                 }).start());
                 head(a, u, root, "说明");
                 label(a, root, "启动画面阶段不改游戏内存；上次打开的开关会在进大厅约 6 秒后自动恢复。", 11, false, SUBT);
-                label(a, root, "内核 " + ZInit.CORE_VER + " · v1.47", 11, false, SUBT).setPadding(0, u.dp(6), 0, 0);
+                label(a, root, "内核 " + ZInit.CORE_VER + " · v1.48", 11, false, SUBT).setPadding(0, u.dp(6), 0, 0);
                 return;
             }
         }
@@ -874,7 +848,7 @@ public class GameOverlay {
         label(a, root, "选完记住，以后每次进大厅自动设好；进下一局换身体。", 10, false, SUBT).setPadding(u.dp(3), 0, 0, 0);
 
         head(a, u, root, "移动");
-        slider(a, u, root, "加速", "只加移动速度", 1f, 5f, 0.1f, Mods.speed, new float[]{1f, 1.5f, 2f, 3f, 5f}, f -> Mods.setMove(f, Mods.jump));
+        slider(a, u, root, "加速", "只加移动速度，动作放慢", 1f, 5f, 0.1f, Mods.speed, new float[]{1f, 1.5f, 2f, 3f, 5f}, f -> Mods.setMove(f, Mods.jump));
         slider(a, u, root, "动作快慢", "数字越小动作越慢", 0.3f, 1f, 0.05f, Mods.slowMo, new float[]{0.4f, 0.6f, 0.75f, 1f}, f -> { Mods.slowMo = f; Mods.save(); });
         slider(a, u, root, "高跳", "跳跃高度", 1f, 5f, 0.1f, Mods.jump, new float[]{1f, 1.5f, 2f, 3f}, f -> Mods.setMove(Mods.speed, f));
 
