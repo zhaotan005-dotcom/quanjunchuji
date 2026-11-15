@@ -42,7 +42,49 @@ public class Mods {
         if ("ok".equals(r)) r = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
         coatOn = "ok".equals(r);
         LogCap.note("初始衣服 绝地风衣 → " + r);
+        hallAndReload();
         GameOverlay.refreshAny();
+    }
+
+    /* v1.54 大厅灰色人物：单机没有服务器，大厅 InitAvatar(0x135afd0) 拿到的角色编号是 0，
+     * InitAvatarClotheTry 查不到这个角色 → 衣服列表只有 [0] → 人物没身体没衣服，显示成灰模。
+     * 改法：0x135b140 本来从服务器数据读角色编号，改成固定 女 10200000000 / 男 10100000000，
+     * 这样会走「默认衣服」分支，和进局里一样。原来的 r7 不再设置，后面两处 mov r1,r7 改成 add r1,sp,#0x6c（同一个值）。
+     * 风衣：默认分支 0x1503680 的 bl c62c54(复制默认衣服) 改成跳到 0x171e600 小 cave：复制完直接接进风衣 cave 的替换部分(0x171e4dc)。
+     * 改完重新打开一次大厅，人物才会按新数据生成。 */
+    static final long HALL = 0x135b140L, HALL_R1 = 0x135b158L, HALL_R2 = 0x135b170L, HALL_COAT = 0x1503680L, HALL_CAVE = 0x171e600L;
+    static final String HALL_O = "78009de56c708de27c109de5", HALL_F = "00060ae3f70f45e30210a0e3", HALL_M = "00050ce3010a45e30210a0e3";
+    static final String HALL_RO = "0710a0e1", HALL_RN = "6c108de2";
+    static final String HALL_COAT_O = "737dddeb", HALL_COAT_N = "de6b08eb";
+    static final String HALL_CAVE_O = "0700a0e10810a0e1391d37eb2c001be5", HALL_CAVE_N = "f0412de90040a0e19111d5ebb2ffffea";
+    public static volatile boolean hallOn;
+
+    /** 大厅人物按 男/女 生成；成功后要重开大厅才看得到 */
+    static String setHall(boolean m) {
+        String want = m ? HALL_M : HALL_F, other = m ? HALL_F : HALL_M;
+        String r = write(HALL_R1, HALL_RO, HALL_RN, true);
+        if ("ok".equals(r)) r = write(HALL_R2, HALL_RO, HALL_RN, true);
+        if (!"ok".equals(r)) return r;
+        if (!"ok".equals(write(HALL, HALL_O, want, true))) {
+            r = write(HALL, HALL_O, other, false);              // 另一个性别 → 先还原
+            if ("ok".equals(r)) r = write(HALL, HALL_O, want, true);
+            if (!"ok".equals(r)) return r;
+        }
+        if (coatOn) {
+            String c = write(HALL_CAVE, HALL_CAVE_O, HALL_CAVE_N, true);
+            if ("ok".equals(c)) c = write(HALL_COAT, HALL_COAT_O, HALL_COAT_N, true);
+            LogCap.note("大厅风衣 → " + c);
+        }
+        hallOn = true;
+        LogCap.note("大厅人物 " + (m ? "男" : "女") + " → ok");
+        return "ok";
+    }
+    /** 改好后重开大厅，让人物重新生成 */
+    static void hallAndReload() {
+        if (Con.inMatch) return;
+        String r = setHall(male);
+        if ("ok".equals(r)) Con.exec("open " + Con.LOBBY);
+        else GameOverlay.toastAny("大厅人物没改成：" + r);
     }
 
     static void resetMatch() {

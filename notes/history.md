@@ -270,3 +270,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - The startup login send happens during the splash, so it is NOT captured (splash rule).
   - Not tested on device.
 - 06:04 v1.53 capture test: 0 records, no crash (libUE4 0xabe5a000, buffer 0x91e78000). Lobby UI requests never reach KeyLobby SendMsg or SendRawBuffer, so they are blocked earlier by the offline state (UNZOnlineLobby bIsOffline / connector null). Next: drop LobbyCap and fill lobby role/avatar data locally, starting with the gray character. The user was told the switch will be removed next version.
+- v1.54 (vc55/core55), 2026-11-16: fixes the gray lobby character (local hall-role data). LobbyCap and its capture switch are removed.
+  - Finding from the 17:42 lobby log: lobby requests DO go through SendMsg (36001 ReLoginInfo, 22005, 30014, 37010), but only during lobby load. Clicks send nothing, which is why v1.53 captured 0.
+  - UNZFrontEndUIController::InitAvatar (0x135afd0) gets roleID=0 from the data server (0x1877bfc). It calls FNZStoreAvatarHelper::InitAvatarClotheTry 0x1503208(this, &out, &flag, roleID on the stack). The list ends up [0], then AvatarProxyManager vtable+0xc = EquipItemsForHallRole. Logs: "roleID = 0", "Default ClotheID = 0", so the body is gray.
+  - Patch:
+    - 0x135b140: 3 instructions → movw/movt r0 + mov r1,#2, so the role is 10200000000 (F) or 10100000000 (M).
+    - 0x135b158 and 0x135b170: mov r1,r7 → add r1,sp,#0x6c.
+    - Coat in the lobby: the default-branch bl c62c54 at 0x1503680 → cave2 0x171e600 (push; mov r4,r0; bl c62c54; b 0x171e4dc, i.e. into the coat cave's replace loop).
+  - Mods.setHall / hallAndReload run after builtInCoat (6 s after the first lobby load) and on the lobby 男/女 pick. They then `open` the lobby once so the avatar rebuilds.
+  - Verified by emulation (game/re/emu_hall.py, plus the arg emulation inline). Not tested on device.
+  - Next if it works: 换脸/换头发 (probably face/hair items in the same list), then 仓库换装.

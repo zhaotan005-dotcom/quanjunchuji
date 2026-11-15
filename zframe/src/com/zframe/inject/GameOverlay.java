@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.53"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.54"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -705,21 +705,13 @@ public class GameOverlay {
         note(a, u, root, "不上飞机：直接在出生岛开打。不刷圈：没有毒圈。两个可以一起选。");
         head(a, u, root, "角色");
         LinearLayout gr = row(a, root);
-        pick(a, u, gr, "女", !Mods.male, () -> result(a, Mods.male ? Mods.setMale(false) : "ok"));
-        pick(a, u, gr, "男", Mods.male, () -> result(a, Mods.male ? "ok" : Mods.setMale(true)));
+        pick(a, u, gr, "女", !Mods.male, () -> { if (Mods.male) { String r = Mods.setMale(false); if ("ok".equals(r)) Mods.hallAndReload(); result(a, r); } });
+        pick(a, u, gr, "男", Mods.male, () -> { if (!Mods.male) { String r = Mods.setMale(true); if ("ok".equals(r)) Mods.hallAndReload(); result(a, r); } });
         gfxRow(a, u, root);
         note(a, u, root, coatText());
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
-        head(a, u, root, "服务端调试");
-        LinearLayout sc = card(a, u, root);
-        switchRow(a, u, sc, "记录大厅请求", LobbyCap.on ? "记录中，已记 " + LobbyCap.count() + " 条" : "平时不用开", LobbyCap.on, v -> {
-            if (v) return LobbyCap.start(a);
-            toast(a, LobbyCap.stop(a));
-            return "ok";
-        });
-        note(a, u, root, "打开后，在大厅里点一遍要修的地方：换角色、换脸换头发、仓库换装。点完关掉，记录会存到 下载/ZFrame，发给我就行。");
     }
-    static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，出生就穿着" : "绝地风衣：大厅加载好后自动设为初始衣服"; }
+    static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
     static void gfxRow(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "画质");
         LinearLayout r = row(a, root);
@@ -821,6 +813,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.53", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.54", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
