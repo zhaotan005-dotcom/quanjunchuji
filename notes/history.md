@@ -289,3 +289,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Lobby menu now shows 大厅人物 status (ok / reason) so the user can report it.
   - Emulated (emu_hall2.py, 8 cases). Not tested on device.
   - If the character is still gray: the cause is in EquipItemsForHallRole 0x1207d40 (it checks each item through cc69cc and may reject items that aren't owned), or in 0x1877a1c.
+- v1.56 (vc57/core57), 2026-11-16: v1.55 still shows a gray male mannequin in 仓库 and on the 角色 page. The face/hair list is empty except one 涂装 icon. User asked whether to try a different approach.
+  - Decision: stop guessing and measure first. Added a lobby button 导出人物诊断 (AvatarLog.java). It filters avatar-related lines from the game's PUBGM.log (last 6 MB) and dumps the patch bytes at 0x1503230, 0x171e610, 0x1503680 and 0x171e600 plus hallState into Download/ZFrame/avatar-*.txt. It runs only when pressed.
+  - Hypotheses to check with the file:
+    - (a) Patches not applied, or the lobby didn't reload.
+    - (b) InitAvatarClotheTry now sees role 10200000000, but EquipItemsForHallRole 0x1207d40 rejects the items (cc69cc ownership check / "Num Error ... bHasCharacter").
+    - (c) The UI avatar assembler (IsUI:1) never runs, or fails loading skin assets.
