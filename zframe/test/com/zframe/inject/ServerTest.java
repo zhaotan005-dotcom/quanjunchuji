@@ -10,7 +10,7 @@ public class ServerTest {
         w.println(hex(Server.equip(eq)));
         w.println(hex(new PB().m(1, new PB().u(1, 36001).u(4, 7).u(7, 1)).bytes()));
         // 邮件：用 push 进回包区，再按记录取出来
-        Server.rpl = ByteBuffer.allocate(16 + Server.RPL_CAP).order(ByteOrder.LITTLE_ENDIAN);
+        Server.rpl = ByteBuffer.allocate(Server.RH + Server.RPL_CAP).order(ByteOrder.LITTLE_ENDIAN);
         Server.newMail();
         w.println(hex(rec(0)));                                      // 25007 整包
         w.println(hex(Server.mailList()));                           // 25002
@@ -19,6 +19,6 @@ public class ServerTest {
         w.println(hex(Server.readMails(new PB().u(1, 1).u(2, 1).bytes())));   // 再领一次：不重复给
         w.close();
     }
-    static byte[] rec(int off) { int n = Server.rpl.getInt(16 + off); byte[] d = new byte[n]; for (int i = 0; i < n; i++) d[i] = Server.rpl.get(16 + off + 4 + i); return d; }
+    static byte[] rec(int off) { int n = Server.rpl.getInt(Server.RH + off); byte[] d = new byte[n]; for (int i = 0; i < n; i++) d[i] = Server.rpl.get(Server.RH + off + 4 + i); return d; }
     static String hex(byte[] d) { StringBuilder s = new StringBuilder(); for (byte b : d) s.append(String.format("%02x", b & 0xff)); return s.toString(); }
 }

@@ -34,25 +34,34 @@ for i,pl in enumerate([b'hello',b'\x01\x02\x03\x04\x05\x06\x07\x08\x09']):
 hd=mu.mem_read(0x7a000000,16); wp=int.from_bytes(hd[:4],'little'); cnt=int.from_bytes(hd[4:8],'little')
 data=bytes(mu.mem_read(0x7a000010,wp)); print('SEND wp',wp,'cnt',cnt,data.hex())
 ok&= wp==28 and cnt==2 and data[:9]==b'\x05\0\0\0hello' and data[12:16]==b'\x09\0\0\0'
-# --- TICK ---
+# --- TICK（v1.62：挂在 UpdateService::Tick 开头，头 32 字节，+12 = 连接器对象）---
 mu.mem_write(0x18000,bytes.fromhex(L[1]))
-recs=[b'abc',b'0123456789']; off=0; buf=b''
+recs=[b'abc',b'0123456789']; buf=b''
 for rr in recs:
     buf+=len(rr).to_bytes(4,'little')+rr; buf+=b'\0'*((-len(buf))%4)
-mu.mem_write(0x7b000010,buf); mu.mem_write(0x7b000000,len(buf).to_bytes(4,'little'))
-THIS=0x30000; VT=0x30100; STUB=0x30200
-mu.mem_write(THIS,VT.to_bytes(4,'little')); mu.mem_write(VT+0x164,STUB.to_bytes(4,'little')); mu.mem_write(STUB,bytes.fromhex('1eff2fe1'))
+mu.mem_write(0x7b000020,buf); mu.mem_write(0x7b000000,len(buf).to_bytes(4,'little'))
+CONN=0x30000; VT=0x30100; STUB=0x30200; UPD=0x30800
+mu.mem_write(CONN,VT.to_bytes(4,'little')); mu.mem_write(VT+0x164,STUB.to_bytes(4,'little')); mu.mem_write(STUB,bytes.fromhex('1eff2fe1'))
 got=[]
 def h(uc,addr,size,ud):
     got.append((uc.reg_read(UC_ARM_REG_R0),bytes(uc.mem_read(uc.reg_read(UC_ARM_REG_R1),uc.reg_read(UC_ARM_REG_R2))),uc.reg_read(UC_ARM_REG_R3)))
 mu.hook_add(UC_HOOK_CODE,h,begin=STUB,end=STUB)
-mu.reg_write(UC_ARM_REG_R8,THIS); mu.reg_write(UC_ARM_REG_SP,SP); mu.reg_write(UC_ARM_REG_R4,0x1111); mu.reg_write(UC_ARM_REG_R9,0x9999)
-mu.emu_start(0x18000,0x40000008,count=500)
-print('TICK calls',got,'r0',hex(mu.reg_read(UC_ARM_REG_R0)),'sp ok',mu.reg_read(UC_ARM_REG_SP)==SP,'r4',hex(mu.reg_read(UC_ARM_REG_R4)))
-ok&= [g[1] for g in got]==recs and all(g[0]==THIS and g[2]==0 for g in got) and mu.reg_read(UC_ARM_REG_R0)==0xfa054 and mu.reg_read(UC_ARM_REG_SP)==SP and mu.reg_read(UC_ARM_REG_R4)==0x1111 and mu.reg_read(UC_ARM_REG_R9)==0x9999
-ok&= int.from_bytes(mu.mem_read(0x7b000008,4),'little')==2
-# 第二次 Tick：没有新包，不调用
-got.clear(); mu.reg_write(UC_ARM_REG_SP,SP); mu.emu_start(0x18000,0x40000008,count=500); ok&= got==[]
+def tick():
+    for r,v in ((UC_ARM_REG_R0,UPD),(UC_ARM_REG_R1,0x3c888889),(UC_ARM_REG_SP,SP),(UC_ARM_REG_R4,0x1111),(UC_ARM_REG_R8,0x8888),(UC_ARM_REG_R10,0xaaaa),(UC_ARM_REG_FP,0xbbbb),(UC_ARM_REG_LR,0xcccc)): mu.reg_write(r,v)
+    mu.emu_start(0x18000,0x40000008,count=800)
+    g=lambda r: mu.reg_read(r)
+    st=bytes(mu.mem_read(SP-16,16))
+    return (g(UC_ARM_REG_R0)==UPD and g(UC_ARM_REG_R1)==0x3c888889 and g(UC_ARM_REG_SP)==SP-16 and g(UC_ARM_REG_FP)==SP-8
+            and st==b''.join(x.to_bytes(4,'little') for x in (0x1111,0xaaaa,0xbbbb,0xcccc)) and g(UC_ARM_REG_R8)==0x8888)
+hd=lambda o: int.from_bytes(mu.mem_read(0x7b000000+o,4),'little')
+# 1) 连接器还没找到：不投递，只记帧数和 this
+ok&= tick() and got==[] and hd(16)==UPD and hd(20)==1 and hd(8)==0
+# 2) 填上连接器：两条都投递
+mu.mem_write(0x7b00000c,CONN.to_bytes(4,'little'))
+ok&= tick(); print('TICK calls',got,'已收',hd(8),'帧',hd(20))
+ok&= [g[1] for g in got]==recs and all(g[0]==CONN and g[2]==0 for g in got) and hd(8)==2 and hd(20)==2
+# 3) 没有新包：不调用
+got.clear(); ok&= tick() and got==[] and hd(20)==3
 # --- v1.61 邮件 ---
 k=M('msg.CSPkg').FromString(bytes.fromhex(L[5])); n=M('msg.CSMailPushNewMailNtf').FromString(k.body)
 m=n.mail_list.mails[0]; print('25007:',k.head.cmd,'type',n.mail_list.type,'index',m.index,m.title,'附件',len(m.attachment.props),'已读',m.read_flag)

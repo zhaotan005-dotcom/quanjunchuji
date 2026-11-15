@@ -48,7 +48,8 @@
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
 ## 当前状态（2026-11-16 07:10）
-- 最新构建版是 **v1.61**（vc62/core62，releases/ZFrame-v1.61.apk）：自建服务端 + 邮件下发。离线模拟和单测通过，**未实测**。
+- 最新构建版是 **v1.62**（vc63/core63）：收包改挂 UNZOnlineUpdateService::Tick 0xfb0218，Java 自动找 ConnectorService 对象。**未实测**。
+- v1.61 实测：请求 0、游戏已收 0（ConnectorService 的 Tick 离线不跑，大厅重进也不发请求）。
 - 用法：大厅 Z 菜单按「开启服务端」→ 大厅重进并自动推一封「补给」邮件 → 游戏邮箱里领取 → 进仓库看。「发邮件」按钮可再发一封。
 - v1.60 是测量版（40 个探针），已在手机上测过诊断输出。
 - 最后一个功能实测 OK 的版本是 v1.50。实测有效的功能：无敌、传送、刷枪/子弹、3级头 30304000005、3级甲 30305000003、999 子弹、找风衣（绝地风衣 = 30318000000）、开始游戏选图。
@@ -78,7 +79,7 @@
 ### v1.61 的实现（Server.java）
 - 「开启服务端」按钮（只在大厅里，只在用户按下时生效）会装两个 cave，放在 libUE4 代码段末尾空隙 0x4a2d540（SEND）和 +0x100（TICK），都先校验原字节：
   - **SEND**：ConnectorService::SendRawBuffer 0xf950e0 改为跳到 cave。cave 把请求追加到 Java 的请求环形缓冲区，返回 len。原来的逻辑是 connector(this+0xfa054) 为空或 IsConnected(vt+0x38)=0 时就报 "connector is invalidate"。
-  - **TICK**：ConnectorService 的每帧轮询 0xf92fb0（原 8 字节 `54000ae3 0f0040e3` = movw/movt r0,#0xfa054）改为跳到 cave。cave 把回包缓冲区里的每条记录交给 vt+0x164（0xf95298，解析 CSPkg 并分发），然后执行原指令，跳回 0xf92fb8。
+  - **TICK**（v1.62 起）：UNZOnlineUpdateService::Tick 0xfb0218 开头（原 `104c2de9 08b08de2`）跳到 cave。回包区头 32 字节（+12 连接器对象由 Java 找到后填，+16 UpdateService this，+20 帧数）。连接器找到后，cave 把每条回包交给 conn->vt+0x164（0xf95298），再执行原指令，跳回 0xfb0220。v1.61 挂的 ConnectorService Tick 0xf92fb0 离线不跑。
 - Java 线程轮询请求：13001 返回假仓库物品，13003/13005 处理装备/卸下，其他带 key_pkg 的请求回一个空的成功包。开启后先主动推一个 13002，然后重开一次大厅。
 - 已验证：`game/re/emu_server.py` 通过（两个 cave 的模拟；Java 生成的包用游戏自己的 schema 解码，13002 里有 8 个物品，role_id 正确）；Java poll 单测通过（36001→空成功包，22005 不回，13001→物品列表）。
 

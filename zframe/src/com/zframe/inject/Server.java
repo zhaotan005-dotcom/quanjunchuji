@@ -21,9 +21,10 @@ import java.util.LinkedHashMap;
  */
 public class Server {
     static final long SLACK = 0x4a2d540L, SLACK_END = 0x4a2e000L;
-    static final long SEND_AT = 0xf950e0L, TICK_AT = 0xf92fb0L;
-    static final String SEND_ORIG = "f0482de910b08de2", TICK_ORIG = "54000ae30f0040e3";
-    static final int REQ_CAP = 1 << 20, RPL_CAP = 1 << 20;
+    static final long SEND_AT = 0xf950e0L, TICK_AT = 0xfb0218L;   // v1.62：收包改挂 UNZOnlineUpdateService::Tick（大厅每帧跑）
+    static final String SEND_ORIG = "f0482de910b08de2", TICK_ORIG = "104c2de908b08de2";
+    static final int REQ_CAP = 1 << 20, RPL_CAP = 1 << 20, RH = 32;   // 回包区头 32 字节：写/读/已收/连接器/UpdateService/帧数
+    static final long CONN_VT = 0x4c7deb4L, CONN_INIT = 0xf925d0L;       // ConnectorService 的 vtable（+0x11c 是 Init）
 
     static ByteBuffer req, rpl; static long reqAddr, rplAddr;
     static int reqRp, rplWp;
@@ -55,10 +56,10 @@ public class Server {
         return "f0412de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
             + "005094e5026085e0086086e2087094e5070056e11500008a107084e2057087e0002087e5047087e20060a0e3020056e1030000aa06c0d1e706c0c7e7016086e2f9ffffea045085e2025085e0035085e20350c5e35bf07ff5005084e5046094e5016086e2046084e50200a0e1f081bde80c6094e5016086e20c6084e50200a0e1f081bde8";
     }
-    /** TICK 段，ret = 0xf92fb8 的实际地址 */
+    /** TICK 段（v1.62）：挂在 UpdateService::Tick 开头。连接器对象（+12）找到前只记帧数，找到后把回包逐个交给 vt+0x164 */
     static String tickCave(int buf, int ret) {
-        return "f0422de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
-            + "045094e5006094e55bf07ff5060055e1110000aa107084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e8ffffeaf042bde854000ae30f0040e304f01fe5"
+        return "f3412de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
+            + "100084e5146094e5016086e2146084e50c8094e5000058e31600000a045094e5006094e55bf07ff5060055e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e8ffffeaf341bde8104c2de908b08de204f01fe5"
             + w32(ret);
     }
     static String hook(int target) { return "04f01fe5" + w32(target); }
@@ -70,7 +71,7 @@ public class Server {
         if (b == 0) return state = "自建服务端：找不到游戏库";
         if (!slackIsCode(b)) return state = "自建服务端：代码段空隙不可用，没装";
         ByteBuffer q = ByteBuffer.allocateDirect(16 + REQ_CAP).order(ByteOrder.LITTLE_ENDIAN);
-        ByteBuffer r = ByteBuffer.allocateDirect(16 + RPL_CAP).order(ByteOrder.LITTLE_ENDIAN);
+        ByteBuffer r = ByteBuffer.allocateDirect(RH + RPL_CAP).order(ByteOrder.LITTLE_ENDIAN);
         long qa = GameOverlay.bufAddr(q), ra = GameOverlay.bufAddr(r);
         if (qa <= 0 || ra <= 0 || qa > 0xffffffffL || ra > 0xffffffffL) return state = "自建服务端：拿不到内存地址";
         q.putInt(8, REQ_CAP);
@@ -87,8 +88,76 @@ public class Server {
             m.seek(b + SEND_AT); m.write(Patches.hex(hook((int) sc)));
         } catch (Throwable e) { req = null; rpl = null; return state = "自建服务端：出错 " + e.getMessage(); }
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
+        Thread f = new Thread(Server::findConn, "zf-conn"); f.setDaemon(true); f.start();
         Con.exec("open " + Con.LOBBY);                     // 大厅重进一次，让它把开场请求发给我们
         return state = "自建服务端：已开";
+    }
+
+    // ---------------- 找 ConnectorService 对象 ----------------
+    // 回包要交给 ConnectorService 自己的收包函数，所以要它的对象地址。它是 UObject：+0 vtable，+4 ObjectFlags（0x10 = 默认对象 CDO，跳过）。
+    // 先看 UpdateService 的 Outer（+0x18）里的字段，找不到再扫一遍可写的匿名内存。
+    static volatile String connState = "连接器：还没找";
+    static void findConn() {
+        try {
+            long b = Mods.base(), vt = b + CONN_VT;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                if (rd(m, vt + 0x11c) != b + CONN_INIT) { connState = "连接器：vtable 对不上，没找"; return; }
+                for (int i = 0; i < 100 && rpl.getInt(16) == 0; i++) Thread.sleep(100);
+                long upd = rpl.getInt(16) & 0xffffffffL, frames0 = rpl.getInt(20);
+                connState = "连接器：UpdateService " + (upd == 0 ? "没跑" : Long.toHexString(upd));
+                long c = 0;
+                if (upd != 0) {
+                    long outer = rd(m, upd + 0x18);
+                    if (outer != 0) for (long a = outer; a < outer + 0x4000 && c == 0; a += 4) { long p = rd(m, a); if (isConn(m, p, vt)) c = p; }
+                }
+                String how = "Outer 字段";
+                if (c == 0) { how = "扫内存"; c = scan(m, vt); }
+                if (c == 0) { connState = "连接器：没找到（" + connState + "）"; return; }
+                rpl.putInt(12, (int) c);
+                connState = "连接器：" + Long.toHexString(c) + "（" + how + "）";
+            }
+        } catch (Throwable e) { connState = "连接器：出错 " + e; }
+    }
+    static long rd(RandomAccessFile m, long a) {
+        if (a < 0x1000 || a > 0xfffffff0L || (a & 3) != 0) return 0;
+        try { byte[] x = new byte[4]; m.seek(a); m.readFully(x); return (x[0] & 0xff) | (x[1] & 0xff) << 8 | (x[2] & 0xff) << 16 | (x[3] & 0xffL) << 24; }
+        catch (Throwable e) { return 0; }
+    }
+    static boolean isConn(RandomAccessFile m, long p, long vt) {
+        if (p == 0 || rd(m, p) != vt) return false;
+        long fl = rd(m, p + 4), idx = rd(m, p + 8), cls = rd(m, p + 0xc), out = rd(m, p + 0x18);
+        return looksObj(fl, idx, cls, out);
+    }
+    /** UObject 头：不是 CDO，序号合理，类和 Outer 都是对齐的指针 */
+    static boolean looksObj(long fl, long idx, long cls, long out) {
+        return (fl & 0x10) == 0 && idx > 0 && idx < 0x400000 && cls > 0x10000 && (cls & 3) == 0 && out > 0x10000 && (out & 3) == 0;
+    }
+    static long scan(RandomAccessFile m, long vt) throws java.io.IOException {
+        java.util.ArrayList<long[]> rs = new java.util.ArrayList<>();
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
+            String l;
+            while ((l = r.readLine()) != null) {
+                String[] p = l.trim().split("\\s+");
+                if (!p[1].startsWith("rw")) continue;
+                String name = p.length > 5 ? p[5] : "";
+                if (!(name.isEmpty() || name.startsWith("[anon:") || name.equals("[heap]")) || name.contains("stack")) continue;
+                String[] ab = p[0].split("-");
+                rs.add(new long[] { Long.parseLong(ab[0], 16), Long.parseLong(ab[1], 16) });
+            }
+        }
+        byte[] buf = new byte[1 << 20];
+        int v0 = (int) vt;
+        for (long[] g : rs) {
+            for (long a = g[0]; a < g[1]; a += buf.length) {
+                int n = (int) Math.min(buf.length, g[1] - a);
+                try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
+                ByteBuffer w = ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN);
+                for (int i = 0; i + 0x1c <= n; i += 4)
+                    if (w.getInt(i) == v0 && looksObj(w.getInt(i + 4) & 0xffffffffL, w.getInt(i + 8) & 0xffffffffL,
+                                                      w.getInt(i + 0xc) & 0xffffffffL, w.getInt(i + 0x18) & 0xffffffffL)) return a + i;
+            }
+        }
+        return 0;
     }
 
     static void loop() {
@@ -144,8 +213,8 @@ public class Server {
         if (key) head.u(7, 1);
         byte[] p = new PB().m(1, head).b(2, body).bytes();
         if (rplWp + 4 + p.length + 4 > RPL_CAP) return;
-        rpl.putInt(16 + rplWp, p.length);
-        for (int i = 0; i < p.length; i++) rpl.put(16 + rplWp + 4 + i, p[i]);
+        rpl.putInt(RH + rplWp, p.length);
+        for (int i = 0; i < p.length; i++) rpl.put(RH + rplWp + 4 + i, p[i]);
         rplWp = (rplWp + 4 + p.length + 3) & ~3;
         VarHandle.releaseFence();
         rpl.putInt(0, rplWp);
@@ -302,7 +371,8 @@ public class Server {
         StringBuilder sb = new StringBuilder(state).append('\n');
         if (req == null) return sb.toString();
         sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
-          .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n");
+          .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n")
+          .append(connState).append("，大厅帧 ").append(rpl.getInt(20)).append('\n');
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
         return sb.toString();

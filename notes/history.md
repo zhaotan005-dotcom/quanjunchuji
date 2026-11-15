@@ -374,3 +374,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Z menu (lobby): new 「发邮件」 button sends another 补给 mail (server must be on). Diagnostic shows the mail count.
   - Tests: zframe/test/ServerTest.java writes /tmp/pt/o.txt; game/re/emu_server.py decodes 25007/25002/25004/13002 with the game's schemas and runs both caves — all pass.
   - Build env (x86_64 sandbox): apt openjdk-21, build-tools r36 + platform-36 zips from dl.google.com unpacked to /workspace/work/sdk; release via rel.py from v1.60.
+- 07:22 v1.61 device result: 服务端已开, but 请求 0, 回包 3, 游戏已收 0, 邮件 2. Neither cave ran: ConnectorService::Tick (vt+0x120, 0xf92c80) is never called offline, and the lobby sent nothing after the hook (lobby requests only go out on FrontEnd load after a match; `open` lobby did not resend).
+- v1.62 (vc63/core63), 2026-11-16, built (not tested on device):
+  - Recv moved to UNZOnlineUpdateService::Tick 0xfb0218 (same vt slot 0x120; logs "TickAppState" when delta>1 s, seen in the lobby at frames 937/938/10551 → runs every frame). Orig 8 bytes 104c2de9 08b08de2, return to 0xfb0220.
+  - TICK2 cave (srv_cave.py TICK2, 152 bytes): reply header is now 32 bytes: +0 wp, +4 rp, +8 recv count, +12 ConnectorService object (Java fills), +16 UpdateService this, +20 frame count. Until +12 is set it only counts frames; then feeds each record to conn->vt+0x164 (0xf95298), restores r0/r1, runs the original push/add and jumps back.
+  - Java finds the ConnectorService object: vptr = base+0x4c7deb4 (checked: vt+0x11c = Init 0xf925d0, vt+0x164 = 0xf95298). First looks in UpdateService's Outer (+0x18) fields, else scans rw anon memory. Object check: not CDO (flags&0x10), InternalIndex 1..0x400000, class and outer aligned pointers.
+  - Diagnostic now prints 连接器 state and 大厅帧. If 大厅帧 is 0 the UpdateService tick does not run either; if the connector is found but 游戏已收 stays 0, check the cave; if 已收 > 0 but nothing changes, the lobby drops replies (offline/login state).
+  - Tests: emu_server.py (TICK2: no delivery before conn, 2 records after, regs/stack match original prologue) + ServerTest + ScanTest (skips CDO and bare vptr values) all pass.
