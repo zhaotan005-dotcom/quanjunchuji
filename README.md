@@ -48,7 +48,7 @@
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
 ## 当前状态（2026-11-16 07:10）
-- 最新构建版是 **v1.63**（vc64/core64）：收包改挂 FEngineLoop::Tick 0xb665a8（每帧必跑），Java 扫内存找 ConnectorService 对象。**未实测**。
+- 最新构建版是 **v1.64**（vc65/core65，诊断版：自检钩子是否装上）。v1.63（vc64/core64）：收包改挂 FEngineLoop::Tick 0xb665a8（每帧必跑），Java 扫内存找 ConnectorService 对象。**未实测**。
 - v1.62 实测：UpdateService::Tick 在大厅也不跑（帧 0）。
 - v1.61 实测：请求 0、游戏已收 0（ConnectorService 的 Tick 离线不跑，大厅重进也不发请求）。
 - 用法：大厅 Z 菜单按「开启服务端」→ 大厅重进并自动推一封「补给」邮件 → 游戏邮箱里领取 → 进仓库看。「发邮件」按钮可再发一封。

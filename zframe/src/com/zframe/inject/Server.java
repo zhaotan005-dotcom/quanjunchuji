@@ -89,6 +89,7 @@ public class Server {
         } catch (Throwable e) { req = null; rpl = null; return state = "自建服务端：出错 " + e.getMessage(); }
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
         Thread f = new Thread(Server::findConn, "zf-conn"); f.setDaemon(true); f.start();
+        new Thread(() -> { try { Thread.sleep(1000); } catch (Throwable ignored) {} frames1s = rpl.getInt(20); }).start();
         Con.exec("open " + Con.LOBBY);                     // 大厅重进一次，让它把开场请求发给我们
         return state = "自建服务端：已开";
     }
@@ -365,12 +366,37 @@ public class Server {
         return d.length > n ? s + "…" : s.toString();
     }
 
+    static volatile int frames1s = -1;
+    /** v1.64：把钩子、cave、缓冲区从游戏内存里直接读回来，看到底装上没有 */
+    static String selfCheck() {
+        long b = Mods.base();
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            return "自检 TICK@" + Long.toHexString(TICK_AT) + "=" + bytesAt(m, b + TICK_AT, 8)
+                + " SEND@" + Long.toHexString(SEND_AT) + "=" + bytesAt(m, b + SEND_AT, 8)
+                + "\n  cave=" + bytesAt(m, b + SLACK + 0x100, 16) + " 缓冲=" + Long.toHexString(rplAddr)
+                + " 直读帧=" + rd(m, rplAddr + 20) + " 直读连接器=" + Long.toHexString(rd(m, rplAddr + 12))
+                + "\n  空隙段=" + mapLine(b + SLACK) + "\n  Tick段=" + mapLine(b + TICK_AT);
+        } catch (Throwable e) { return "自检出错 " + e; }
+    }
+    static String mapLine(long a) {
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
+            String l;
+            while ((l = r.readLine()) != null) {
+                String[] p = l.trim().split("\\s+"), ab = p[0].split("-");
+                long s = Long.parseLong(ab[0], 16), e = Long.parseLong(ab[1], 16);
+                if (s <= a && a < e) return p[0] + " " + p[1] + " " + p[2] + (p.length > 5 ? " " + p[5].replaceAll(".*/", "") : "");
+            }
+        } catch (Throwable ignored) {}
+        return "?";
+    }
+
     public static synchronized String report() {
         StringBuilder sb = new StringBuilder(state).append('\n');
         if (req == null) return sb.toString();
         sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
           .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n")
-          .append(connState).append("，帧 ").append(rpl.getInt(20)).append('\n');
+          .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（装后 1 秒 ").append(frames1s).append("）\n");
+        sb.append(selfCheck()).append('\n');
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
         return sb.toString();
