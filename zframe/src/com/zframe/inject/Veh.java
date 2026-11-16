@@ -190,11 +190,11 @@ public class Veh {
     static final class Group { String label; ArrayList<Long> ids = new ArrayList<>(); int at; }
     /** v1.93 车编号写死（用户：不要再读车表）。编号 = 游戏车表的行号，三张图同一张表（v1.89 读出来的）：
      *  图标名 Uaz469=吉普，dacia=轿车，boat_pg117=大船，car_002/003=吉普另外两款（敞篷/篷布，按 PUBG 吉普三款推测），buggy=蹦蹦，
-     *  bike=摩托，bike_sidecart=三轮摩托，Chuan_001=快艇，car_005=面包车、car_006=皮卡（推测）。car_007/008 编号没读到，先不放。 */
+     *  bike=摩托，bike_sidecart=三轮摩托，Chuan_001=快艇，car_005=面包车（推测）、car_006=跑车（v1.93 实测：刷出来是跑车）。car_007/008 编号没读到，先不放。 */
     static volatile ArrayList<Group> groups = fixed();
     static ArrayList<Group> fixed() {
         Object[][] t = { {"吉普", new long[]{1, 17, 20, 28}}, {"敞篷吉普", new long[]{4, 11, 21}}, {"篷布吉普", new long[]{5, 12, 22}},
-            {"轿车", new long[]{2, 23}}, {"蹦蹦", new long[]{6, 14, 24}}, {"面包车", new long[]{10}}, {"皮卡", new long[]{29, 30}},
+            {"轿车", new long[]{2, 23}}, {"蹦蹦", new long[]{6, 14, 24}}, {"面包车", new long[]{10}}, {"跑车", new long[]{29, 30}},
             {"摩托", new long[]{9, 15, 25}}, {"三轮摩托", new long[]{8, 16, 26}}, {"快艇", new long[]{13, 18, 19}}, {"大船", new long[]{3, 27}} };
         ArrayList<Group> out = new ArrayList<>();
         for (Object[] r : t) { Group g = new Group(); g.label = (String) r[0]; for (long id : (long[]) r[1]) g.ids.add(id); out.add(g); }
@@ -370,7 +370,7 @@ public class Veh {
                 if (p == null) { GameOverlay.toastAny(botState = "刷人机：还没有人物（进对局、出生后再按）"); return; }
                 double r = Math.toRadians(p[3]);
                 int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, 1 | 4);
-                if (c == 0x5b08 || c == 0x5b07) Bots.spawned++;
+                if (c == 0x5b08 || c == 0x5b07) { Bots.spawned++; Bots.track(lastCtrl()); }
                 botState = "刷人机（" + DIFF[Bots.diff] + "）：" + codeText(c);
                 note(botState + "；" + botInfo);
                 GameOverlay.toastAny(botState);

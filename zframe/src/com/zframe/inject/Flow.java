@@ -33,7 +33,19 @@ public class Flow {
     static final int ES = 0x54;
 
     public static volatile String last = "";
-    static void newMatch() { if (!state.startsWith("毒圈：等进对局")) last = state + "。" + air; gen++; state = on ? "毒圈：等进对局" : "毒圈：不改（用游戏自带）"; air = ""; }
+    /** v1.94：游戏日志里的本局航线 {StartLoc, EndLoc, StartJumpLoc, EndJumpLoc}（xyz），按值在内存里找 */
+    static volatile float[][] logAir;
+    static final java.util.regex.Pattern LOC = java.util.regex.Pattern.compile("(StartLoc|EndLoc|StartJumpLoc|EndJumpLoc): X=([-0-9.]+), Y=([-0-9.]+), Z=([-0-9.]+)");
+    static void airLog(String l) {
+        float[][] r = new float[4][];
+        java.util.regex.Matcher mt = LOC.matcher(l);
+        while (mt.find()) {
+            int k = java.util.Arrays.asList("StartLoc", "EndLoc", "StartJumpLoc", "EndJumpLoc").indexOf(mt.group(1));
+            if (k >= 0 && r[k] == null) r[k] = new float[] { Float.parseFloat(mt.group(2)), Float.parseFloat(mt.group(3)), Float.parseFloat(mt.group(4)) };
+        }
+        if (r[0] != null && r[1] != null) logAir = r;
+    }
+    static void newMatch() { logAir = null; if (!state.startsWith("毒圈：等进对局")) last = state + "。" + air; gen++; state = on ? "毒圈：等进对局" : "毒圈：不改（用游戏自带）"; air = ""; }
 
     static void matchLoaded(final String map) {
         final int g = ++gen;
@@ -48,14 +60,15 @@ public class Flow {
         boolean small = map != null && (map.contains("Savage") || map.contains("4x4"));
         float[][] tb = small ? SMALL : BIG;
         float side = small ? 408000f : 816000f;   // 地图边长（原点在地图正中，「传送到地图中间」BugItGo 0 0 也是这么用的）
-        boolean circleDone = false, airDone = false; int ph = -1;
+        boolean circleDone = false, airDone = false; int ph = -1; sideNow = side;
         Thread.sleep(3000);
-        for (int i = 0; i < 120 && g == gen && Con.inMatch && !(circleDone && airDone); i++) {
+        for (int i = 0; i < 300 && g == gen && Con.inMatch; i++) {
             double[] p = Veh.info();
             if (p == null) { state = "毒圈：等人物出生"; Thread.sleep(1000); continue; }
             ph = Bots.readPhase((long) p[4]);
-            if (ph >= 4) break;                         // 飞机已经起飞 / 毒圈开始了，不再动
+            if (ph >= 4) { airAfter(g, p); break; }   // 毒圈开始了不再动；飞机可能这时才生出来，航线再找 25 秒
             long[] sys = systems((long) p[5]);
+            if (circleDone && airDone) { Thread.sleep(500); continue; }   // 都改好了，等起飞再找一次飞机
             if (sys == null) { state = "毒圈：找不到系统表"; Thread.sleep(1000); continue; }
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
                 if (!circleDone) {
@@ -149,8 +162,67 @@ public class Flow {
         return b.array();
     }
 
+    /** v1.94：起飞后接着找航线（飞机对象起飞时才生），每 0.2 秒一次，找 25 秒 */
+    static void airAfter(int g, double[] p) throws Exception {
+        for (int i = 0; i < 125 && g == gen && Con.inMatch; i++) {
+            long[] sys = systems((long) p[5]);
+            if (sys != null) try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+                String r = airline(m, sys, sideNow);
+                if (r != null) { air = (air.isEmpty() ? "" : air + "；") + "起飞后又找到一次：" + r; Veh.note(air); return; }
+            }
+            Thread.sleep(200);
+        }
+    }
+    static volatile float sideNow = 408000f;
+
+    /** v1.94：按日志里的起点/终点坐标值，在各系统对象和它们指向的对象里找（不靠猜偏移），找到就改；没找到返回 null */
+    static String airByValue(RandomAccessFile m, long[] sys, float side) throws Exception {
+        float[][] la = logAir; if (la == null) return null;
+        int s0 = Float.floatToRawIntBits(la[0][0]), s1 = Float.floatToRawIntBits(la[0][1]), e0 = Float.floatToRawIntBits(la[1][0]), e1 = Float.floatToRawIntBits(la[1][1]);
+        java.util.ArrayList<Long> objs = new java.util.ArrayList<>();
+        for (long o : sys) { objs.add(o); byte[] b = read(m, o, 0x800); if (b == null) continue;
+            java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(b).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            for (int k = 0x40; k + 8 <= b.length; k += 4) {   // TArray 里的对象（飞机列表）和直接指针
+                long d = bb.getInt(k) & 0xffffffffL, n = bb.getInt(k + 4) & 0xffffffffL;
+                if (d >= 0x10000 && n >= 1 && n <= 4) for (int x = 0; x < n; x++) { long t = Server.rd(m, d + 4L * x); if (t >= 0x10000 && !objs.contains(t)) objs.add(t); }
+            }
+        }
+        StringBuilder sb = new StringBuilder(); int hits = 0;
+        Random rnd = new Random();
+        double ang = rnd.nextDouble() * Math.PI * 2, dx = Math.cos(ang), dy = Math.sin(ang), off = (rnd.nextDouble() * 2 - 1) * side * 0.1;
+        double mx = -dy * off, my = dx * off, h = side * 0.55;
+        float nsx = (float) (mx - dx * h), nsy = (float) (my - dy * h), nex = (float) (mx + dx * h), ney = (float) (my + dy * h);
+        for (long o : objs) {
+            byte[] b = read(m, o, 0x800); if (b == null) continue;
+            java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(b).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            for (int k = 0; k + 24 <= b.length; k += 4) {
+                if (bb.getInt(k) != s0 || bb.getInt(k + 4) != s1 || bb.getInt(k + 12) != e0 || bb.getInt(k + 16) != e1) continue;
+                long a = o + k;
+                wf(m, a, nsx); wf(m, a + 4, nsy); wf(m, a + 12, nex); wf(m, a + 16, ney);
+                if (k + 0x2c <= b.length && Math.abs(Math.hypot(bb.getFloat(k + 0x18), bb.getFloat(k + 0x1c)) - 1) < 0.01) { wf(m, a + 0x18, (float) dx); wf(m, a + 0x1c, (float) dy); }
+                double len0 = Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]);
+                if (k + 0x28 <= b.length && Math.abs(bb.getFloat(k + 0x24) - len0) < Math.max(100, len0 * 0.02)) wf(m, a + 0x24, (float) (2 * h));
+                // 跳伞段：起点后 0x80 字节内找 StartJumpLoc / EndJumpLoc 的值
+                if (la[2] != null && la[3] != null) for (int j = k + 12; j + 24 <= Math.min(b.length, k + 0x80); j += 4) {
+                    if (bb.getInt(j) == Float.floatToRawIntBits(la[2][0]) && bb.getInt(j + 4) == Float.floatToRawIntBits(la[2][1]) && bb.getInt(j + 12) == Float.floatToRawIntBits(la[3][0]) && bb.getInt(j + 16) == Float.floatToRawIntBits(la[3][1]) && j != k) {
+                        wf(m, o + j, nsx); wf(m, o + j + 4, nsy); wf(m, o + j + 12, nex); wf(m, o + j + 16, ney);
+                        double jl = Math.hypot(la[3][0] - la[2][0], la[3][1] - la[2][1]);
+                        if (j + 0x1c <= b.length && Math.abs(bb.getFloat(j + 0x18) - jl) < Math.max(100, jl * 0.02)) wf(m, o + j + 0x18, (float) (2 * h));
+                        break;
+                    }
+                }
+                hits++; sb.append(Long.toHexString(o)).append('+').append(Integer.toHexString(k)).append(' ');
+            }
+        }
+        if (hits == 0) return null;
+        return Math.round(Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]) / 100) + " 米 → " + Math.round(2 * h / 100) + " 米，穿过地图中间（改了 " + hits + " 处：" + sb.toString().trim() + "）";
+    }
+    static byte[] read(RandomAccessFile m, long a, int n) { try { byte[] b = new byte[n]; m.seek(a); m.readFully(b); return b; } catch (Throwable e) { return null; } }
+
     /** 航线拉长；没找到飞机返回 null */
     static String airline(RandomAccessFile m, long[] sys, float side) throws Exception {
+        sideNow = side;
+        String bv = airByValue(m, sys, side); if (bv != null) return bv;
         for (long o : sys) {
             long d = Server.rd(m, o + 0x304), n = Server.rd(m, o + 0x308);
             if (d < 0x10000 || n < 1 || n > 4) continue;

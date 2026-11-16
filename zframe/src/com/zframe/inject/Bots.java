@@ -28,46 +28,90 @@ public class Bots {
 
     static void newMatch() { gen++; spawned = 0; phase = -1; equipState = ""; synchronized (live) { live.clear(); } killed = 0; state = auto ? "人机：等进对局" : "人机：自动刷新已关"; }
 
-    // ---------------- v1.93 100 人局 ----------------
-    // 用户：上面「剩余」固定从 100 开始，只在身边刷几个人机，打死一个少一个；玩家和服务端算一个人；减到 1 就结束游戏（吃鸡）。
-    // GameState(GM+0x2e0) +0x774 PlayerLeftCount、+0x778 AIPlayerLeftCount（UProperty 表里读的偏移）。
-    // 每 0.5 秒写：玩家 = 1，人机 = 99 - 已死人机。人机死没死：控制器 +0x2c0 的人物指针还是不是刷出来时那个。
-    // 身边同时活着的人机保持 2~4 个，死了再补，直到一共死够 99 个。
+    // ---------------- v1.93/v1.94 100 人局 ----------------
+    // 用户：上面「剩余」从 100 开始，只在身边刷几个人机，打死一个少一个；玩家和服务端算一个人；减到 1 就结束游戏、放结算动画。
+    // HUD 的「剩余」= GameState+0x774 PlayerLeftCount。游戏自己每隔一会儿在 0x101a6e8（GameState 数活人）里写
+    //   +0x774 = 活着的人物数（玩家 + 服务端那个 = 2）、+0x778 = 人机数 → v1.93 我们写 1、游戏写 2，来回跳。
+    // v1.94：进对局把 0x101a880 / 0x101a884 两条 str 换成 nop，只由我们写：+0x774 = 100 - 已死人机，+0x778 = 剩下要打的人机数。
+    // 结束：GameMode 0x100fbd4（BR 查结束）原来是 vt+0x634（活着的队伍数）<= 1 才结算（服务端那队一直活着，所以永远不结束）。
+    //   剩余到 1 时把 0x100fc58 / 0x100fc5c 换成 ldr r0,[r4,#0x908]（GameState）/ ldr r0,[r0,#0x774]，
+    //   后面 cmp r0,#1 / bgt 不动 → 游戏自己走胜利结算（vt+0x510）。下一局进图前改回原样。
+    // 人机死没死：控制器 +0x2c0 人物指针变了，或者人物 +0x5a0（血量，游戏数活人时也是看它 >= 1）< 1。
     static final java.util.ArrayList<long[]> live = new java.util.ArrayList<>();   // {控制器, 人物}
     public static volatile int killed;
     public static volatile String countInfo = "";
+    static final long ST_A = 0x101a880L, ST_B = 0x101a884L, END_A = 0x100fc58L, END_B = 0x100fc5cL;
+    static final String ST_A_O = "747789e5", ST_B_O = "788789e5", NOP = "0000a0e1", END_A_O = "0400a0e1", END_B_O = "31ff2fe1", END_A_N = "080994e5", END_B_N = "740790e5";
+    static void track(long ctrl) {
+        if (ctrl < 0x10000) return;
+        long pawn = 0;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { pawn = Server.rd(m, ctrl + 0x2c0); } catch (Throwable ignored) {}
+        if (pawn >= 0x10000) synchronized (live) { live.add(new long[] { ctrl, pawn }); }
+    }
     static int aliveBots(RandomAccessFile m) {
         int n = 0;
         synchronized (live) {
             for (java.util.Iterator<long[]> it = live.iterator(); it.hasNext(); ) {
                 long[] b = it.next();
                 long p = Server.rd(m, b[0] + 0x2c0);
-                if (b[1] != 0 && p == b[1]) n++; else { it.remove(); killed++; }
+                int hp = (int) Server.rd(m, b[1] + 0x5a0);
+                if (p == b[1] && hp >= 1) n++; else { it.remove(); killed++; }
             }
         }
         return n;
     }
+    /** 改一处代码：现在是 from 才改成 to；返回现在的字节 */
+    static String patch(RandomAccessFile m, long off, String from, String to) throws java.io.IOException {
+        long b = Mods.base(); if (b == 0) return "?";
+        String cur = Server.bytesAt(m, b + off, 4);
+        if (cur.equals(from)) { m.seek(b + off); m.write(Patches.hex(to)); cur = Server.bytesAt(m, b + off, 4); }
+        return cur;
+    }
+    /** 新的一局进图：结束补丁改回原样（数人补丁留着，进对局后计数线程马上写 100） */
+    static void unpatchEnd() {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            patch(m, END_A, END_A_N, END_A_O); patch(m, END_B, END_B_N, END_B_O);
+        } catch (Throwable ignored) {}
+    }
     static void counter(final int g, final long gm) {
         new Thread(() -> {
             boolean first = true, ended = false;
-            while (g == gen && Con.inMatch && auto) {
+            while (g == gen && Con.inMatch) {
                 try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
                     long gs = Server.rd(m, gm + 0x2e0);
                     if (gs >= 0x10000) {
-                        if (first) { countInfo = "剩余人数 原来 玩家 " + Server.rd(m, gs + 0x774) + " 人机 " + Server.rd(m, gs + 0x778); Veh.note(countInfo); first = false; }
+                        if (first) {
+                            String a = patch(m, ST_A, ST_A_O, NOP), b = patch(m, ST_B, ST_B_O, NOP);
+                            countInfo = "剩余人数 原来 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "），数人补丁 " + (a.equals(NOP) && b.equals(NOP) ? "已打" : "没打上 " + a + " " + b);
+                            Veh.note(countInfo); first = false;
+                        }
                         aliveBots(m);
-                        int left = Math.max(0, TOTAL - killed);
-                        Flow.wi(m, gs + 0x774, 1); Flow.wi(m, gs + 0x778, left);
-                        if (left == 0 && !ended) { ended = true; Veh.note("人机：99 个都死了，剩余 1"); }
+                        int left = Math.max(1, 100 - killed);
+                        Flow.wi(m, gs + 0x774, left); Flow.wi(m, gs + 0x778, left - 1);
+                        if (left == 1 && !ended) {
+                            ended = true;
+                            String a = patch(m, END_A, END_A_O, END_A_N), b = patch(m, END_B, END_B_O, END_B_N);
+                            Veh.note("人机：剩余 1，结算补丁 " + (a.equals(END_A_N) && b.equals(END_B_N) ? "已打" : "没打上 " + a + " " + b));
+                        }
                     }
                 } catch (Throwable ignored) {}
-                try { Thread.sleep(500); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(300); } catch (InterruptedException e) { return; }
             }
         }, "zf-count").start();
     }
 
     static void matchLoaded() {
-        final int g = ++gen; spawned = 0; phase = -1;
+        final int g = ++gen; spawned = 0; phase = -1; synchronized (live) { live.clear(); } killed = 0;
+        unpatchEnd();
+        new Thread(() -> {   // 剩余人数：不管自动刷人机开没开都数
+            try {
+                for (int i = 0; i < 120 && g == gen && Con.inMatch; i++) {
+                    double[] q = Veh.info();
+                    if (q != null && (long) q[4] >= 0x10000) { counter(g, (long) q[4]); return; }
+                    Thread.sleep(1000);
+                }
+            } catch (Throwable ignored) {}
+        }, "zf-count0").start();
         if (!auto) { state = "人机：自动刷新已关"; return; }
         new Thread(() -> {
             try { run(g); }
@@ -80,11 +124,10 @@ public class Bots {
 
     static void run(int g) throws Exception {
         Thread.sleep(8000);
-        double lz = Double.NaN; long stillSince = 0, next = 0; int fails = 0, lastPhase = -2; boolean counting = false;
-        while (spawned < TOTAL && alive(g)) {
+        double lz = Double.NaN; long stillSince = 0, next = 0; int fails = 0, lastPhase = -2;
+        while (killed < TOTAL && alive(g)) {
             double[] q = Veh.info();
             if (q == null) { state = "人机：等人物出生"; Thread.sleep(3000); continue; }
-            if (!counting && (long) q[4] >= 0x10000) { counting = true; counter(g, (long) q[4]); }
             phase = readPhase((long) q[4]);
             if (phase != lastPhase) { Veh.note("人机：对局阶段 " + phase); lastPhase = phase; }
             long now = System.currentTimeMillis();
@@ -102,8 +145,8 @@ public class Bots {
             if (next == 0) next = now;
             int al; synchronized (live) { al = live.size(); }
             if (now >= next && al < 3) {
-                int n = Math.min(TOTAL - spawned, 2 + rnd.nextInt(3) - al);
-                for (int k = 0; k < n && spawned < TOTAL && alive(g); k++) fails = one(g, q, fails);
+                int n = Math.min(TOTAL - killed - al, 2 + rnd.nextInt(3) - al);
+                for (int k = 0; k < n && alive(g); k++) fails = one(g, q, fails);
                 if (fails >= 5) { state = "人机：连续失败停了（" + Veh.botState + "）"; Veh.note(state); GameOverlay.refreshAny(); return; }
                 next = now + 20000 + rnd.nextInt(25000);
                 state = "人机：剩余 " + (100 - killed) + "，身边 " + Math.min(4, al + n) + " 个（" + Veh.DIFF[diff] + "）";
@@ -111,7 +154,7 @@ public class Bots {
             }
             Thread.sleep(2000);
         }
-        if (spawned >= TOTAL) state = "人机：本局 " + TOTAL + " 个已刷完，剩余 " + (100 - killed);
+        if (killed >= TOTAL) state = "人机：99 个都打完了，剩余 1";
     }
 
     /** 玩家周围 40~110 米刷一个，面朝玩家；之后补两次装备 */
@@ -121,9 +164,7 @@ public class Bots {
         if (c == 0x5b08 || c == 0x5b07) {
             spawned++;
             final long ctrl = Veh.lastCtrl();
-            long pawn = 0;
-            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { pawn = Server.rd(m, ctrl + 0x2c0); } catch (Throwable ignored) {}
-            if (ctrl >= 0x10000 && pawn >= 0x10000) synchronized (live) { live.add(new long[] { ctrl, pawn }); }
+            track(ctrl);
             if (spawned <= 3) Veh.note("人机：第 " + spawned + " 个 " + Veh.codeText(c) + "；" + Veh.botInfo + "；" + Veh.equipInfo(ctrl));
             if (c == 0x5b08) new Thread(() -> regive(g, ctrl), "zf-bot-eq").start();
             return 0;
