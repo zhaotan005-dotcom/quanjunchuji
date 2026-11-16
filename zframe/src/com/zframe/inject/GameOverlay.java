@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.14";
+    static final String VER = "v2.15";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -96,8 +96,8 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
             tabsRow.setPadding(u.dp(8), u.dp(4), u.dp(4), u.dp(10));
-            final String[] tabs = {"常用", "武器", "装备", "刷车", "人机", "联机", "画面"};
-            final int[] map = {0, 3, 4, 1, 2, 6, 5};   // 显示顺序 → 原来的页号（fill 按页号填）
+            final String[] tabs = {"常用", "武器", "装备", "衣服", "刷车", "人机", "联机", "画面"};
+            final int[] map = {0, 3, 4, 7, 1, 2, 6, 5};   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -129,11 +129,11 @@ public class GameOverlay {
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = r == 0 ? id != 6 : r == 1 ? id != 2 : (id == 6 || id == 5);
+                    boolean show = r == 0 ? id != 6 : r == 1 ? id != 2 : (id == 6 || id == 5 || id == 0);
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
-                    boolean ok = r == 0 ? tab != 6 : r == 1 ? tab != 2 : (tab == 6 || tab == 5);
+                    boolean ok = r == 0 ? tab != 6 : r == 1 ? tab != 2 : (tab == 6 || tab == 5 || tab == 0);
                     if (!ok) { tab = r == 2 ? 6 : 0; paintTabs(tv, u); }
                 }
             };
@@ -742,6 +742,7 @@ public class GameOverlay {
             case 4: gearPage(a, u, root); return;
             case 5: settingsPage(a, u, root); return;
             case 6: lanPage(a, u, root); return;
+            case 7: clothesPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -856,6 +857,7 @@ public class GameOverlay {
 
     /** 常用：最上面无敌和传送，然后枪，最下面加速/高跳（刷车、刷人机在「刷车人机」页） */
     static void mainPage(final Activity a, final Ui u, final LinearLayout root) {
+        if (Lan.role == 2 || Ed.ED == 2) { clientMain(a, u, root); return; }
         head(a, u, root, "保命");
         LinearLayout oc = card(a, u, root);
         switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
@@ -941,6 +943,103 @@ public class GameOverlay {
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
         btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
         btn(a, u, g3, "全套配件", () -> { int n = 0; for (String at : ATT) if (givenAtt.add(at)) { give(a, at, 1); n++; } if (n == 0) toast(a, "这局配件已经刷过了"); else after(a, "全套配件"); });
+    }
+
+    /** v2.15 客户端版「常用」：只放本机生效的 —— 枪（无后座/聚点/无限子弹）和跑跳。刷东西、无敌、传送都是服务器说了算，客户端不放。 */
+    static void clientMain(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "枪");
+        LinearLayout gc = card(a, u, root);
+        switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
+        switchRow(a, u, gc, "防抖 / 聚点", "镜头不晃、子弹不散开", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
+        switchRow(a, u, gc, "无限子弹", "客户端改的，房主那边可能不认", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
+        head(a, u, root, "跑跳");
+        slider(a, u, root, "加速", "跑得更快，拖到最左边是关；太快会被服务器拉回去", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
+    }
+
+    /** v2.15「衣服」页（房主/单机）：最上面绝地风衣单独一个按钮；下面是从游戏内存里读出来的全部服装编号（Server.scanSkins，只读），
+     *  按分类分组，名字用「分类 + 序号」（物品的中文名没有表可查）。读一次存 filesDir/zf_clothes.txt，下次直接用。 */
+    static final String[][] CLOTH_CAT = {
+        {"01", "裤子"}, {"02", "上衣"}, {"03", "鞋子"}, {"06", "手套"}, {"07", "背包外观"}, {"08", "面部/眼镜"}, {"09", "吉利服"},
+        {"10", "短裤"}, {"11", "短袖"}, {"12", "帽子"}, {"13", "头饰"}, {"14", "外套"}, {"15", "外套"}, {"16", "长外套"}, {"17", "套装"},
+        {"18", "风衣"}, {"19", "连衣/套装"}, {"20", "其他"}, {"21", "面罩"}, {"23", "饰品"}, {"24", "饰品"}, {"26", "其他"}, {"28", "其他"}};
+    static String catName(long cat) {
+        int big = (int) (cat / 100) % 1000, yy = (int) (cat % 100);
+        String y = String.format(java.util.Locale.US, "%02d", yy), n = "分类 " + y;
+        for (String[] c : CLOTH_CAT) if (c[0].equals(y)) { n = c[1]; break; }
+        return n + (big == 301 ? "（男）" : big == 302 ? "（女）" : "");
+    }
+    static volatile java.util.TreeMap<Long, java.util.ArrayList<Long>> clothes;
+    static volatile String clothState = "";
+    static long clothCat = 0; static int clothPage = 0;
+    static java.io.File clothFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_clothes.txt"); }
+    static void loadClothes(boolean rescan) {
+        if ("正在读…".equals(clothState)) return;
+        clothState = "正在读…"; refreshAny();
+        new Thread(() -> {
+            try {
+                java.util.TreeSet<Long> ids = new java.util.TreeSet<>();
+                java.io.File f = clothFile();
+                if (!rescan && f != null && f.exists())
+                    for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) ids.add(Long.parseLong(x));
+                if (ids.isEmpty()) {
+                    long t0 = System.currentTimeMillis();
+                    ids.addAll(Server.scanSkins().keySet());
+                    ids.remove(Long.parseLong(Mods.COAT));
+                    StringBuilder b = new StringBuilder(); for (long v : ids) b.append(v).append(' ');
+                    if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
+                    LogCap.note("衣服列表：扫到 " + ids.size() + " 件，" + (System.currentTimeMillis() - t0) + " ms");
+                }
+                java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
+                for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
+                clothes = m; if (clothCat == 0 || !m.containsKey(clothCat)) clothCat = m.isEmpty() ? 0 : m.firstKey(); clothPage = 0;
+                clothState = ids.isEmpty() ? "没读到衣服编号" : "共 " + ids.size() + " 件";
+            } catch (Throwable e) { clothState = "读衣服出错 " + e; }
+            refreshAny();
+        }, "zf-cloth").start();
+    }
+    static void clothesPage(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "绝地求生风衣");
+        LinearLayout fr = row(a, root);
+        primary(a, u, fr, "刷绝地风衣", () -> give(a, Mods.COAT, 1, "绝地风衣"));
+        if (Ed.ED == 1) note(a, u, root, "房主版：衣服刷在脚下，捡起来就穿上。");
+        java.util.TreeMap<Long, java.util.ArrayList<Long>> m = clothes;
+        if (m == null) { if (clothState.isEmpty()) loadClothes(false); note(a, u, root, "衣服列表：" + clothState); return; }
+        head(a, u, root, "全部衣服（" + clothState + "）");
+        HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
+        LinearLayout cr = new LinearLayout(a); cr.setOrientation(LinearLayout.HORIZONTAL);
+        for (final long cat : m.keySet()) {
+            TextView t = new TextView(a);
+            t.setText(catName(cat) + " " + m.get(cat).size()); t.setTextSize(11.5f);
+            t.setTextColor(cat == clothCat ? ON_TXT : SUBT);
+            t.setBackground(cat == clothCat ? grad(u.dp(14)) : boxLine(0, LINE, u.dp(14), 1));
+            t.setPadding(u.dp(11), u.dp(5), u.dp(11), u.dp(5));
+            t.setOnClickListener(v -> { clothCat = cat; clothPage = 0; fill(a, u, root); });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
+            cr.addView(t, lp);
+        }
+        hs.addView(cr);
+        root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
+        java.util.ArrayList<Long> l = m.get(clothCat);
+        if (l == null) return;
+        final int per = 30, pages = (l.size() + per - 1) / per;
+        if (clothPage >= pages) clothPage = 0;
+        String cn = catName(clothCat); int k = cn.indexOf('（'); if (k > 0) cn = cn.substring(0, k);
+        LinearLayout gr = null;
+        for (int i = clothPage * per, j = 0; i < Math.min(l.size(), (clothPage + 1) * per); i++, j++) {
+            if (j % 3 == 0) gr = row(a, root);
+            final String id = String.valueOf(l.get(i)); final String lb = cn + " " + (i + 1);
+            btn(a, u, gr, lb, () -> { give(a, id, 1); toast(a, lb + "（" + id + "）"); });
+        }
+        if (pages > 1) {
+            LinearLayout pr = row(a, root);
+            btn(a, u, pr, "上一页", () -> { clothPage = (clothPage + pages - 1) % pages; fill(a, u, root); });
+            label(a, pr, (clothPage + 1) + " / " + pages, 11, false, SUBT);
+            btn(a, u, pr, "下一页", () -> { clothPage = (clothPage + 1) % pages; fill(a, u, root); });
+        }
+        LinearLayout rr = row(a, root);
+        btn(a, u, rr, "重新读取列表", () -> { clothes = null; loadClothes(true); });
     }
 
     static void coatPage(final Activity a, final Ui u, final LinearLayout root) {
