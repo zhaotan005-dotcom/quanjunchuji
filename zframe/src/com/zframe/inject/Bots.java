@@ -84,7 +84,9 @@ public class Bots {
                         long gs = Server.rd(m, gm + 0x2e0);
                         if (gs >= 0x10000) {
                             if (first) {
-                                countInfo = "剩余人数（v1.98 不改，用游戏真实的）开局 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "）";
+                                // v1.99：v1.98 用真实人数后，人机摔死 → 只剩 1 人 → 游戏直接结束弹回大厅。数人代码还是 nop 掉，但不再写人数（不闪）
+                                String a = patch(m, ST_A, ST_A_O, NOP), b = patch(m, ST_B, ST_B_O, NOP);
+                                countInfo = "剩余人数（v1.99 游戏数人已停、不写）开局 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "），数人补丁 " + (a.equals(NOP) && b.equals(NOP) ? "已打" : "没打上 " + a + " " + b);
                                 if ((Server.rd(m, gs + 0x71c) & 0xff) == 0 && Server.rd(m, gs + 0x72c) == Float.floatToIntBits(60f)) {
                                     Flow.wi(m, gs + 0x72c, Float.floatToIntBits(1f)); Veh.note("开局等人 60 秒改成 1 秒（本局）");
                                 }
@@ -167,7 +169,8 @@ public class Bots {
                 stillSince = 0; GameOverlay.refreshAny(); Thread.sleep(3000); continue;
             }
             // 落地站稳：高度 2 秒内变化 < 0.5 米，持续 15 秒
-            if (!Double.isNaN(lz) && Math.abs(q[2] - lz) < 50) { if (stillSince == 0) stillSince = now; } else stillSince = 0;
+            // v1.99：飞机上高度也不变（约 200 米），以前人机会被刷在空中摔死 → 高度要低于 120 米才算落地
+            if (q[2] < 12000 && !Double.isNaN(lz) && Math.abs(q[2] - lz) < 50) { if (stillSince == 0) stillSince = now; } else stillSince = 0;
             lz = q[2];
             if (stillSince == 0 || now - stillSince < 15000) {
                 if (spawned == 0) state = "人机：落地站稳后开始刷";
