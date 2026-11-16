@@ -17,7 +17,7 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v2.10 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame v2.11 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
@@ -93,7 +93,20 @@ public class AvatarLog {
             File ext = new File("/storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files");
             scan(ext, 0, hit, System.currentTimeMillis() - 3 * 3600_000L);
             int shown = 0;
+            // v2.11：最新的在前；Bugly 的 tomb_*.txt（闪退现场）整份打出来，其他文件只列名字
+            hit.sort((x, y) -> Long.compare(y.lastModified(), x.lastModified()));
+            int tombs = 0;
+            for (File f : hit) if (f.getName().startsWith("tomb") && tombs < 2) {
+                tombs++;
+                sb.append("--- 闪退现场 ").append(f.getName()).append(' ').append(new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date(f.lastModified()))).append(" ---\n");
+                byte[] b = java.nio.file.Files.readAllBytes(f.toPath());
+                StringBuilder cur = new StringBuilder();
+                for (byte x : b) { if (x >= 32 && x < 127 || x == 10 || x == 9) cur.append((char) x); else cur.append(' '); }
+                sb.append(cur.length() > 14000 ? cur.substring(0, 14000) : cur).append("\n");
+            }
+            shown = 4;
             for (File f : hit) {
+                if (f.getPath().contains("/lib/")) continue;
                 sb.append(new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date(f.lastModified()))).append(' ').append(f.getPath()).append(' ').append(f.length()).append("\n");
                 if (shown < 4 && f.length() < 200_000) {
                     shown++;

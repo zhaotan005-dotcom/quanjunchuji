@@ -545,3 +545,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 21:40 v2.08 开房（Savage）：心跳显示加载后约 6–7 秒进程消失，VmRSS 约 760 MB、Swap 8 MB → 不是内存/手机配置问题。游戏日志停在「Bringing up level for play took」；系统日志没有新的 Fatal signal（怀疑 Bugly 自己吞了信号）。
 - v2.09（vc110/core110，未实测）：开房/加入时 Server.quiet() 关 SEND 门 + 停投递（排除服务端钩子）；诊断加 logcat system 缓冲、6 万行、CrashReport/Bugly 关键词；扫游戏私有目录和 Android/data 下 3 小时内的崩溃文件（crash/tomb/native/dump/bugly）并附可读字符串。
 - v2.10（vc111/core111，未实测）：用户嫌每次手动导出麻烦 → 恢复自动存 crash-*.txt，但只在上次联机加载中途闪退时（步骤文件最后一行是开房/加入加载心跳）存一次，平时不存。含 v2.09 全部改动。
+- 21:47 v2.10：自动存 crash 生效。两次开房（Savage）同样在「Bringing up level for play」后死；v2.09 静默服务端钩子后照样死 → 不是服务端钩子。Bugly 现场在 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_<ms>.txt（约 9.5 KB，每次闪退一份），CrashReport-Native 21:46:34 有记录。
+- v2.11（vc112/core112）：诊断把最新 2 份 app_bugly/tomb_*.txt 整份打出来（闪退调用栈）。
