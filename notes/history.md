@@ -561,3 +561,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 2026-11-17 00:19 一体包 v2.16c：libMczi.so 整个删掉 + classes.dex TPShellApplication.preInitial 里 loadLibrary("Mczi") 改 nop（dex 偏移 0x550298，修 sha1/adler）；libUE4 带 UPD/SND/GI 补丁。用户实测：能进大厅、自建服务端已开。
 - 00:43 用户：人机在旁边时丢枪到地上闪退（有概率），怀疑人机自动拾取（同 v1.94/v1.98 丢枪闪退，至今没有现场）。
 - v2.17（vc118/core118）：大厅只两个模式 正常对局 / 不刷毒对局（= 不上飞机 + 不刷圈，Mods.setNoZone）；大厅去掉清空仓库、日志/导出诊断；单机版去掉衣服页；Server.autoCrashSave 发现新的 Bugly tomb_*.txt（24 小时内、没存过）就进大厅自动存 crash-*.txt。单机一体包 全军出击单机版-v2.17.apk（v2.16c 换 classes2）。
+- 00:58 用户：刷到身上（背包）的枪再丢会闪退；刷在地上捡起来的再丢没事。两份 crash（tomb）一样：GameThread SIGSEGV fault 0x1c，pc libUE4+0x25cb8e8 vldr s22,[r0,#0x1c]，r0=0；lr 0x25cb4d4。0x25cb880 = Recast dtNavMeshQuery::queryPolygons（this+0 = m_nav 空，单机没导航网格），被 0x25cb4a0 findNearestPoly 调。丢枪日志最后：Discard success … LogNavigation Error build nav collision for P20101000001_M416。
+- v2.18（vc119/core119）：Lan.preinstall 加 NQ：0x25cb8e8 → b 0x171e700 cave（cmp r0,#0; beq→mov r0,#0x80000000; b 0x25cbbc4 epilogue；否则原指令 vldr + b 0x25cb8ec）。诊断「导航查询空指针 ok」。

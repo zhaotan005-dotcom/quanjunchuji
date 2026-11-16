@@ -40,11 +40,19 @@ final class Lan {
      *  房主自己的角色没有网络连接，算成 0 人。把 0xc89960 的 bne 改成 b，永远不走这条。 */
     static final long QUIT = 0xc89960L; static final String QUIT_O = "0d00001a", QUIT_N = "0d0000ea";
     static final long NAV = 0x276f058L; static final String NAV_O = "041090e5401081e3041080e5", NAV_N = "00f020e300f020e300f020e3";
+    /** v2.17：刷到身上的枪丢出去闪退（tomb：0x25cb8e8 vldr s22,[r0,#0x1c]，r0=0）。函数 0x25cb880 = Recast dtNavMeshQuery::queryPolygons，
+     *  [this] = m_nav 是空的（单机没导航网格），被 0x25cb4a0 findNearestPoly 调。改成：m_nav 为空就返回 DT_FAILURE。
+     *  钩子 0x25cb8e8 → b 0x171e700（废掉的 GM 面板函数里的空地，在商店 cave 0x171e630..68f 后面）。 */
+    static final long NQ = 0x25cb8e8L, NQ_CAVE = 0x171e700L;
+    static final String NQ_O = "07ba90ed", NQ_N = "844bc5ea";
+    static final String NQ_CAVE_O = "0300009a010189e0011048e00111a0e18f39c6eb0000a0e3", NQ_CAVE_N = "000050e30100000a07ba90ed76b43aea0201a0e32ab53aea";
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
         String d = Mods.write(NAV, NAV_O, NAV_N, true), e = Mods.write(QUIT, QUIT_O, QUIT_N, true);
-        pre = "置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e;
+        String g = Mods.write(NQ_CAVE, NQ_CAVE_O, NQ_CAVE_N, true);
+        if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
+        pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e;
         LogCap.note("联机补丁（启动时）：" + pre);
     }
     static String unlock() {
