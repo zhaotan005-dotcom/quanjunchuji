@@ -233,21 +233,21 @@ public class Server {
         String what;
         switch (cmd) {
             case 13001: push(13002, seq, key, depositProps()); what = "仓库物品"; break;
-            case 13003: push(13004, seq, key, equip(body)); what = "穿上"; break;
-            case 13005: push(13006, seq, key, unequip(body)); what = "脱下"; break;
+            case 13003: push(13004, seq, key, equip(body)); saveProps(); what = "穿上"; break;
+            case 13005: push(13006, seq, key, unequip(body)); saveProps(); what = "脱下"; break;
             case 25001: push(25002, seq, key, mailList()); what = "邮件列表 " + mails.size() + " 封"; break;
             case 25003: {
                 int before = props == null ? 0 : props.size();
                 push(25004, seq, key, readMails(body));
                 boolean added = props != null && props.size() > before;
-                if (added) push(13002, 0, false, depositProps());   // v1.71：只有真加了东西才推仓库，连点不会刷屏
+                if (added) { push(13002, 0, false, depositProps()); saveProps(); }   // v1.71：只有真加了东西才推仓库，连点不会刷屏
                 what = added ? "领取邮件，入库" : "领取邮件（已领过）";
                 break;
             }
             case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
             default:
-                if (key) { push(cmd + 1, seq, true, new PB().u(1, 0).bytes()); what = "空的成功包"; }
-                else what = "不回";
+                // v1.73：非关键消息也回空的成功包。之前 83001 不回，游戏一直等 83002，后面的穿/脱(13003/13005)全被卡住丢掉
+                push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "空的成功包";
         }
         if (log.size() < 300) log.add(cmd + " seq" + seq + (key ? " key" : "") + " 长" + body.length + " → " + what + "  " + hexHead(body, 48));
     }
@@ -362,14 +362,46 @@ public class Server {
     static void initProps() {
         if (props != null) return;
         props = new LinkedHashMap<>();
+        if (loadProps()) return;
         boolean male = Mods.male;
         props.put(ROLE_F, new long[] { ROLE_F, male ? 0 : 1, 2 });
         props.put(ROLE_M, new long[] { ROLE_M, male ? 1 : 0, 1 });
-        long[][] wear = { { 30302000000L, 5 }, { 30301000001L, 6 }, { 30306000000L, 9 }, { 30303000006L, 11 },
-                          { 30213000003L, male ? 0 : 4 }, { 30318000000L, 0 } };
+        // v1.73：初始不再带风衣（改成邮件领取），背包 30306000000 默认不穿
+        long[][] wear = { { 30302000000L, 5 }, { 30301000001L, 6 }, { 30306000000L, 0 }, { 30303000006L, 11 },
+                          { 30213000003L, male ? 0 : 4 } };
         long gid = 1001;
         for (long[] w : wear) props.put(gid++, new long[] { w[0], w[1], 0 });
     }
+    // v1.73：仓库存到 filesDir/zf_props.txt，重启游戏还在。一行：gid 编号 位置 性别
+    static java.io.File propsFile() { android.app.Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_props.txt"); }
+    static boolean loadProps() {
+        try {
+            java.io.File f = propsFile(); if (f == null || !f.exists()) return false;
+            for (String l : new String(java.nio.file.Files.readAllBytes(f.toPath()), "UTF-8").split("\n")) {
+                String[] x = l.trim().split(" "); if (x.length < 4) continue;
+                props.put(Long.parseLong(x[0]), new long[] { Long.parseLong(x[1]), Long.parseLong(x[2]), Long.parseLong(x[3]) });
+            }
+            if (!props.containsKey(ROLE_F) || !props.containsKey(ROLE_M)) { props.clear(); return false; }
+            return true;
+        } catch (Throwable e) { props.clear(); return false; }
+    }
+    static synchronized void saveProps() {
+        try {
+            java.io.File f = propsFile(); if (f == null || props == null) return;
+            StringBuilder b = new StringBuilder();
+            for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) { long[] v = e.getValue(); b.append(e.getKey()).append(' ').append(v[0]).append(' ').append(v[1]).append(' ').append(v[2]).append('\n'); }
+            java.io.File t = new java.io.File(f.getPath() + ".tmp");
+            java.nio.file.Files.write(t.toPath(), b.toString().getBytes("UTF-8"));
+            t.renameTo(f);
+        } catch (Throwable e) { }
+    }
+    /** Z 菜单「清空仓库」：删存档，回到初始 */
+    public static synchronized String resetProps() {
+        java.io.File f = propsFile(); if (f != null) f.delete();
+        props = null; mails.clear();
+        return "仓库存档已清空，重启游戏后回到初始";
+    }
+
     static long role() { for (long[] p : props.values()) if (p[2] != 0 && p[1] == 1) return p[0]; return ROLE_F; }
 
     static PB prop(long gid, long[] p) {
@@ -491,6 +523,75 @@ public class Server {
         if (del) res.u(5, 1);
         return res.bytes();
     }
+    // ---------------- v1.73 全部皮肤入库 ----------------
+    // 游戏在大厅已把物品表读进内存。扫可写内存里 8 字节对齐的 64 位数，取 301xx/302xx/303xx 开头的服装编号（301 男款、302 女款、303 通用），
+    // 去掉头盔 30304、护甲 30305（对局装备）和已知游戏不认的编号。物品表里一个编号通常出现多次，要求至少出现 2 次，减少误报。
+    static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000002L, 30325000003L, 30325000004L, 30325000005L };
+    static java.util.TreeMap<Long, Integer> scanSkins() throws java.io.IOException {
+        java.util.TreeMap<Long, Integer> hit = new java.util.TreeMap<>();
+        java.util.ArrayList<long[]> rs = new java.util.ArrayList<>();
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
+            String l;
+            while ((l = r.readLine()) != null) {
+                String[] p = l.trim().split("\\s+");
+                if (!p[1].startsWith("rw")) continue;
+                String name = p.length > 5 ? p[5] : "";
+                if (!(name.isEmpty() || name.startsWith("[anon:") || name.equals("[heap]")) || name.contains("stack")) continue;
+                String[] ab = p[0].split("-");
+                rs.add(new long[] { Long.parseLong(ab[0], 16), Long.parseLong(ab[1], 16) });
+            }
+        }
+        byte[] buf = new byte[1 << 20]; long[] w = new long[buf.length / 8];
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            for (long[] g : rs) for (long a = g[0]; a < g[1]; a += buf.length) {
+                int n = (int) Math.min(buf.length, g[1] - a);
+                try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
+                int k = n / 8;
+                ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(w, 0, k);
+                for (int i = 0; i < k; i++) {
+                    long v = w[i];
+                    if (v < 30100000000L || v >= 30400000000L) continue;
+                    long cat = v / 1000000, sub = v % 1000000;
+                    if (sub >= 1000 || cat == 30304 || cat == 30305) continue;
+                    int c3 = (int) (cat / 100);
+                    if (c3 != 301 && c3 != 302 && c3 != 303) continue;
+                    hit.merge(v, 1, Integer::sum);
+                }
+            }
+        }
+        for (long b : BAD) hit.remove(b);
+        return hit;
+    }
+    public static String allSkins() {
+        if (!on) return state = "自建服务端：先按「开启服务端」";
+        try {
+            mark("开始扫全部皮肤");
+            long t0 = System.currentTimeMillis();
+            java.util.TreeMap<Long, Integer> hit = scanSkins();
+            int add = 0, seen = 0, two = 0;
+            for (int c : hit.values()) if (c >= 2) two++;
+            final int min = two >= 30 ? 2 : 1;   // 出现 2 次以上的够多就只要这些，不够就全要
+            java.util.TreeMap<Long, Integer> cats = new java.util.TreeMap<>();
+            for (java.util.Map.Entry<Long, Integer> e : hit.entrySet()) if (e.getValue() >= min) cats.merge(e.getKey() / 1000000, 1, Integer::sum);
+            skinCats = "门槛 " + min + " 次，分类 " + cats;
+            synchronized (Server.class) {
+                initProps();
+                for (java.util.Map.Entry<Long, Integer> e : hit.entrySet()) {
+                    if (e.getValue() < min) continue;
+                    seen++;
+                    if (add >= 800) break;
+                    if (addProp(new long[] { e.getKey() }) != 0) add++;
+                }
+                push(13002, 0, false, depositProps());
+                saveProps();
+            }
+            String r = "全部皮肤：找到 " + seen + " 件，新入库 " + add + " 件（" + (System.currentTimeMillis() - t0) + " ms），去仓库看";
+            mark(r); skinState = r;
+            return r;
+        } catch (Throwable e) { return skinState = "全部皮肤：出错 " + e; }
+    }
+    static volatile String skinState = "", skinCats = "";
+
     static ArrayList<Long> packed(byte[] b) {
         ArrayList<Long> out = new ArrayList<>(); int i = 0;
         while (i < b.length) { long v = 0; int sh = 0; while (i < b.length) { int x = b[i++] & 0xff; v |= (long) (x & 0x7f) << sh; sh += 7; if (x < 0x80) break; } out.add(v); }
@@ -547,6 +648,8 @@ public class Server {
           .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
         sb.append(connInfo).append("\n已投 ").append(rpl.getInt(28)).append(" 条，排队 ").append(cmds).append('\n');
         sb.append(selfCheck()).append('\n');
+        if (!skinState.isEmpty()) sb.append(skinState).append("\n  ").append(skinCats).append("\n");
+        sb.append("仓库 ").append(props == null ? 0 : props.size()).append(" 件\n");
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
         return sb.toString();

@@ -16,7 +16,7 @@ ok=True
 r=M('msg.CSDepositGetPropsRes').FromString(bytes.fromhex(L[2]))
 print('13002:', len(r.prop_list),'props role_id',r.role_id)
 for p in r.prop_list: print('  ',p.id,p.gid,p.owner_id,p.equip_position, p.prop_role_attr.sex if p.HasField('prop_role_attr') else '')
-ok&= len(r.prop_list)==8 and r.role_id==10200000000
+ok&= len(r.prop_list)==7 and r.role_id==10200000000
 e=M('msg.CSDepositEquipPropRes').FromString(bytes.fromhex(L[3])); print('13004:',e)
 ok&= e.prop_list[0].equip_position==8
 k=M('msg.CSPkg').FromString(bytes.fromhex(L[4])); print('pkg:',k.head.cmd,k.head.client_sequence_id,k.head.key_pkg)
@@ -75,9 +75,9 @@ g=M('msg.CSGetMailListRes').FromString(bytes.fromhex(L[6])); print('25002:',g.re
 ok&= g.result==0 and g.mail_lists[0].type==1 and len(g.mail_lists[0].mails)==1
 r=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[7])); ids=[p.id for p in r.change.prop_changes]
 print('25004:',r.result,'type',r.type,'read',list(r.read_indexs),'新物品',len(ids))
-ok&= r.result==0 and list(r.read_indexs)==[1] and 30323000002 in ids and 30318000000 not in ids and 10200000000 not in ids and len(set(ids))==len(ids)
+ok&= r.result==0 and list(r.read_indexs)==[1] and 30323000002 in ids and 30318000000 in ids and 10200000000 not in ids and len(set(ids))==len(ids)
 d=M('msg.CSDepositGetPropsRes').FromString(bytes.fromhex(L[8])); print('领取后 13002:',len(d.prop_list),'个')
-ok&= len(d.prop_list)==8+len(ids) and all(p.owner_id==10200000000 for p in d.prop_list if p.id//100000000!=101 and p.id//100000000!=102)
+ok&= len(d.prop_list)==7+len(ids) and all(p.owner_id==10200000000 for p in d.prop_list if p.id//100000000!=101 and p.id//100000000!=102)
 r2=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[9])); print('再领:',len(r2.change.prop_changes)); ok&= len(r2.change.prop_changes)==0
 # --- v1.65 SEND 门：+24 为 0 时照原样跑原函数开头再回 0x50000008；为 1 时进服务端（这里服务端放在 0x10000）---
 mg=Uc(UC_ARCH_ARM,UC_MODE_ARM)

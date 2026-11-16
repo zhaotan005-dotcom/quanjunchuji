@@ -43,9 +43,8 @@ public class Mods {
     public static volatile String earlyState = "启动早装：没做";
     static void preinstall() {
         long t0 = System.currentTimeMillis();
-        String c = write(COAT_CAVE, COAT_CAVE_O, COAT_CAVE_N, true);
-        if ("ok".equals(c)) c = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
-        coatOn = "ok".equals(c);
+        String c = "不装（v1.73 改成邮件领取）";   // 用户要求：去掉初始风衣
+        coatOn = false;
         String r = setHall(male);
         if ("ok".equals(r)) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
         hallState = "ok".equals(r) ? "大厅人物：已改好（" + (male ? "男" : "女") + "，启动时装）" : "大厅人物：没改成，" + r;
@@ -55,7 +54,7 @@ public class Mods {
         LogCap.note(earlyState);
     }
     static void builtInCoat() {
-        if (earlyDone) { GameOverlay.refreshAny(); return; }   // 启动时已装好，不再重进大厅
+        if (earlyDone || !early) { GameOverlay.refreshAny(); return; }   // v1.73：风衣改邮件领取，这里不再装
         String r = write(COAT_CAVE, COAT_CAVE_O, COAT_CAVE_N, true);
         if ("ok".equals(r)) r = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
         coatOn = "ok".equals(r);
@@ -110,7 +109,7 @@ public class Mods {
     static final String STORE_CAVE_O = "0020a0e30060a0e30530a0e10270b3e75f0057e30300000a042082e2020051e1f8ffff1a680000ea051043e00060a0e30020e0e3410152e16300000a016040e24121a0e1020056e10030a0e30260a0c1000051e3006000b3018086e2000056e3";
     static final String STORE_CAVE_T = "0f502de9%s%s0c0092e5010080e20c0082e5101082e5040092e5000050e30a00000a600091e5000050e30700001a0100a0e10210a0e1245105eb%s%s04009de5600090e5140082e50f50bde830482de95b6505ea";
     static final String HALL_FILL_O = "2b7eddeb", HALL_FILL_N = "0d6c08eb";
-    static final long[] STORE_ITEMS = { 30318000000L, 30301000001L, 30302000000L, 30303000006L, 30306000000L,
+    static final long[] STORE_ITEMS = { 30301000001L, 30302000000L, 30303000006L, 30306000000L,
             30213000003L, 30307000006L, 30304000003L, 30305000002L };
     static final int STORE_HDR = 0x40, STORE_REC = 0x68;
     static java.nio.ByteBuffer storeBuf; static long storeAddr; static boolean storeHooked;
@@ -136,7 +135,7 @@ public class Mods {
         i = putItem(b, i, role, roleGid, 1);
         i = putItem(b, i, other, roleGid + 1, 0);
         for (int k = 0; k < STORE_ITEMS.length; k++)
-            i = putItem(b, i, STORE_ITEMS[k], roleGid + 0x100 + k, k == 0 ? roleGid : 0);
+            i = putItem(b, i, STORE_ITEMS[k], roleGid + 0x100 + k, 0);   // v1.73：不再把风衣穿在角色身上
         b.putInt(0, (int) (storeAddr + STORE_HDR)); b.putInt(8, i); b.putInt(4, i);
     }
     static int putItem(java.nio.ByteBuffer b, int i, long id, long gid, long owner) {

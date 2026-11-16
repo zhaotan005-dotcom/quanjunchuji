@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.72"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.73"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -187,8 +187,7 @@ public class GameOverlay {
         StringBuilder b = new StringBuilder();
         if (!Mods.noPlane && !Mods.noPoison) b.append("正常模式");
         else { if (Mods.noPlane) b.append("不上飞机"); if (Mods.noPoison) b.append(b.length() > 0 ? " · " : "").append("不刷圈"); }
-        b.append(" · ").append(Mods.male ? "男" : "女");
-        if (!Con.inMatch) { st.setText(dot(b + " · 大厅")); return; }
+        if (!Con.inMatch) { st.setText(dot(b.toString())); return; }   // v1.73：不显示男女和大厅
         if (Mods.speed != 1f) b.append(" · 加速 ").append(fmt(Mods.speed));
         if (Mods.jump != 1f) b.append(" · 高跳 ").append(fmt(Mods.jump));
         if (Mods.noRecoil) b.append(" · 无后座");
@@ -704,8 +703,6 @@ public class GameOverlay {
         pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
         note(a, u, root, "不上飞机：直接在出生岛开打。不刷圈：没有毒圈。两个可以一起选。");
         gfxRow(a, u, root);
-        note(a, u, root, coatText());
-        note(a, u, root, Mods.hallState);
         note(a, u, root, Mods.earlyState + "。游戏运行中再改大厅代码不生效，所以人物、仓库、服务端的钩子在游戏刚加载时装好（只改代码，不改数据，开服务端前不起作用）。");
         LinearLayout dg = row(a, root);
         btn(a, u, dg, "开启服务端", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
@@ -713,8 +710,10 @@ public class GameOverlay {
         btn(a, u, dg, "跳过 1 条", () -> new Thread(() -> toastAny(Server.skipOne())).start());
         btn(a, u, dg, "自动投递", () -> new Thread(() -> toastAny(Server.deliverAll())).start());
         btn(a, u, dg, "发邮件", () -> new Thread(() -> toastAny(Server.sendMail())).start());
+        btn(a, u, dg, "全部皮肤入库", () -> new Thread(() -> { toastAny("正在找皮肤，约 10 秒"); toastAny(Server.allSkins()); }).start());
+        btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。v1.72：开启后去邮箱点领取，东西进仓库；男女在仓库里点角色切换。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
+        note(a, u, root, Server.state + "。v1.73：开启后去邮箱领取（含绝地风衣）；「全部皮肤入库」把游戏里的服装都放进仓库；仓库会存下来，重启还在；男女在仓库里点角色切换。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
@@ -819,6 +818,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.72", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.73", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
