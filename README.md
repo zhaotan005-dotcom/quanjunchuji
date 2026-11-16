@@ -104,3 +104,13 @@
   - **TICK**（v1.63 起）：FEngineLoop::Tick 0xb665a8 开头（原 `f04f2de9 1cb08de2`，跳回 0xb665b0）跳到 cave（v1.62 用的 UpdateService::Tick 0xfb0218 大厅不跑）。回包区头 32 字节（+12 连接器对象由 Java 找到后填，+16 FEngineLoop this，+20 帧数）。连接器找到后，cave 把每条回包交给 conn->vt+0x164（0xf95298），再执行原指令，v1.61 挂的 ConnectorService Tick 0xf92fb0 离线不跑。
 - Java 线程轮询请求：13001 返回假仓库物品，13003/13005 处理装备/卸下，其他带 key_pkg 的请求回一个空的成功包。开启后先主动推一个 13002，然后重开一次大厅。
 - 已验证：`game/re/emu_server.py` 通过（两个 cave 的模拟；Java 生成的包用游戏自己的 schema 解码，13002 里有 8 个物品，role_id 正确）；Java poll 单测通过（36001→空成功包，22005 不回，13001→物品列表）。
+
+## 用户 16:09 定的下一阶段（给下一个智能体）
+目标：像正常一局 100 人的单机吃鸡。按顺序做，每步出一版给用户实测。
+1. **人机会动、有难度**：v1.84 刷出来的人机站着不动。查 AI 控制器有没有被拥有（Possess）/行为树有没有跑：BotArray、AI 控制器类、SetAIParam（PC 原生表 ServerSetAIParam 0x11dddb4）、SetBotMoveShoot/ServerSetBotMoveShoot（0xe75e44）、日志里 "AIController=%s Bump by Door"。int 参数（现在给 1）可能就是人机等级/类型，先试不同值看行为差别。难度做成菜单选项（简单/普通/困难）。
+2. **出生岛自动有十几个人机**：进对局（等待阶段）自动调 'B' 刷 10~15 个，位置围绕玩家随机。不要在启动画面期间动内存。
+3. **全图随机刷，总数 100**：开局后（下飞机或「不上飞机」模式开始后）在地图上随机点刷剩下的人机，凑够 100（含玩家）。地面高度要对：先刷在高处让其落地，或找地面高度的办法（可参考车刷在面前 +150 的做法）。注意性能（荣耀 X70），可分批刷。
+4. **隐藏服务端那个空位**：现在「剩余」把一个空位也算进去（只有自己时显示 2）。找剩余人数来源（GameState 存活人数/队伍数，NZBattleRoyaleGameMode.cpp 里 AliveTeamMembersCount/AliveTeamCount 那段 0x100f308 OnPlayerKilled），让只有自己时显示 1，且结算判定正确：人机全死才吃鸡。
+5. **（可选）不结算开关**：用户还没确认要不要。
+6. **局域网联机**：只做同一 Wi-Fi 下的离线联机，不连腾讯服务器。思路：一台手机开 listen server（open 地图?listen），另一台 open <IP>。风险大：游戏的网络/专用服务器代码可能被裁掉，登录/服务端包也要两边各自自建。先做可行性验证再说，不保证能成。
+之后再做：刷物资到地上、门（StandaloneUnloadAllDoor 线索）、加速/高跳复测、画面即时生效、口罩、降落伞。
