@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.13";
+    static final String VER = "v2.14";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -310,7 +310,7 @@ public class GameOverlay {
     }
     static void forgetPawn() { if (pbuf != null) pbuf.putInt(0, 0); if (dbg != null) dbg.putInt(0, 0); }
     /** v1.91 刷在身上（背包）还是刷在地上（面前地面，用游戏自己的 SpawnOnePickUp），不记忆，每次启动回到身上 */
-    static volatile boolean onGround;
+    static volatile boolean onGround = Ed.ED == 1;   // v2.13：房主版固定刷在脚下
     static void give(Activity a, String id, int n) {
         if (onGround) {
             final long v; try { v = Long.parseLong(id); } catch (Throwable e) { return; }
@@ -362,6 +362,19 @@ public class GameOverlay {
             if (ok) okId.put(lb, id);
             else giveTry(a, ids, i + 1, lb);
         }, 1200);
+    }
+    /** v2.13 吉利服：EAvaItemSlot 顺序 Trousers/Shirt/Shoes/Helmet/Armor/Gloves/Bagpack/Facing/Ghillie… 对上 30301 裤 … 30304 头、30305 甲、
+     *  30306 手套、30307 包 → Ghillie = 30309（仓库扫到 12 件）。具体编号没表，按顺序试。刷身上能判断成没成；刷地上判断不了，每点一次换下一个编号。 */
+    static final String[] GHILLIE = {"30309000001", "30309000002", "30309000003", "30309000004", "30309000005", "30309000006", "30309000000"};
+    static int ghAt = 0;
+    static void ghillie(Activity a) {
+        String k = okId.get("吉利服");
+        if (!onGround) { if (gearOnce(a, "吉利服")) giveTry(a, k != null ? java.util.Collections.singletonList(k) : java.util.Arrays.asList(GHILLIE), 0, "吉利服"); return; }
+        if (k != null) { give(a, k, 1); return; }
+        String id = GHILLIE[ghAt % GHILLIE.length]; ghAt++;
+        give(a, id, 1);
+        toast(a, "吉利服：试编号 " + id + "（第 " + ghAt + " 个），脚下没出现就再点一次");
+        LogCap.note("吉利服 地上 试 " + id);
     }
     static java.util.List<String> armorIds() {
         java.util.List<String> l = new java.util.ArrayList<>();
@@ -848,10 +861,13 @@ public class GameOverlay {
         switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
+        if (Ed.ED == 1) { onGround = true; note(a, u, root, "房主版：刷的东西都放在脚下，自己捡。"); }
+        else {
         head(a, u, root, "刷物资放在");
         LinearLayout gr = row(a, root);
         pick(a, u, gr, "身上（背包）", !onGround, () -> { onGround = false; refreshAny(); });
         pick(a, u, gr, "地上（脚下）", onGround, () -> { onGround = true; refreshAny(); });
+        }
         head(a, u, root, "枪");
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
@@ -918,6 +934,8 @@ public class GameOverlay {
         btn(a, u, g4, "3级头", () -> { if (gearOnce(a, "头")) giveTry(a, helmetIds(), 0, "3级头"); });
         btn(a, u, g4, "3级甲", () -> { if (gearOnce(a, "甲")) giveTry(a, armorIds(), 0, "3级甲"); });
         btn(a, u, g4, "3级包", () -> { if (gearOnce(a, "包")) give(a, "30307000006", 1, "背包"); });
+        LinearLayout g5 = row(a, root);
+        btn(a, u, g5, "吉利服", () -> ghillie(a));
         head(a, u, root, "其他");
         LinearLayout g3 = row(a, root);
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });

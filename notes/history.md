@@ -551,3 +551,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.12（vc113/core113，未实测）：启动时把 0x276f058..060 三条换 nop（Lan.NAV），返回空不再崩。之后可能在别处用空导航崩，看下一份 tomb。
 - 22:10 v2.12 实测：房主进图成功（新海岛，出生岛→飞机→落地→捡到头盔背包），没闪退，导航修复有效。约 2 分钟后弹「网络异常无法收到结算数据」：NZGameMode.cpp:2452 All players have quit game! NumPlayers[1]（AllQuitEndGameProtectTime 120）。函数 0xc898e0：对局中且 vtbl+0x3f0()==0 → 结束；房主本地角色无连接算 0。飞机仍 200 米（联机跳过 Flow）。
 - v2.13（vc114/core114，未实测）：分三个包 ZFrame-v2.13-单机/房主/客户端.apk（Ed.ED 0/1/2，build 时 sed 改）。房主/客户端版不装 setStore/出生衣服/自建服务端，大厅只显示开房或加入；0xc89960 bne→b（Lan.QUIT，全员退出不结束）；房主进图跑 Flow（1000 米航线+毒圈修正），不刷人机。客户端刷东西不生效（服务器权威），要房主刷。
+- v2.14（vc115/core115，未实测）：房主版刷东西固定刷在脚下（不显示身上/地上选项）；装备页加「吉利服」：槽位推断 Ghillie=30309（EAvaItemSlot 顺序对上 30304 头/30305 甲/30306 手套/30307 包），编号按 30309000001..06、…000 试；刷身上自动判断，刷地上每点一次换下一个。新增 zframe/build3.sh 一次打三版。
