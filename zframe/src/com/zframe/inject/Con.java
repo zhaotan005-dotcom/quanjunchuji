@@ -286,7 +286,7 @@ public class Con {
         if (fpsAt > 0 && now - fpsAt > 800) { fpsAt = 0; applyFps(); }
         if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.lastPawnAsk = 0; }
         // 大厅加载完 6 秒后打上「初始衣服 = 绝地风衣」（启动画面阶段不动内存）
-        if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); }
+        if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); new Thread(Server::autoCrashSave).start(); }
         tickAudio(now);
     }
 

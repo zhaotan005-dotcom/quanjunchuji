@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.69"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.70"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -721,7 +721,7 @@ public class GameOverlay {
         btn(a, u, dg, "自动投递", () -> new Thread(() -> toastAny(Server.deliverAll())).start());
         btn(a, u, dg, "发邮件", () -> new Thread(() -> toastAny(Server.sendMail())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。v1.69 测试版：开启后排 3 条（1 邮件，2 仓库不带角色，3 仓库带角色），按「投递 1 条」交给游戏，「跳过 1 条」不交，「自动投递」以后全自动。闪退就重开游戏先导出诊断，里面有上次闪退的系统记录。");
+        note(a, u, root, Server.state + "。v1.70 测试版：开启后排 3 条（1 邮件，2 仓库不带角色，3 仓库带角色），按「投递 1 条」交给游戏，「跳过 1 条」不交，「自动投递」以后全自动。闪退了不用管，重开游戏进大厅几秒后会自动把上次的记录存到 下载/ZFrame/crash-*.txt。");
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
@@ -826,6 +826,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.69", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.70", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

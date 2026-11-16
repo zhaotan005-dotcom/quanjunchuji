@@ -312,6 +312,21 @@ public class Server {
         return r + "，5 秒没闪退" + (n + 1 < cmds.size() ? "，下一条 " + cmds.get(n + 1) : "");
     }
 
+    /** v1.70 自动记录：上次运行用过服务端（留下了步骤文件），这次进大厅 6 秒后自动导出一份诊断到 下载/ZFrame/crash-*.txt，每份记录只存一次 */
+    public static void autoCrashSave() {
+        try {
+            java.io.File f = stepFile(); if (f == null) return;
+            java.io.File prev = new java.io.File(f.getParentFile(), "zf_server_steps_prev.txt");
+            if (!prev.exists()) return;
+            java.io.File done = new java.io.File(f.getParentFile(), "zf_crash_saved");
+            String key = prev.lastModified() + "/" + prev.length();
+            if (done.exists() && key.equals(new String(java.nio.file.Files.readAllBytes(done.toPath()), "UTF-8"))) return;
+            java.nio.file.Files.write(done.toPath(), key.getBytes("UTF-8"));
+            String r = AvatarLog.export(Con.act, "crash-");
+            GameOverlay.toastAny("上次的服务端记录" + r);
+        } catch (Throwable ignored) {}
+    }
+
     /** 自动投递：上限放到最大，回包一来就交给游戏 */
     public static String deliverAll() {
         if (!on) return "先按「开启服务端」";

@@ -11,12 +11,13 @@ public class AvatarLog {
     static final String[] KEYS = { "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
             "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail" };
 
-    static String export(Activity a) {
+    static String export(Activity a) { return export(a, "avatar-"); }
+    static String export(Activity a, String prefix) {
         try {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v1.69 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame v1.70 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             long b = Mods.base();
             sb.append("libUE4=").append(Long.toHexString(b)).append('\n');
             sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 1877bfc=").append(peek(b, 0x1877bfcL, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("\n").append(Mods.storeInfo()).append("  cave 171e610=").append(peek(b, 0x171e610L, 32))
@@ -34,7 +35,7 @@ public class AvatarLog {
                 }
             }
             sb.append("\n共 ").append(n).append(" 行，日志 ").append(f.getName()).append(' ').append(len).append(" 字节\n");
-            return "已存到 下载/ZFrame/" + save(a, sb.toString());
+            return "已存到 下载/ZFrame/" + save(a, sb.toString(), prefix);
         } catch (Throwable t) { return "导出失败：" + t.getMessage(); }
     }
 
@@ -94,8 +95,8 @@ public class AvatarLog {
         } catch (Throwable t) { return "读不到"; }
     }
 
-    static String save(Activity a, String text) throws Exception {
-        String name = "avatar-" + new java.text.SimpleDateFormat("MMdd-HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".txt";
+    static String save(Activity a, String text, String prefix) throws Exception {
+        String name = prefix + new java.text.SimpleDateFormat("MMdd-HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".txt";
         ContentValues v = new ContentValues();
         v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
         v.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
