@@ -547,3 +547,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.10（vc111/core111，未实测）：用户嫌每次手动导出麻烦 → 恢复自动存 crash-*.txt，但只在上次联机加载中途闪退时（步骤文件最后一行是开房/加入加载心跳）存一次，平时不存。含 v2.09 全部改动。
 - 21:47 v2.10：自动存 crash 生效。两次开房（Savage）同样在「Bringing up level for play」后死；v2.09 静默服务端钩子后照样死 → 不是服务端钩子。Bugly 现场在 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_<ms>.txt（约 9.5 KB，每次闪退一份），CrashReport-Native 21:46:34 有记录。
 - v2.11（vc112/core112）：诊断把最新 2 份 app_bugly/tomb_*.txt 整份打出来（闪退调用栈）。
+- 21:52 v2.11：Bugly tomb 拿到。所有开房闪退同一处：GameThread SIGSEGV fault 0x4，pc libUE4+0x276f058（ldr r1,[r0,#4]，r0=0），函数 0x276edfc（vtable 槽 @0x4ed9af4）= UNavigationSystem::GetDefaultNavDataInstance：FNavDataConfig "Default"（半径 35、高 144、步高 -1、0.5、范围 50/50/250）→ vtable+0x124 CreateNavigationDataInstance 返回空 → 设 RF_Transient 崩。客户端包里导航网格是空的（RecastNavMeshSizeBytes=4）。
+- v2.12（vc113/core113，未实测）：启动时把 0x276f058..060 三条换 nop（Lan.NAV），返回空不再崩。之后可能在别处用空导航崩，看下一份 tomb。

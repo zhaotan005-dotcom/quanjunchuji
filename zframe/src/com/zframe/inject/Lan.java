@@ -32,10 +32,15 @@ final class Lan {
     static final long SETF = 0x2a110b8L; static final String SETF_O = "0120a0e3", SETF_N = "0020a0e3";
     static final long JOINC = 0x2bffb78L; static final String JOINC_O = "1a00000a", JOINC_N = "1a0000ea";
     static final long FLAG = 0x5359ad8L;
+    /** v2.12：开房闪退现场（Bugly tomb）= 0x276f058 ldr r1,[r0,#4]，r0=0。所在函数是 UNavigationSystem::GetDefaultNavDataInstance：
+     *  找不到导航数据就 CreateNavigationDataInstance(默认 "Default" 35/144) → 返回空 → 给空指针加 RF_Transient 标志 → 崩。
+     *  把这三条（读标志/或 0x40/写回）换成 nop：返回空就空着，不加标志。 */
+    static final long NAV = 0x276f058L; static final String NAV_O = "041090e5401081e3041080e5", NAV_N = "00f020e300f020e300f020e3";
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
-        pre = "置标志 " + a + "，开房检查 " + b + "，加入检查 " + c;
+        String d = Mods.write(NAV, NAV_O, NAV_N, true);
+        pre = "置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d;
         LogCap.note("联机补丁（启动时）：" + pre);
     }
     static String unlock() {
