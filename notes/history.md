@@ -500,3 +500,12 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v1.96（vc97/core97，未实测）：大厅加载 6 秒后打 WAIT 补丁 0x1019774（ldr r0,[r6,#0x38] → mov r0,#1.0，GameState+0x72c 等人时间 60→1）；setNormal 不再还原它。备用：对局里阶段 0 且 GS+0x72c==60.0 时直接写 1.0。v1.44 怀疑它在启动画面闪退，所以只在大厅加载后打。
 - 18:57 用户：以前（正式服能玩时）对局里仓库衣服能脱、能捡。
 - v1.97（vc98/core98，未实测）：syncWear 出生列表（0x10d882c 钩子 = 默认衣服列表，焊在身上）只留 角色 + 发型(113/213) + 默认衣服；自己穿的仓库衣服存 Bots.outfit，进对局拿到 GameMode 后 3 秒、giveSt==2 时逐件 AddAvaItem P<id>x1（和刷物资同一路径），诊断「仓库衣服：…」。若 AddAvaItem 发的也脱不下，下一步改成刷在脚下让玩家捡。
+- 19:08 v1.97 实测（notes/device-tests/v1.97/）：开局 60 秒等人已去掉（日志 WaitingPlayersCountDownTime=1）。仓库衣服过一会才出现（要一进去就有）。飞机上经常没降落伞（摔死）。读秒一出现人数就 2/100 闪：诊断「被别处改掉 143 次，最后改成 1」→ 用户：改不了就用真实人数。摔死没结算画面。人机在地图上是队友：日志 "IsTeammateByUin! Found!"（NZBRTeamInfo 0x102281c：TeamInfo+0x300 成员数组（0xc/项，PlayerState 指针），比对 PS+0x3b0 的 int64 Uin）、"Cannot Rescue Teammate InWater[BaseMan_C_2]"。丢枪闪退：最后一行是丢 AKM 后 "Load NewDataTable[CommonItemDataTable]"，没有对应 tombstone（原因仍未知）。
+  用户下一步要：局内自动刷物资、门看不见、车、随机人机带随机装备和枪。
+  RE 门：ANZSceneDoorManager 客户端门管理器（BeginPlay 0xce8ea4 只打日志），StandaloneUnloadAllDoor bool 在门管理器 +0x380；服务器门由 [DS Load] 0xc7b7b8 加载，客户端门靠 ClientSyncBatchDoorData。服务器关卡：这张图（海岛2 Renew）日志里一直没有 "StreamingServerLayer Add"（0x117bb7c，按 8 个层名加关卡，日志要 verbosity≥5），所以 loadServerLevels 从没跑过 → 物资/门很可能都在没加载的服务器层里。待查。
+- v1.98（vc99/core99，未实测）：
+  - 人数不改了：不 nop 数人代码、不写 +0x774/+0x778、不改结算（用游戏自己的），诊断只读。
+  - vcave 加 'I<人物>x<buf>'（game/re/vcave.py，emu_igive.py 通过）：buf+128 Type、+132 TSID、+136 数量 → ADDCHECK 0xccecbc + GIVE 0xcd3bdc，标记 5b0b/5b0c/5b06；Veh buf 128→256 字节；Veh.giveTo。
+  - 人机配枪：每个人机刷出 1.5 秒后随机枪+子弹 30~90，一半概率头/甲（30304/30305 00000 1~3），1/3 概率药；诊断「人机配枪」。
+  - 人机队友：PlayerState（ctrl+0x2c4，否则 pawn+0x2c4）+0x3b0 Uin 为 0 时写 900000+序号；诊断记 Uin/玩家 Uin/TeamInfo(+0x340)。
+  - 仓库衣服：每 0.3 秒查人物，一出生就用 'I' 直接发到玩家身上（不再等 3 秒）。

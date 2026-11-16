@@ -1,3 +1,4 @@
+# v1.98 加 'I<人物>x<buf>' 给人机发物品
 # v1.91 加 'G<Type>x<buf>'：0x119d884(PC, Type, TSID, x, y, z, pitch, yaw, roll) = SpawnOnePickUp 实现，在地上生成拾取物
 # v1.88 加 'M<字节数>x<buf>'：FMemory::Malloc(字节数, 16)，结果写 buf+4（毒圈数组扩成 8 圈用，内存归游戏管，地图卸载时游戏自己释放）
 # v1.86 加 'E<控制器地址>x<buf>'：对已有的 PVP 人机再给装备/切战斗树（标志同 A）
@@ -21,6 +22,9 @@ SRC = r'''
     beq go
     mov r11, #4
     cmp r0, #77
+    beq go
+    mov r11, #6
+    cmp r0, #73
     beq go
     mov r11, #5
     cmp r0, #71
@@ -60,6 +64,8 @@ e2:
     beq mal
     cmp r11, #5
     beq gnd
+    cmp r11, #6
+    beq igive
     movw r0, #0x5b01
     str r0, [r8]
     str r4, [r8, #4]
@@ -282,6 +288,59 @@ gnd:
     movw r0, #0x5b0a
     str r0, [r8]
     b done
+igive:
+    mov r5, r7
+    cmp r5, #0
+    movw r0, #0x5b06
+    beq afin
+    ldr r10, [r5, #0x838]
+    str r10, [r8, #4]
+    cmp r10, #0
+    movw r0, #0x5b0c
+    beq afin
+    ldr r6, [r8, #128]
+    ldr r7, [r8, #132]
+    ldr r9, [r8, #136]
+    mov r0, #0
+    str r0, [sp]
+    str r0, [sp, #12]
+    mvn r0, #0
+    str r0, [sp, #4]
+    str r0, [sp, #8]
+    mov r0, r10
+    mov r1, r6
+    mov r2, r7
+    mov r3, r9
+    ldr ip, [pc, #L:lit11]
+    .word 0xe12fff3c
+    str r0, [r8, #140]
+    cmp r0, #1
+    movlt r0, r9
+    mov r9, r0
+    mov r0, #0
+    str r0, [sp, #0x40]
+    str r0, [sp, #8]
+    str r0, [sp, #12]
+    str r9, [sp]
+    mvn r1, #0
+    str r1, [sp, #4]
+    str r9, [sp, #0x10]
+    add r1, sp, #0x40
+    str r1, [sp, #0x14]
+    str r0, [sp, #0x18]
+    str r0, [sp, #0x1c]
+    str r0, [sp, #0x20]
+    str r0, [sp, #0x24]
+    str r0, [sp, #0x28]
+    mov r0, r5
+    mov r1, r6
+    mov r2, r7
+    mov r3, #0
+    ldr ip, [pc, #L:lit12]
+    .word 0xe12fff3c
+    str r0, [r8, #144]
+    movw r0, #0x5b0b
+    b afin
 fin:
     movw r0, #0x5b02
     str r0, [r8]
@@ -308,8 +367,13 @@ lit9:
     .word 0x99999999
 lit10:
     .word 0xaaaaaaaa
+lit11:
+    .word 0xbbbbbbbb
+lit12:
+    .word 0xcccccccc
 '''
-LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8', 'lit9', 'lit10')
+LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8', 'lit9', 'lit10', 'lit11', 'lit12')
+# v1.98 加 'I<人物地址>x<buf>'：给指定人物（人机）发物品。buf+128 Type、+132 TSID、+136 数量；lit11 ADDCHECK 0xccecbc，lit12 GIVE 0xcd3bdc（和刷物品补丁同一段真代码）；+4 背包组件，+140 能放几个，+144 GIVE 返回；标记 5b0b 成功、5b0c 没背包、5b06 人物空
 # 字面量顺序（Java 在 cave 后面按这个顺序拼地址，都要 + 库基址）：
 # lit 刷车 0x1102ca4，lit2 ServerAddBotAt 0x1115620，lit3 GM AddBotAt 实现 0x1012318（校验 GameMode），
 # lit4 难度→人机类 0x1014898，lit5 AddOneBot 0x10112d0，lit6 PVPAIController::OnPossess 0xc1bbd8（校验类），

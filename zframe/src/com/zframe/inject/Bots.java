@@ -84,32 +84,23 @@ public class Bots {
                         long gs = Server.rd(m, gm + 0x2e0);
                         if (gs >= 0x10000) {
                             if (first) {
-                                String a = patch(m, ST_A, ST_A_O, NOP), b = patch(m, ST_B, ST_B_O, NOP);
-                                countInfo = "剩余人数 原来 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "），GameState " + Long.toHexString(gs) + "（GameMode+0x908 " + Long.toHexString(Server.rd(m, gm + 0x908)) + "），数人补丁 " + (a.equals(NOP) && b.equals(NOP) ? "已打" : "没打上 " + a + " " + b);
-                                Veh.note(countInfo); first = false; foreign = 0; foreignVal = -1;
-                                if ((Server.rd(m, gs + 0x71c) & 0xff) == 0 && Server.rd(m, gs + 0x72c) == Float.floatToIntBits(60f)) {   // v1.96 备用：代码补丁没赶上时，本局等人 60 秒 → 1 秒
+                                countInfo = "剩余人数（v1.98 不改，用游戏真实的）开局 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "）";
+                                if ((Server.rd(m, gs + 0x71c) & 0xff) == 0 && Server.rd(m, gs + 0x72c) == Float.floatToIntBits(60f)) {
                                     Flow.wi(m, gs + 0x72c, Float.floatToIntBits(1f)); Veh.note("开局等人 60 秒改成 1 秒（本局）");
                                 }
+                                first = false;
                             }
-                            long now = Server.rd(m, gs + 0x774);
-                            if (lastL >= 0 && now != lastL) { foreign++; foreignVal = now; foreignAiVal = Server.rd(m, gs + 0x778); }
                             if (tick++ % 6 == 0) aliveBots(m);
-                            int left = Math.max(1, 100 - killed);
-                            Flow.wi(m, gs + 0x774, left); Flow.wi(m, gs + 0x778, left - 1); lastL = left;
-                            if (left == 1 && !ended) {
-                                ended = true;
-                                String a = patch(m, END_A, END_A_O, END_A_N), b = patch(m, END_B, END_B_O, END_B_N);
-                                Veh.note("人机：剩余 1，结算补丁 " + (a.equals(END_A_N) && b.equals(END_B_N) ? "已打" : "没打上 " + a + " " + b));
-                            }
+                            lastL = (int) Server.rd(m, gs + 0x774); foreignVal = lastL; foreignAiVal = Server.rd(m, gs + 0x778);
                         }
                     } catch (Throwable ignored) {}
-                    try { Thread.sleep(50); } catch (InterruptedException e) { return; }
+                    try { Thread.sleep(300); } catch (InterruptedException e) { return; }
                 }
             } catch (Throwable ignored) {}
         }, "zf-count").start();
     }
     static String countText() {
-        return countInfo + "，已死人机 " + killed + "，被别处改掉 " + foreign + " 次" + (foreign > 0 ? "（最后改成 " + foreignVal + "，人机 " + foreignAiVal + "）" : "");
+        return countInfo + "，现在 " + foreignVal + "（人机 " + foreignAiVal + "），已死人机 " + killed + "\n  " + gunState;
     }
 
     /** v1.97：仓库里穿着的衣服（不含默认衣服、发型），进对局后当普通物品发到身上，能脱能捡 */
@@ -120,16 +111,19 @@ public class Bots {
         if (l == null || l.isEmpty()) { outfitState = "仓库衣服：没有要发的"; return; }
         new Thread(() -> {
             try {
-                Thread.sleep(3000);
-                for (int t = 0; t < 30 && GameOverlay.giveSt != 2; t++) Thread.sleep(1000);
+                // v1.98：用户要一进去就穿着。不再等 3 秒：每 0.2 秒看一次，人物一出生就用 cave 'I' 直接发到玩家身上
+                long pawn = 0;
+                for (int t = 0; t < 300 && g == gen && Con.inMatch; t++) {
+                    double[] q = Veh.info();
+                    if (q != null && q.length > 6 && (long) q[6] >= 0x10000) { pawn = (long) q[6]; break; }
+                    Thread.sleep(200);
+                }
+                if (pawn == 0) { outfitState = "仓库衣服：等不到人物"; return; }
                 StringBuilder b = new StringBuilder();
                 for (long id : l) {
                     if (g != gen || !Con.inMatch) return;
-                    final String c = "AddAvaItem P" + id + "x1";
-                    android.app.Activity a = Con.act; if (a == null) return;
-                    a.runOnUiThread(() -> Con.exec(c));
-                    b.append(b.length() == 0 ? "" : ",").append(id);
-                    Thread.sleep(500);
+                    int c = Veh.giveTo(pawn, id, 1);
+                    b.append(b.length() == 0 ? "" : ",").append(id).append('=').append(Integer.toHexString(c));
                 }
                 outfitState = "仓库衣服：进对局发了 " + l.size() + " 件 " + b;
                 Veh.note(outfitState);
@@ -142,10 +136,10 @@ public class Bots {
         unpatchEnd();
         new Thread(() -> {   // 剩余人数：不管自动刷人机开没开都数
             try {
-                for (int i = 0; i < 120 && g == gen && Con.inMatch; i++) {
+                for (int i = 0; i < 400 && g == gen && Con.inMatch; i++) {
                     double[] q = Veh.info();
                     if (q != null && (long) q[4] >= 0x10000) { counter(g, (long) q[4]); giveOutfit(g); return; }
-                    Thread.sleep(1000);
+                    Thread.sleep(300);
                 }
             } catch (Throwable ignored) {}
         }, "zf-count0").start();
@@ -204,11 +198,54 @@ public class Bots {
             track(ctrl);
             if (spawned <= 3) Veh.note("人机：第 " + spawned + " 个 " + Veh.codeText(c) + "；" + Veh.botInfo + "；" + Veh.equipInfo(ctrl));
             if (c == 0x5b08) new Thread(() -> regive(g, ctrl), "zf-bot-eq").start();
+            final long pawn = Veh.buf.getInt(96) & 0xffffffffL; final int idx = spawned;
+            new Thread(() -> loadout(g, ctrl, pawn, idx), "zf-bot-gun").start();
             return 0;
         }
         Veh.botState = "刷人机：" + Veh.codeText(c);
         Veh.note("人机：刷失败 " + Veh.codeText(c) + "；" + Veh.botInfo);
         return fails + 1;
+    }
+
+    /** v1.98 人机随机装备：游戏自己的「给人机装备」只给了衣服之类，用户说人机没枪。
+     *  用 cave 'I' 直接往人机背包里放：随机一把枪 + 对应子弹，一半概率头盔/甲，一半概率药。 */
+    static final String[][] GUN = {
+        {"20101000001", "20600000001"}, {"20101000002", "20600000002"}, {"20101000003", "20600000001"}, {"20101000004", "20600000001"},
+        {"20105000001", "20600000003"}, {"20105000002", "20600000003"}, {"20105000003", "20600000003"}, {"20105000004", "20600000004"},
+        {"20103000001", "20600000005"}, {"20103000002", "20600000005"}, {"20104000001", "20600000002"}, {"20104000003", "20600000002"},
+        {"20104000006", "20600000001"}, {"20102000001", "20600000001"}, {"20201000001", "20600000003"}, {"20201000002", "20600000004"} };
+    static final String[] HELM = {"30304000001", "30304000002", "30304000003"}, VEST = {"30305000001", "30305000002", "30305000003"};
+    public static volatile String gunState = "人机配枪：还没试";
+    static void loadout(int g, long ctrl, long pawn, int idx) {
+        try {
+            Thread.sleep(1500);
+            if (g != gen || !Con.inMatch) return;
+            if (pawn < 0x10000) { try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { pawn = Server.rd(m, ctrl + 0x2c0); } }
+            fixUin(ctrl, pawn, idx);
+            String[] gun = GUN[rnd.nextInt(GUN.length)];
+            int c1 = Veh.giveTo(pawn, Long.parseLong(gun[0]), 1);
+            int cap = Veh.buf.getInt(140), ret = Veh.buf.getInt(144);
+            int c2 = Veh.giveTo(pawn, Long.parseLong(gun[1]), 30 + rnd.nextInt(60));
+            if (rnd.nextBoolean()) Veh.giveTo(pawn, Long.parseLong(HELM[rnd.nextInt(HELM.length)]), 1);
+            if (rnd.nextBoolean()) Veh.giveTo(pawn, Long.parseLong(VEST[rnd.nextInt(VEST.length)]), 1);
+            if (rnd.nextInt(3) == 0) Veh.giveTo(pawn, 40100000001L + rnd.nextInt(2), 1 + rnd.nextInt(3));
+            gunState = "人机配枪：第 " + idx + " 个 枪 " + gun[0] + " → " + Integer.toHexString(c1) + "（能放 " + cap + "，返回 " + ret + "），子弹 → " + Integer.toHexString(c2) + "；" + uinState;
+            if (idx <= 3) Veh.note(gunState);
+        } catch (Throwable e) { gunState = "人机配枪：出错 " + e; }
+    }
+    /** v1.98 人机在地图上显示成队友（日志 IsTeammateByUin! Found!）：队伍按 PlayerState+0x3b0 的 Uin 认人，
+     *  单机下人机和玩家的 Uin 都是 0 → 被当成队友。给每个人机一个不同的 Uin。 */
+    public static volatile String uinState = "";
+    static void fixUin(long ctrl, long pawn, int idx) {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            long ps = Server.rd(m, ctrl + 0x2c4); if (ps < 0x10000) ps = Server.rd(m, pawn + 0x2c4);
+            if (ps < 0x10000) { uinState = "Uin：找不到 PlayerState"; return; }
+            long lo = Server.rd(m, ps + 0x3b0), hi = Server.rd(m, ps + 0x3b4);
+            long me = GameOverlay.pawnAddr(), mps = me >= 0x10000 ? Server.rd(m, me + 0x2c4) : 0;
+            String mine = mps >= 0x10000 ? Long.toHexString(Server.rd(m, mps + 0x3b4)) + ":" + Long.toHexString(Server.rd(m, mps + 0x3b0)) : "?";
+            if (lo == 0 && hi == 0) { Flow.wi(m, ps + 0x3b0, 900000 + idx); }
+            uinState = "Uin 人机 " + Long.toHexString(hi) + ":" + Long.toHexString(lo) + "→" + Long.toHexString(Server.rd(m, ps + 0x3b0)) + "，玩家 " + mine + "，队伍 " + Long.toHexString(Server.rd(m, ps + 0x340));
+        } catch (Throwable e) { uinState = "Uin：出错 " + e; }
     }
 
     static void regive(int g, long ctrl) {
