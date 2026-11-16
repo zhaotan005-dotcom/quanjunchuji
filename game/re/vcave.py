@@ -3,7 +3,10 @@
 import struct, capstone
 from asm import asm
 SRC = r'''
-    cmp r0, #86
+    mov r11, #0
+    cmp r0, #66
+    moveq r11, #1
+    cmpne r0, #86
     bne done
     mov r9, #1
     mov r7, #0
@@ -71,6 +74,8 @@ e2:
     str r0, [r8, #28]
     cmp r0, #0
     beq fin
+    cmp r11, #0
+    bne bot
     ldr r0, [r0, #0x914]
     str r0, [r8, #32]
     cmp r0, #0
@@ -91,6 +96,27 @@ e2:
     movw r0, #0x5b03
     str r0, [r8]
     b done
+bot:
+    cmp r7, #0
+    beq fin
+    str r7, [r8, #64]
+    ldr r0, [r8, #48]
+    str r0, [sp]
+    ldr r0, [r8, #52]
+    str r0, [sp, #4]
+    ldr r0, [r8, #56]
+    str r0, [sp, #8]
+    ldr r0, [r8, #60]
+    str r0, [sp, #12]
+    mov r0, r4
+    mov r1, r7
+    ldr r2, [r8, #40]
+    ldr r3, [r8, #44]
+    ldr ip, [pc, #LIT2]
+    .word 0xe12fff3c
+    movw r0, #0x5b04
+    str r0, [r8]
+    b done
 fin:
     movw r0, #0x5b02
     str r0, [r8]
@@ -99,15 +125,19 @@ done:
     pop {r4-r11, pc}
 lit:
     .word 0x11111111
+lit2:
+    .word 0x22222222
 '''
 def build(org=0):
-    src = SRC.replace('#LIT', '#0')
+    src = SRC.replace('#LIT2', '#0').replace('#LIT', '#0')
     b, lab = asm(src, org)
-    # 填 ldr ip,[pc,#x] 的偏移
-    i = [k for k in range(0, len(b), 4) if struct.unpack_from('<I', b, k)[0] & 0x0fff0000 == 0x059f0000 and (struct.unpack_from('<I', b, k)[0] >> 12) & 15 == 12][0]
-    off = lab['lit'] - (org + i + 8)
-    w = struct.unpack_from('<I', b, i)[0] | off
-    b = b[:i] + struct.pack('<I', w) + b[i + 4:]
+    # 填 ldr ip,[pc,#x] 的偏移（第 1 个 → lit 刷车，第 2 个 → lit2 刷人机）
+    ii = [k for k in range(0, len(b), 4) if struct.unpack_from('<I', b, k)[0] & 0x0fff0000 == 0x059f0000 and (struct.unpack_from('<I', b, k)[0] >> 12) & 15 == 12]
+    assert len(ii) == 2
+    for i, name in zip(ii, ('lit', 'lit2')):
+        off = lab[name] - (org + i + 8)
+        w = struct.unpack_from('<I', b, i)[0] | off
+        b = b[:i] + struct.pack('<I', w) + b[i + 4:]
     return b, lab
 if __name__ == '__main__':
     b, lab = build(0x4a2d940)

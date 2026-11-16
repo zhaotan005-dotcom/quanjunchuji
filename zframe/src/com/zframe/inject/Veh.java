@@ -17,9 +17,9 @@ import java.util.ArrayList;
  * 这些钩子和早装一样，在 libUE4 刚加载时装（运行中改已跑过的代码不生效）。
  */
 public class Veh {
-    static final long VCAVE = Server.SLACK + 0x400, TRAMP = 0x1716c10L, BNE = 0x17169ecL, SPAWN = 0x1102ca4L;
+    static final long VCAVE = Server.SLACK + 0x400, TRAMP = 0x1716c10L, BNE = 0x17169ecL, SPAWN = 0x1102ca4L, BOT = 0x1115620L;
     static final String TRAMP_O = "00009de50810a0e1", BNE_O = "8400001a", BNE_N = "8700001a";
-    static final String CAVE = "560050e35300001a0190a0e30070a0e3060059e1070000aa090195e7300040e2090050e30300008a077187e0877080e0019089e2f5ffffea019089e20080a0e3060059e1070000aa090195e7300040e2090050e30300008a088188e0888080e0019089e2f5ffffea000058e33900000a010b05e3000088e5044088e5c0a294e508a088e500005ae33000000a28019ae5440088e5000050e32c00000a401190e50c1088e5441190e5101088e5481190e5141088e5301190e5481088e5341190e54c1088e5381190e5501088e53c1190e5541088e5000094e5a01090e50400a0e131ff2fe1180088e5000050e31700000a940090e51c0088e5000050e31300000a140990e5200088e5000050e30f00000ac01290e5241088e5000057e30b00000a000051e30900000a407088e50400a0e10710a0e1282088e2343088e21cc09fe53cff2fe1030b05e3000088e5010000ea020b05e3000088e544d08de2f08fbde8";
+    static final String CAVE = "00b0a0e3420050e301b0a003560050136900001a0190a0e30070a0e3060059e1070000aa090195e7300040e2090050e30300008a077187e0877080e0019089e2f5ffffea019089e20080a0e3060059e1070000aa090195e7300040e2090050e30300008a088188e0888080e0019089e2f5ffffea000058e34f00000a010b05e3000088e5044088e5c0a294e508a088e500005ae34600000a28019ae5440088e5000050e34200000a401190e50c1088e5441190e5101088e5481190e5141088e5301190e5481088e5341190e54c1088e5381190e5501088e53c1190e5541088e5000094e5a01090e50400a0e131ff2fe1180088e5000050e32d00000a940090e51c0088e5000050e32900000a00005be31300001a140990e5200088e5000050e32300000ac01290e5241088e5000057e31f00000a000051e31d00000a407088e50400a0e10710a0e1282088e2343088e26cc09fe53cff2fe1030b05e3000088e5150000ea000057e31100000a407088e5300098e500008de5340098e504008de5380098e508008de53c0098e50c008de50400a0e10710a0e1282098e52c3098e520c09fe53cff2fe1040b05e3000088e5010000ea020b05e3000088e544d08de2f08fbde8";
 
     public static volatile String state = "刷车：没装";
     static volatile boolean installed;
@@ -36,7 +36,7 @@ public class Veh {
             String tr = Server.bytesAt(m, b + TRAMP, 8);
             String trN = "04f01fe5" + Server.w32((int) (b + VCAVE));
             if (!tr.equals(TRAMP_O) && !tr.equals(trN)) return state = "刷车：空位字节不符 " + tr;
-            m.seek(b + VCAVE); m.write(Patches.hex(CAVE + Server.w32((int) (b + SPAWN))));
+            m.seek(b + VCAVE); m.write(Patches.hex(CAVE + Server.w32((int) (b + SPAWN)) + Server.w32((int) (b + BOT))));
             m.seek(b + TRAMP); m.write(Patches.hex(trN));
             m.seek(b + BNE); m.write(Patches.hex(BNE_N));
             if (!Server.bytesAt(m, b + BNE, 4).equals(BNE_N)) return state = "刷车：写入没生效";
@@ -47,17 +47,18 @@ public class Veh {
     }
 
     static ByteBuffer buf; static long addr;
-    static boolean call(long id) throws InterruptedException {
+    static boolean call(long id) throws InterruptedException { return call('V', id); }
+    static boolean call(char k, long id) throws InterruptedException {
         if (buf == null) { buf = ByteBuffer.allocateDirect(128).order(ByteOrder.LITTLE_ENDIAN); addr = GameOverlay.bufAddr(buf); }
         if (addr <= 0 || addr > 0xffffffffL) return false;
         buf.putInt(0, 0);
-        final String c = "AddAvaItem V" + id + "x" + addr;
+        final String c = "AddAvaItem " + k + id + "x" + addr;
         Activity a = Con.act; if (a == null) return false;
         a.runOnUiThread(() -> Con.exec(c));
         for (int i = 0; i < 40; i++) {
             Thread.sleep(50);
             int mg = buf.getInt(0);
-            if (mg == 0x5b02 || mg == 0x5b03) return true;
+            if (mg == 0x5b02 || mg == 0x5b03 || mg == 0x5b04) return true;
         }
         return false;
     }
@@ -85,8 +86,8 @@ public class Veh {
                 if (nm == null || !nm.matches("\\d{1,9}")) continue;
                 long id = Long.parseLong(nm);
                 if (id == 0 || ids.containsKey(id)) continue;
-                String bp = path(m, Server.rd(m, e + 8));
-                if ("?".equals(bp)) bp = path(m, Server.rd(m, e + 12));
+                String bp = path(m, Server.rd(m, e + 8), n);
+                if ("?".equals(bp)) bp = path(m, Server.rd(m, e + 12), n);
                 ids.put(id, bp);
             }
             StringBuilder sb = new StringBuilder();
@@ -97,8 +98,19 @@ public class Veh {
         return out;
     }
     /** 行里找 "/Game/..." 的 FString（UTF-32），取蓝图名 */
-    static String path(RandomAccessFile m, long row) {
-        if (row == 0) return "?";
+    static String path(RandomAccessFile m, long row, Names nm) {
+        if (row < 0x10000) return "?";
+        // v1.84：路径多半是 FSoftObjectPath（FName），先按 FName 试
+        if (nm != null) for (int o = 0; o < 0x100; o += 4) {
+            long idx = Server.rd(m, row + o);
+            if (idx <= 0 || idx > 0x400000 || Server.rd(m, row + o + 4) > 64) continue;
+            String s = nm.name(m, (int) idx);
+            if (s == null) continue;
+            int k = s.lastIndexOf('/');
+            String t = k >= 0 ? s.substring(k + 1) : s;
+            int d = t.indexOf('.'); if (d > 0) t = t.substring(0, d);
+            if (s.startsWith("/Game") || t.toLowerCase(java.util.Locale.ROOT).contains("vehicle")) return t;
+        }
         for (int o = 0; o < 0x100; o += 4) {
             long p = Server.rd(m, row + o), len = Server.rd(m, row + o + 4);
             if (p < 0x10000 || len < 8 || len > 300) continue;
@@ -134,48 +146,109 @@ public class Veh {
         if (l.contains("moto")) return "摩托";
         if (l.contains("bus")) return "面包车";
         if (l.contains("pickup")) return "皮卡";
-        if (l.contains("boat") || l.contains("aqua")) return "船";
+        if (l.contains("boat") || l.contains("aqua") || l.contains("pg117")) return "船";
+        if (l.contains("mirado") || l.contains("coupe")) return "跑车";
+        if (l.contains("rony")) return "皮卡";
+        if (l.contains("scooter")) return "小绵羊";
+        if (l.contains("snow")) return "雪地车";
+        if (l.contains("tuk")) return "嘟嘟车";
+        if (l.contains("brdm") || l.contains("armor")) return "装甲车";
+        if (l.contains("glider")) return "滑翔机";
         return "?".equals(bp) ? "车" : bp;
     }
 
-    /** 菜单按钮：在面前刷一辆，每按一次换一种 */
+    /** v1.84：按车型分组（同一车型不同颜色合成一组，按一次换一个颜色）。名字读不到时一个编号一组 */
     static volatile boolean busy;
-    public static void spawnNext() {
+    static final class Group { String label; ArrayList<Long> ids = new ArrayList<>(); int at; }
+    static volatile ArrayList<Group> groups;
+    static String base(String bp) {
+        // BP_Vehicle_UAZ_01_C → uaz；去掉颜色/皮肤后缀数字
+        String t = bp.replaceAll("(?i)^BP_(Vehicle_)?", "").replaceAll("(?i)_C$", "").replaceAll("(_?\\d+)+$", "");
+        return t.toLowerCase(java.util.Locale.ROOT);
+    }
+    static void makeGroups() {
+        java.util.LinkedHashMap<String, Group> g = new java.util.LinkedHashMap<>();
+        for (Row r : rows) {
+            String key = "?".equals(r.name) ? "#" + r.id : base(r.name);
+            Group x = g.get(key);
+            if (x == null) { x = new Group(); x.label = "?".equals(r.name) ? r.id + " 号" : nice(r.name); g.put(key, x); }
+            x.ids.add(r.id);
+        }
+        ArrayList<Group> out = new ArrayList<>(g.values());
+        for (Group x : out) if (x.ids.size() > 1) x.label += "（" + x.ids.size() + " 色）";
+        groups = out;
+    }
+    /** 读人物位置/朝向（V0），算面前 dist 厘米的点写进 buf+40..60 */
+    static String ahead(float dist, float up) throws InterruptedException {
+        if (!installed) return state;
+        if (!call(0)) return "补丁代码没反应（进对局、落地后再按）";
+        if ((buf.getInt(8)) == 0) return "还没有人物";
+        float x = Float.intBitsToFloat(buf.getInt(12)), y = Float.intBitsToFloat(buf.getInt(16)), z = Float.intBitsToFloat(buf.getInt(20));
+        float qx = Float.intBitsToFloat(buf.getInt(72)), qy = Float.intBitsToFloat(buf.getInt(76)), qz = Float.intBitsToFloat(buf.getInt(80)), qw = Float.intBitsToFloat(buf.getInt(84));
+        double yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
+        if (Double.isNaN(yaw)) yaw = 0;
+        buf.putFloat(40, (float) (x + dist * Math.cos(yaw)));
+        buf.putFloat(44, (float) (y + dist * Math.sin(yaw)));
+        buf.putFloat(48, z + up);
+        // 人机面朝玩家（转 180°），车和人朝向一致
+        buf.putFloat(52, 0f); buf.putFloat(56, (float) Math.toDegrees(yaw) + (up < 100 ? 180f : 0f)); buf.putFloat(60, 0f);
+        return null;
+    }
+    /** 第一次：读车表、分组，刷新菜单出按钮 */
+    static String loadTable() throws Exception {
+        String e = ahead(600, 150); if (e != null) return e;
+        long dt = buf.getInt(36) & 0xffffffffL;
+        if (dt == 0) return "这局没有车表（GameMode " + Integer.toHexString(buf.getInt(28)) + "）";
+        if (rows == null || rowsDt != dt) {
+            state = "刷车：正在读车表…"; GameOverlay.refreshAny();
+            rows = readRows(dt); rowsDt = dt; next = 0;
+            makeGroups();
+            note("刷车 " + tableInfo);
+        }
+        return null;
+    }
+    /** 菜单按钮：读车表（读完菜单里出现每种车的按钮） */
+    public static void spawnNext() { spawnGroup(-1); }
+    public static void spawnGroup(final int gi) {
         if (busy) { GameOverlay.toastAny(state); return; }
         busy = true;
         new Thread(() -> {
             try {
-                if (!installed) { GameOverlay.toastAny(state); return; }
-                if (!call(0)) { GameOverlay.toastAny(state = "刷车：补丁代码没反应（进对局、落地后再按）"); return; }
-                long dt = buf.getInt(36) & 0xffffffffL, ch = buf.getInt(8) & 0xffffffffL;
-                if (ch == 0) { GameOverlay.toastAny(state = "刷车：还没有人物"); return; }
-                if (dt == 0) { GameOverlay.toastAny(state = "刷车：这局没有车表（GameMode " + Integer.toHexString(buf.getInt(28)) + "）"); return; }
-                if (rows == null || rowsDt != dt) {
-                    GameOverlay.toastAny("第一次刷车要读车表，约半分钟，读完会提示");
-                    state = "刷车：正在读车表…"; GameOverlay.refreshAny();
-                    rows = readRows(dt); rowsDt = dt; next = 0;
-                    note("刷车 " + tableInfo); GameOverlay.toastAny(tableInfo.length() > 60 ? tableInfo.substring(0, 60) : tableInfo);
-                }
-                ArrayList<Row> use = new ArrayList<>();
-                for (Row r : rows) if (!nice(r.name).equals("船")) use.add(r);
-                if (use.isEmpty()) use = rows;
-                if (use.isEmpty()) { GameOverlay.toastAny(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
-                Row r = use.get(next++ % use.size());
-                float x = Float.intBitsToFloat(buf.getInt(12)), y = Float.intBitsToFloat(buf.getInt(16)), z = Float.intBitsToFloat(buf.getInt(20));
-                float qx = Float.intBitsToFloat(buf.getInt(72)), qy = Float.intBitsToFloat(buf.getInt(76)), qz = Float.intBitsToFloat(buf.getInt(80)), qw = Float.intBitsToFloat(buf.getInt(84));
-                double yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
-                if (Double.isNaN(yaw)) yaw = 0;
-                buf.putFloat(40, (float) (x + 600 * Math.cos(yaw)));
-                buf.putFloat(44, (float) (y + 600 * Math.sin(yaw)));
-                buf.putFloat(48, z + 150);
-                buf.putFloat(52, 0f); buf.putFloat(56, (float) Math.toDegrees(yaw)); buf.putFloat(60, 0f);
-                boolean ok = call(r.id) && buf.getInt(0) == 0x5b03;
-                String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + nice(r.name) + "（" + r.id + "，" + ((next - 1) % use.size() + 1) + "/" + use.size() + "）";
-                note(s + " 位置 " + x + "," + y + "," + z);
-                GameOverlay.toastAny(state = s + (ok ? "，在你面前，没看到就再按一次换一种" : ""));
+                String e = loadTable();
+                if (e != null) { GameOverlay.toastAny(state = "刷车：" + e); return; }
+                ArrayList<Group> gs = groups;
+                if (gs == null || gs.isEmpty()) { GameOverlay.toastAny(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
+                if (gi < 0) { GameOverlay.toastAny(state = "刷车：读到 " + gs.size() + " 种车，菜单里点车名刷"); return; }
+                Group g = gs.get(gi % gs.size());
+                long id = g.ids.get(g.at++ % g.ids.size());
+                boolean ok = call(id) && buf.getInt(0) == 0x5b03;
+                String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + g.label + "（编号 " + id + "）";
+                note(s);
+                GameOverlay.toastAny(state = s);
             } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();
+    }
+
+    // ---------------- v1.84 刷人机 ----------------
+    // 游戏自己的 ServerAddBotAt_Implementation 0x1115620(PC, int, FVector, FRotator)：先查 GameMode 是不是 NZBattleRoyaleGame，
+    // 再调 GameMode 虚函数 +0x5c4 (AddBotAt)。教学关用的，对局 GameMode 也是这个类。int 参数含义没确定，先给 1。
+    public static volatile String botState = "刷人机：还没试";
+    public static volatile int botArg = 1;
+    public static void spawnBot() {
+        if (busy) { GameOverlay.toastAny(state); return; }
+        busy = true;
+        new Thread(() -> {
+            try {
+                String e = ahead(800, 50);
+                if (e != null) { GameOverlay.toastAny(botState = "刷人机：" + e); return; }
+                boolean ok = call('B', botArg) && buf.getInt(0) == 0x5b04;
+                botState = "刷人机：" + (ok ? "已调游戏的加人机（参数 " + botArg + "），看前面 8 米" : "补丁代码没反应 " + Integer.toHexString(buf.getInt(0)));
+                note(botState + " GameMode " + Integer.toHexString(buf.getInt(28)));
+                GameOverlay.toastAny(botState);
+            } catch (Throwable e) { GameOverlay.toastAny(botState = "刷人机：出错 " + e); note(botState); }
+            finally { busy = false; GameOverlay.refreshAny(); }
+        }, "zf-bot").start();
     }
 
     /** FName 名字表（GNames）：找 "None"(0号) 和 "ByteProperty"(1号) 两个条目，反推块表 */
@@ -315,7 +388,7 @@ public class Veh {
             if (e == 0) return null;
             long f = Server.rd(m, e);
             if ((shift ? f >> 1 : f) != idx) return null;
-            return ascii(m, e + 8, 64);
+            return ascii(m, e + 8, 200);
         }
     }
     static String ascii(RandomAccessFile m, long p, int n) {

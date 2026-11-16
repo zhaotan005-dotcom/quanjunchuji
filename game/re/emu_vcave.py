@@ -6,6 +6,7 @@ ORG=0x4a2d940
 code,lab=build(ORG)
 lit=lab['lit']-ORG
 SPAWN=0x10000; code=code[:lit]+struct.pack('<I',SPAWN)+code[lit+4:]
+lit2=lab['lit2']-ORG; BOT=0x10400; code=code[:lit2]+struct.pack('<I',BOT)+code[lit2+4:]
 mu=Uc(UC_ARCH_ARM,UC_MODE_ARM)
 mu.mem_map(0x4a2d000,0x2000); mu.mem_write(ORG,code)
 mu.mem_map(0x10000,0x1000)
@@ -14,6 +15,8 @@ def W(a,v): mu.mem_write(a,struct.pack('<I',v))
 stub=bytes.fromhex('04c09fe5' '00108ce5' '1eff2fe1' )+struct.pack('<I',0x10800)  # ldr ip,=0x10800; str r1,[ip]; bx lr
 mu.mem_map(0x20000,0x10000)
 mu.mem_write(0x10000,stub)
+# bot stub: ip=0x10900; stm ip,{r0,r1,r2,r3}; ldr r0,[sp]; str r0,[ip,#16]; ldr r0,[sp,#8]; str r0,[ip,#20]; bx lr
+mu.mem_write(BOT,bytes.fromhex('14c09fe5' '0f008ce8' '00009de5' '10008ce5' '08009de5' '14008ce5' '1eff2fe1')+struct.pack('<I',0x10900))
 GW=0x10100; mu.mem_write(GW,bytes.fromhex('00009fe5'+'1eff2fe1')+struct.pack('<I',0x21000))  # ldr r0,[pc,#0]?? 
 # ldr r0,[pc,#0] at GW loads GW+8 = world ptr; but next word is bx lr... fix: ldr r0,[pc,#0] -> reads GW+8
 PCO=0x20000; VT=0x20800; W(PCO,VT); W(VT+0xa0,GW)
@@ -43,4 +46,12 @@ mu.emu_start(ORG,END)
 print('info magic %x dt %x spawncalled %d'%(r(BUF),r(BUF+36),r(0x10800))); assert r(BUF)==0x5b02 and r(0x10800)==0
 # 'X' -> nothing
 mu.mem_write(BUF,b'\0'*128); mu.reg_write(UC_ARM_REG_SP,SP); mu.reg_write(UC_ARM_REG_R0,ord('X')); mu.emu_start(ORG,END); assert r(BUF)==0
+# bot
+mu.mem_write(BUF,b'\0'*128); s='B1x%d'%BUF; mu.mem_write(STR,b''.join(struct.pack('<I',ord(c)) for c in s)+b'\0'*4)
+W(BUF+40,0x41); W(BUF+44,0x42); W(BUF+48,0x43); W(BUF+52,0x51); W(BUF+56,0x52); W(BUF+60,0x53)
+W(DT,0); W(VM+0x2c0,0)
+mu.reg_write(UC_ARM_REG_SP,SP); mu.reg_write(UC_ARM_REG_R4,PCO); mu.reg_write(UC_ARM_REG_R5,STR); mu.reg_write(UC_ARM_REG_R6,len(s)+1); mu.reg_write(UC_ARM_REG_R0,ord('B'))
+mu.emu_start(ORG,END)
+print('bot magic %x args %x %d %x %x z %x yaw %x'%(r(BUF),r(0x10900),r(0x10904),r(0x10908),r(0x1090c),r(0x10910),r(0x10914)))
+assert r(BUF)==0x5b04 and r(0x10900)==PCO and r(0x10904)==1 and r(0x10908)==0x41 and r(0x1090c)==0x42 and r(0x10910)==0x43 and r(0x10914)==0x52
 print('OK')

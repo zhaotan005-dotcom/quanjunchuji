@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.83"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.84"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -728,9 +728,23 @@ public class GameOverlay {
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
         head(a, u, root, "载具");
-        LinearLayout vr = row(a, root);
-        btn(a, u, vr, "刷车（每按一次换一种）", Veh::spawnNext);
-        note(a, u, root, Veh.state + "。车刷在你面前约 6 米，走过去点上车。v1.83，未实测。");
+        java.util.ArrayList<Veh.Group> vg = Veh.groups;
+        if (vg == null || vg.isEmpty()) {
+            LinearLayout vr = row(a, root);
+            btn(a, u, vr, "读车表（读完出现每种车）", Veh::spawnNext);
+        } else {
+            LinearLayout vr = null;
+            for (int i = 0; i < vg.size(); i++) {
+                if (i % 3 == 0) vr = row(a, root);
+                final int gi = i;
+                btn(a, u, vr, vg.get(i).label, () -> Veh.spawnGroup(gi));
+            }
+        }
+        note(a, u, root, Veh.state + "。车刷在你面前约 6 米；同一车型不同颜色合成一个按钮，再按换颜色。");
+        head(a, u, root, "人机");
+        LinearLayout br = row(a, root);
+        btn(a, u, br, "刷人机（面前 8 米）", Veh::spawnBot);
+        note(a, u, root, Veh.botState + "。v1.84 新做，未实测。");
         head(a, u, root, "枪");
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
@@ -818,6 +832,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.83", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.84", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
