@@ -23,7 +23,8 @@ public class Server {
     static final long SLACK = 0x4a2d540L, SLACK_END = 0x4a2e000L;
     static final long SEND_AT = 0xf950e0L, TICK_AT = 0xb665a8L;   // v1.63：收包改挂 FEngineLoop::Tick（每帧必跑；v1.62 的 UpdateService::Tick 实测大厅不跑）
     static final String SEND_ORIG = "f0482de910b08de2", TICK_ORIG = "f04f2de91cb08de2";
-    static final int REQ_CAP = 1 << 20, RPL_CAP = 1 << 20, RH = 32;   // 回包区头 32 字节：写/读/已收/连接器/UpdateService/帧数
+    static final int REQ_CAP = 1 << 20, RPL_CAP = 8 << 20, RH = 32;   // v1.78：1MB → 8MB（每次穿脱推 12KB 仓库，1MB 玩久了会满，满了回包被丢）
+    static int kicks;   // 回包区头 32 字节：写/读/已收/连接器/UpdateService/帧数
     static final long CONN_VT = 0x4c7deb4L, CONN_INIT = 0xf925d0L;       // ConnectorService 的 vtable（+0x11c 是 Init）
 
     static ByteBuffer req, rpl; static long reqAddr, rplAddr;
@@ -206,10 +207,31 @@ public class Server {
 
     static void loop() {
         while (true) {
-            try { Thread.sleep(30); poll(); } catch (Throwable ignored) {}
+            try { Thread.sleep(30); poll(); kick(); } catch (Throwable ignored) {}
         }
     }
 
+    /** v1.78：游戏的可靠消息「排队」只在收到任何包时才往外发（SendPendingMsg after recv）。
+     *  服务端开之前游戏发的 83001 seq8 没人回，之后的穿脱/匹配请求都排队，等下一个随便什么包进来才发 → 延迟十几秒、冲突。
+     *  每 300ms 塞一个没人处理的通知（5017 是客户端→服务器的日志通知，客户端没有处理函数），让排队的消息马上发出来。 */
+    static long lastKick;
+    static void kick() {
+        long now = System.currentTimeMillis();
+        if (!on || rpl == null || now - lastKick < 300) return;
+        lastKick = now;
+        if (rpl.getInt(12) == 0) return;   // 连接器还没找到
+        pushQuiet(5017);
+        kicks++;
+    }
+    static synchronized void pushQuiet(int cmd) {
+        byte[] p = new PB().m(1, new PB().u(1, cmd).u(4, 0).u(6, 0)).b(2, new byte[0]).bytes();
+        if (rplWp + 4 + p.length + 4 > RPL_CAP) return;
+        rpl.putInt(RH + rplWp, p.length);
+        for (int i = 0; i < p.length; i++) rpl.put(RH + rplWp + 4 + i, p[i]);
+        rplWp = (rplWp + 4 + p.length + 3) & ~3;
+        VarHandle.releaseFence();
+        rpl.putInt(0, rplWp);
+    }
     /** 读新请求并回包 */
     static synchronized void poll() {
         int wp = req.getInt(0);
@@ -256,6 +278,8 @@ public class Server {
                 what = added ? "领取邮件，入库" : "领取邮件（已领过）";
                 break;
             }
+            // v1.78：15001 = 开始匹配。单机游戏发完就直接进图，回成功的话回到大厅会以为还在匹配（自动匹配、取消不了）→ 回失败
+            case 15001: push(15002, seq, key, new PB().u(1, 1).bytes()); what = "开始匹配（回失败，单机直接进图）"; break;
             case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
             default:
                 // v1.73：非关键消息也回空的成功包。之前 83001 不回，游戏一直等 83002，后面的穿/脱(13003/13005)全被卡住丢掉
@@ -779,7 +803,7 @@ public class Server {
         if (sf != null) sb.append("上次运行最后几步：\n  ").append(readSteps(new java.io.File(sf.getParentFile(), "zf_server_steps_prev.txt"), 8))
             .append("\n这次：\n  ").append(readSteps(sf, 8)).append('\n');
         if (req == null) return sb.toString();
-        sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
+        sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied).append("，催发包 ").append(kicks).append("，回包区用了 ").append(rplWp / 1024).append(" KB")
           .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n")
           .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
         sb.append(connInfo).append("\n已投 ").append(rpl.getInt(28)).append(" 条，排队 ").append(cmds).append('\n');
