@@ -47,9 +47,27 @@ final class Lan {
     }
     /** 0 = 单机，1 = 房主（服务器），2 = 加入的客户端。回大厅清零。 */
     static volatile int role;
+    static volatile boolean busy;
+    /** v2.06：开房后每秒把内存和进度写进持久的步骤文件（闪退后下次导出能看到死在哪、是不是内存爆了） */
+    static void beat(String what) {
+        busy = true;
+        final long t0 = System.currentTimeMillis();
+        Thread t = new Thread(() -> {
+            for (int i = 0; i < 120 && busy; i++) {
+                String m = "";
+                try { for (String l : java.nio.file.Files.readAllLines(new java.io.File("/proc/self/status").toPath()))
+                    if (l.startsWith("VmSize") || l.startsWith("VmRSS") || l.startsWith("VmSwap")) m += l.replaceAll("\\s+", " ") + " "; } catch (Throwable ignored) {}
+                Server.mark(what + " " + (System.currentTimeMillis() - t0) / 1000 + "s " + m + (Con.inMatch ? "已进图" : ""));
+                if (Con.inMatch && i > 3) { busy = false; break; }
+                try { Thread.sleep(1000); } catch (InterruptedException e) { break; }
+            }
+            busy = false;
+        }, "zf-lanbeat");
+        t.setDaemon(true); t.start();
+    }
     static String host(String map) {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
-        role = 1; Bots.auto = false;
+        role = 1; Bots.auto = false; beat("开房加载");
         boolean ok = Con.exec("open " + map + "?listen");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
         note(state);
@@ -63,7 +81,7 @@ final class Lan {
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";
         unlock();
-        role = 2; Bots.auto = false;
+        role = 2; Bots.auto = false; beat("加入加载");
         boolean ok = Con.exec("open " + ip);
         state = ok ? "加入：已发 open " + ip : "加入：命令没发出去";
         note(state);
@@ -72,7 +90,7 @@ final class Lan {
 
     static String roleText() { return role == 1 ? "房主（服务器）" : role == 2 ? "已加入别人的房间" : "单机"; }
     static void note(String s) {
-        LogCap.note("联机 " + s);
+        LogCap.note("联机 " + s); Server.mark("联机 " + s);
         add(new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date()) + " " + s);
     }
     static void add(String s) { synchronized (log) { if (log.size() >= 60) log.remove(0); log.add(s.length() > 260 ? s.substring(0, 260) : s); } }

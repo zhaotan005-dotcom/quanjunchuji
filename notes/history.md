@@ -538,3 +538,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.05（vc106/core106，未实测）：Lan.preinstall 启动时（早装）写三处：0x2a110b8 0120a0e3→0020a0e3（不再置标志）、0x2e0a084 beq→b、0x2bffb78 1a00000a→1a0000ea；开房/加入前再清标志字节。Lan.role 0 单机/1 房主/2 客户端，回大厅清零；房主/客户端 Bots.auto=false，回大厅 true。服务端回大厅 2.5 秒后自动开。菜单：浅色苹果风（F2F2F7 底、白卡片、系统蓝、绿色开关），标题「全军出击联机版」，「–」收成标题小条（去掉悬浮球）。大厅：分段「联机版/单机版」；联机版 = 开房三张图 + 加入（IP 输入）；单机版 = 游戏模式 + 清空仓库；最下面「日志」导出诊断。对局分页：单机 常用/武器/装备/刷车/人机/画面；房主 人机换成联机；客户端只有 联机/画面。
 - 21:17 v2.05 实测：开房不再被 CheatCommands 拦，开始加载但闪退（用户说）。发来的 crash-1116-211627 是启动时自动存的、记的是 v2.04 那次，不含这次闪退；已让用户重开游戏发更新的 crash 文件。三处启动补丁 ok。
 - 21:19 v2.05：日志确认「GameNetDriver NZIpNetDriver_0 IpNetDriver listening on port 7777」，开房监听成功；之后在同步 LoadMap 里闪退（21:19:28 后），导出拿不到。已让用户重开在大厅导出（带上一次 backup 日志）。
+- 21:22 v2.05 开房：listen 7777 成功，游戏日志停在 21:19:24.714「Bringing up level for play」（NZStreamingLevelsPolicyServer 已建），之后进程没了，没有 tombstone（怀疑内存爆/被杀，未证实）。同时自动开服务端在点开房后 1 秒（21:19:20）启动，加载中扫连接器。
+- v2.06（vc107/core107，未实测）：联机时（Lan.role≠0）进图不发调整命令、不跑 Flow/Bots；开房后或已在联机里不自动开服务端；开房/加入后每秒把 VmSize/VmRSS 写进持久步骤文件（下次导出「上次运行最后几步」可见）；联机日志也写步骤文件；去掉每次启动自动存 crash 文件；菜单默认收起。

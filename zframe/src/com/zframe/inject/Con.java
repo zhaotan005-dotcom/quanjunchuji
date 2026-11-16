@@ -284,12 +284,12 @@ public class Con {
 
     static void tickTweaks(long now) {
         if (engineSeenAt > 0 && tweakDone == 0 && now - engineSeenAt > 10000) { tweakDone = 1; runTweaks("启动时"); }
-        if (browseAt > tweakAt && now - browseAt > 1500) runTweaks("进图时");
+        if (browseAt > tweakAt && now - browseAt > 1500) { if (Lan.role == 0) runTweaks("进图时"); else { tweakAt = browseAt; LogCap.note("联机：进图时不发调整命令"); } }
         if (fpsAt > 0 && now - fpsAt > 800) { fpsAt = 0; applyFps(); }
         if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.lastPawnAsk = 0; }
         // 大厅加载完 6 秒后打上「初始衣服 = 绝地风衣」（启动画面阶段不动内存）
         if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); LogCap.note("开局等人 60 秒→1 秒：" + Mods.write(Mods.WAIT, Mods.WAIT_O, Mods.WAIT_N, true));   // v1.95b 用户：一进去不显示读秒，过好一会才出 43 倒计时 → 去掉不显示读秒的那 60 秒
-            new Thread(Server::autoCrashSave).start(); }
+            /* v2.06 用户：不要每次启动自动存一份 crash 日志 */ }
         tickAudio(now);
     }
 
@@ -461,10 +461,11 @@ public class Con {
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Lan.role = 0; Bots.auto = true;
-                    if (!Server.on) new Thread(() -> { try { Thread.sleep(2500); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
+                    if (!Server.on) new Thread(() -> { try { Thread.sleep(2500); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
-                    brMap = m; Bots.matchLoaded(); Flow.matchLoaded(m);   // v1.93 不再自动读车表（车编号写死）
+                    brMap = m;
+                    if (Lan.role == 0) { Bots.matchLoaded(); Flow.matchLoaded(m); } else Lan.note("进图完成（联机：不改航线/毒圈/人机）");   // v1.93 不再自动读车表（车编号写死）
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
                 }

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static boolean collapsed = false;
+    static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
     // 配色（v1.49 简约：近黑半透明底 + 白/灰文字 + 一个低饱和蓝，只用细线分隔，不用渐变和彩色标签）
@@ -72,7 +72,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v2.05"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v2.06"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -954,6 +954,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v2.05", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v2.06", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
