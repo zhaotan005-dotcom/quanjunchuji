@@ -219,6 +219,28 @@ public class Veh {
         }
         return null;
     }
+    /** v1.88 进对局自动读车表（用户不想每次手动点「读车表」）：等人物出生后读，读到就出车按钮 */
+    static volatile int loadGen;
+    static void matchLoaded() {
+        final int g = ++loadGen;
+        new Thread(() -> {
+            try {
+                Thread.sleep(4000);
+                for (int i = 0; i < 40 && g == loadGen && Con.inMatch; i++) {
+                    if (!busy) {
+                        busy = true;
+                        String e;
+                        try { e = loadTable(); } finally { busy = false; }
+                        if (e == null && groups != null && !groups.isEmpty()) {
+                            if (state.startsWith("刷车：正在读") || state.startsWith("刷车：已装")) state = "刷车：车表已自动读好（" + groups.size() + " 种车）";
+                            GameOverlay.refreshAny(); return;
+                        }
+                    }
+                    Thread.sleep(2000);
+                }
+            } catch (Throwable e) { note("刷车：自动读车表出错 " + e); }
+        }, "zf-vehload").start();
+    }
     /** 菜单按钮：读车表（读完菜单里出现每种车的按钮） */
     public static void spawnNext() { spawnGroup(-1); }
     public static void spawnGroup(final int gi) {

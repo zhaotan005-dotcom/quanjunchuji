@@ -48,7 +48,7 @@
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
 ## 当前状态（2026-11-16 17:40）
-- **最新版 v1.88**（vc89/core89，`releases/ZFrame-v1.88.apk`），**未实测**。
+- **最新版 v1.89**（vc90/core90，`releases/ZFrame-v1.89.apk`），**未实测**。v1.89 = v1.88 + 进对局自动读车表。
   - 毒圈：起飞前把本局 2 圈的单机数据换成全军出击正式服 8 圈（Flow.java，内存用游戏的 FMemory::Malloc，cave 'M'）。
   - 航线：起飞前沿原方向拉长到整张图（8x8 8 公里、4x4 4 公里），跳伞段一起拉长。
   - 菜单：刷车、刷人机挪到新页「刷车人机」。

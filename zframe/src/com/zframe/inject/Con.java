@@ -457,7 +457,7 @@ public class Con {
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
-                    brMap = m; Bots.matchLoaded(); Flow.matchLoaded(m);
+                    brMap = m; Bots.matchLoaded(); Flow.matchLoaded(m); Veh.matchLoaded();
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
                 }
