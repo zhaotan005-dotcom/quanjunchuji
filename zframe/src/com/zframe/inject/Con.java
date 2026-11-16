@@ -457,7 +457,7 @@ public class Con {
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
-                    brMap = m; Bots.matchLoaded();
+                    brMap = m; Bots.matchLoaded(); Flow.matchLoaded(m);
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
                 }
@@ -474,7 +474,7 @@ public class Con {
         int nv = l.indexOf("RecastNavMeshSizeBytes=");
         if (nv >= 0) navInfo = (navInfo.length() > 300 ? "" : navInfo + " | ") + l.substring(nv, Math.min(l.length(), nv + 120)).trim();
         // v1.86 诊断：航线、毒圈数据（每圈等待/缩圈时间、半径）、开局倒计时
-        if (l.contains("InitArea[") || l.contains("AirLine") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase")) {
+        if (l.contains("InitArea[") || l.contains("AirLine") || l.contains("AirlineRadius") || l.contains("RadiusForAirLine") || l.contains("JumpRadiusScale") || l.contains("FlightNumber") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase")) {
             synchronized (flowLog) { if (flowLog.size() >= 40) flowLog.remove(0); flowLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
         }
         if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
@@ -482,7 +482,7 @@ public class Con {
         }
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0) { Bots.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
+        if (i >= 0) { Bots.newMatch(); Flow.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();

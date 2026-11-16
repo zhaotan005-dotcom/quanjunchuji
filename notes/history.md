@@ -460,3 +460,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - cave 'E'（vcave.py，904 B + 8 字面量，到 0x4a2dce8），emu_vcave 全过。
   - 诊断新增「航线/毒圈日志」（InitArea / AirLine / RestrictedAreaInfos / GamePhase 行），下一版按它改航线和毒圈。
   - 云服务器：游戏里只有客户端 libUE4.so，没有能在服务器上跑的服务端程序；人机/毒圈逻辑都在手机游戏进程里，云服务器暂时替代不了（已告知用户）。
+- 16:55 用户：毒圈/航线按「全军出击」正式服；三张能用的图现在都是快速版。全军出击攻略（游民星空/17173 2018）：第一圈到第二圈 10 分钟、第二到第三 5 分 40 秒，和端游 2018 海岛数据一致（fandom The_Playzone 表）→ 用端游表；4x4 雨林用端游 Sanhok 表。
+- RE（毒圈）：OnRestrictedAreaStart(0xe9bae0, UFunction) → InitArea 0xd9777c；系统对象 = 0xd96028：GetWorld()+0x98 → +0x348 表（16 字节/项：+4 对象数组，+8 个数，取最后一个非空）。对象 +0x33c/+0x340 DefaultRestrictedAreaInfos（0x54/项：+4 中心，+0x10 半径 cm，+0x14 WaitTime s，+0x18 ShrinkTime s，+0x1c Damage int），InitArea 拷到 +0x354/+0x358 并随机中心（0xd96364）。日志 "InitArea[%d], WaitTime..." 读 +0x354。
+- RE（航线）：AirTransporterSystem：MaxAirlineRadius +0x328、RandomRadiusForAirLine +0x324、JumpRadiusScale +0x32c、AirLineOffset +0x330、FlightNumber +0x33c；CalcAirLine 参数结构 Speed 0/Height 4/RegionFly 0xc/RegionJump 0x20/CenterRadius 0x34/MaxAirlineRadius 0x38/JumpRadiusScale 0x3c/MaxDistToCenter 0x40/AirlineType 0x44。航线按第一个安全区算（CalcAirLineByRestrictedAreaInfo 0x118dc6c）。
+- v1.87（vc88/core88，未实测）：Flow.java：对局地图加载后 5 秒起、有人物后，找毒圈系统对象，数值像毒圈（3~16 圈、第一圈 ≥500 米）才改 Default 数组的半径/等待/缩圈（8x8：2282m 420/300 …；4x4：1428m 210/240 …；第 9 圈起等 180 缩 15）；开打前每 5 秒检查；本局数组（InitArea 已跑）只记录不改。诊断：改前数据、本局数据、getall AirTransporterSystem 航线参数和 NZBRGameState 倒计时。FlowTest（临时文件模拟内存）通过。航线这版只诊断不改。

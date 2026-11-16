@@ -246,14 +246,14 @@ public class Veh {
     public static volatile String botInfo = "";
     static final String[] DIFF = { "", "简单", "普通", "困难" };
 
-    /** 读一次人物位置：{x, y, z, yaw(度), GameMode}；没人物返回 null */
+    /** 读一次人物位置：{x, y, z, yaw(度), GameMode, World}；没人物返回 null */
     static synchronized double[] info() throws InterruptedException {
         if (!installed || !call(0) || buf.getInt(0) != 0x5b02 || buf.getInt(8) == 0) return null;
         float x = Float.intBitsToFloat(buf.getInt(12)), y = Float.intBitsToFloat(buf.getInt(16)), z = Float.intBitsToFloat(buf.getInt(20));
         float qx = Float.intBitsToFloat(buf.getInt(72)), qy = Float.intBitsToFloat(buf.getInt(76)), qz = Float.intBitsToFloat(buf.getInt(80)), qw = Float.intBitsToFloat(buf.getInt(84));
         double yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
         if (Double.isNaN(yaw)) yaw = 0;
-        return new double[] { x, y, z, Math.toDegrees(yaw), buf.getInt(28) & 0xffffffffL };
+        return new double[] { x, y, z, Math.toDegrees(yaw), buf.getInt(28) & 0xffffffffL, buf.getInt(24) & 0xffffffffL };
     }
     /** 在 (x,y,z) 加一个人机，面朝 yaw。返回结果码（0 = cave 没反应） */
     static synchronized int addBot(int diff, double x, double y, double z, double yaw, int flags) throws InterruptedException {
