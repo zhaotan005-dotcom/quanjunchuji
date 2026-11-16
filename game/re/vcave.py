@@ -1,3 +1,4 @@
+# v1.86 加 'E<控制器地址>x<buf>'：对已有的 PVP 人机再给装备/切战斗树（标志同 A）
 # v1.85 加 'A<难度>x<buf>'：按难度加人机（游戏自己的 AddOneBot，带装备/切战斗行为树）
 # v1.80 刷车 cave: AddAvaItem "V<resId>x<buf>"（buf 十进制地址）。挂在 GiveItem cave 的 'P' 判断后面。
 # 入口时栈已经 push {r4-r11,lr}; sub sp,#0x44；r4=PlayerController，r5=字符(UTF-32)，r6=长度，r0=第一个字符
@@ -12,6 +13,9 @@ SRC = r'''
     beq go
     mov r11, #2
     cmp r0, #65
+    beq go
+    mov r11, #3
+    cmp r0, #69
     bne done
 go:
     mov r9, #1
@@ -103,8 +107,8 @@ e2:
     str r0, [r8]
     b done
 bot:
-    cmp r11, #2
-    beq abot
+    cmp r11, #1
+    bne abot
     cmp r7, #0
     beq fin
     str r7, [r8, #64]
@@ -126,6 +130,8 @@ bot:
     str r0, [r8]
     b done
 abot:
+    cmp r11, #3
+    beq ebot
     mov r6, r0
     ldr r1, [r0]
     ldr r1, [r1, #0x5c4]
@@ -186,6 +192,7 @@ notp:
     cmp r0, r1
     movw r0, #0x5b07
     bne afin
+pvp:
     ldr r0, [r5, #0x354]
     str r0, [r8, #100]
     ldr r0, [r5, #0x358]
@@ -222,6 +229,18 @@ aok:
 afin:
     str r0, [r8]
     b done
+ebot:
+    mov r5, r7
+    cmp r5, #0
+    movw r0, #0x5b06
+    beq afin
+    ldr r0, [r5]
+    ldr r0, [r0, #0x344]
+    ldr r1, [pc, #L:lit6]
+    cmp r0, r1
+    movw r0, #0x5b07
+    bne afin
+    b pvp
 fin:
     movw r0, #0x5b02
     str r0, [r8]

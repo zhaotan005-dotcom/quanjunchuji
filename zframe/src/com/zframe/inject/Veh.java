@@ -21,7 +21,7 @@ public class Veh {
     /** v1.85 cave 末尾的字面量（顺序见 game/re/vcave.py LITS）：GM AddBotAt 实现、难度→人机类、AddOneBot、PVP 人机 OnPossess、给装备、切战斗行为树 */
     static final long[] LITS = { SPAWN, BOT, 0x1012318L, 0x1014898L, 0x10112d0L, 0xc1bbd8L, 0xc1a534L, 0xc17fe0L };
     static final String TRAMP_O = "00009de50810a0e1", BNE_O = "8400001a", BNE_N = "8700001a";
-    static final String CAVE = "00b0a0e3560050e30500000a01b0a0e3420050e30200000a02b0a0e3410050e3c600001a0190a0e30070a0e3060059e1070000aa090195e7300040e2090050e30300008a077187e0877080e0019089e2f5ffffea019089e20080a0e3060059e1070000aa090195e7300040e2090050e30300008a088188e0888080e0019089e2f5ffffea000058e3ac00000a010b05e3000088e5044088e5c0a294e508a088e500005ae3a300000a28019ae5440088e5000050e39f00000a401190e50c1088e5441190e5101088e5481190e5141088e5301190e5481088e5341190e54c1088e5381190e5501088e53c1190e5541088e5000094e5a01090e50400a0e131ff2fe1180088e5000050e38a00000a940090e51c0088e5000050e38600000a00005be31300001a140990e5200088e5000050e38000000ac01290e5241088e5000057e37c00000a000051e37a00000a407088e50400a0e10710a0e1282088e2343088e2e0c19fe53cff2fe1030b05e3000088e5720000ea02005be31300000a000057e36c00000a407088e5300098e500008de5340098e504008de5380098e508008de53c0098e50c008de50400a0e10710a0e1282098e52c3098e58cc19fe53cff2fe1040b05e3000088e55c0000ea0060a0e1001090e5c41591e570219fe5020051e1050b05e35100001a407088e50600a0e10710a0e158c19fe53cff2fe1580088e5000050e3060b05e34800000a581098e50600a0e10720a0e138c19fe53cff2fe10050a0e15c5088e5000055e3060b05e33e00000a000096e5f82590e50600a0e10510a0e132ff2fe1000096e59c2390e50600a0e10510a0e132ff2fe1b40295e5600088e5000050e30c00000a001090e550c291e50010a0e300108de5281088e2342088e20030a0e33cff2fe1000095e5082390e50500a0e1341088e232ff2fe1000095e5440390e5ac109fe5010050e1070b05e31d00001a540395e5640088e5580395e5680088e5240395e56c0088e5ec0395e5700088e5749098e5010019e30200000a0500a0e170c09fe53cff2fe1040019e30400001a020019e30800000a240395e5000050e30500001a580395e5000050e30200000a0500a0e140c09fe53cff2fe1240395e5780088e5080b05e3000088e5010000ea020b05e3000088e544d08de2f08fbde8";
+    static final String CAVE = "00b0a0e3560050e30800000a01b0a0e3420050e30500000a02b0a0e3410050e30200000a03b0a0e3450050e3d300001a0190a0e30070a0e3060059e1070000aa090195e7300040e2090050e30300008a077187e0877080e0019089e2f5ffffea019089e20080a0e3060059e1070000aa090195e7300040e2090050e30300008a088188e0888080e0019089e2f5ffffea000058e3b900000a010b05e3000088e5044088e5c0a294e508a088e500005ae3b000000a28019ae5440088e5000050e3ac00000a401190e50c1088e5441190e5101088e5481190e5141088e5301190e5481088e5341190e54c1088e5381190e5501088e53c1190e5541088e5000094e5a01090e50400a0e131ff2fe1180088e5000050e39700000a940090e51c0088e5000050e39300000a00005be31300001a140990e5200088e5000050e38d00000ac01290e5241088e5000057e38900000a000051e38700000a407088e50400a0e10710a0e1282088e2343088e214c29fe53cff2fe1030b05e3000088e57f0000ea01005be31300001a000057e37900000a407088e5300098e500008de5340098e504008de5380098e508008de53c0098e50c008de50400a0e10710a0e1282098e52c3098e5c0c19fe53cff2fe1040b05e3000088e5690000ea03005be35a00000a0060a0e1001090e5c41591e59c219fe5020051e1050b05e35100001a407088e50600a0e10710a0e184c19fe53cff2fe1580088e5000050e3060b05e34800000a581098e50600a0e10720a0e164c19fe53cff2fe10050a0e15c5088e5000055e3060b05e33e00000a000096e5f82590e50600a0e10510a0e132ff2fe1000096e59c2390e50600a0e10510a0e132ff2fe1b40295e5600088e5000050e30c00000a001090e550c291e50010a0e300108de5281088e2342088e20030a0e33cff2fe1000095e5082390e50500a0e1341088e232ff2fe1000095e5440390e5d8109fe5010050e1070b05e31d00001a540395e5640088e5580395e5680088e5240395e56c0088e5ec0395e5700088e5749098e5010019e30200000a0500a0e19cc09fe53cff2fe1040019e30400001a020019e30800000a240395e5000050e30500001a580395e5000050e30200000a0500a0e16cc09fe53cff2fe1240395e5780088e5080b05e3000088e50c0000ea0750a0e1000055e3060b05e3f9ffff0a000095e5440390e530109fe5010050e1070b05e3f3ffff1ad4ffffea020b05e3000088e544d08de2f08fbde8";
 
     public static volatile String state = "刷车：没装";
     static volatile boolean installed;
@@ -62,7 +62,7 @@ public class Veh {
         for (int i = 0; i < 40; i++) {
             Thread.sleep(50);
             int mg = buf.getInt(0);
-            if (mg >= 0x5b02 && mg <= 0x5b08) return true;
+            if (mg >= 0x5b02 && mg <= 0x5b09) return true;
         }
         return false;
     }
@@ -270,6 +270,27 @@ public class Veh {
         return code;
     }
     static String h(int o) { return Integer.toHexString(buf.getInt(o)); }
+    /** v1.86 对已刷出的人机控制器再给一次装备 / 切战斗树（cave 'E'） */
+    static synchronized int equip(long ctrl, int flags) throws InterruptedException {
+        if (!installed || ctrl < 0x10000) return 0;
+        if (buf == null && !call(0)) return 0;
+        for (int o = 88; o < 128; o += 4) buf.putInt(o, 0);
+        buf.putInt(116, flags);
+        if (!call('E', ctrl)) return 0;
+        return buf.getInt(0);
+    }
+    /** 最后一次 A/E 的控制器地址 */
+    static synchronized long lastCtrl() { return buf == null ? 0 : buf.getInt(92) & 0xffffffffL; }
+    /** 装备组件情况：AutoGiveEquipComponent(+0x410) 的开关字节 +0xd5、装备条数 +0xb0；AIEquipComponent(+0x3f0)；人物 +0x2c0 */
+    static String equipInfo(long ctrl) {
+        if (ctrl < 0x10000) return "无控制器";
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long ag = Server.rd(m, ctrl + 0x410), ae = Server.rd(m, ctrl + 0x3f0), pawn = Server.rd(m, ctrl + 0x2c0);
+            String s = "自动给装备组件 " + Long.toHexString(ag);
+            if (ag > 0x10000) s += "（开关 " + (Server.rd(m, ag + 0xd4) >> 8 & 0xff) + "，条数 " + Server.rd(m, ag + 0xb0) + "）";
+            return s + " 装备组件 " + Long.toHexString(ae) + " 人物 " + Long.toHexString(pawn) + " 行为树 " + Long.toHexString(Server.rd(m, ctrl + 0x324));
+        } catch (Throwable e) { return "读不到 " + e; }
+    }
     static String codeText(int c) {
         switch (c) {
             case 0x5b08: return "成功";
@@ -290,7 +311,7 @@ public class Veh {
                 double[] p = info();
                 if (p == null) { GameOverlay.toastAny(botState = "刷人机：还没有人物（进对局、出生后再按）"); return; }
                 double r = Math.toRadians(p[3]);
-                int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, 1 | 2);
+                int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, 1 | 4);
                 if (c == 0x5b08 || c == 0x5b07) Bots.spawned++;
                 botState = "刷人机（" + DIFF[Bots.diff] + "）：" + codeText(c);
                 note(botState + "；" + botInfo);

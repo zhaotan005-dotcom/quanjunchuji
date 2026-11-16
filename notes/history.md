@@ -453,3 +453,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Menu: 人机 section (lobby + match): 100 人局 toggle, 简单/普通/困难 (EBotDifficulty 1/2/3), manual 再刷一个 uses 'A' too.
   - Con: removed countdown/skydiving tweaks (normal timing from game tables); MaxBotLimit 30 → 100; server level loader now also streams NavigationSubLevel (WorldMeshesLevel still skipped); diag: navmesh size lines, bot-related UE log lines, last bot info (class/controller/pawn/trees/brain), phase.
   - Not done yet (next): hide phantom slot (剩余 1 / win only when all bots dead), ground loot, doors, LAN feasibility.
+- 16:47 v1.85 实测（用户）：一进图出生岛就刷满（剩余 100/101），太卡；人机白衣服没枪，原地跑来跑去跳（= 出生岛行为树在跑，行为树本身是好的）；航线还是很短（海上→P港）、毒圈节奏不是原版数据（用户：这是之前单机版的流程，缩圈时间和航线距离不是原始数据）。用户要：像正式服人机那样附近零散刷几个、有装备、会打人、不跳伞；不要一次全刷。用户打算找云服务器当服务端（手机当服务端太卡）。crash-1116-163650 是 v1.84 那局的自动记录，v1.85 那局没有诊断。
+- RE：CurrentGamePhase = NZBRGameState+0x71c（pn 确认）；阶段 0 等人 1 开局倒计时 2 等跳伞 3 跳伞 4 毒圈 5 混战 6 结束。航线由 AAirTransporterSystem::CalcAirLineByRestrictedAreaInfo 按第一个安全区算（属性 MaxAirlineRadius / RandomRadiusForAirLine / AirLineOffset 在 0x4cc39xx、0x4cca7xx 两个类），毒圈来自 GameFeatureConfig/RestrictedAreaConfig（每圈 WaitTime/ShrinkTime/Radius/Damage）。日志行 "InitArea[%d], WaitTime..."、"AirLine: ..."、"CalcAirLineByRestrictedAreaInfo StartLoc..." 可读出当前数据。
+- v1.86（vc87/core87，未实测）：
+  - Bots.java 重写：阶段 < 4 不刷；开打后玩家落地站稳 15 秒开始，每 25~60 秒随机刷 1~3 个，玩家周围 40~110 米、高度 +3 米，一局最多 99。标志 1|4（给装备 + 强制战斗行为树）；3 秒、10 秒后用新 cave 'E<控制器>' 再给装备；诊断记 AutoGiveEquipComponent(+0x410) 开关(+0xd5)/条数(+0xb0)、AIEquipComponent(+0x3f0)、人物(+0x2c0)、Brain(+0x324)。
+  - cave 'E'（vcave.py，904 B + 8 字面量，到 0x4a2dce8），emu_vcave 全过。
+  - 诊断新增「航线/毒圈日志」（InitArea / AirLine / RestrictedAreaInfos / GamePhase 行），下一版按它改航线和毒圈。
+  - 云服务器：游戏里只有客户端 libUE4.so，没有能在服务器上跑的服务端程序；人机/毒圈逻辑都在手机游戏进程里，云服务器暂时替代不了（已告知用户）。

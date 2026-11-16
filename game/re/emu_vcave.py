@@ -104,4 +104,20 @@ W(BOTVT + 0x344, 0x4444); W(BOTP + 0x324, 0); runA(2, 7); assert r(BUF) == 0x5b0
 # 没有人物 → 不传送，照样检查类
 W(BOTP + 0x2b4, 0); runA(2, 1); assert r(BUF) == 0x5b08 and r(0x33a00) == 0 and r(0x33200) == BOTP; W(BOTP + 0x2b4, PAWN)
 print('A OK')
+def runE(ctrl, flags):
+    mu.mem_write(BUF, b'\0' * 128); s = 'E%dx%d' % (ctrl, BUF)
+    mu.mem_write(STR, b''.join(struct.pack('<I', ord(c)) for c in s) + b'\0' * 4)
+    W(BUF + 116, flags); mu.mem_write(0x33200, b'\0' * 32); mu.mem_write(0x33100, b'\0' * 32)
+    mu.reg_write(UC_ARM_REG_SP, SP); mu.reg_write(UC_ARM_REG_R4, PCO); mu.reg_write(UC_ARM_REG_R5, STR); mu.reg_write(UC_ARM_REG_R6, len(s) + 1); mu.reg_write(UC_ARM_REG_R0, ord('E'))
+    mu.mem_write(SP + 0x44, struct.pack('<9I', 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10a, 0x10b, END))
+    mu.emu_start(ORG, END)
+    assert mu.reg_read(UC_ARM_REG_SP) == SP + 0x44 + 36 and mu.reg_read(UC_ARM_REG_R4) == 0x104
+W(BOTP + 0x324, 0x777); runE(BOTP, 1 | 4)
+print('E', hex(r(BUF)), hex(r(0x33200)), hex(r(BUF+120)), hex(r(BUF+104)), hex(r(BUF+92)))
+assert r(BUF) == 0x5b08 and r(0x33200) == BOTP and r(BUF + 120) == 0x999 and r(0x33100) == 0 and r(BUF + 104) == 0xbabe
+W(BOTVT + 0x344, 0x4444); runE(BOTP, 1); assert r(BUF) == 0x5b07 and r(0x33200) == 0; W(BOTVT + 0x344, ONPOSS)
+runE(0, 1); assert r(BUF) == 0x5b06
+# 大地址（十进制 10 位）
+mu.mem_map(0xb0000000, 0x1000); W(0xb0000000, BOTVT); W(0xb0000000 + 0x358, 0); runE(0xb0000000, 1); assert r(BUF) == 0x5b08 and r(0x33200) == 0xb0000000
+print('E OK')
 print('OK')

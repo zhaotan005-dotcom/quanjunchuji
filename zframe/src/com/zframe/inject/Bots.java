@@ -4,35 +4,36 @@ import java.io.RandomAccessFile;
 import java.util.Random;
 
 /**
- * v1.85 100 人单机局（自动刷人机）。
- * 进对局、人物出生后：
- *   1. 出生岛：围着玩家随机刷 10~15 个（6~25 米）。
- *   2. 还在出生岛等待（阶段 0/1）：分批（每批 3 个，隔 2 秒）在出生岛更远处（30~150 米）补，凑够 99 个人机 + 玩家 = 100。
- *      真实对局里出生岛上的人机会被游戏放上飞机、跳伞到全图（日志 "DropOneAI ... PlaneLoc"），我们不改这个流程。
- *   3. 开局后还没补够（比如「不上飞机」模式直接阶段 4）：等玩家落地站稳，在玩家周围 50~300 米补，高度 = 玩家脚下 +1.5 米。
- * 阶段 = GameState(GM+0x2e0) +0x71c 字节（游戏自己的判断：>3 用战斗行为树）。
- * 不在启动画面动内存：只在 Con 看到对局地图加载完以后才开始，而且先等 8 秒。
- * 什么都不记忆：开关和难度每次启动回到默认（开、普通）。
+ * v1.86 人机随机刷新（像正式服的人机：附近零散冒出来几个，有装备、会打人）。
+ * v1.85 一进图就在出生岛刷满 99 个，人机在等待区乱跑乱跳（出生岛行为树）、没枪，手机还卡 → 用户否决。
+ * 现在：
+ *   - 等待 / 飞机 / 跳伞阶段（GameState+0x71c < 4）一个都不刷；开打（阶段 4 RestrictedArea 起，「不上飞机」模式直接是 4）后，
+ *     玩家落地站稳 15 秒再开始。
+ *   - 每隔 25~60 秒随机刷 1~3 个，在玩家周围 40~110 米（高度 = 玩家 +3 米，落一下），面朝玩家；
+ *     一局最多 99 个（加玩家 100）。
+ *   - 每个都强制战斗行为树、给装备；3 秒、10 秒后再补一次装备（cave 'E'），诊断里记装备组件情况。
+ * 阶段枚举：0 等人 1 开局倒计时 2 等跳伞 3 跳伞 4 毒圈 5 混战 6 结束。
+ * 不记忆：开关、难度每次启动回到默认（开、普通）。
  */
 public class Bots {
     public static volatile boolean auto = true;
     public static volatile int diff = 2;          // 1 简单 2 普通 3 困难（EBotDifficulty 1~3）
-    public static volatile String state = "100 人局：等进对局";
+    public static volatile String state = "人机：等进对局";
+    public static volatile String equipState = "";
     public static volatile int spawned, phase = -1;
-    static final int TOTAL = 99, BATCH = 3;
+    static final int TOTAL = 99;
+    static final int FLAGS = 1 | 4;               // 给装备 + 强制战斗行为树
     static volatile int gen;
     static final Random rnd = new Random();
 
-    /** Con：开始进新地图 */
-    static void newMatch() { gen++; spawned = 0; phase = -1; state = auto ? "100 人局：等进对局" : "100 人局：已关"; }
+    static void newMatch() { gen++; spawned = 0; phase = -1; equipState = ""; state = auto ? "人机：等进对局" : "人机：自动刷新已关"; }
 
-    /** Con：对局地图加载完 */
     static void matchLoaded() {
         final int g = ++gen; spawned = 0; phase = -1;
-        if (!auto) { state = "100 人局：已关"; return; }
+        if (!auto) { state = "人机：自动刷新已关"; return; }
         new Thread(() -> {
             try { run(g); }
-            catch (Throwable e) { state = "100 人局：出错 " + e; Veh.note(state); }
+            catch (Throwable e) { state = "人机：出错 " + e; Veh.note(state); }
             GameOverlay.refreshAny();
         }, "zf-bots").start();
     }
@@ -41,68 +42,67 @@ public class Bots {
 
     static void run(int g) throws Exception {
         Thread.sleep(8000);
-        double[] p = null;
-        for (int i = 0; i < 60 && alive(g); i++) {   // 最多等 2 分钟人物出生
-            p = Veh.info();
-            if (p != null) break;
-            state = "100 人局：等人物出生"; Thread.sleep(2000);
-        }
-        if (p == null || !alive(g)) { if (p == null && g == gen) state = "100 人局：一直没等到人物（" + Veh.state + "）"; return; }
-        final double ix = p[0], iy = p[1], iz = p[2];
-        phase = readPhase((long) p[4]);
-        Veh.note("100 人局：开始，难度 " + Veh.DIFF[diff] + "，阶段 " + phase + "，出生点 " + (int) ix + " " + (int) iy + " " + (int) iz);
-        int fails = 0;
-        // 1. 出生岛围着玩家
-        int first = 10 + rnd.nextInt(6);
-        while (spawned < first && alive(g)) {
-            for (int k = 0; k < BATCH && spawned < first; k++) fails = one(ix, iy, iz + 100, 600, 2500, fails);
-            state = "100 人局：出生岛 " + spawned + "/" + first;
-            GameOverlay.refreshAny();
-            if (fails >= 5) { stop(); return; }
-            Thread.sleep(1200);
-        }
-        // 2/3. 补满
-        double lz = Double.NaN; int still = 0;
+        double lz = Double.NaN; long stillSince = 0, next = 0; int fails = 0, lastPhase = -2;
         while (spawned < TOTAL && alive(g)) {
             double[] q = Veh.info();
-            if (q == null) { Thread.sleep(2000); continue; }
+            if (q == null) { state = "人机：等人物出生"; Thread.sleep(3000); continue; }
             phase = readPhase((long) q[4]);
-            if (phase <= 1) {
-                for (int k = 0; k < BATCH && spawned < TOTAL; k++) fails = one(ix, iy, iz + 100, 3000, 15000, fails);
-                state = "100 人局：出生岛补人 " + spawned + "/" + TOTAL;
-            } else {
-                // 开局后：等玩家落地（高度 3 秒内变化 < 0.5 米）再在附近补
-                if (!Double.isNaN(lz) && Math.abs(q[2] - lz) < 50) still++; else still = 0;
-                lz = q[2];
-                if (still >= 2) {
-                    for (int k = 0; k < BATCH && spawned < TOTAL; k++) fails = one(q[0], q[1], q[2] + 150, 5000, 30000, fails);
-                    state = "100 人局：开局后补人 " + spawned + "/" + TOTAL;
-                } else state = "100 人局：等落地后补人 " + spawned + "/" + TOTAL + "（阶段 " + phase + "）";
+            if (phase != lastPhase) { Veh.note("人机：对局阶段 " + phase); lastPhase = phase; }
+            long now = System.currentTimeMillis();
+            if (phase < 4) {
+                state = "人机：开打后再刷（现在阶段 " + phase + "）";
+                stillSince = 0; GameOverlay.refreshAny(); Thread.sleep(3000); continue;
             }
-            GameOverlay.refreshAny();
-            if (fails >= 5) { stop(); return; }
-            Thread.sleep(still >= 2 || phase <= 1 ? 2000 : 1500);
+            // 落地站稳：高度 2 秒内变化 < 0.5 米，持续 15 秒
+            if (!Double.isNaN(lz) && Math.abs(q[2] - lz) < 50) { if (stillSince == 0) stillSince = now; } else stillSince = 0;
+            lz = q[2];
+            if (stillSince == 0 || now - stillSince < 15000) {
+                if (spawned == 0) state = "人机：落地站稳后开始刷";
+                Thread.sleep(2000); continue;
+            }
+            if (next == 0) next = now;
+            if (now >= next) {
+                int n = 1 + rnd.nextInt(3);
+                for (int k = 0; k < n && spawned < TOTAL && alive(g); k++) fails = one(g, q, fails);
+                if (fails >= 5) { state = "人机：连续失败停了（" + Veh.botState + "）"; Veh.note(state); GameOverlay.refreshAny(); return; }
+                next = now + 25000 + rnd.nextInt(35000);
+                state = "人机：已刷 " + spawned + " 个（" + Veh.DIFF[diff] + "），下一波约 " + (next - now) / 1000 + " 秒后";
+                GameOverlay.refreshAny();
+            }
+            Thread.sleep(2000);
         }
-        if (spawned >= TOTAL) { state = "100 人局：已满 " + (spawned + 1) + " 人"; Veh.note(state + "；最后一个 " + Veh.botInfo); }
+        if (spawned >= TOTAL) state = "人机：本局 " + TOTAL + " 个已刷完";
     }
 
-    /** 在 (cx,cy) 周围 rMin~rMax 厘米的环上刷一个，面朝圆心 */
-    static int one(double cx, double cy, double z, double rMin, double rMax, int fails) throws InterruptedException {
-        double a = rnd.nextDouble() * Math.PI * 2, r = rMin + rnd.nextDouble() * (rMax - rMin);
-        int c = Veh.addBot(diff, cx + r * Math.cos(a), cy + r * Math.sin(a), z, Math.toDegrees(a) + 180, 1 | 2);
+    /** 玩家周围 40~110 米刷一个，面朝玩家；之后补两次装备 */
+    static int one(final int g, double[] q, int fails) throws InterruptedException {
+        double a = rnd.nextDouble() * Math.PI * 2, r = 4000 + rnd.nextDouble() * 7000;
+        int c = Veh.addBot(diff, q[0] + r * Math.cos(a), q[1] + r * Math.sin(a), q[2] + 300, Math.toDegrees(a) + 180, FLAGS);
         if (c == 0x5b08 || c == 0x5b07) {
             spawned++;
-            if (spawned == 1) Veh.note("100 人局：第一个人机 " + Veh.codeText(c) + "；" + Veh.botInfo);
+            final long ctrl = Veh.lastCtrl();
+            if (spawned <= 3) Veh.note("人机：第 " + spawned + " 个 " + Veh.codeText(c) + "；" + Veh.botInfo + "；" + Veh.equipInfo(ctrl));
+            if (c == 0x5b08) new Thread(() -> regive(g, ctrl), "zf-bot-eq").start();
             return 0;
         }
         Veh.botState = "刷人机：" + Veh.codeText(c);
-        Veh.note("100 人局：刷人机失败 " + Veh.codeText(c) + "；" + Veh.botInfo);
+        Veh.note("人机：刷失败 " + Veh.codeText(c) + "；" + Veh.botInfo);
         return fails + 1;
     }
 
-    static void stop() { state = "100 人局：连续失败停了（" + Veh.botState + "）"; Veh.note(state); GameOverlay.refreshAny(); }
+    static void regive(int g, long ctrl) {
+        try {
+            for (int t : new int[] { 3000, 7000 }) {
+                Thread.sleep(t);
+                if (g != gen || !Con.inMatch) return;
+                int c = Veh.equip(ctrl, 1);
+                equipState = "补装备 " + Integer.toHexString(c) + "：" + Veh.equipInfo(ctrl);
+            }
+            if (spawned <= 3) Veh.note("人机：10 秒后 " + equipState);
+        } catch (Throwable ignored) {}
+    }
 
-    /** 对局阶段：GameState(GM+0x2e0)+0x71c，读不到返回 -1 */
+    /** 对局阶段：GameState(GM+0x2e0)+0x71c（CurrentGamePhase），读不到返回 -1 */
     static int readPhase(long gm) {
         if (gm < 0x10000) return -1;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {

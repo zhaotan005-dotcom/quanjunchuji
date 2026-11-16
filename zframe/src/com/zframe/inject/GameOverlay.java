@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.85"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.86"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -717,12 +717,12 @@ public class GameOverlay {
     static void botRows(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "人机");
         LinearLayout r = row(a, root);
-        pick(a, u, r, "100 人局", Bots.auto, () -> { Bots.auto = !Bots.auto; if (!Bots.auto) Bots.newMatch(); refreshAny(); });
+        pick(a, u, r, "自动刷人机", Bots.auto, () -> { Bots.auto = !Bots.auto; if (!Bots.auto) Bots.newMatch(); refreshAny(); });
         LinearLayout d = row(a, root);
         pick(a, u, d, "简单", Bots.diff == 1, () -> { Bots.diff = 1; refreshAny(); });
         pick(a, u, d, "普通", Bots.diff == 2, () -> { Bots.diff = 2; refreshAny(); });
         pick(a, u, d, "困难", Bots.diff == 3, () -> { Bots.diff = 3; refreshAny(); });
-        note(a, u, root, "100 人局：进对局后出生岛自动刷 10~15 个人机围着你，再分批补满 100 人，人机自带装备。难度对之后新刷的人机生效。");
+        note(a, u, root, "自动刷人机：开打落地后，每隔半分钟左右在你附近 40~110 米冒出 1~3 个，一局最多 99 个。难度对之后新刷的人机生效。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
     static void gfxRow(final Activity a, final Ui u, final LinearLayout root) {
@@ -756,7 +756,7 @@ public class GameOverlay {
         botRows(a, u, root);
         LinearLayout br = row(a, root);
         btn(a, u, br, "再刷一个（面前 8 米）", Veh::spawnBot);
-        note(a, u, root, Bots.state + "。" + Veh.botState + "。v1.85 新做，未实测。");
+        note(a, u, root, Bots.state + "。" + Veh.botState + "。v1.86 改，未实测。");
         head(a, u, root, "枪");
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
@@ -844,6 +844,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.85", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.86", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

@@ -198,6 +198,8 @@ public class Con {
     public static volatile String navInfo = "";
     static final java.util.ArrayList<String> botLog = new java.util.ArrayList<>();
     static String botLog() { synchronized (botLog) { return String.join("\n  ", botLog); } }
+    static final java.util.ArrayList<String> flowLog = new java.util.ArrayList<>();
+    static String flowLog() { synchronized (flowLog) { return String.join("\n  ", flowLog); } }
     public static volatile String tweakStatus = "等待游戏启动";
 
     // ===== 帧率 =====
@@ -471,6 +473,10 @@ public class Con {
         // v1.85 诊断：导航网格大小、人机相关日志
         int nv = l.indexOf("RecastNavMeshSizeBytes=");
         if (nv >= 0) navInfo = (navInfo.length() > 300 ? "" : navInfo + " | ") + l.substring(nv, Math.min(l.length(), nv + 120)).trim();
+        // v1.86 诊断：航线、毒圈数据（每圈等待/缩圈时间、半径）、开局倒计时
+        if (l.contains("InitArea[") || l.contains("AirLine") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase")) {
+            synchronized (flowLog) { if (flowLog.size() >= 40) flowLog.remove(0); flowLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
+        }
         if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
             synchronized (botLog) { if (botLog.size() >= 30) botLog.remove(0); botLog.add(l.trim().length() > 220 ? l.trim().substring(0, 220) : l.trim()); }
         }
