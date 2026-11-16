@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v2.02"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v2.03"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -730,6 +730,26 @@ public class GameOverlay {
         btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
         note(a, u, root, Server.state + "。开启后补给和全部皮肤直接在仓库里。");
+        lanRows(a, u, root);
+    }
+    /** v2.03 局域网联机（实验）：引擎里有 UWorld::Listen / IpNetDriver / 服务端 NMT_Login 处理（libUE4 里有 "LoadMap: failed to Listen"、
+     *  "IpNetDriver listening on port"）。房主：open 地图?listen；加入：open IP:7777。两台手机同一 Wi-Fi。结果看诊断里的「联机日志」。 */
+    static void lanRows(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "局域网联机（实验）");
+        note(a, u, root, "本机 IP：" + Lan.ip() + "。两台手机连同一个 Wi-Fi，都装 v2.03 并开服务端。");
+        LinearLayout r = row(a, root);
+        btn(a, u, r, "开房（海岛）", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
+        btn(a, u, r, "开房（雨林）", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
+        LinearLayout ir = row(a, root);
+        final EditText et = new EditText(a);
+        et.setHint("房主 IP，如 192.168.1.5"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
+        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT); et.setSingleLine(true);
+        if (Lan.lastIp != null) et.setText(Lan.lastIp);
+        et.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); et.setPadding(u.dp(10), u.dp(7), u.dp(10), u.dp(7));
+        LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2); elp.setMargins(u.dp(3), u.dp(3), u.dp(3), u.dp(3));
+        ir.addView(et, elp);
+        btn(a, u, ir, "加入", () -> toast(a, Lan.join(et.getText().toString())));
+        note(a, u, root, Lan.state);
     }
     /** v1.85 人机：100 人局开关 + 难度（不记忆，每次启动回到 开 / 普通） */
     static void botRows(final Activity a, final Ui u, final LinearLayout root) {

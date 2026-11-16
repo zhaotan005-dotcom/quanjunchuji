@@ -1,8 +1,9 @@
-# 交接给下一个智能体（2026-11-16，v2.02）
+# 交接给下一个智能体（2026-11-16，v2.03）
 
 先读：README.md（总交接）→ notes/history.md（全部历史 + RE 偏移，末尾最新）→ notes/device-tests/v1.98/（最新实测诊断/崩溃日志/截图）。
 
 ## 当前版本
+- v2.03（vc104/core104），releases/ZFrame-v2.03.apk，未实测：局域网联机实验按钮（open 地图?listen / open IP:7777），Lan.java。
 - v2.02（vc103/core103），releases/ZFrame-v2.02.apk，未实测：头/甲/包每局只刷一次到身上（再刷=栈溢出闪退，见 history 末尾）。
 - v2.01（versionCode 102，CORE_VER=102），releases/ZFrame-v2.01.apk，**未实测**：毒圈前几圈游戏按玩家位置定圈心（0xd99cf4）→ 刷到地图外，补丁 0xd97d68 bge→b 并把 CenterPointOffsetMax 写 0。含 v2.00：飞机/跳伞段高度 200 米 → 1000 米（修摔死，原因见 history 末尾）；开局整图圈半径 ×1.5。
 - v1.99（versionCode 100，ZInit.CORE_VER=100），releases/ZFrame-v1.99.apk，**未实测**。

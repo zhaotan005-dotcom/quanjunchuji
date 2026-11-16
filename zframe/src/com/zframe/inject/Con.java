@@ -442,6 +442,7 @@ public class Con {
                 if (now - startAt > 4000) { startAt = now; startGame(id); }
             } catch (Throwable ignored) {}
         }
+        Lan.line(l);
         int av = l.indexOf("OnAvatarAssembler In Items");
         if (av >= 0) LogCap.note("身上装备编号: " + l.substring(av).trim());
         if (engineSeenAt == 0 && l.contains("LogLoad: Took")) { engineSeenAt = System.currentTimeMillis(); LogCap.note("引擎就绪，10秒后发送设置"); loadAudioPref(); }

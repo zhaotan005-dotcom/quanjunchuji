@@ -526,3 +526,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   崩溃（notes/device-tests/v2.01/crash-1116-200813.txt）：GameThread SIGSEGV SEGV_ACCERR，fault addr …fe78，栈顶 libc realpath+0 ← java.io.File.getCanonicalFile（GameThread 上的 Java，调用者未知）= GameThread 栈溢出；连续 4 次同样。和 v1.94「丢枪到地上闪退」可能同源：身上已有头/甲时再塞一件 → 换装、旧的扔地上（生成拾取物）。闪退那局的游戏日志被轮转掉了，没录到。
 - v2.02（vc103/core103，未实测）：头/甲/包刷到身上每局每个部位只允许一次（GameOverlay.gearOnce，换局清空；刷在地上不限），第二次提示「身上已有再刷会闪退」。
   待查：生成地上拾取物是否本身就会崩（让用户用「地上（脚下）」刷一把枪试）；刷物资计划依赖这个。局域网联机：客户端版 GetNetMode 有 NetDriver 就返回 Client、DS 代码不在包里，暂不可行。
+- 20:27 用户：「地上（脚下）」刷不闪退（之前那次可能是没背包时刷枪+配件再丢）。要做局域网联机。
+  RE：libUE4 的 TCHAR 是 UTF-32。有服务端网络代码：UWorld::Listen（"LoadMap: failed to Listen(%s)"）、"%s IpNetDriver listening on port %i"、UNetDriver::InitListen、服务端 "NMT_Login: Invalid URL"、UNZIpNetDriver（D:/QJCJ/Game/Source/NZNetHandle）、"Listening for LAN beacon requests"。之前说「做不了」是错的，没核实。单机开局是 LogNet: Browse 地图（不带参数）。
+- v2.03（vc104/core104，未实测）：大厅页加「局域网联机（实验）」：显示本机 Wi-Fi IP；开房（海岛/雨林）= Con.exec("open <地图>?listen")；加入 = open IP:7777。新 Lan.java 收网络相关日志行，诊断里「联机日志」。
