@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v2.01"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v2.02"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -658,7 +658,16 @@ public class GameOverlay {
     static boolean takesAttachments(String id) { return id.startsWith("20101") || id.startsWith("20102") || id.startsWith("20103") || id.startsWith("20104") || id.startsWith("20105"); }
     /** 这一局已经刷过的配件（换局清空）：包里已经有的配件不再重复刷 */
     static final java.util.Set<String> givenAtt = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
-    static void newMatch() { givenAtt.clear(); }
+    static void newMatch() { givenAtt.clear(); givenGear.clear(); }
+    /** v2.02 用户：开局刷了 3 级套，跳伞后再刷一次直接闪退（栈溢出）。头/甲/包身上已有时再塞一件 = 游戏要换装、把旧的扔地上，这条路会崩。
+     *  同一局每个部位只刷一次（刷在地上不受限）。 */
+    static final java.util.Set<String> givenGear = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    static boolean gearOnce(Activity a, String slot) {
+        if (onGround) return true;
+        if (givenGear.add(slot)) return true;
+        toast(a, "这局已经刷过" + slot + "，身上已有再刷会闪退");
+        return false;
+    }
     /** 刷一把枪：枪 + 对应子弹 + 这一局还没刷过的全套配件 */
     static void giveGun(Activity a, String name, String id, String ammo) {
         give(a, id, 1);
@@ -808,14 +817,15 @@ public class GameOverlay {
         head(a, u, root, "一键");
         LinearLayout g0 = row(a, root);
         primary(a, u, g0, "一键三件套（3级头 + 3级甲 + 3级包）", () -> {
-            give(a, helmet3(), 1); give(a, armor3(), 1); give(a, "30307000006", 1);
-            after(a, "三件套");
+            boolean h = gearOnce(a, "头"), r = gearOnce(a, "甲"), b = gearOnce(a, "包");
+            if (h) give(a, helmet3(), 1); if (r) give(a, armor3(), 1); if (b) give(a, "30307000006", 1);
+            if (h || r || b) after(a, "三件套");
         });
         head(a, u, root, "单件");
         LinearLayout g4 = row(a, root);
-        btn(a, u, g4, "3级头", () -> giveTry(a, helmetIds(), 0, "3级头"));
-        btn(a, u, g4, "3级甲", () -> giveTry(a, armorIds(), 0, "3级甲"));
-        btn(a, u, g4, "3级包", () -> give(a, "30307000006", 1, "背包"));
+        btn(a, u, g4, "3级头", () -> { if (gearOnce(a, "头")) giveTry(a, helmetIds(), 0, "3级头"); });
+        btn(a, u, g4, "3级甲", () -> { if (gearOnce(a, "甲")) giveTry(a, armorIds(), 0, "3级甲"); });
+        btn(a, u, g4, "3级包", () -> { if (gearOnce(a, "包")) give(a, "30307000006", 1, "背包"); });
         head(a, u, root, "其他");
         LinearLayout g3 = row(a, root);
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
