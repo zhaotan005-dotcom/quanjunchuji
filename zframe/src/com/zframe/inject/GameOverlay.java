@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.07";
+    static final String VER = "v2.08";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -59,7 +59,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(box(PANEL, u.dp(18)));
+            panel.setBackground(boxLine(PANEL, 0x33000000, u.dp(8), Math.max(1, u.dp(1) / 2)));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
@@ -67,26 +67,27 @@ public class GameOverlay {
             LinearLayout head = new LinearLayout(a);
             head.setOrientation(LinearLayout.HORIZONTAL);
             head.setGravity(Gravity.CENTER_VERTICAL);
-            head.setPadding(u.dp(8), u.dp(8), u.dp(8), u.dp(4));
+            head.setPadding(u.dp(6), u.dp(4), u.dp(6), u.dp(4));
+            head.setBackground(box(0xFFDCDCE2, 0));   // v2.08 ImGui 风：单独一条灰色标题栏
             // v2.07 用户：左边一个三角方块（点开展开菜单、再点折叠），标题居中，版本号不放标题栏
             final TextView fold = new TextView(a);
             fold.setTextColor(ACC); fold.setTextSize(13); fold.setGravity(Gravity.CENTER);
-            fold.setBackground(box(0x14007AFF, u.dp(8)));
-            head.addView(fold, new LinearLayout.LayoutParams(u.dp(30), u.dp(30)));
+            fold.setBackground(box(0x1F007AFF, u.dp(4)));
+            head.addView(fold, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             TextView title = new TextView(a);
             title.setText("全军出击联机版"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
             head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
             close.setOnClickListener(v -> showPanel(panel, false, u));
-            head.addView(close, new LinearLayout.LayoutParams(u.dp(30), u.dp(30)));
+            head.addView(close, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             panel.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
             // ---- 当前状态：一行灰字 ----
             final TextView status = new TextView(a);
             status.setTextSize(10.5f); status.setTextColor(SUBT); status.setSingleLine(true);
             status.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            status.setPadding(u.dp(16), 0, u.dp(16), u.dp(8));
+            status.setPadding(u.dp(14), u.dp(6), u.dp(14), u.dp(6));
             panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
 
             // ---- 主体（可收起）：v1.99 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
