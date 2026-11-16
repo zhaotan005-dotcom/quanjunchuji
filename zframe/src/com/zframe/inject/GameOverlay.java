@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.89"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.90"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -703,16 +703,13 @@ public class GameOverlay {
         pick(a, u, fl, "正常", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
         pick(a, u, fl, "不上飞机", Mods.noPlane, () -> result(a, Mods.setPlane(!Mods.noPlane)));
         pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
-        note(a, u, root, "不上飞机：直接在出生岛开打。不刷圈：没有毒圈。两个可以一起选。");
         botRows(a, u, root);
         gfxRow(a, u, root);
-        note(a, u, root, Mods.earlyState + "。游戏运行中再改大厅代码不生效，所以人物、仓库、服务端的钩子在游戏刚加载时装好（只改代码，不改数据，开服务端前不起作用）。");
         LinearLayout dg = row(a, root);
-        btn(a, u, dg, "邮件全皮", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
+        btn(a, u, dg, "开启服务端", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
         btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。第一次用：点「邮件全皮」，邮箱里领取补给和全部皮肤。以后每次进大厅只要点一下「邮件全皮」开服务端就行（领过的不会再发邮件），衣服、发型、涂装都在仓库里换，换好的对局里也穿着。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
-        note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
+        note(a, u, root, Server.state + "。开启后补给和全部皮肤直接在仓库里。");
     }
     /** v1.85 人机：100 人局开关 + 难度（不记忆，每次启动回到 开 / 普通） */
     static void botRows(final Activity a, final Ui u, final LinearLayout root) {
@@ -723,7 +720,6 @@ public class GameOverlay {
         pick(a, u, d, "简单", Bots.diff == 1, () -> { Bots.diff = 1; refreshAny(); });
         pick(a, u, d, "普通", Bots.diff == 2, () -> { Bots.diff = 2; refreshAny(); });
         pick(a, u, d, "困难", Bots.diff == 3, () -> { Bots.diff = 3; refreshAny(); });
-        note(a, u, root, "自动刷人机：开打落地后，每隔半分钟左右在你附近 40~110 米冒出 1~3 个，一局最多 99 个。难度对之后新刷的人机生效。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
     static void gfxRow(final Activity a, final Ui u, final LinearLayout root) {
@@ -749,7 +745,6 @@ public class GameOverlay {
         slider(a, u, root, "加速", "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
         slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
         slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
-        note(a, u, root, "每进一局，这一页的功能都会回到关。");
     }
 
     /** v1.88 刷车人机页（从常用里挪出来） */
@@ -767,13 +762,13 @@ public class GameOverlay {
                 btn(a, u, vr, vg.get(i).label, () -> Veh.spawnGroup(gi));
             }
         }
-        note(a, u, root, Veh.state + "。车刷在你面前约 6 米；同一车型不同颜色合成一个按钮，再按换颜色。");
+        note(a, u, root, Veh.state);
         botRows(a, u, root);
         LinearLayout br = row(a, root);
         btn(a, u, br, "再刷一个（面前 8 米）", Veh::spawnBot);
         note(a, u, root, Bots.state + "。" + Veh.botState + "。");
         head(a, u, root, "毒圈和航线");
-        note(a, u, root, Flow.state + (Flow.air.isEmpty() ? "" : "。" + Flow.air) + "。按全军出击正式服：8 个圈，第一圈等几分钟才缩（海岛 7 分钟、雨林 3 分半）；航线拉长到整张图。v1.88 改，未实测。");
+        note(a, u, root, Flow.state + (Flow.air.isEmpty() ? "" : "。" + Flow.air));
     }
 
     static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
@@ -792,7 +787,7 @@ public class GameOverlay {
         }
         hs.addView(cr);
         root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        head(a, u, root, "点一下放进背包；枪带子弹和全套配件（这局刷过的配件不重复给）");
+        head(a, u, root, "点一下放进背包");
         gunGrid(a, u, root, weapCat);
         giveHint(a, root);
     }
@@ -823,7 +818,7 @@ public class GameOverlay {
         label(a, c, coatText(), 12, false, TXT).setPadding(0, u.dp(8), 0, u.dp(2));
         LinearLayout fr = row(a, c);
         primary(a, u, fr, "现在穿上", () -> give(a, Mods.COAT, 1, "绝地风衣"));
-        head(a, u, root, "换别的衣服（穿不上的会自动跳过）");
+        head(a, u, root, "换别的衣服");
         LinearLayout cr = row(a, root);
         btn(a, u, cr, "上一件", () -> giveCoat(a, -1));
         btn(a, u, cr, "下一件", () -> giveCoat(a, 1));
@@ -846,11 +841,9 @@ public class GameOverlay {
 
     static void settingsPage(final Activity a, final Ui u, final LinearLayout root) {
         gfxRow(a, u, root);
-        note(a, u, root, "流畅：画面简单，帧率最高。最高画质：阴影、特效、远景全开，手机会更热。");
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.89", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.90", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

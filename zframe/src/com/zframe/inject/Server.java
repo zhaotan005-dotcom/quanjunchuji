@@ -122,8 +122,8 @@ public class Server {
         push(36002, 1, true, new PB().u(1, 0).bytes(), "补回 36001");
         push(22006, 2, false, new PB().u(1, 0).bytes(), "补回 22005");
         push(30015, 5, false, new PB().u(1, 0).bytes(), "补回 30014");
-        mark("准备邮件");
-        if (missingGift()) newMail();   // v1.79：补给都领过了就不再发
+        mark("补给直接入库");
+        giveGift();   // v1.90：不再发邮件，角色/发型/衣服直接放进仓库（用户要求）
         mark("准备 13002");
         push(13002, 0, false, depositProps(true), "仓库");
         mark("开 SEND 门");
@@ -340,7 +340,7 @@ public class Server {
     }
     /** 一条一条投递：先记下要投哪条，再把上限 +1，游戏线程下一帧投它 */
     public static String deliverOne() {
-        if (!on) return "先按「邮件全皮」";
+        if (!on) return "先按「开启服务端」";
         if (rpl.getInt(12) == 0) return "还没找到连接器，等几秒";
         int n = rpl.getInt(28), got = rpl.getInt(8);
         if (got < n) return "上一条还没被游戏收走（已收 " + got + "/" + n + "）";
@@ -371,14 +371,14 @@ public class Server {
 
     /** 自动投递：上限放到最大，回包一来就交给游戏 */
     public static String deliverAll() {
-        if (!on) return "先按「邮件全皮」";
+        if (!on) return "先按「开启服务端」";
         mark("自动投递开（排队 " + cmds.size() + " 条，已投 " + rpl.getInt(28) + "）");
         rpl.putInt(28, 0x7fffffff);
         return "自动投递已开，回包会直接交给游戏";
     }
     /** 跳过 1 条：不交给游戏，直接把读指针挪过去 */
     public static synchronized String skipOne() {
-        if (!on) return "先按「邮件全皮」";
+        if (!on) return "先按「开启服务端」";
         int n = rpl.getInt(28), got = rpl.getInt(8);
         if (got < n) return "上一条还没被游戏收走";
         if (n >= cmds.size()) return "没有可跳过的了";
@@ -640,6 +640,13 @@ public class Server {
         mails.add(m);
         push(25007, 0, false, new PB().m(1, mailListOf(java.util.Collections.singletonList(m))).bytes());
     }
+    /** v1.90：补给直接放进仓库（不发邮件），返回新加几件 */
+    static synchronized int giveGift() {
+        initProps(); int n = 0;
+        for (long[] g : GIFT) if (addProp(g) != 0) n++;
+        if (n > 0) saveProps();
+        return n;
+    }
     static synchronized boolean missingGift() {
         initProps();
         for (long[] g : GIFT) { boolean have = false; for (long[] p : props.values()) if (p[0] == g[0]) { have = true; break; } if (!have) return true; }
@@ -647,7 +654,7 @@ public class Server {
     }
     /** Z 菜单「发邮件」：服务端开着才行 */
     public static String sendMail() {
-        if (!on) return state = "自建服务端：先按「邮件全皮」";
+        if (!on) return state = "自建服务端：先按「开启服务端」";
         newMail();
         return "已发一封补给邮件，去邮箱领取";
     }
@@ -791,16 +798,16 @@ public class Server {
         java.util.LinkedHashSet<Long> ids = new java.util.LinkedHashSet<>(savedMasks());
         synchronized (nameHits) { ids.addAll(maskCand.keySet()); }
         if (!maskCand.isEmpty()) saveMasks(maskCand.keySet());
-        if (ids.isEmpty()) return "口罩：内存里没找到名字（" + nameHits.size() + " 处），等进过仓库再按一次「邮件全皮」";
+        if (ids.isEmpty()) return "口罩：内存里没找到名字（" + nameHits.size() + " 处）";
         initProps(); int added = 0;
         for (long v : ids) if (addProp(new long[] { v }) != 0) added++;
         if (added > 0) { push(13002, 0, false, depositProps(), "口罩入库"); saveProps(); }
         return "口罩：编号 " + ids + "，新放进仓库 " + added + " 件";
     }
     static volatile String maskState = "";
-    /** v1.74：扫出全部服装，做成第二封邮件「全部皮肤」（用户要在邮件里领）。连接器找到后自动跑一次 */
+    /** v1.74 扫出全部服装；v1.90 改成直接放进仓库再推 13002（不发邮件）。连接器找到后自动跑一次 */
     public static String allSkins() {
-        if (!on) return state = "自建服务端：先按「邮件全皮」";
+        if (!on) return state = "自建服务端：先按「开启服务端」";
         try {
             mark("开始扫全部皮肤");
             long t0 = System.currentTimeMillis();
@@ -822,10 +829,11 @@ public class Server {
                 }
                 skinCats = "门槛 " + min + " 次，分类 " + cats;
                 if (l.isEmpty()) return skinState = "全部皮肤：仓库里都有了（找到 " + cats.values().stream().mapToInt(Integer::intValue).sum() + " 件）";
-                skinGift = l.toArray(new long[0][]);
-                newMail(1);
+                for (long[] g : l) addProp(g);
+                saveProps();
+                push(13002, 0, false, depositProps(), "全部皮肤入库");
             }
-            String r = "全部皮肤：发了一封邮件，" + l.size() + " 件（" + (System.currentTimeMillis() - t0) + " ms），去邮箱领取";
+            String r = "全部皮肤：直接放进仓库 " + l.size() + " 件（" + (System.currentTimeMillis() - t0) + " ms）";
             mark(r);
             return skinState = r;
         } catch (Throwable e) { return skinState = "全部皮肤：出错 " + e; }
