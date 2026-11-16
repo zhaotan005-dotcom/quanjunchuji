@@ -59,10 +59,13 @@ hd=lambda o: int.from_bytes(mu.mem_read(0x7b000000+o,4),'little')
 ok&= tick() and got==[] and hd(16)==UPD and hd(20)==1 and hd(8)==0
 # 2) 填上连接器：两条都投递
 mu.mem_write(0x7b00000c,CONN.to_bytes(4,'little'))
+# v1.66 上限=1：只投第一条
+mu.mem_write(0x7b00001c,(1).to_bytes(4,'little')); ok&= tick() and [g[1] for g in got]==recs[:1] and hd(8)==1
+mu.mem_write(0x7b00001c,(9).to_bytes(4,'little'))
 ok&= tick(); print('TICK calls',got,'已收',hd(8),'帧',hd(20))
-ok&= [g[1] for g in got]==recs and all(g[0]==CONN and g[2]==0 for g in got) and hd(8)==2 and hd(20)==2
+ok&= [g[1] for g in got]==recs and all(g[0]==CONN and g[2]==0 for g in got) and hd(8)==2 and hd(20)==3
 # 3) 没有新包：不调用
-got.clear(); ok&= tick() and got==[] and hd(20)==3
+got.clear(); ok&= tick() and got==[] and hd(20)==4
 # --- v1.61 邮件 ---
 k=M('msg.CSPkg').FromString(bytes.fromhex(L[5])); n=M('msg.CSMailPushNewMailNtf').FromString(k.body)
 m=n.mail_list.mails[0]; print('25007:',k.head.cmd,'type',n.mail_list.type,'index',m.index,m.title,'附件',len(m.attachment.props),'已读',m.read_flag)

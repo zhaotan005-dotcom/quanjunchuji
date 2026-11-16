@@ -59,7 +59,7 @@ public class Server {
     /** TICK 段（v1.63）：挂在 FEngineLoop::Tick 开头。连接器对象（+12）找到前只记帧数，找到后把回包逐个交给 vt+0x164 */
     static String tickCave(int buf, int ret) {
         return "f3412de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
-            + "100084e5146094e5016086e2146084e50c8094e5000058e31600000a045094e5006094e55bf07ff5060055e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e8ffffeaf341bde8f04f2de91cb08de204f01fe5"
+            + "100084e5146094e5016086e2146084e50c8094e5000058e31a00000a045094e5006094e55bf07ff5060055e1150000aa086094e51c2094e5020056e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e4ffffeaf341bde8f04f2de91cb08de204f01fe5"
             + w32(ret);
     }
     static String hook(int target) { return "04f01fe5" + w32(target); }
@@ -109,17 +109,22 @@ public class Server {
     public static synchronized String start() {
         if (on) return state;
         if (Con.inMatch) return state = "自建服务端：请在大厅里开";
+        mark("开服务端，钩子：" + hookWhen);
         String r = install("开服务端时（运行中装，可能不生效）");
         if (!"ok".equals(r)) return state = "自建服务端：" + r + "，没开";
         on = true;
-        push(13002, 0, false, depositProps());         // 一开就先把仓库物品推过去
+        rpl.putInt(28, 0);                             // v1.66：先不投递，按「投递 1 条」一条一条来
+        mark("准备 13002");
+        push(13002, 0, false, depositProps());         // 一开就先把仓库物品推过去（排队，等投递）
+        mark("准备邮件");
         newMail();                                     // 再推一封带附件的系统邮件（25007），去邮箱里领取
+        mark("开 SEND 门");
         rpl.putInt(24, 1);                             // 打开 SEND 的门
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
         Thread f = new Thread(Server::findConn, "zf-conn"); f.setDaemon(true); f.start();
         final int f0 = rpl.getInt(20);
         new Thread(() -> { try { Thread.sleep(1000); } catch (Throwable ignored) {} frames1s = rpl.getInt(20) - f0; }).start();
-        Con.exec("open " + Con.LOBBY);                     // 大厅重进一次，让它把开场请求发给我们
+        mark("服务端已开（没重进大厅）");
         return state = "自建服务端：已开";
     }
 
@@ -132,16 +137,19 @@ public class Server {
             long b = Mods.base(), vt = b + CONN_VT;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
                 if (rd(m, vt + 0x11c) != b + CONN_INIT) { connState = "连接器：vtable 对不上，没找"; return; }
-                connState = "连接器：正在扫内存";
+                connState = "连接器：正在扫内存"; mark("开始扫连接器");
                 long t0 = System.currentTimeMillis(), c = scan(m, vt);
                 long ms = System.currentTimeMillis() - t0;
                 if (c == 0) { connState = "连接器：没找到（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）"; return; }
+                connInfo = "  连接器 +fa038=" + Long.toHexString(rd(m, c + 0xfa038)) + " +fa054=" + Long.toHexString(rd(m, c + 0xfa054))
+                    + " 队列 " + rd(m, c + 0xfa05c);
+                mark("找到连接器 " + Long.toHexString(c) + connInfo);
                 rpl.putInt(12, (int) c);
                 connState = "连接器：" + Long.toHexString(c) + "（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）";
             }
         } catch (Throwable e) { connState = "连接器：出错 " + e; }
     }
-    static volatile long scanned;
+    static volatile long scanned; static volatile String connInfo = "";
     static long rd(RandomAccessFile m, long a) {
         if (a < 0x1000 || a > 0xfffffff0L || (a & 3) != 0) return 0;
         try { byte[] x = new byte[4]; m.seek(a); m.readFully(x); return (x[0] & 0xff) | (x[1] & 0xff) << 8 | (x[2] & 0xff) << 16 | (x[3] & 0xffL) << 24; }
@@ -247,6 +255,55 @@ public class Server {
         VarHandle.releaseFence();
         rpl.putInt(0, rplWp);
         replied++;
+        cmds.add(cmd + "（" + p.length + " 字节）");
+    }
+    static final ArrayList<String> cmds = new ArrayList<>();
+
+    // ---------------- v1.66 闪退定位：每一步先同步写进文件，下次启动能看到上次停在哪 ----------------
+    static boolean rotated;
+    static synchronized java.io.File stepFile() {
+        android.app.Activity a = Con.act; if (a == null) return null;
+        java.io.File f = new java.io.File(a.getFilesDir(), "zf_server_steps.txt");
+        if (!rotated) {   // 每次启动第一次用到时，把上次的记录改名保存
+            rotated = true;
+            java.io.File old = new java.io.File(f.getParentFile(), "zf_server_steps_prev.txt");
+            if (f.exists()) { old.delete(); f.renameTo(old); }
+        }
+        return f;
+    }
+    static String lastRun;
+    static synchronized void mark(String s) {
+        java.io.File f = stepFile(); if (f == null) return;
+        try (java.io.FileOutputStream o = new java.io.FileOutputStream(f, true)) {
+            o.write((new java.text.SimpleDateFormat("HH:mm:ss.SSS").format(new java.util.Date()) + " " + s + "\n").getBytes("UTF-8"));
+            o.getFD().sync();
+        } catch (Throwable ignored) {}
+    }
+    /** 上一次运行最后几步（开服务端时把旧文件改名保存） */
+    static String readSteps(java.io.File f, int n) {
+        if (f == null || !f.exists()) return "（没有）";
+        try { java.util.List<String> l = java.nio.file.Files.readAllLines(f.toPath());
+            return String.join("\n  ", l.subList(Math.max(0, l.size() - n), l.size())); }
+        catch (Throwable e) { return "读不到"; }
+    }
+    static void rotateSteps() {
+        java.io.File f = stepFile(); if (f == null) return;
+        java.io.File old = new java.io.File(f.getParentFile(), "zf_server_steps_prev.txt");
+        if (f.exists()) { old.delete(); f.renameTo(old); }
+    }
+    /** 一条一条投递：先记下要投哪条，再把上限 +1，游戏线程下一帧投它 */
+    public static String deliverOne() {
+        if (!on) return "先按「开启服务端」";
+        if (rpl.getInt(12) == 0) return "还没找到连接器，等几秒";
+        int n = rpl.getInt(28), got = rpl.getInt(8);
+        if (got < n) return "上一条还没被游戏收走（已收 " + got + "/" + n + "）";
+        if (n >= cmds.size()) return "没有新回包了（已投 " + n + " 条）";
+        mark("投递第 " + (n + 1) + " 条：" + cmds.get(n));
+        rpl.putInt(28, n + 1);
+        try { Thread.sleep(300); } catch (Throwable ignored) {}
+        String r = "第 " + (n + 1) + " 条 " + cmds.get(n) + (rpl.getInt(8) > n ? " 游戏已收，没闪退" : " 游戏还没收");
+        mark("  → " + r);
+        return r;
     }
 
     // ---------------- 仓库 ----------------
@@ -422,10 +479,14 @@ public class Server {
     public static synchronized String report() {
         StringBuilder sb = new StringBuilder(state).append('\n');
         sb.append("钩子：").append(hookWhen).append('\n');
+        java.io.File sf = stepFile();
+        if (sf != null) sb.append("上次运行最后几步：\n  ").append(readSteps(new java.io.File(sf.getParentFile(), "zf_server_steps_prev.txt"), 8))
+            .append("\n这次：\n  ").append(readSteps(sf, 8)).append('\n');
         if (req == null) return sb.toString();
         sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
           .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n")
           .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
+        sb.append(connInfo).append("\n已投 ").append(rpl.getInt(28)).append(" 条，排队 ").append(cmds).append('\n');
         sb.append(selfCheck()).append('\n');
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
