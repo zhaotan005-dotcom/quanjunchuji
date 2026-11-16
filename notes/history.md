@@ -439,3 +439,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 刷人机: vcave extended: 'B<n>x<buf>' calls ServerAddBotAt_Implementation 0x1115620(PC, int n=1, FVector loc r2/r3/[sp], FRotator [sp+4..]) — from tutorial PC class (vt 0x4ca3408, AddBotAt thunk vt+0xe40). It checks GameMode IsA NZBattleRoyaleGame (StaticClass 0x11bd4ec) then calls GM vt+0x5c4. Marker 0x5b04. Bot 8 m ahead facing player. emu_vcave.py covers B path.
   - PC ServerAddBot impl (vt+0xcd4) is bx lr (stripped) in all PC vtables.
   - Doors: strings show ANZSceneDoorManager (client) "Should never spawn On Server", NZDoorManager_C BP, StandaloneUnloadAllDoor prop. Not yet investigated.
+- 16:05 v1.84 device: 刷人机 works (many bots spawned, 剩余 9), gun damage kills bots. When bots all dead (剩余 2 = player + phantom slot) match settles immediately (normal win). Ask user if they want 不结算.
