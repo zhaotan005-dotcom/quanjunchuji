@@ -108,6 +108,10 @@ public class Server {
     }
 
     static volatile boolean on;
+    /** v2.09：开房/加入前把服务端钩子变成直通（关 SEND 门、停投递），排查联机进图闪退是不是它 */
+    static void quiet() {
+        try { if (rpl != null) { rpl.putInt(24, 0); rpl.putInt(28, 0); } mark("联机：服务端钩子已静默"); } catch (Throwable e) { mark("静默失败 " + e); }
+    }
     public static synchronized String start() {
         if (on) return state;
         if (Con.inMatch) return state = "自建服务端：请在大厅里开";

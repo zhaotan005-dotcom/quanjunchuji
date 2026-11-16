@@ -67,7 +67,7 @@ final class Lan {
     }
     static String host(String map) {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
-        role = 1; Bots.auto = false; beat("开房加载");
+        role = 1; Bots.auto = false; Server.quiet(); beat("开房加载");
         boolean ok = Con.exec("open " + map + "?listen");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
         note(state);
@@ -81,7 +81,7 @@ final class Lan {
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";
         unlock();
-        role = 2; Bots.auto = false; beat("加入加载");
+        role = 2; Bots.auto = false; Server.quiet(); beat("加入加载");
         boolean ok = Con.exec("open " + ip);
         state = ok ? "加入：已发 open " + ip : "加入：命令没发出去";
         note(state);

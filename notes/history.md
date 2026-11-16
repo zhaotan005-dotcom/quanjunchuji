@@ -542,3 +542,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.06（vc107/core107，未实测）：联机时（Lan.role≠0）进图不发调整命令、不跑 Flow/Bots；开房后或已在联机里不自动开服务端；开房/加入后每秒把 VmSize/VmRSS 写进持久步骤文件（下次导出「上次运行最后几步」可见）；联机日志也写步骤文件；去掉每次启动自动存 crash 文件；菜单默认收起。
 - v2.07（vc108/core108）：标题栏改为左边三角方块（▶ 收起 / ▼ 展开）、标题居中、版本号移到状态行和画面页；收起宽 210dp。含 v2.06 全部改动，未实测。
 - v2.08（vc109/core109）：用户给了 沐岑国体注入（root+64位 ImGui，igce 国际服体验服，不用），要类似菜单；用户没 root 拿不到截图 → 做 ImGui 浅色风：灰色标题栏条、小圆角 8dp + 细边框、三角方块 26dp。未实测。
+- 21:40 v2.08 开房（Savage）：心跳显示加载后约 6–7 秒进程消失，VmRSS 约 760 MB、Swap 8 MB → 不是内存/手机配置问题。游戏日志停在「Bringing up level for play took」；系统日志没有新的 Fatal signal（怀疑 Bugly 自己吞了信号）。
+- v2.09（vc110/core110，未实测）：开房/加入时 Server.quiet() 关 SEND 门 + 停投递（排除服务端钩子）；诊断加 logcat system 缓冲、6 万行、CrashReport/Bugly 关键词；扫游戏私有目录和 Android/data 下 3 小时内的崩溃文件（crash/tomb/native/dump/bugly）并附可读字符串。

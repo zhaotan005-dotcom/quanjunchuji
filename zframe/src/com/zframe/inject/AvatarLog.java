@@ -17,7 +17,7 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v2.08 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame v2.09 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
@@ -48,14 +48,15 @@ public class AvatarLog {
         StringBuilder sb = new StringBuilder("== 系统日志（闪退）==\n");
         int n = 0;
         try {
-            Process p = Runtime.getRuntime().exec(new String[] { "logcat", "-d", "-v", "time", "-b", "crash", "-b", "main", "-t", "6000" });
+            Process p = Runtime.getRuntime().exec(new String[] { "logcat", "-d", "-v", "time", "-b", "crash", "-b", "main", "-b", "system", "-t", "60000" });
             BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "UTF-8"));
             java.util.ArrayDeque<String> keep = new java.util.ArrayDeque<>();
             String l;
             while ((l = br.readLine()) != null) {
                 if (l.contains("Fatal signal") || l.contains("SIGSEGV") || l.contains("SIGABRT") || l.contains("backtrace") || l.contains(" #")
                         || l.contains("Abort message") || l.contains("fault addr") || l.contains("libUE4") || l.contains("Cmdline")
-                        || l.contains("KeyLobbyMsg") || l.contains("FATAL") || l.contains("Assertion")) {
+                        || l.contains("KeyLobbyMsg") || l.contains("FATAL") || l.contains("Assertion")
+                        || l.contains("CrashReport") || l.contains("Bugly") || l.contains("eup") || l.contains("signal") || l.contains("pubgm") && (l.contains("died") || l.contains("kill") || l.contains("exit"))) {
                     keep.add(l.length() > 300 ? l.substring(0, 300) : l);
                     if (keep.size() > 150) keep.removeFirst();
                 }
@@ -63,7 +64,9 @@ public class AvatarLog {
             p.destroy();
             for (String k : keep) { sb.append(k).append('\n'); n++; }
         } catch (Throwable t) { sb.append("读不到：").append(t.getMessage()).append('\n'); }
-        sb.append("（").append(n).append(" 行）\n== 上一次游戏日志最后 80 行 ==\n");
+        sb.append("（").append(n).append(" 行）\n");
+        sb.append(crashFiles());
+        sb.append("== 上一次游戏日志最后 80 行 ==\n");
         try {
             File prev = null;
             File[] fs = cur.getParentFile().listFiles();
@@ -78,6 +81,41 @@ public class AvatarLog {
             }
         } catch (Throwable t) { sb.append("读不到：").append(t.getMessage()).append('\n'); }
         return sb.toString();
+    }
+
+    /** v2.09：游戏自带的崩溃上报（Bugly 等）会吞掉系统的闪退记录，去游戏私有目录里找最近 3 小时的崩溃文件 */
+    static String crashFiles() {
+        StringBuilder sb = new StringBuilder("== 游戏私有目录里的崩溃文件 ==\n");
+        try {
+            File root = new File("/data/data/com.tencent.tmgp.pubgm");
+            java.util.List<File> hit = new java.util.ArrayList<>();
+            scan(root, 0, hit, System.currentTimeMillis() - 3 * 3600_000L);
+            File ext = new File("/storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files");
+            scan(ext, 0, hit, System.currentTimeMillis() - 3 * 3600_000L);
+            int shown = 0;
+            for (File f : hit) {
+                sb.append(new java.text.SimpleDateFormat("HH:mm:ss").format(new java.util.Date(f.lastModified()))).append(' ').append(f.getPath()).append(' ').append(f.length()).append("\n");
+                if (shown < 4 && f.length() < 200_000) {
+                    shown++;
+                    byte[] b = java.nio.file.Files.readAllBytes(f.toPath());
+                    StringBuilder t = new StringBuilder(); int run = 0; StringBuilder cur = new StringBuilder();
+                    for (byte x : b) { if (x >= 32 && x < 127 || x == 10) { cur.append((char) x); } else { if (cur.length() >= 6) t.append(cur).append('\n'); cur.setLength(0); } if (t.length() > 6000) break; }
+                    if (cur.length() >= 6) t.append(cur);
+                    sb.append(t.length() > 6000 ? t.substring(0, 6000) : t).append("\n---\n");
+                }
+            }
+            if (hit.isEmpty()) sb.append("没找到\n");
+        } catch (Throwable e) { sb.append("读不到：").append(e).append('\n'); }
+        return sb.toString();
+    }
+    static void scan(File d, int depth, java.util.List<File> out, long since) {
+        File[] fs = d.listFiles(); if (fs == null || depth > 5 || out.size() > 30) return;
+        for (File f : fs) {
+            String n = f.getName().toLowerCase();
+            if (f.isDirectory()) { if (!n.equals("paks") && !n.equals("cache") && !n.startsWith("obb")) scan(f, depth + 1, out, since); }
+            else if (f.lastModified() > since && (n.contains("crash") || n.contains("tomb") || n.contains("native") || n.contains("eup") || n.contains("dump") || n.contains("dmp") || n.contains("bugly") || d.getName().toLowerCase().contains("bugly") || d.getName().toLowerCase().contains("crash")))
+                out.add(f);
+        }
     }
 
     /** 读文件最后 max 字节；游戏日志有时是异或 0x73 存的（开头没有 "Log" 就解码），和 Con 里的判断一样 */
