@@ -147,7 +147,7 @@ public class Veh {
                     GameOverlay.toastAny("第一次刷车要读车表，约半分钟，读完会提示");
                     state = "刷车：正在读车表…"; GameOverlay.refreshAny();
                     rows = readRows(dt); rowsDt = dt; next = 0;
-                    LogCap.note("刷车 " + tableInfo); GameOverlay.toastAny(tableInfo.length() > 60 ? tableInfo.substring(0, 60) : tableInfo);
+                    note("刷车 " + tableInfo); GameOverlay.toastAny(tableInfo.length() > 60 ? tableInfo.substring(0, 60) : tableInfo);
                 }
                 ArrayList<Row> use = new ArrayList<>();
                 for (Row r : rows) if (!nice(r.name).equals("船")) use.add(r);
@@ -164,9 +164,9 @@ public class Veh {
                 buf.putFloat(52, 0f); buf.putFloat(56, (float) Math.toDegrees(yaw)); buf.putFloat(60, 0f);
                 boolean ok = call(r.id) && buf.getInt(0) == 0x5b03;
                 String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + nice(r.name) + "（" + r.id + "，" + ((next - 1) % use.size() + 1) + "/" + use.size() + "）";
-                LogCap.note(s + " 位置 " + x + "," + y + "," + z);
+                note(s + " 位置 " + x + "," + y + "," + z);
                 GameOverlay.toastAny(state = s + (ok ? "，在你面前，没看到就再按一次换一种" : ""));
-            } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); LogCap.note(state); }
+            } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();
     }
@@ -181,8 +181,67 @@ public class Veh {
             void add(int v) { if (v == 0 || n > t.length / 2) return; int h = (v * 0x9E3779B1) >>> 18; while (t[h] != 0 && t[h] != v) h = (h + 1) & (t.length - 1); if (t[h] == 0) { t[h] = v; n++; } }
             boolean has(int v) { if (v == 0) return false; int h = (v * 0x9E3779B1) >>> 18; while (t[h] != 0) { if (t[h] == v) return true; h = (h + 1) & (t.length - 1); } return false; }
         }
+        /** v1.82：先在 libUE4 自己的数据段里找 GNames 全局（几 MB，几秒），找不到才全内存扫 */
+        static Names fast(RandomAccessFile m) throws Exception {
+            ArrayList<long[]> lib = new ArrayList<>(), anon = regions();
+            try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
+                String l; boolean after = false;
+                while ((l = r.readLine()) != null) {
+                    String[] p = l.trim().split("\\s+");
+                    String name = p.length > 5 ? p[5] : "";
+                    boolean isLib = name.endsWith("libUE4.so");
+                    String[] ab = p[0].split("-");
+                    long s0 = Long.parseLong(ab[0], 16), e0 = Long.parseLong(ab[1], 16);
+                    if (p[1].startsWith("rw") && (isLib || after && (name.isEmpty() || name.startsWith("[anon:.bss")))) lib.add(new long[] { s0, e0 });
+                    after = isLib || after && name.startsWith("[anon:.bss");
+                }
+            }
+            long[] lo = new long[anon.size()], hi = new long[anon.size()];
+            for (int i = 0; i < lo.length; i++) { lo[i] = anon.get(i)[0]; hi[i] = anon.get(i)[1]; }
+            long t0 = System.currentTimeMillis(), size = 0; int cand = 0;
+            for (int pass = 0; pass < 2; pass++) for (long[] g : lib) {
+                int n = (int) (g[1] - g[0]); size += pass == 0 ? n : 0;
+                byte[] bb = new byte[n];
+                try { m.seek(g[0]); m.readFully(bb); } catch (Throwable e) { continue; }
+                int[] w = new int[n / 4];
+                ByteBuffer.wrap(bb).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(w);
+                for (int i = 0; i < w.length; i++) {
+                    long v = w[i] & 0xffffffffL;
+                    if (v < 0x10000 || (v & 3) != 0 || !in(lo, hi, v)) continue;
+                    cand++;
+                    // pass 0：这个字本身就是块 0 指针（块表就在 libUE4 数据段里）；pass 1：这个字指向块表
+                    long chunks = pass == 0 ? g[0] + 4L * i : v;
+                    long c0 = pass == 0 ? v : Server.rd(m, v);
+                    if (pass == 1 && (c0 < 0x10000 || !in(lo, hi, c0))) continue;
+                    Names r = check(m, c0, chunks);
+                    if (r != null) { note("刷车 名字表在 libUE4 数据段找到 块表=" + Long.toHexString(chunks) + " 方式" + pass + "（" + (System.currentTimeMillis() - t0) + " ms）"); return r; }
+                }
+            }
+            note("刷车 libUE4 数据段没找到名字表（" + size / 1024 + " KB，候选 " + cand + "，" + (System.currentTimeMillis() - t0) + " ms）");
+            return null;
+        }
+        static boolean in(long[] lo, long[] hi, long v) {
+            int a = 0, b = lo.length - 1;
+            while (a <= b) { int c = (a + b) >>> 1; if (v < lo[c]) b = c - 1; else if (v >= hi[c]) a = c + 1; else return true; }
+            return false;
+        }
+        static Names check(RandomAccessFile m, long c0, long chunks) {
+            long e0 = Server.rd(m, c0);
+            if (e0 < 0x10000 || (e0 & 3) != 0) return null;
+            if (!"None".equals(ascii(m, e0 + 8, 8)) || Server.rd(m, e0) != 0) return null;
+            long e1 = Server.rd(m, c0 + 4);
+            if (e1 < 0x10000 || !"ByteProperty".equals(ascii(m, e1 + 8, 16))) return null;
+            long f1 = Server.rd(m, e1);
+            if (f1 != 1 && f1 != 2) return null;
+            Names r = new Names(); r.chunks = chunks; r.shift = f1 == 2;
+            return r;
+        }
         static synchronized Names get() throws Exception {
             if (cached != null) return cached;
+            try (RandomAccessFile mm = new RandomAccessFile("/proc/self/mem", "r")) {
+                Names f = fast(mm);
+                if (f != null) return cached = f;
+            }
             ArrayList<long[]> rs = regions();
             long total = 0; for (long[] g : rs) total += g[1] - g[0];
             ISet none = new ISet(), byteP = new ISet();
@@ -206,9 +265,9 @@ public class Veh {
                                 && new String(bb, i, 12, "ISO-8859-1").equals("ByteProperty")) byteP.add((int) (a + i - 8));
                         }
                     }
-                    if ((done & 0x3ffffff) == 0) state = "刷车：读名字表 1/3 " + done * 100 / Math.max(1, total) + "%";
+                    if (((done >> 20) & 63) == 0) { state = "刷车：读名字表 1/3 " + done * 100 / Math.max(1, total) + "%"; GameOverlay.refreshAny(); }
                 }
-                LogCap.note("刷车 名字表候选 None " + none.n + " ByteProperty " + byteP.n + "（" + (System.currentTimeMillis() - t0) + " ms，" + total / 1048576 + " MB）");
+                note("刷车 名字表候选 None " + none.n + " ByteProperty " + byteP.n + "（" + (System.currentTimeMillis() - t0) + " ms，" + total / 1048576 + " MB）");
                 if (none.n == 0 || byteP.n == 0) return null;
                 // 第 2 遍：块 0 = 相邻两个字分别指向 None 和 ByteProperty
                 long chunk0 = 0; done = 0;
@@ -219,9 +278,9 @@ public class Veh {
                     done += n;
                     ByteBuffer.wrap(bb, 0, n).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(w, 0, n / 4);
                     for (int i = 0; i + 1 < n / 4; i++) if (byteP.has(w[i + 1]) && none.has(w[i])) { chunk0 = a + 4L * i; break outer; }
-                    if ((done & 0x3ffffff) == 0) state = "刷车：读名字表 2/3 " + done * 100 / Math.max(1, total) + "%";
+                    if (((done >> 20) & 63) == 0) { state = "刷车：读名字表 2/3 " + done * 100 / Math.max(1, total) + "%"; GameOverlay.refreshAny(); }
                 }
-                LogCap.note("刷车 名字块0=" + Long.toHexString(chunk0) + "（" + (System.currentTimeMillis() - t0) + " ms）");
+                note("刷车 名字块0=" + Long.toHexString(chunk0) + "（" + (System.currentTimeMillis() - t0) + " ms）");
                 if (chunk0 == 0) return null;
                 Names r = new Names();
                 r.shift = Server.rd(m, Server.rd(m, chunk0 + 4)) == 2;
@@ -234,10 +293,10 @@ public class Veh {
                     done += n;
                     ByteBuffer.wrap(bb, 0, n).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(w, 0, n / 4);
                     for (int i = 0; i < n / 4; i++) if (w[i] == c0) { r.chunks = a + 4L * i; break outer3; }
-                    if ((done & 0x3ffffff) == 0) state = "刷车：读名字表 3/3 " + done * 100 / Math.max(1, total) + "%";
+                    if (((done >> 20) & 63) == 0) { state = "刷车：读名字表 3/3 " + done * 100 / Math.max(1, total) + "%"; GameOverlay.refreshAny(); }
                 }
                 if (r.chunks == 0) r.chunks = -chunk0;   // 没找到块表：只能查前 16384 个
-                LogCap.note("刷车 名字块表=" + Long.toHexString(r.chunks) + " 移位=" + r.shift + "（" + (System.currentTimeMillis() - t0) + " ms）");
+                note("刷车 名字块表=" + Long.toHexString(r.chunks) + " 移位=" + r.shift + "（" + (System.currentTimeMillis() - t0) + " ms）");
                 return cached = r;
             }
         }
@@ -260,6 +319,7 @@ public class Veh {
             return new String(x, 0, e, "ISO-8859-1");
         } catch (Throwable t) { return null; }
     }
+    static void note(String s) { LogCap.note(s); Server.mark(s); }
     static ArrayList<long[]> regions() throws java.io.IOException {
         ArrayList<long[]> rs = new ArrayList<>();
         try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {

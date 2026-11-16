@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.81"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.82"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -730,7 +730,7 @@ public class GameOverlay {
         head(a, u, root, "载具");
         LinearLayout vr = row(a, root);
         btn(a, u, vr, "刷车（每按一次换一种）", Veh::spawnNext);
-        note(a, u, root, Veh.state + "。车刷在你面前约 6 米，走过去点上车。v1.81，未实测。");
+        note(a, u, root, Veh.state + "。车刷在你面前约 6 米，走过去点上车。v1.82，未实测。");
         head(a, u, root, "枪");
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
@@ -818,6 +818,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.81", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.82", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

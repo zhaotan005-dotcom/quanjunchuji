@@ -704,7 +704,7 @@ public class Server {
             for (long[] g : rs) for (long a = g[0]; a < g[1]; a += buf.length) {
                 int n = (int) Math.min(buf.length, g[1] - a);
                 try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
-                findNames(buf, n, a);
+                // v1.82：不再按名字找口罩（太慢，扫一遍要几分钟）
                 int k = n / 8;
                 ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(w, 0, k);
                 for (int i = 0; i < k; i++) {
