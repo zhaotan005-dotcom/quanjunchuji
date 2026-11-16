@@ -364,12 +364,16 @@ public class Server {
             java.io.File f = stepFile(); if (f == null) return;
             java.io.File prev = new java.io.File(f.getParentFile(), "zf_server_steps_prev.txt");
             if (!prev.exists()) return;
+            // v2.09b：只在上次是联机加载中途死掉时自动存（最后一行是开房/加入加载的心跳），平时不存
+            String last = "";
+            for (String l : new String(java.nio.file.Files.readAllBytes(prev.toPath()), "UTF-8").split("\n")) if (!l.trim().isEmpty()) last = l;
+            if (!(last.contains("开房加载") || last.contains("加入加载")) || last.contains("已进图")) return;
             java.io.File done = new java.io.File(f.getParentFile(), "zf_crash_saved");
             String key = prev.lastModified() + "/" + prev.length();
             if (done.exists() && key.equals(new String(java.nio.file.Files.readAllBytes(done.toPath()), "UTF-8"))) return;
             java.nio.file.Files.write(done.toPath(), key.getBytes("UTF-8"));
             String r = AvatarLog.export(Con.act, "crash-");
-            GameOverlay.toastAny("上次的服务端记录" + r);
+            GameOverlay.toastAny("上次联机闪退，诊断" + r);
         } catch (Throwable ignored) {}
     }
 
