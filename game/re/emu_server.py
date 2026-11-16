@@ -82,14 +82,14 @@ r2=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[9])); print('再领:',len(
 # --- v1.65 SEND 门：+24 为 0 时照原样跑原函数开头再回 0x50000008；为 1 时进服务端（这里服务端放在 0x10000）---
 mg=Uc(UC_ARCH_ARM,UC_MODE_ARM)
 for a in (0x60000,0x7b000000,0x30000,0x50000000,0x10000): mg.mem_map(a,0x10000)
-gate=bytes.fromhex(L[10]); gate=gate[:-4]+(0x50000008).to_bytes(4,'little')
+gate=bytes.fromhex(L[10])
 mg.mem_write(0x60000,gate+b'\0'*16)
 def run_gate(flag):
     mg.mem_write(0x7b000018,flag.to_bytes(4,'little'))
     for r,v in ((UC_ARM_REG_R0,0xa0),(UC_ARM_REG_R1,0xa1),(UC_ARM_REG_R2,0xa2),(UC_ARM_REG_R4,0x4444),(UC_ARM_REG_R5,0x5555),(UC_ARM_REG_SP,SP),(UC_ARM_REG_LR,0x77770000),(UC_ARM_REG_FP,0xbbbb)): mg.reg_write(r,v)
     stop=[]
     def hh(uc,addr,size,ud): stop.append(addr); uc.emu_stop()
-    hk=mg.hook_add(UC_HOOK_CODE,hh,begin=0x50000008,end=0x50000008); hk2=mg.hook_add(UC_HOOK_CODE,hh,begin=0x60000+44,end=0x60000+44)
+    hk=mg.hook_add(UC_HOOK_CODE,hh,begin=0x50000008,end=0x50000008); hk2=mg.hook_add(UC_HOOK_CODE,hh,begin=0x10000,end=0x10000)
     mg.emu_start(0x60000,0x0,count=50); mg.hook_del(hk); mg.hook_del(hk2)
     g=lambda r: mg.reg_read(r)
     return stop, g(UC_ARM_REG_SP), g(UC_ARM_REG_R4), g(UC_ARM_REG_R0), g(UC_ARM_REG_FP), bytes(mg.mem_read(g(UC_ARM_REG_SP),24))
@@ -97,5 +97,14 @@ s0=run_gate(0); s1=run_gate(1)
 print('门 关:',hex(s0[0][0]),hex(s0[1]),'开:',hex(s1[0][0]),hex(s1[1]))
 exp=b''.join(x.to_bytes(4,'little') for x in (0x4444,0x5555,mg.reg_read(UC_ARM_REG_R6),mg.reg_read(UC_ARM_REG_R7),0xbbbb,0x77770000))
 ok&= s0[0]==[0x50000008] and s0[1]==SP-24 and s0[2]==0x4444 and s0[3]==0xa0 and s0[4]==SP-8 and s0[5]==exp
-ok&= s1[0]==[0x60000+44] and s1[1]==SP and s1[2]==0x4444 and s1[3]==0xa0
+ok&= s1[0]==[0x10000] and s1[1]==SP and s1[2]==0x4444 and s1[3]==0xa0
+# v1.69：门开 → 真的跑进 SEND 段，请求写进请求区，返回 len（v1.65~1.68 门后是空的）
+mg.mem_map(0x7a000000,0x100000); mg.mem_write(0x10000,bytes.fromhex(L[0])); mg.mem_write(0x7a000008,(1<<20).to_bytes(4,'little'))
+mg.mem_write(0x20000 if False else 0x30000,b'reqdata'); mg.mem_write(0x7b000018,(1).to_bytes(4,'little'))
+for r,v in ((UC_ARM_REG_R0,0xa0),(UC_ARM_REG_R1,0x30000),(UC_ARM_REG_R2,7),(UC_ARM_REG_R4,0x4444),(UC_ARM_REG_SP,SP),(UC_ARM_REG_LR,0x77770000)): mg.reg_write(r,v)
+mg.mem_map(0x77770000,0x1000)
+mg.emu_start(0x60000,0x77770000,count=500)
+hd=bytes(mg.mem_read(0x7a000000,24)); print('门开 端到端 r0',mg.reg_read(UC_ARM_REG_R0),'wp',int.from_bytes(hd[:4],'little'),hd[16:24])
+ok&= mg.reg_read(UC_ARM_REG_R0)==7 and mg.reg_read(UC_ARM_REG_SP)==SP and mg.reg_read(UC_ARM_REG_R4)==0x4444 and hd[16:20]==(7).to_bytes(4,'little')
+ok&= bytes(mg.mem_read(0x7a000014,7))==b'reqdata'
 print('全部通过' if ok else '失败')

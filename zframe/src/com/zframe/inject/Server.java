@@ -65,10 +65,11 @@ public class Server {
     static String hook(int target) { return "04f01fe5" + w32(target); }
 
     /** v1.65 SEND 段前面加一道门：回包区 +24（开关）是 0 时照原样执行 SendRawBuffer（不影响游戏），是 1 才进我们的服务端 */
-    static String sendGate(int rplBuf, int ret) {
+    static String sendGate(int rplBuf, int ret, int server) {
         return "04402de5" + Mods.armMov(false, 4, rplBuf & 0xffff) + Mods.armMov(true, 4, (rplBuf >>> 16) & 0xffff)
             + "184094e5" + "000054e3" + "04409de4" + "0300001a"      // ldr r4,[r4,#24]; cmp; ldr r4,[sp],#4; bne 服务端
-            + SEND_ORIG + "04f01fe5" + w32(ret);
+            + SEND_ORIG + "04f01fe5" + w32(ret)
+            + "04f01fe5" + w32(server);                              // v1.69 修：门开时跳到 SEND 段（v1.65~1.68 这里是空的 → 一发请求就闪退）
     }
     static volatile boolean hooked; static volatile String hookWhen = "没装";
 
@@ -90,7 +91,7 @@ public class Server {
             long sc = b + SLACK, tc = b + SLACK + 0x100, gc = b + SLACK + 0x200;
             m.seek(sc); m.write(Patches.hex(sendCave((int) qa)));
             m.seek(tc); m.write(Patches.hex(tickCave((int) ra, (int) (b + TICK_AT + 8))));
-            m.seek(gc); m.write(Patches.hex(sendGate((int) ra, (int) (b + SEND_AT + 8))));
+            m.seek(gc); m.write(Patches.hex(sendGate((int) ra, (int) (b + SEND_AT + 8), (int) sc)));
             req = q; rpl = r; reqAddr = qa; rplAddr = ra;
             m.seek(b + TICK_AT); m.write(Patches.hex(hook((int) tc)));
             m.seek(b + SEND_AT); m.write(Patches.hex(hook((int) gc)));
@@ -311,6 +312,13 @@ public class Server {
         return r + "，5 秒没闪退" + (n + 1 < cmds.size() ? "，下一条 " + cmds.get(n + 1) : "");
     }
 
+    /** 自动投递：上限放到最大，回包一来就交给游戏 */
+    public static String deliverAll() {
+        if (!on) return "先按「开启服务端」";
+        mark("自动投递开（排队 " + cmds.size() + " 条，已投 " + rpl.getInt(28) + "）");
+        rpl.putInt(28, 0x7fffffff);
+        return "自动投递已开，回包会直接交给游戏";
+    }
     /** 跳过 1 条：不交给游戏，直接把读指针挪过去 */
     public static synchronized String skipOne() {
         if (!on) return "先按「开启服务端」";
