@@ -132,7 +132,10 @@ public class Veh {
     }
 
     /** 菜单按钮：在面前刷一辆，每按一次换一种 */
+    static volatile boolean busy;
     public static void spawnNext() {
+        if (busy) { GameOverlay.toastAny(state); return; }
+        busy = true;
         new Thread(() -> {
             try {
                 if (!installed) { GameOverlay.toastAny(state); return; }
@@ -141,9 +144,10 @@ public class Veh {
                 if (ch == 0) { GameOverlay.toastAny(state = "刷车：还没有人物"); return; }
                 if (dt == 0) { GameOverlay.toastAny(state = "刷车：这局没有车表（GameMode " + Integer.toHexString(buf.getInt(28)) + "）"); return; }
                 if (rows == null || rowsDt != dt) {
-                    GameOverlay.toastAny("第一次刷车要读车表，十几秒");
+                    GameOverlay.toastAny("第一次刷车要读车表，约半分钟，读完会提示");
+                    state = "刷车：正在读车表…"; GameOverlay.refreshAny();
                     rows = readRows(dt); rowsDt = dt; next = 0;
-                    LogCap.note("刷车 " + tableInfo);
+                    LogCap.note("刷车 " + tableInfo); GameOverlay.toastAny(tableInfo.length() > 60 ? tableInfo.substring(0, 60) : tableInfo);
                 }
                 ArrayList<Row> use = new ArrayList<>();
                 for (Row r : rows) if (!nice(r.name).equals("船")) use.add(r);
@@ -162,7 +166,8 @@ public class Veh {
                 String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + nice(r.name) + "（" + r.id + "，" + ((next - 1) % use.size() + 1) + "/" + use.size() + "）";
                 LogCap.note(s + " 位置 " + x + "," + y + "," + z);
                 GameOverlay.toastAny(state = s + (ok ? "，在你面前，没看到就再按一次换一种" : ""));
-            } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); }
+            } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); LogCap.note(state); }
+            finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();
     }
 
@@ -170,46 +175,69 @@ public class Veh {
     static final class Names {
         long chunks; boolean shift = true;
         static Names cached;
+        /** 小的 int 集合（开放寻址），避免 HashSet<Long> 装箱太慢 */
+        static final class ISet {
+            int[] t = new int[1 << 14]; int n;
+            void add(int v) { if (v == 0 || n > t.length / 2) return; int h = (v * 0x9E3779B1) >>> 18; while (t[h] != 0 && t[h] != v) h = (h + 1) & (t.length - 1); if (t[h] == 0) { t[h] = v; n++; } }
+            boolean has(int v) { if (v == 0) return false; int h = (v * 0x9E3779B1) >>> 18; while (t[h] != 0) { if (t[h] == v) return true; h = (h + 1) & (t.length - 1); } return false; }
+        }
         static synchronized Names get() throws Exception {
             if (cached != null) return cached;
             ArrayList<long[]> rs = regions();
-            java.util.HashSet<Long> none = new java.util.HashSet<>();
+            long total = 0; for (long[] g : rs) total += g[1] - g[0];
+            ISet none = new ISet(), byteP = new ISet();
             byte[] bb = new byte[1 << 20];
+            int[] w = new int[bb.length / 4];
+            long t0 = System.currentTimeMillis();
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                // 第 1 遍：找 "None"(序号字 0) 和 "ByteProperty"(序号字 2 或 1) 两种条目
+                long done = 0;
                 for (long[] g : rs) for (long a = g[0]; a < g[1]; a += bb.length) {
                     int n = (int) Math.min(bb.length, g[1] - a);
                     try { m.seek(a); m.readFully(bb, 0, n); } catch (Throwable e) { break; }
-                    for (int i = 8; i + 5 <= n; i += 4) {
-                        if (bb[i] == 'N' && bb[i + 1] == 'o' && bb[i + 2] == 'n' && bb[i + 3] == 'e' && bb[i + 4] == 0
-                            && bb[i - 8] == 0 && bb[i - 7] == 0 && bb[i - 6] == 0 && bb[i - 5] == 0 && none.size() < 5000) none.add(a + i - 8);
+                    done += n;
+                    for (int i = 8; i + 13 <= n; i += 4) {
+                        byte c = bb[i];
+                        if (c == 'N') {
+                            if (bb[i + 1] == 'o' && bb[i + 2] == 'n' && bb[i + 3] == 'e' && bb[i + 4] == 0
+                                && bb[i - 8] == 0 && bb[i - 7] == 0 && bb[i - 6] == 0 && bb[i - 5] == 0) none.add((int) (a + i - 8));
+                        } else if (c == 'B') {
+                            if (bb[i + 12] == 0 && bb[i + 1] == 'y' && bb[i + 4] == 'P' && bb[i + 11] == 'y' && (bb[i - 8] == 2 || bb[i - 8] == 1) && bb[i - 7] == 0
+                                && new String(bb, i, 12, "ISO-8859-1").equals("ByteProperty")) byteP.add((int) (a + i - 8));
+                        }
                     }
+                    if ((done & 0x3ffffff) == 0) state = "刷车：读名字表 1/3 " + done * 100 / Math.max(1, total) + "%";
                 }
-                if (none.isEmpty()) return null;
-                long chunk0 = 0;
-                int[] w = new int[bb.length / 4];
+                LogCap.note("刷车 名字表候选 None " + none.n + " ByteProperty " + byteP.n + "（" + (System.currentTimeMillis() - t0) + " ms，" + total / 1048576 + " MB）");
+                if (none.n == 0 || byteP.n == 0) return null;
+                // 第 2 遍：块 0 = 相邻两个字分别指向 None 和 ByteProperty
+                long chunk0 = 0; done = 0;
                 outer:
                 for (long[] g : rs) for (long a = g[0]; a < g[1]; a += bb.length) {
                     int n = (int) Math.min(bb.length, g[1] - a);
                     try { m.seek(a); m.readFully(bb, 0, n); } catch (Throwable e) { break; }
+                    done += n;
                     ByteBuffer.wrap(bb, 0, n).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(w, 0, n / 4);
-                    for (int i = 0; i + 1 < n / 4; i++) {
-                        if (!none.contains(w[i] & 0xffffffffL)) continue;
-                        long e1 = w[i + 1] & 0xffffffffL;
-                        if ("ByteProperty".equals(ascii(m, e1 + 8, 16))) { chunk0 = a + 4L * i; break outer; }
-                    }
+                    for (int i = 0; i + 1 < n / 4; i++) if (byteP.has(w[i + 1]) && none.has(w[i])) { chunk0 = a + 4L * i; break outer; }
+                    if ((done & 0x3ffffff) == 0) state = "刷车：读名字表 2/3 " + done * 100 / Math.max(1, total) + "%";
                 }
+                LogCap.note("刷车 名字块0=" + Long.toHexString(chunk0) + "（" + (System.currentTimeMillis() - t0) + " ms）");
                 if (chunk0 == 0) return null;
                 Names r = new Names();
-                long e1 = Server.rd(m, chunk0 + 4);
-                r.shift = Server.rd(m, e1) == 2;
-                // 块表：存着 chunk0 的那个字
-                for (long[] g : rs) for (long a = g[0]; a < g[1] && r.chunks == 0; a += bb.length) {
+                r.shift = Server.rd(m, Server.rd(m, chunk0 + 4)) == 2;
+                // 第 3 遍：块表 = 存着块 0 地址的那个字
+                int c0 = (int) chunk0; done = 0;
+                outer3:
+                for (long[] g : rs) for (long a = g[0]; a < g[1]; a += bb.length) {
                     int n = (int) Math.min(bb.length, g[1] - a);
                     try { m.seek(a); m.readFully(bb, 0, n); } catch (Throwable e) { break; }
+                    done += n;
                     ByteBuffer.wrap(bb, 0, n).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(w, 0, n / 4);
-                    for (int i = 0; i < n / 4; i++) if ((w[i] & 0xffffffffL) == chunk0) { r.chunks = a + 4L * i; break; }
+                    for (int i = 0; i < n / 4; i++) if (w[i] == c0) { r.chunks = a + 4L * i; break outer3; }
+                    if ((done & 0x3ffffff) == 0) state = "刷车：读名字表 3/3 " + done * 100 / Math.max(1, total) + "%";
                 }
                 if (r.chunks == 0) r.chunks = -chunk0;   // 没找到块表：只能查前 16384 个
+                LogCap.note("刷车 名字块表=" + Long.toHexString(r.chunks) + " 移位=" + r.shift + "（" + (System.currentTimeMillis() - t0) + " ms）");
                 return cached = r;
             }
         }
