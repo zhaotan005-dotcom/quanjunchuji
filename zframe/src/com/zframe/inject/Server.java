@@ -114,14 +114,12 @@ public class Server {
         String r = install("开服务端时（运行中装，可能不生效）");
         if (!"ok".equals(r)) return state = "自建服务端：" + r + "，没开";
         on = true;
-        rpl.putInt(28, 0);                             // v1.66：先不投递，按「投递 1 条」一条一条来
-        // v1.67 排队顺序（逐条测哪条会闪退）：1 邮件推送 25007，2 仓库 13002 不带角色，3 仓库 13002 带角色
+        rpl.putInt(28, manual ? 0 : 0x7fffffff);   // 默认自动投递；调试时可改成逐条
+        // v1.71：v1.65~1.68 的闪退是 SEND 门的 bug（已修），恢复自动投递：邮件推送 + 仓库
         mark("准备邮件");
         newMail();
-        mark("准备 13002（不带角色）");
-        push(13002, 0, false, depositProps(false), "仓库-不带角色");
-        mark("准备 13002（带角色）");
-        push(13002, 0, false, depositProps(true), "仓库-带角色");
+        mark("准备 13002");
+        push(13002, 0, false, depositProps(true), "仓库");
         mark("开 SEND 门");
         rpl.putInt(24, 1);                             // 打开 SEND 的门
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
@@ -238,7 +236,14 @@ public class Server {
             case 13003: push(13004, seq, key, equip(body)); what = "穿上"; break;
             case 13005: push(13006, seq, key, unequip(body)); what = "脱下"; break;
             case 25001: push(25002, seq, key, mailList()); what = "邮件列表 " + mails.size() + " 封"; break;
-            case 25003: what = "领取邮件"; push(25004, seq, key, readMails(body)); push(13002, 0, false, depositProps()); break;
+            case 25003: {
+                int before = props == null ? 0 : props.size();
+                push(25004, seq, key, readMails(body));
+                boolean added = props != null && props.size() > before;
+                if (added) push(13002, 0, false, depositProps());   // v1.71：只有真加了东西才推仓库，连点不会刷屏
+                what = added ? "领取邮件，入库" : "领取邮件（已领过）";
+                break;
+            }
             case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
             default:
                 if (key) { push(cmd + 1, seq, true, new PB().u(1, 0).bytes()); what = "空的成功包"; }
@@ -263,6 +268,7 @@ public class Server {
         cmds.add(cmd + (tag != null ? " " + tag : cmd == 25007 ? " 邮件推送" : "") + "（" + p.length + " 字节）");
     }
     static final ArrayList<String> cmds = new ArrayList<>();
+    static volatile boolean manual;   // 调试用：true = 回包排队，按「投递 1 条」逐条交
 
     // ---------------- v1.66 闪退定位：每一步先同步写进文件，下次启动能看到上次停在哪 ----------------
     static boolean rotated;
@@ -414,10 +420,10 @@ public class Server {
     /** 附件：{编号, 性别(角色才有，1 男 2 女), 脸, 发型}。脸/发型编号和多数衣服编号没在手机上验证过，游戏不认的会被忽略。 */
     static final long[][] GIFT = {
         { ROLE_M, 1, 1, 0 }, { ROLE_F, 2, 1, 0 },
-        { 30213000000L }, { 30213000001L }, { 30213000002L }, { 30213000003L }, { 30213000004L }, { 30213000005L },
+        { 30213000000L }, { 30213000003L }, { 30213000004L }, { 30213000005L },   // v1.71：30213000001/02 游戏显示「未知道具」，去掉
         { 30301000000L }, { 30301000071L }, { 30303000005L }, { 30307000007L }, { 30232000006L },
         { 30315000050L }, { 30315000061L }, { 30323000002L },
-        { 30325000000L }, { 30325000001L }, { 30325000002L }, { 30325000003L }, { 30325000004L }, { 30325000005L },
+        { 30325000002L }, { 30325000003L }, { 30325000004L }, { 30325000005L },
         { 30318000000L },
     };
     static final ArrayList<long[]> mails = new ArrayList<>();   // {index, 已读}

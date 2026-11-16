@@ -69,7 +69,7 @@ got.clear(); ok&= tick() and got==[] and hd(20)==4
 # --- v1.61 邮件 ---
 k=M('msg.CSPkg').FromString(bytes.fromhex(L[5])); n=M('msg.CSMailPushNewMailNtf').FromString(k.body)
 m=n.mail_list.mails[0]; print('25007:',k.head.cmd,'type',n.mail_list.type,'index',m.index,m.title,'附件',len(m.attachment.props),'已读',m.read_flag)
-ok&= k.head.cmd==25007 and n.mail_list.type==1 and m.index==1 and m.title=='补给' and len(m.attachment.props)>=20 and not m.read_flag and m.recv_time>0
+ok&= k.head.cmd==25007 and n.mail_list.type==1 and m.index==1 and m.title=='补给' and len(m.attachment.props)>=19 and not m.read_flag and m.recv_time>0
 ok&= m.attachment.props[0].prop_role_attr.sex==1 and m.attachment.props[1].prop_role_attr.sex==2
 g=M('msg.CSGetMailListRes').FromString(bytes.fromhex(L[6])); print('25002:',g.result,len(g.mail_lists),len(g.mail_lists[0].mails))
 ok&= g.result==0 and g.mail_lists[0].type==1 and len(g.mail_lists[0].mails)==1
