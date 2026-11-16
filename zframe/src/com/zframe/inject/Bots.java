@@ -158,7 +158,9 @@ public class Bots {
     static void run(int g) throws Exception {
         Thread.sleep(8000);
         double lz = Double.NaN; long stillSince = 0, next = 0; int fails = 0, lastPhase = -2;
-        while (killed < TOTAL && alive(g)) {
+        int cap = 15 + rnd.nextInt(16);   // v1.99：不真刷 99 个，本局随机 15~30 个
+        Veh.note("人机：本局最多 " + cap + " 个");
+        while (killed < cap && alive(g)) {
             double[] q = Veh.info();
             if (q == null) { state = "人机：等人物出生"; Thread.sleep(3000); continue; }
             phase = readPhase((long) q[4]);
@@ -179,7 +181,7 @@ public class Bots {
             if (next == 0) { next = now + 30000 + rnd.nextInt(90001); Veh.note("人机：落地站稳，第一批 " + (next - now) / 1000 + " 秒后刷"); }   // v1.99：第一批随机 30~120 秒后
             int al; synchronized (live) { al = live.size(); }
             if (now >= next && al < 3) {
-                int n = Math.min(TOTAL - killed - al, 2 + rnd.nextInt(3) - al);
+                int n = Math.min(cap - killed - al, Math.min(2, 1 + rnd.nextInt(2)));   // v1.99：一次 1~2 个
                 for (int k = 0; k < n && alive(g); k++) fails = one(g, q, fails);
                 if (fails >= 5) { state = "人机：连续失败停了（" + Veh.botState + "）"; Veh.note(state); GameOverlay.refreshAny(); return; }
                 next = now + 20000 + rnd.nextInt(25000);
@@ -188,7 +190,7 @@ public class Bots {
             }
             Thread.sleep(2000);
         }
-        if (killed >= TOTAL) state = "人机：99 个都打完了，剩余 1";
+        if (killed >= cap) state = "人机：本局 " + cap + " 个都打完了";
     }
 
     /** 玩家周围 40~110 米刷一个，面朝玩家；之后补两次装备 */
