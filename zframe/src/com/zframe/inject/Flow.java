@@ -68,6 +68,7 @@ public class Flow {
         float side = small ? 408000f : 816000f;   // 地图边长（原点在地图正中，「传送到地图中间」BugItGo 0 0 也是这么用的）
         boolean circleDone = false, airDone = false; int ph = -1; sideNow = side;
         Thread.sleep(3000);
+        if (on) Veh.note("毒圈不按玩家位置定圈心：" + Mods.write(Mods.POOL, Mods.POOL_O, Mods.POOL_N, true));
         for (int i = 0; i < 300 && g == gen && Con.inMatch; i++) {
             double[] p = Veh.info();
             if (p == null) { state = "毒圈：等人物出生"; Thread.sleep(1000); continue; }
@@ -169,6 +170,7 @@ public class Flow {
                 double ang = rnd.nextDouble() * Math.PI * 2, dist = Math.sqrt(rnd.nextDouble()) * room;
                 x = (float) ((i == 2 ? 0 : px) + Math.cos(ang) * dist); y = (float) ((i == 2 ? 0 : py) + Math.sin(ang) * dist);
             }
+            b.putFloat(o, 0f);   // v2.01 CenterPointOffsetMax = 0：游戏换圈时不再随机挪圈心
             b.putFloat(o + 4, x); b.putFloat(o + 8, y); b.putFloat(o + 12, cz);
             b.putFloat(o + 0x10, r); b.putFloat(o + 0x14, w); b.putFloat(o + 0x18, s); b.putInt(o + 0x1c, dmg);
             px = x; py = y; pr = r;

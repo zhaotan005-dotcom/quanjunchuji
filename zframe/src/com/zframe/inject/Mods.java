@@ -16,6 +16,9 @@ public class Mods {
     static final String CAVE_O = "f04b2de918b08de220d04de20080a0e144039fe50150a0e1";
     static final String CAVE_N = "71c0efe601005ce302005c130410a0030040a0e14777e3ea"; // v1.40：阶段1(倒计时)/2(上飞机) 直接改成 4(落地开打)，不显示读秒、不刷航线
     // 非正常演习：开局等人时间(表里读 60 秒)改成 1 秒 —— NZBRGameState 初始化 0x1019774 ldr r0,[r6,#0x38] → mov r0,#1.0f
+    /** v2.01：毒圈换圈 0xd97d00 前一半圈用 MakeLowPoolPlayerPoisonFogCenter(0xd99cf4)——按玩家位置定圈心，单机只有一个人、人还在飞机上，
+     *  圈心就跟着跑到地图边/地图外。bge → b，所有圈都走「在上一圈中心 ± CenterPointOffsetMax 里随机」（Flow 把这个值写成 0 = 用我们算好的中心）。 */
+    static final long POOL = 0xd97d68L; static final String POOL_O = "040000aa", POOL_N = "040000ea";
     static final long WAIT = 0x1019774L; static final String WAIT_O = "380096e5", WAIT_N = "fe05a0e3";
     // v1.41~1.43 的开火不扣子弹代码补丁(0xefd104)会让游戏启动几秒就闪退（扣子弹代码有校验），已删除，别再改这里
     static final long AMMO = 0xefd104L; static final String AMMO_O = "065045e0", AMMO_N = "0550a0e1";

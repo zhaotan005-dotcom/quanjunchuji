@@ -519,3 +519,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   0x1127de0（vt+0x228）= |离地距离 +0x280 / StartHeight| 夹到 1；0x1128498 每帧向下射线（20 km）把离地距离写 +0x280，比例 <0.23 且阶段 2（自由落体）→ GotoStage(3) 强制开伞。
   这个单机版航线 Z=20000（200 米），离地太近，强制开伞时动画没放完就落地。
 - v2.00（vc101/core101，未实测）：Flow 把航线起终点和跳伞段的 Z 写成 100000（1000 米，PLANE_Z）；开局整图圈半径 边长×0.75 → ×1.5（WHOLE），防止坐飞机时地图上出圈。
+- 20:00 用户：开局本来应该没圈；安全区老刷到地图外（不是地图中间）。
+- RE（换圈 0xd97d00）：当前圈序号 r7 < 总数/2 时调 MakeLowPoolPlayerPoisonFogCenter 0xd99cf4（按玩家位置定圈心），否则调 RandomCenter 0xd96364（上一圈中心 ± 本项 +0 CenterPointOffsetMax 随机，+0x10 半径）。单机只有一个玩家且还在飞机上（常在图边/海上）→ 前几圈圈心跟着跑到地图外；我们算好的中心被覆盖。
+- v2.01（vc102/core102，未实测）：Mods.POOL 补丁 0xd97d68 bge→b（040000aa→040000ea），所有圈都走 RandomCenter；Flow.build 每项 +0 CenterPointOffsetMax 写 0 → 圈心 = 我们算的（第一圈在地图正中一带，之后在上一圈里）。Flow.run 开头打补丁并记日志「毒圈不按玩家位置定圈心：ok」。
