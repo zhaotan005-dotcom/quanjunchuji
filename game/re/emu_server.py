@@ -76,4 +76,23 @@ ok&= r.result==0 and list(r.read_indexs)==[1] and 30325000003 in ids and 3031800
 d=M('msg.CSDepositGetPropsRes').FromString(bytes.fromhex(L[8])); print('领取后 13002:',len(d.prop_list),'个')
 ok&= len(d.prop_list)==8+len(ids) and all(p.owner_id==10200000000 for p in d.prop_list if p.id//100000000!=101 and p.id//100000000!=102)
 r2=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[9])); print('再领:',len(r2.change.prop_changes)); ok&= len(r2.change.prop_changes)==0
+# --- v1.65 SEND 门：+24 为 0 时照原样跑原函数开头再回 0x50000008；为 1 时进服务端（这里服务端放在 0x10000）---
+mg=Uc(UC_ARCH_ARM,UC_MODE_ARM)
+for a in (0x60000,0x7b000000,0x30000,0x50000000,0x10000): mg.mem_map(a,0x10000)
+gate=bytes.fromhex(L[10]); gate=gate[:-4]+(0x50000008).to_bytes(4,'little')
+mg.mem_write(0x60000,gate+b'\0'*16)
+def run_gate(flag):
+    mg.mem_write(0x7b000018,flag.to_bytes(4,'little'))
+    for r,v in ((UC_ARM_REG_R0,0xa0),(UC_ARM_REG_R1,0xa1),(UC_ARM_REG_R2,0xa2),(UC_ARM_REG_R4,0x4444),(UC_ARM_REG_R5,0x5555),(UC_ARM_REG_SP,SP),(UC_ARM_REG_LR,0x77770000),(UC_ARM_REG_FP,0xbbbb)): mg.reg_write(r,v)
+    stop=[]
+    def hh(uc,addr,size,ud): stop.append(addr); uc.emu_stop()
+    hk=mg.hook_add(UC_HOOK_CODE,hh,begin=0x50000008,end=0x50000008); hk2=mg.hook_add(UC_HOOK_CODE,hh,begin=0x60000+44,end=0x60000+44)
+    mg.emu_start(0x60000,0x0,count=50); mg.hook_del(hk); mg.hook_del(hk2)
+    g=lambda r: mg.reg_read(r)
+    return stop, g(UC_ARM_REG_SP), g(UC_ARM_REG_R4), g(UC_ARM_REG_R0), g(UC_ARM_REG_FP), bytes(mg.mem_read(g(UC_ARM_REG_SP),24))
+s0=run_gate(0); s1=run_gate(1)
+print('门 关:',hex(s0[0][0]),hex(s0[1]),'开:',hex(s1[0][0]),hex(s1[1]))
+exp=b''.join(x.to_bytes(4,'little') for x in (0x4444,0x5555,mg.reg_read(UC_ARM_REG_R6),mg.reg_read(UC_ARM_REG_R7),0xbbbb,0x77770000))
+ok&= s0[0]==[0x50000008] and s0[1]==SP-24 and s0[2]==0x4444 and s0[3]==0xa0 and s0[4]==SP-8 and s0[5]==exp
+ok&= s1[0]==[0x60000+44] and s1[1]==SP and s1[2]==0x4444 and s1[3]==0xa0
 print('全部通过' if ok else '失败')

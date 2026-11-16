@@ -37,7 +37,25 @@ public class Mods {
     static final String COAT_CAVE_O = "00009fe7000090e520000be5040095e5007095e5000050e302008fe001708f00046080e25310a0e3040097e4010050e10500000a3f3ac6eb0040a0e1040016e53c3ac6eb000054e10b00001a040097e4041096e4002091e1f3ffff1aec029fe520101be500009fe7000090e5010050e018d04b02f08bbd08d439c6ebc40198e5000050e3f4ffff0a700090e5000050e31840901500005413";
     static final String COAT_CAVE_N = "f0412de90140a0e11a12d5eb005094e5046094e50070a0e3060057e11c0000aa878185e0000098e5041098e5412109e3142e40e3020050e1070051030600001a80270fe3172f40e3002088e50720a0e3042088e5017087e2eeffffea80230de3232e40e3020050e10700510301708712e8ffff1a016046e2863185e0000093e5041093e5000088e5041088e5046084e5e0ffffeaf081bde8";
     public static volatile boolean coatOn;
+    /** v1.65 启动早装：v1.64 自检证明运行中改已经跑过的代码不生效（钩子字节在，但从没跑到；假仓库取角色 0 次也是这个原因）。
+     *  所以在 libUE4 刚加载、大厅代码还没跑之前，把风衣、大厅人物、假仓库、服务端钩子一次装好，之后不再重进大厅。 */
+    public static volatile boolean early = true, earlyDone;
+    public static volatile String earlyState = "启动早装：没做";
+    static void preinstall() {
+        long t0 = System.currentTimeMillis();
+        String c = write(COAT_CAVE, COAT_CAVE_O, COAT_CAVE_N, true);
+        if ("ok".equals(c)) c = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
+        coatOn = "ok".equals(c);
+        String r = setHall(male);
+        if ("ok".equals(r)) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
+        hallState = "ok".equals(r) ? "大厅人物：已改好（" + (male ? "男" : "女") + "，启动时装）" : "大厅人物：没改成，" + r;
+        Server.preinstall();
+        earlyDone = "ok".equals(r);
+        earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + (System.currentTimeMillis() - t0) + " ms";
+        LogCap.note(earlyState);
+    }
     static void builtInCoat() {
+        if (earlyDone) { GameOverlay.refreshAny(); return; }   // 启动时已装好，不再重进大厅
         String r = write(COAT_CAVE, COAT_CAVE_O, COAT_CAVE_N, true);
         if ("ok".equals(r)) r = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
         coatOn = "ok".equals(r);

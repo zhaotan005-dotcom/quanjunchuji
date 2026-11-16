@@ -21,6 +21,7 @@ public class Patches {
         // （v1.7 去掉了旧的“门”补丁：日志证明门不是被删，而是根本没加载）
     };
 
+    static volatile long foundMs = -1;
     public static void start(final Context ctx) {
         if (!PUBGM.equals(ctx.getPackageName())) return;
         Thread t = new Thread(new Runnable() { public void run() {
@@ -31,7 +32,9 @@ public class Patches {
             }
             if (base == 0) { LogCap.note("补丁: 3 分钟内没等到 libUE4.so"); return; }
             LogCap.note("补丁: libUE4 基址 0x" + Long.toHexString(base) + " 用时" + (System.currentTimeMillis() - t0) + "ms");
-            ueBase = base;
+            ueBase = base; foundMs = System.currentTimeMillis() - t0;
+            Mods.early = ctx.getSharedPreferences("zframe", 0).getBoolean("early_hooks", true);
+            if (Mods.early) Mods.preinstall();               // v1.65：代码还没跑之前装钩子
             if (!MEM) {
                 LogCap.note("安全模式: 不写游戏内存（v1.19 只读一次 Wwise 标志）");
                 // v1.17 已证明闪退不是内存读写导致；这里只读 1 个字节，不写

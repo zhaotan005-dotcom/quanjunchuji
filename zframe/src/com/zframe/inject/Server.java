@@ -64,32 +64,61 @@ public class Server {
     }
     static String hook(int target) { return "04f01fe5" + w32(target); }
 
-    public static synchronized String start() {
-        if (req != null) return state;
-        if (Con.inMatch) return state = "自建服务端：请在大厅里开";
+    /** v1.65 SEND 段前面加一道门：回包区 +24（开关）是 0 时照原样执行 SendRawBuffer（不影响游戏），是 1 才进我们的服务端 */
+    static String sendGate(int rplBuf, int ret) {
+        return "04402de5" + Mods.armMov(false, 4, rplBuf & 0xffff) + Mods.armMov(true, 4, (rplBuf >>> 16) & 0xffff)
+            + "184094e5" + "000054e3" + "04409de4" + "0300001a"      // ldr r4,[r4,#24]; cmp; ldr r4,[sp],#4; bne 服务端
+            + SEND_ORIG + "04f01fe5" + w32(ret);
+    }
+    static volatile boolean hooked; static volatile String hookWhen = "没装";
+
+    /** 写 cave 和两个钩子。v1.64 自检证明：游戏已经跑过的代码，运行中再改不生效（字节在、但一帧都没跑到），
+     *  所以 v1.65 在 libUE4 刚加载、代码还没跑之前就装上（开关是 0，等于原样执行）。 */
+    static synchronized String install(String when) {
+        if (hooked) return "ok";
         long b = Mods.base();
-        if (b == 0) return state = "自建服务端：找不到游戏库";
-        if (!slackIsCode(b)) return state = "自建服务端：代码段空隙不可用，没装";
+        if (b == 0) return "找不到游戏库";
+        if (!slackIsCode(b)) return "代码段空隙不可用";
         ByteBuffer q = ByteBuffer.allocateDirect(16 + REQ_CAP).order(ByteOrder.LITTLE_ENDIAN);
         ByteBuffer r = ByteBuffer.allocateDirect(RH + RPL_CAP).order(ByteOrder.LITTLE_ENDIAN);
         long qa = GameOverlay.bufAddr(q), ra = GameOverlay.bufAddr(r);
-        if (qa <= 0 || ra <= 0 || qa > 0xffffffffL || ra > 0xffffffffL) return state = "自建服务端：拿不到内存地址";
+        if (qa <= 0 || ra <= 0 || qa > 0xffffffffL || ra > 0xffffffffL) return "拿不到内存地址";
         q.putInt(8, REQ_CAP);
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             if (!bytesAt(m, b + SEND_AT, 8).equals(SEND_ORIG) || !bytesAt(m, b + TICK_AT, 8).equals(TICK_ORIG))
-                return state = "自建服务端：游戏代码和预期不一样，没装";
-            long sc = b + SLACK, tc = b + SLACK + 0x100;
+                return "游戏代码和预期不一样";
+            long sc = b + SLACK, tc = b + SLACK + 0x100, gc = b + SLACK + 0x200;
             m.seek(sc); m.write(Patches.hex(sendCave((int) qa)));
             m.seek(tc); m.write(Patches.hex(tickCave((int) ra, (int) (b + TICK_AT + 8))));
+            m.seek(gc); m.write(Patches.hex(sendGate((int) ra, (int) (b + SEND_AT + 8))));
             req = q; rpl = r; reqAddr = qa; rplAddr = ra;
-            push(13002, 0, false, depositProps());         // 一开就先把仓库物品推过去
-            newMail();                                     // 再推一封带附件的系统邮件（25007），去邮箱里领取
             m.seek(b + TICK_AT); m.write(Patches.hex(hook((int) tc)));
-            m.seek(b + SEND_AT); m.write(Patches.hex(hook((int) sc)));
-        } catch (Throwable e) { req = null; rpl = null; return state = "自建服务端：出错 " + e.getMessage(); }
+            m.seek(b + SEND_AT); m.write(Patches.hex(hook((int) gc)));
+        } catch (Throwable e) { return "出错 " + e.getMessage(); }
+        hooked = true; hookWhen = when;
+        return "ok";
+    }
+    /** 启动时调用：只装钩子，不开服务端 */
+    public static void preinstall() {
+        String r = install("启动时");
+        LogCap.note("服务端钩子预装 → " + r);
+        if (!"ok".equals(r)) hookWhen = "启动时没装上：" + r;
+    }
+
+    static volatile boolean on;
+    public static synchronized String start() {
+        if (on) return state;
+        if (Con.inMatch) return state = "自建服务端：请在大厅里开";
+        String r = install("开服务端时（运行中装，可能不生效）");
+        if (!"ok".equals(r)) return state = "自建服务端：" + r + "，没开";
+        on = true;
+        push(13002, 0, false, depositProps());         // 一开就先把仓库物品推过去
+        newMail();                                     // 再推一封带附件的系统邮件（25007），去邮箱里领取
+        rpl.putInt(24, 1);                             // 打开 SEND 的门
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
         Thread f = new Thread(Server::findConn, "zf-conn"); f.setDaemon(true); f.start();
-        new Thread(() -> { try { Thread.sleep(1000); } catch (Throwable ignored) {} frames1s = rpl.getInt(20); }).start();
+        final int f0 = rpl.getInt(20);
+        new Thread(() -> { try { Thread.sleep(1000); } catch (Throwable ignored) {} frames1s = rpl.getInt(20) - f0; }).start();
         Con.exec("open " + Con.LOBBY);                     // 大厅重进一次，让它把开场请求发给我们
         return state = "自建服务端：已开";
     }
@@ -318,7 +347,7 @@ public class Server {
     }
     /** Z 菜单「发邮件」：服务端开着才行 */
     public static String sendMail() {
-        if (req == null) return state = "自建服务端：先按「开启服务端」";
+        if (!on) return state = "自建服务端：先按「开启服务端」";
         newMail();
         return "已发一封补给邮件，去邮箱领取";
     }
@@ -392,10 +421,11 @@ public class Server {
 
     public static synchronized String report() {
         StringBuilder sb = new StringBuilder(state).append('\n');
+        sb.append("钩子：").append(hookWhen).append('\n');
         if (req == null) return sb.toString();
         sb.append("请求 ").append(req.getInt(4)).append(" 个（丢 ").append(req.getInt(12)).append("），回包 ").append(replied)
           .append(" 个，游戏已收 ").append(rpl.getInt(8)).append(" 个\n")
-          .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（装后 1 秒 ").append(frames1s).append("）\n");
+          .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
         sb.append(selfCheck()).append('\n');
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
