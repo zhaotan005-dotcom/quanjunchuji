@@ -398,7 +398,12 @@ public class Server {
     static void initProps() {
         if (props != null) return;
         props = new LinkedHashMap<>();
-        if (loadProps()) return;
+        if (loadProps()) {
+            // v1.80：v1.79 按名字找口罩找错了（名字是分类标签），放进去的 30325 整套等游戏不认的编号清掉
+            for (long b : BAD) props.values().removeIf(p -> p[0] == b && p[1] == 0);
+            java.io.File mf = maskFile(); if (mf != null) mf.delete();
+            return;
+        }
         boolean male = Mods.male;
         props.put(ROLE_F, new long[] { ROLE_F, male ? 0 : 1, 2 });
         props.put(ROLE_M, new long[] { ROLE_M, male ? 1 : 0, 1 });
@@ -800,7 +805,7 @@ public class Server {
             mark("开始扫全部皮肤");
             long t0 = System.currentTimeMillis();
             java.util.TreeMap<Long, Integer> hit = scanSkins();
-            maskState = giveMasks(); mark(maskState);
+            // v1.80：按名字找口罩不准（找到的是分类标签「口罩/面罩」），只留诊断，不再自动入库
             int two = 0;
             for (int c : hit.values()) if (c >= 2) two++;
             final int min = 1;   // v1.76：只出现 1 次的也算（之前门槛 2 漏了口罩等）
@@ -890,7 +895,7 @@ public class Server {
           .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
         sb.append(connInfo).append("\n已投 ").append(rpl.getInt(28)).append(" 条，排队 ").append(cmds).append('\n');
         sb.append(selfCheck()).append('\n');
-        if (!maskState.isEmpty()) { sb.append(maskState).append('\n'); synchronized (nameHits) { for (String h : nameHits) sb.append("  名字 ").append(h).append('\n'); } }
+        if (!nameHits.isEmpty()) { sb.append("名字命中 ").append(nameHits.size()).append('\n'); synchronized (nameHits) { for (String h : nameHits) sb.append("  名字 ").append(h).append('\n'); } }
         if (!skinState.isEmpty()) sb.append(skinState).append("\n  ").append(skinCats).append("\n  ").append(otherCats()).append("\n");
         sb.append("仓库 ").append(props == null ? 0 : props.size()).append(" 件\n");
         sb.append("邮件 ").append(mails.size()).append(" 封\n");

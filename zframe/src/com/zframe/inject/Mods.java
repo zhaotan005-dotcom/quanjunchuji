@@ -83,8 +83,9 @@ public class Mods {
         LogCap.note("出生衣服钩子 → " + w); wearInstall = w;
         if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
         Server.preinstall();
+        LogCap.note("刷车钩子 → " + Veh.install());
         earlyDone = "ok".equals(r);
-        earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + (System.currentTimeMillis() - t0) + " ms";
+        earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + Veh.state + "，" + (System.currentTimeMillis() - t0) + " ms";
         LogCap.note(earlyState);
     }
     static void builtInCoat() {
