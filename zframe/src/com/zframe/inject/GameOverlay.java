@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.87"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.88"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -93,7 +93,7 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.HORIZONTAL);
             tabsRow.setPadding(u.dp(10), 0, u.dp(10), 0);
-            final String[] tabs = {"常用", "武器", "装备", "画面"};   // v1.79：衣服页删掉（用户要求，衣服改在仓库里穿）
+            final String[] tabs = {"常用", "刷车人机", "武器", "装备", "画面"};   // v1.88：刷车、刷人机单独一页（用户要求不放常用）；v1.79 衣服页删掉
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -681,9 +681,10 @@ public class GameOverlay {
         root.removeAllViews();
         if (!Con.inMatch) { lobbyPage(a, u, root); return; }
         switch (tab) {
-            case 1: weaponPage(a, u, root); return;
-            case 2: gearPage(a, u, root); return;
-            case 3: settingsPage(a, u, root); return;
+            case 1: spawnPage(a, u, root); return;
+            case 2: weaponPage(a, u, root); return;
+            case 3: gearPage(a, u, root); return;
+            case 4: settingsPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -732,13 +733,27 @@ public class GameOverlay {
         pick(a, u, r, "最高画质", Con.hiGfx, () -> { Con.setGfx(true); refreshAny(); });
     }
 
-    /** 常用：最上面无敌和传送，然后枪，最下面加速/高跳 */
+    /** 常用：最上面无敌和传送，然后枪，最下面加速/高跳（刷车、刷人机在「刷车人机」页） */
     static void mainPage(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "保命");
         LinearLayout oc = card(a, u, root);
         switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
+        head(a, u, root, "枪");
+        LinearLayout gc = card(a, u, root);
+        switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
+        switchRow(a, u, gc, "聚点", "子弹不散开，打得更准", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
+        switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
+        head(a, u, root, "跑跳");
+        slider(a, u, root, "加速", "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
+        note(a, u, root, "每进一局，这一页的功能都会回到关。");
+    }
+
+    /** v1.88 刷车人机页（从常用里挪出来） */
+    static void spawnPage(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "载具");
         java.util.ArrayList<Veh.Group> vg = Veh.groups;
         if (vg == null || vg.isEmpty()) {
@@ -756,17 +771,9 @@ public class GameOverlay {
         botRows(a, u, root);
         LinearLayout br = row(a, root);
         btn(a, u, br, "再刷一个（面前 8 米）", Veh::spawnBot);
-        note(a, u, root, Bots.state + "。" + Veh.botState + "。v1.86 改，未实测。");
-        head(a, u, root, "枪");
-        LinearLayout gc = card(a, u, root);
-        switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "聚点", "子弹不散开，打得更准", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
-        head(a, u, root, "跑跳");
-        slider(a, u, root, "加速", "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
-        slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
-        note(a, u, root, "每进一局，这一页的功能都会回到关。");
+        note(a, u, root, Bots.state + "。" + Veh.botState + "。");
+        head(a, u, root, "毒圈和航线");
+        note(a, u, root, Flow.state + (Flow.air.isEmpty() ? "" : "。" + Flow.air) + "。按全军出击正式服：8 个圈，第一圈等几分钟才缩（海岛 7 分钟、雨林 3 分半）；航线拉长到整张图。v1.88 改，未实测。");
     }
 
     static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
@@ -844,6 +851,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.87", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.88", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

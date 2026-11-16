@@ -120,4 +120,21 @@ runE(0, 1); assert r(BUF) == 0x5b06
 # 大地址（十进制 10 位）
 mu.mem_map(0xb0000000, 0x1000); W(0xb0000000, BOTVT); W(0xb0000000 + 0x358, 0); runE(0xb0000000, 1); assert r(BUF) == 0x5b08 and r(0x33200) == 0xb0000000
 print('E OK')
+# ---- v1.88 'M'：FMemory::Malloc(size, 16) ----
+MAL = 0x10f80
+stub(MAL, 0x33c00, 0xdead0)
+mu.mem_write(ORG + lab['lit9'] - ORG, struct.pack('<I', MAL))
+def runM(size):
+    mu.mem_write(BUF, b'\0' * 128); s = 'M%dx%d' % (size, BUF)
+    mu.mem_write(STR, b''.join(struct.pack('<I', ord(c)) for c in s) + b'\0' * 4)
+    mu.mem_write(0x33c00, b'\0' * 32)
+    mu.reg_write(UC_ARM_REG_SP, SP); mu.reg_write(UC_ARM_REG_R4, PCO); mu.reg_write(UC_ARM_REG_R5, STR); mu.reg_write(UC_ARM_REG_R6, len(s) + 1); mu.reg_write(UC_ARM_REG_R0, ord('M'))
+    mu.mem_write(SP + 0x44, struct.pack('<9I', 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10a, 0x10b, END))
+    mu.emu_start(ORG, END)
+    assert mu.reg_read(UC_ARM_REG_SP) == SP + 0x44 + 36 and mu.reg_read(UC_ARM_REG_R4) == 0x104
+runM(756); print('M', hex(r(BUF)), hex(r(BUF + 4)), r(0x33c00), r(0x33c04))
+assert r(BUF) == 0x5b09 and r(BUF + 4) == 0xdead0 and r(0x33c00) == 756 and r(0x33c04) == 16
+# 别的模式不受影响
+mu.mem_write(0x33c00, b'\0' * 8); W(BOTP + 0x324, 0x777); runE(BOTP, 1); assert r(BUF) == 0x5b08 and r(0x33c00) == 0
+print('M OK')
 print('OK')

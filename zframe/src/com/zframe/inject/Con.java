@@ -474,7 +474,7 @@ public class Con {
         int nv = l.indexOf("RecastNavMeshSizeBytes=");
         if (nv >= 0) navInfo = (navInfo.length() > 300 ? "" : navInfo + " | ") + l.substring(nv, Math.min(l.length(), nv + 120)).trim();
         // v1.86 诊断：航线、毒圈数据（每圈等待/缩圈时间、半径）、开局倒计时
-        if (l.contains("InitArea[") || l.contains("AirLine") || l.contains("AirlineRadius") || l.contains("RadiusForAirLine") || l.contains("JumpRadiusScale") || l.contains("FlightNumber") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase")) {
+        if (!l.contains("GVoice") && (l.contains("InitArea[") || l.contains("AirLine") || l.contains("RestrictedArea") || l.contains("Round") || l.contains("AirlineRadius") || l.contains("RadiusForAirLine") || l.contains("JumpRadiusScale") || l.contains("FlightNumber") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase"))) {
             synchronized (flowLog) { if (flowLog.size() >= 40) flowLog.remove(0); flowLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
         }
         if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
