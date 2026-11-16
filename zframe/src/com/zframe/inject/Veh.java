@@ -74,18 +74,25 @@ public class Veh {
             long data = Server.rd(m, dt + 0x20), num = Server.rd(m, dt + 0x24);
             if (data == 0 || num <= 0 || num > 500) { tableInfo = "车表行数不对 " + num; return out; }
             Names n = Names.get();
-            int dig = 0;
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < num; i++) {
-                long e = data + 20L * i;
-                long idx = Server.rd(m, e), no = Server.rd(m, e + 4), row = Server.rd(m, e + 8);
-                String nm = n == null ? null : n.name(m, (int) idx);
-                if (nm != null && no > 0) nm = nm + "_" + (no - 1);
-                String bp = path(m, row);
-                if (sb.length() < 600) sb.append(nm).append('=').append(bp).append(' ');
-                if (nm != null && nm.matches("\\d{1,9}")) { dig++; out.add(new Row(Long.parseLong(nm), bp)); }
+            // v1.83：实测元素间距不是 20（20 字节读出来的大半是乱的，但 5/11/16/21/26 号车都刷出来了）
+            // → 在 num×128 字节范围里每 4 字节试一次 FName，名字是纯数字、Number=0 的就是车编号；行指针试 +8/+12
+            java.util.TreeMap<Long, String> ids = new java.util.TreeMap<>();
+            long end = data + Math.min(num * 128L, 0x10000);
+            for (long e = data; e + 16 <= end && n != null; e += 4) {
+                long idx = Server.rd(m, e), no = Server.rd(m, e + 4);
+                if (idx <= 0 || idx > 0x400000 || no != 0) continue;
+                String nm = n.name(m, (int) idx);
+                if (nm == null || !nm.matches("\\d{1,9}")) continue;
+                long id = Long.parseLong(nm);
+                if (id == 0 || ids.containsKey(id)) continue;
+                String bp = path(m, Server.rd(m, e + 8));
+                if ("?".equals(bp)) bp = path(m, Server.rd(m, e + 12));
+                ids.put(id, bp);
             }
-            tableInfo = "车表 " + num + " 行，编号 " + dig + " 个，名字表 " + (n == null ? "没找到" : "ok") + "：" + sb;
+            StringBuilder sb = new StringBuilder();
+            for (java.util.Map.Entry<Long, String> en : ids.entrySet()) { out.add(new Row(en.getKey(), en.getValue())); if (sb.length() < 800) sb.append(en.getKey()).append('=').append(en.getValue()).append(' '); }
+            if (ids.size() < 3) for (long k = 1; k <= 40; k++) if (!ids.containsKey(k)) { ids.put(k, "?"); out.add(new Row(k, "?")); }
+            tableInfo = "车表 " + num + " 行，编号 " + ids.size() + " 个，名字表 " + (n == null ? "没找到" : "ok") + "：" + sb;
         }
         return out;
     }
@@ -128,7 +135,7 @@ public class Veh {
         if (l.contains("bus")) return "面包车";
         if (l.contains("pickup")) return "皮卡";
         if (l.contains("boat") || l.contains("aqua")) return "船";
-        return bp;
+        return "?".equals(bp) ? "车" : bp;
     }
 
     /** 菜单按钮：在面前刷一辆，每按一次换一种 */
