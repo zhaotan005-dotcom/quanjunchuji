@@ -176,7 +176,7 @@ public class Bots {
                 if (spawned == 0) state = "人机：落地站稳后开始刷";
                 Thread.sleep(2000); continue;
             }
-            if (next == 0) next = now;
+            if (next == 0) { next = now + 30000 + rnd.nextInt(90001); Veh.note("人机：落地站稳，第一批 " + (next - now) / 1000 + " 秒后刷"); }   // v1.99：第一批随机 30~120 秒后
             int al; synchronized (live) { al = live.size(); }
             if (now >= next && al < 3) {
                 int n = Math.min(TOTAL - killed - al, 2 + rnd.nextInt(3) - al);

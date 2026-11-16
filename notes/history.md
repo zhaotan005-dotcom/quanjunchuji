@@ -512,3 +512,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 19:30 v1.98 实测：丢枪又闪退；人机摔死（落地检测没排除飞机：飞机上高度不变 → 人机刷在 ~200 米空中）；人机摔死后阶段 4→10，直接弹大厅无结算（真实人数降到 1 → 游戏判结束）；开局仍等约 60 秒（日志 WaitingPlayersCountDownTime=1 但阶段 0→1 还是 50~60 秒，真正的等待来源未知；另有 bEnableQuickStartMatch ResetStartMatchCountDownTime[5.00] 但阶段 1 仍 45 秒）；门/物资/车没有（还没做）。
   人机配枪：'I' 成功（5b0b，能放 1，返回 1），但人机手里没枪 → 进背包不等于拿在手上，要找 AI 切武器/装备武器。Uin：人机本来就是 3、玩家 1 → 队友标记不是 Uin 的问题，要查 TeamID（人机队伍 PS+0x340 = b07b006c，和玩家比）。仓库衣服 'I' 发成功。
 - v1.99（vc100/core100，未实测）：人机只在玩家高度 <120 米且站稳 15 秒后刷；恢复 nop 游戏数人（不写人数，避免弹大厅和闪）。
+- v1.99 补：第一批人机落地站稳后随机 30~120 秒（版本号不变，用户要求）；写 HANDOFF.md 交接。
