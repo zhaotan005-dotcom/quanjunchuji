@@ -114,10 +114,13 @@ public class Server {
         if (!"ok".equals(r)) return state = "自建服务端：" + r + "，没开";
         on = true;
         rpl.putInt(28, 0);                             // v1.66：先不投递，按「投递 1 条」一条一条来
-        mark("准备 13002");
-        push(13002, 0, false, depositProps());         // 一开就先把仓库物品推过去（排队，等投递）
+        // v1.67 排队顺序（逐条测哪条会闪退）：1 邮件推送 25007，2 仓库 13002 不带角色，3 仓库 13002 带角色
         mark("准备邮件");
-        newMail();                                     // 再推一封带附件的系统邮件（25007），去邮箱里领取
+        newMail();
+        mark("准备 13002（不带角色）");
+        push(13002, 0, false, depositProps(false), "仓库-不带角色");
+        mark("准备 13002（带角色）");
+        push(13002, 0, false, depositProps(true), "仓库-带角色");
         mark("开 SEND 门");
         rpl.putInt(24, 1);                             // 打开 SEND 的门
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
@@ -244,7 +247,8 @@ public class Server {
     }
 
     /** 往回包区放一个 CSPkg，下一帧游戏收 */
-    static synchronized void push(int cmd, int seq, boolean key, byte[] body) {
+    static void push(int cmd, int seq, boolean key, byte[] body) { push(cmd, seq, key, body, null); }
+    static synchronized void push(int cmd, int seq, boolean key, byte[] body, String tag) {
         PB head = new PB().u(1, cmd).u(4, seq).u(6, 0);
         if (key) head.u(7, 1);
         byte[] p = new PB().m(1, head).b(2, body).bytes();
@@ -255,7 +259,7 @@ public class Server {
         VarHandle.releaseFence();
         rpl.putInt(0, rplWp);
         replied++;
-        cmds.add(cmd + "（" + p.length + " 字节）");
+        cmds.add(cmd + (tag != null ? " " + tag : cmd == 25007 ? " 邮件推送" : "") + "（" + p.length + " 字节）");
     }
     static final ArrayList<String> cmds = new ArrayList<>();
 
@@ -301,9 +305,24 @@ public class Server {
         mark("投递第 " + (n + 1) + " 条：" + cmds.get(n));
         rpl.putInt(28, n + 1);
         try { Thread.sleep(300); } catch (Throwable ignored) {}
-        String r = "第 " + (n + 1) + " 条 " + cmds.get(n) + (rpl.getInt(8) > n ? " 游戏已收，没闪退" : " 游戏还没收");
+        String r = "第 " + (n + 1) + " 条 " + cmds.get(n) + (rpl.getInt(8) > n ? " 游戏已收" : " 游戏还没收");
         mark("  → " + r);
-        return r;
+        for (int i = 1; i <= 5; i++) { try { Thread.sleep(1000); } catch (Throwable ignored) {} mark("  收后 " + i + " 秒还活着"); }
+        return r + "，5 秒没闪退" + (n + 1 < cmds.size() ? "，下一条 " + cmds.get(n + 1) : "");
+    }
+
+    /** 跳过 1 条：不交给游戏，直接把读指针挪过去 */
+    public static synchronized String skipOne() {
+        if (!on) return "先按「开启服务端」";
+        int n = rpl.getInt(28), got = rpl.getInt(8);
+        if (got < n) return "上一条还没被游戏收走";
+        if (n >= cmds.size()) return "没有可跳过的了";
+        int rp = rpl.getInt(4), len = rpl.getInt(RH + rp);
+        rpl.putInt(4, (rp + 4 + len + 3) & ~3);
+        rpl.putInt(8, got + 1);
+        rpl.putInt(28, n + 1);
+        mark("跳过第 " + (n + 1) + " 条：" + cmds.get(n));
+        return "跳过了第 " + (n + 1) + " 条 " + cmds.get(n) + (n + 1 < cmds.size() ? "，下一条 " + cmds.get(n + 1) : "");
     }
 
     // ---------------- 仓库 ----------------
@@ -329,10 +348,12 @@ public class Server {
         if (p[2] != 0) x.m(13, new PB().u(1, p[2]));
         return x;
     }
-    static synchronized byte[] depositProps() {
+    static byte[] depositProps() { return depositProps(true); }
+    static synchronized byte[] depositProps(boolean roles) {
         initProps();
         PB res = new PB().u(1, 0);
-        for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) res.m(2, prop(e.getKey(), e.getValue()));
+        for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
+            if (roles || e.getValue()[2] == 0) res.m(2, prop(e.getKey(), e.getValue()));
         return res.u(5, role()).bytes();
     }
     static long propGid(byte[] body, int field) {
