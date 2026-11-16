@@ -52,7 +52,7 @@ public class GameOverlay {
             android.util.DisplayMetrics dm = a.getResources().getDisplayMetrics();
             int sw = Math.max(dm.widthPixels, dm.heightPixels), sh = Math.min(dm.widthPixels, dm.heightPixels);
             // v1.49：窄一点（和最早的版本差不多宽），高度不超过屏幕的 82%
-            final int pw = Math.min((int) (sw * 0.46f), u.dp(400)), ph = Math.min((int) (sh * 0.82f), u.dp(340));   // v1.95 左边竖排分页，所以宽一点
+            final int pw = Math.min((int) (sw * 0.46f), u.dp(400)), ph = Math.min((int) (sh * 0.82f), u.dp(340));   // v1.96 左边竖排分页，所以宽一点
 
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.95"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.96"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -87,7 +87,7 @@ public class GameOverlay {
             status.setPadding(u.dp(16), 0, u.dp(16), u.dp(8));
             panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
 
-            // ---- 主体（可收起）：v1.95 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
+            // ---- 主体（可收起）：v1.96 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
             final LinearLayout body = new LinearLayout(a);
             body.setOrientation(LinearLayout.HORIZONTAL);
             final LinearLayout tabsRow = new LinearLayout(a);
@@ -175,7 +175,7 @@ public class GameOverlay {
             boolean on = tv[j].getTag() instanceof Integer && (Integer) tv[j].getTag() == tab;
             tv[j].setTextColor(on ? ON_TXT : SUBT);
             tv[j].setTypeface(on ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
-            tv[j].setBackground(on ? box(ON_BG, u.dp(9)) : null);   // v1.95 选中：白色圆角块
+            tv[j].setBackground(on ? box(ON_BG, u.dp(9)) : null);   // v1.96 选中：白色圆角块
         }
     }
 
@@ -855,6 +855,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v1.95", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.96", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

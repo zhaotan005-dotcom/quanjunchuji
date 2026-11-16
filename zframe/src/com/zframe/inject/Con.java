@@ -288,7 +288,8 @@ public class Con {
         if (fpsAt > 0 && now - fpsAt > 800) { fpsAt = 0; applyFps(); }
         if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.lastPawnAsk = 0; }
         // 大厅加载完 6 秒后打上「初始衣服 = 绝地风衣」（启动画面阶段不动内存）
-        if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); new Thread(Server::autoCrashSave).start(); }
+        if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); LogCap.note("开局等人 60 秒→1 秒：" + Mods.write(Mods.WAIT, Mods.WAIT_O, Mods.WAIT_N, true));   // v1.95b 用户：一进去不显示读秒，过好一会才出 43 倒计时 → 去掉不显示读秒的那 60 秒
+            new Thread(Server::autoCrashSave).start(); }
         tickAudio(now);
     }
 

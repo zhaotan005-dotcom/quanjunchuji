@@ -274,7 +274,6 @@ public class Mods {
     public static String setNormal() {
         String r = setPlane(false);
         String r2 = setPoison(false);
-        write(WAIT, WAIT_O, WAIT_N, false);
         return "ok".equals(r) ? r2 : r;
     }
     public static String setMale(boolean on) {

@@ -87,6 +87,9 @@ public class Bots {
                                 String a = patch(m, ST_A, ST_A_O, NOP), b = patch(m, ST_B, ST_B_O, NOP);
                                 countInfo = "剩余人数 原来 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "），GameState " + Long.toHexString(gs) + "（GameMode+0x908 " + Long.toHexString(Server.rd(m, gm + 0x908)) + "），数人补丁 " + (a.equals(NOP) && b.equals(NOP) ? "已打" : "没打上 " + a + " " + b);
                                 Veh.note(countInfo); first = false; foreign = 0; foreignVal = -1;
+                                if ((Server.rd(m, gs + 0x71c) & 0xff) == 0 && Server.rd(m, gs + 0x72c) == Float.floatToIntBits(60f)) {   // v1.96 备用：代码补丁没赶上时，本局等人 60 秒 → 1 秒
+                                    Flow.wi(m, gs + 0x72c, Float.floatToIntBits(1f)); Veh.note("开局等人 60 秒改成 1 秒（本局）");
+                                }
                             }
                             long now = Server.rd(m, gs + 0x774);
                             if (lastL >= 0 && now != lastL) { foreign++; foreignVal = now; foreignAiVal = Server.rd(m, gs + 0x778); }
