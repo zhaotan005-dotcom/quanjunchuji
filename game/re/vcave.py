@@ -1,13 +1,19 @@
+# v1.85 加 'A<难度>x<buf>'：按难度加人机（游戏自己的 AddOneBot，带装备/切战斗行为树）
 # v1.80 刷车 cave: AddAvaItem "V<resId>x<buf>"（buf 十进制地址）。挂在 GiveItem cave 的 'P' 判断后面。
 # 入口时栈已经 push {r4-r11,lr}; sub sp,#0x44；r4=PlayerController，r5=字符(UTF-32)，r6=长度，r0=第一个字符
 import struct, capstone
 from asm import asm
 SRC = r'''
     mov r11, #0
+    cmp r0, #86
+    beq go
+    mov r11, #1
     cmp r0, #66
-    moveq r11, #1
-    cmpne r0, #86
+    beq go
+    mov r11, #2
+    cmp r0, #65
     bne done
+go:
     mov r9, #1
     mov r7, #0
 p1:
@@ -91,12 +97,14 @@ e2:
     mov r1, r7
     add r2, r8, #40
     add r3, r8, #52
-    ldr ip, [pc, #LIT]
+    ldr ip, [pc, #L:lit]
     .word 0xe12fff3c
     movw r0, #0x5b03
     str r0, [r8]
     b done
 bot:
+    cmp r11, #2
+    beq abot
     cmp r7, #0
     beq fin
     str r7, [r8, #64]
@@ -112,9 +120,106 @@ bot:
     mov r1, r7
     ldr r2, [r8, #40]
     ldr r3, [r8, #44]
-    ldr ip, [pc, #LIT2]
+    ldr ip, [pc, #L:lit2]
     .word 0xe12fff3c
     movw r0, #0x5b04
+    str r0, [r8]
+    b done
+abot:
+    mov r6, r0
+    ldr r1, [r0]
+    ldr r1, [r1, #0x5c4]
+    ldr r2, [pc, #L:lit3]
+    cmp r1, r2
+    movw r0, #0x5b05
+    bne afin
+    str r7, [r8, #64]
+    mov r0, r6
+    mov r1, r7
+    ldr ip, [pc, #L:lit4]
+    .word 0xe12fff3c
+    str r0, [r8, #88]
+    cmp r0, #0
+    movw r0, #0x5b06
+    beq afin
+    ldr r1, [r8, #88]
+    mov r0, r6
+    mov r2, r7
+    ldr ip, [pc, #L:lit5]
+    .word 0xe12fff3c
+    mov r5, r0
+    str r5, [r8, #92]
+    cmp r5, #0
+    movw r0, #0x5b06
+    beq afin
+    ldr r0, [r6]
+    ldr r2, [r0, #0x5f8]
+    mov r0, r6
+    mov r1, r5
+    .word 0xe12fff32
+    ldr r0, [r6]
+    ldr r2, [r0, #0x39c]
+    mov r0, r6
+    mov r1, r5
+    .word 0xe12fff32
+    ldr r0, [r5, #0x2b4]
+    str r0, [r8, #96]
+    cmp r0, #0
+    beq notp
+    ldr r1, [r0]
+    ldr ip, [r1, #0x250]
+    mov r1, #0
+    str r1, [sp]
+    add r1, r8, #40
+    add r2, r8, #52
+    mov r3, #0
+    .word 0xe12fff3c
+    ldr r0, [r5]
+    ldr r2, [r0, #0x308]
+    mov r0, r5
+    add r1, r8, #52
+    .word 0xe12fff32
+notp:
+    ldr r0, [r5]
+    ldr r0, [r0, #0x344]
+    ldr r1, [pc, #L:lit6]
+    cmp r0, r1
+    movw r0, #0x5b07
+    bne afin
+    ldr r0, [r5, #0x354]
+    str r0, [r8, #100]
+    ldr r0, [r5, #0x358]
+    str r0, [r8, #104]
+    ldr r0, [r5, #0x324]
+    str r0, [r8, #108]
+    ldr r0, [r5, #0x3ec]
+    str r0, [r8, #112]
+    ldr r9, [r8, #116]
+    tst r9, #1
+    beq noeq
+    mov r0, r5
+    ldr ip, [pc, #L:lit7]
+    .word 0xe12fff3c
+noeq:
+    tst r9, #4
+    bne dosw
+    tst r9, #2
+    beq aok
+    ldr r0, [r5, #0x324]
+    cmp r0, #0
+    bne aok
+dosw:
+    ldr r0, [r5, #0x358]
+    cmp r0, #0
+    beq aok
+    mov r0, r5
+    ldr ip, [pc, #L:lit8]
+    .word 0xe12fff3c
+aok:
+    ldr r0, [r5, #0x324]
+    str r0, [r8, #120]
+    movw r0, #0x5b08
+afin:
     str r0, [r8]
     b done
 fin:
@@ -127,18 +232,46 @@ lit:
     .word 0x11111111
 lit2:
     .word 0x22222222
+lit3:
+    .word 0x33333333
+lit4:
+    .word 0x44444444
+lit5:
+    .word 0x55555555
+lit6:
+    .word 0x66666666
+lit7:
+    .word 0x77777777
+lit8:
+    .word 0x88888888
 '''
+LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8')
+# 字面量顺序（Java 在 cave 后面按这个顺序拼地址，都要 + 库基址）：
+# lit 刷车 0x1102ca4，lit2 ServerAddBotAt 0x1115620，lit3 GM AddBotAt 实现 0x1012318（校验 GameMode），
+# lit4 难度→人机类 0x1014898，lit5 AddOneBot 0x10112d0，lit6 PVPAIController::OnPossess 0xc1bbd8（校验类），
+# lit7 ForceGiveAllEquipToAI 0xc1a534，lit8 SwitchToBattleBehaviorTree 0xc17fe0
 def build(org=0):
-    src = SRC.replace('#LIT2', '#0').replace('#LIT', '#0')
-    b, lab = asm(src, org)
-    # 填 ldr ip,[pc,#x] 的偏移（第 1 个 → lit 刷车，第 2 个 → lit2 刷人机）
-    ii = [k for k in range(0, len(b), 4) if struct.unpack_from('<I', b, k)[0] & 0x0fff0000 == 0x059f0000 and (struct.unpack_from('<I', b, k)[0] >> 12) & 15 == 12]
-    assert len(ii) == 2
-    for i, name in zip(ii, ('lit', 'lit2')):
-        off = lab[name] - (org + i + 8)
-        w = struct.unpack_from('<I', b, i)[0] | off
-        b = b[:i] + struct.pack('<I', w) + b[i + 4:]
+    lines = SRC.split('\n'); refs = []; out = []; k = 0
+    for l in lines:
+        t = l.split(';')[0].strip()
+        if '#L:' in t:
+            refs.append((k, t.split('#L:')[1].rstrip(']').strip()))
+            l = l.split('#L:')[0] + '#0]'
+        if t and not t.endswith(':'): k += 1
+        out.append(l)
+    b, lab = asm('\n'.join(out), org)
+    # 字面量必须在代码末尾，顺序和 LITS 一致
+    assert [lab[n] for n in LITS] == [org + len(b) - 4 * (len(LITS) - i) for i in range(len(LITS))], 'lit order'
+    for i, name in refs:
+        off = lab[name] - (org + 4 * i + 8)
+        assert 0 <= off < 4096
+        w = struct.unpack_from('<I', b, 4 * i)[0] | off
+        b = b[:4 * i] + struct.pack('<I', w) + b[4 * i + 4:]
     return b, lab
+def code(org=0):
+    """不含字面量的部分（Java 里的 CAVE 字符串）"""
+    b, lab = build(org)
+    return b[:len(b) - 4 * len(LITS)]
 if __name__ == '__main__':
     b, lab = build(0x4a2d940)
     md = capstone.Cs(capstone.CS_ARCH_ARM, capstone.CS_MODE_ARM)

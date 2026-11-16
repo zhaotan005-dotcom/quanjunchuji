@@ -54,4 +54,54 @@ mu.reg_write(UC_ARM_REG_SP,SP); mu.reg_write(UC_ARM_REG_R4,PCO); mu.reg_write(UC
 mu.emu_start(ORG,END)
 print('bot magic %x args %x %d %x %x z %x yaw %x'%(r(BUF),r(0x10900),r(0x10904),r(0x10908),r(0x1090c),r(0x10910),r(0x10914)))
 assert r(BUF)==0x5b04 and r(0x10900)==PCO and r(0x10904)==1 and r(0x10908)==0x41 and r(0x1090c)==0x42 and r(0x10910)==0x43 and r(0x10914)==0x52
+
+# ---- v1.85 'A'：按难度加人机 ----
+def stub(at, rec, ret):
+    mu.mem_write(at, bytes.fromhex('10c09fe5' '0f008ce8' '00109de5' '10108ce5' '04009fe5' '1eff2fe1') + struct.pack('<II', rec, ret))
+mu.mem_map(0x30000, 0x10000)
+L = {n: lab[n] - ORG for n in ('lit3','lit4','lit5','lit6','lit7','lit8')}
+ADDBOTAT, CLSF, ADDONE, ONPOSS, EQUIP, SWITCH = 0x10a00, 0x10b00, 0x10c00, 0x10d00, 0x10e00, 0x10f00
+for n, v in zip(('lit3','lit4','lit5','lit6','lit7','lit8'), (ADDBOTAT, CLSF, ADDONE, ONPOSS, EQUIP, SWITCH)):
+    mu.mem_write(ORG + L[n], struct.pack('<I', v))
+CLS = 0x30000; BOTP = 0x31000; BOTVT = 0x31800; PAWN = 0x32000; PVT = 0x32800; GMVT = 0x24800
+stub(CLSF, 0x33000, CLS); stub(ADDONE, 0x33100, BOTP); stub(EQUIP, 0x33200, 0)
+mu.mem_write(SWITCH, bytes.fromhex('04109fe5' '241380e5' '1eff2fe1') + struct.pack('<I', 0x999))
+F8 = 0x33400; C39 = 0x33500; TP = 0x33600; ROT = 0x33700
+stub(F8, 0x33800, 0); stub(C39, 0x33900, 0); stub(TP, 0x33a00, 0); stub(ROT, 0x33b00, 0)
+W(GM, GMVT); W(GMVT + 0x5c4, ADDBOTAT); W(GMVT + 0x5f8, F8); W(GMVT + 0x39c, C39)
+W(BOTP, BOTVT); W(BOTP + 0x2b4, PAWN); W(PAWN, PVT); W(PVT + 0x250, TP); W(BOTVT + 0x308, ROT); W(BOTVT + 0x344, ONPOSS)
+W(BOTP + 0x354, 0xb0b0); W(BOTP + 0x358, 0xbabe); W(BOTP + 0x324, 0); W(BOTP + 0x3ec, 2)
+def runA(diff, flags):
+    mu.mem_write(BUF, b'\0' * 128); s = 'A%dx%d' % (diff, BUF)
+    mu.mem_write(STR, b''.join(struct.pack('<I', ord(c)) for c in s) + b'\0' * 4)
+    W(BUF + 40, 0x41); W(BUF + 44, 0x42); W(BUF + 48, 0x43); W(BUF + 52, 0x51); W(BUF + 56, 0x52); W(BUF + 60, 0x53); W(BUF + 116, flags)
+    for a in (0x33000, 0x33100, 0x33200, 0x33800, 0x33900, 0x33a00, 0x33b00): mu.mem_write(a, b'\0' * 32)
+    mu.reg_write(UC_ARM_REG_SP, SP); mu.reg_write(UC_ARM_REG_R4, PCO); mu.reg_write(UC_ARM_REG_R5, STR); mu.reg_write(UC_ARM_REG_R6, len(s) + 1); mu.reg_write(UC_ARM_REG_R0, ord('A'))
+    for rr, v in ((UC_ARM_REG_R7, 0xdead7), (UC_ARM_REG_R8, 0xdead8), (UC_ARM_REG_R9, 0xdead9), (UC_ARM_REG_R10, 0xdeada), (UC_ARM_REG_R11, 0xdeadb)):
+        mu.reg_write(rr, v)
+    mu.mem_write(SP + 0x44, struct.pack('<9I', 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10a, 0x10b, END))
+    try: mu.emu_start(ORG, END)
+    except Exception as e:
+        print('fault pc %x lr %x r0 %x r1 %x r2 %x r5 %x r6 %x' % tuple(mu.reg_read(x) for x in (UC_ARM_REG_PC, UC_ARM_REG_LR, UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R5, UC_ARM_REG_R6))); raise
+    assert mu.reg_read(UC_ARM_REG_SP) == SP + 0x44 + 36
+    assert [mu.reg_read(x) for x in (UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R11)] == [0x104, 0x105, 0x10b]
+W(BOTP + 0x324, 0); runA(3, 1 | 2)
+print('A magic %x cls(gm %x diff %d) addone(gm %x cls %x diff %d) bot %x pawn %x f8 %x 39c %x' % (r(BUF), r(0x33000), r(0x33004), r(0x33100), r(0x33104), r(0x33108), r(BUF + 92), r(BUF + 96), r(0x33804), r(0x33904)))
+print('  tp(pawn %x loc %x rot %x test %d sp %d) rot(bot %x %x) equip %x bt %x %x brain %x diff %d after %x' % (r(0x33a00), r(0x33a04), r(0x33a08), r(0x33a0c), r(0x33a10), r(0x33b00), r(0x33b04), r(0x33200), r(BUF + 100), r(BUF + 104), r(BUF + 108), r(BUF + 112), r(BUF + 120)))
+assert r(BUF) == 0x5b08 and r(0x33000) == GM and r(0x33004) == 3 and r(0x33100) == GM and r(0x33104) == CLS and r(0x33108) == 3
+assert r(0x33804) == BOTP and r(0x33904) == BOTP and r(0x33a00) == PAWN and r(0x33a04) == BUF + 40 and r(0x33a08) == BUF + 52 and r(0x33a0c) == 0 and r(0x33a10) == 0
+assert r(0x33b00) == BOTP and r(0x33b04) == BUF + 52 and r(0x33200) == BOTP and r(BUF + 104) == 0xbabe and r(BUF + 120) == 0x999 and r(BUF + 64) == 3
+# 已经有行为树（brain 非 0）且没要求强制 → 不切、不给装备
+W(BOTP + 0x324, 0x777); runA(1, 2); assert r(BUF) == 0x5b08 and r(BUF + 120) == 0x777 and r(0x33200) == 0
+# 强制切
+W(BOTP + 0x324, 0x777); runA(2, 4); assert r(BUF + 120) == 0x999
+# GameMode 不对 → 5b05，什么都不调
+W(GMVT + 0x5c4, 0x1234); runA(2, 7); assert r(BUF) == 0x5b05 and r(0x33100) == 0; W(GMVT + 0x5c4, ADDBOTAT)
+# 人机类找不到 → 5b06
+stub(CLSF, 0x33000, 0); runA(2, 7); assert r(BUF) == 0x5b06 and r(0x33100) == 0; stub(CLSF, 0x33000, CLS)
+# 不是 PVP 人机控制器 → 5b07，不调装备/切树
+W(BOTVT + 0x344, 0x4444); W(BOTP + 0x324, 0); runA(2, 7); assert r(BUF) == 0x5b07 and r(0x33200) == 0 and r(0x33a00) == PAWN; W(BOTVT + 0x344, ONPOSS)
+# 没有人物 → 不传送，照样检查类
+W(BOTP + 0x2b4, 0); runA(2, 1); assert r(BUF) == 0x5b08 and r(0x33a00) == 0 and r(0x33200) == BOTP; W(BOTP + 0x2b4, PAWN)
+print('A OK')
 print('OK')

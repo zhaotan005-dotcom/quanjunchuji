@@ -18,8 +18,10 @@ import java.util.ArrayList;
  */
 public class Veh {
     static final long VCAVE = Server.SLACK + 0x400, TRAMP = 0x1716c10L, BNE = 0x17169ecL, SPAWN = 0x1102ca4L, BOT = 0x1115620L;
+    /** v1.85 cave 末尾的字面量（顺序见 game/re/vcave.py LITS）：GM AddBotAt 实现、难度→人机类、AddOneBot、PVP 人机 OnPossess、给装备、切战斗行为树 */
+    static final long[] LITS = { SPAWN, BOT, 0x1012318L, 0x1014898L, 0x10112d0L, 0xc1bbd8L, 0xc1a534L, 0xc17fe0L };
     static final String TRAMP_O = "00009de50810a0e1", BNE_O = "8400001a", BNE_N = "8700001a";
-    static final String CAVE = "00b0a0e3420050e301b0a003560050136900001a0190a0e30070a0e3060059e1070000aa090195e7300040e2090050e30300008a077187e0877080e0019089e2f5ffffea019089e20080a0e3060059e1070000aa090195e7300040e2090050e30300008a088188e0888080e0019089e2f5ffffea000058e34f00000a010b05e3000088e5044088e5c0a294e508a088e500005ae34600000a28019ae5440088e5000050e34200000a401190e50c1088e5441190e5101088e5481190e5141088e5301190e5481088e5341190e54c1088e5381190e5501088e53c1190e5541088e5000094e5a01090e50400a0e131ff2fe1180088e5000050e32d00000a940090e51c0088e5000050e32900000a00005be31300001a140990e5200088e5000050e32300000ac01290e5241088e5000057e31f00000a000051e31d00000a407088e50400a0e10710a0e1282088e2343088e26cc09fe53cff2fe1030b05e3000088e5150000ea000057e31100000a407088e5300098e500008de5340098e504008de5380098e508008de53c0098e50c008de50400a0e10710a0e1282098e52c3098e520c09fe53cff2fe1040b05e3000088e5010000ea020b05e3000088e544d08de2f08fbde8";
+    static final String CAVE = "00b0a0e3560050e30500000a01b0a0e3420050e30200000a02b0a0e3410050e3c600001a0190a0e30070a0e3060059e1070000aa090195e7300040e2090050e30300008a077187e0877080e0019089e2f5ffffea019089e20080a0e3060059e1070000aa090195e7300040e2090050e30300008a088188e0888080e0019089e2f5ffffea000058e3ac00000a010b05e3000088e5044088e5c0a294e508a088e500005ae3a300000a28019ae5440088e5000050e39f00000a401190e50c1088e5441190e5101088e5481190e5141088e5301190e5481088e5341190e54c1088e5381190e5501088e53c1190e5541088e5000094e5a01090e50400a0e131ff2fe1180088e5000050e38a00000a940090e51c0088e5000050e38600000a00005be31300001a140990e5200088e5000050e38000000ac01290e5241088e5000057e37c00000a000051e37a00000a407088e50400a0e10710a0e1282088e2343088e2e0c19fe53cff2fe1030b05e3000088e5720000ea02005be31300000a000057e36c00000a407088e5300098e500008de5340098e504008de5380098e508008de53c0098e50c008de50400a0e10710a0e1282098e52c3098e58cc19fe53cff2fe1040b05e3000088e55c0000ea0060a0e1001090e5c41591e570219fe5020051e1050b05e35100001a407088e50600a0e10710a0e158c19fe53cff2fe1580088e5000050e3060b05e34800000a581098e50600a0e10720a0e138c19fe53cff2fe10050a0e15c5088e5000055e3060b05e33e00000a000096e5f82590e50600a0e10510a0e132ff2fe1000096e59c2390e50600a0e10510a0e132ff2fe1b40295e5600088e5000050e30c00000a001090e550c291e50010a0e300108de5281088e2342088e20030a0e33cff2fe1000095e5082390e50500a0e1341088e232ff2fe1000095e5440390e5ac109fe5010050e1070b05e31d00001a540395e5640088e5580395e5680088e5240395e56c0088e5ec0395e5700088e5749098e5010019e30200000a0500a0e170c09fe53cff2fe1040019e30400001a020019e30800000a240395e5000050e30500001a580395e5000050e30200000a0500a0e140c09fe53cff2fe1240395e5780088e5080b05e3000088e5010000ea020b05e3000088e544d08de2f08fbde8";
 
     public static volatile String state = "刷车：没装";
     static volatile boolean installed;
@@ -36,7 +38,9 @@ public class Veh {
             String tr = Server.bytesAt(m, b + TRAMP, 8);
             String trN = "04f01fe5" + Server.w32((int) (b + VCAVE));
             if (!tr.equals(TRAMP_O) && !tr.equals(trN)) return state = "刷车：空位字节不符 " + tr;
-            m.seek(b + VCAVE); m.write(Patches.hex(CAVE + Server.w32((int) (b + SPAWN)) + Server.w32((int) (b + BOT))));
+            StringBuilder lit = new StringBuilder(CAVE);
+            for (long l : LITS) lit.append(Server.w32((int) (b + l)));
+            m.seek(b + VCAVE); m.write(Patches.hex(lit.toString()));
             m.seek(b + TRAMP); m.write(Patches.hex(trN));
             m.seek(b + BNE); m.write(Patches.hex(BNE_N));
             if (!Server.bytesAt(m, b + BNE, 4).equals(BNE_N)) return state = "刷车：写入没生效";
@@ -58,7 +62,7 @@ public class Veh {
         for (int i = 0; i < 40; i++) {
             Thread.sleep(50);
             int mg = buf.getInt(0);
-            if (mg == 0x5b02 || mg == 0x5b03 || mg == 0x5b04) return true;
+            if (mg >= 0x5b02 && mg <= 0x5b08) return true;
         }
         return false;
     }
@@ -230,21 +234,66 @@ public class Veh {
         }, "zf-veh").start();
     }
 
-    // ---------------- v1.84 刷人机 ----------------
-    // 游戏自己的 ServerAddBotAt_Implementation 0x1115620(PC, int, FVector, FRotator)：先查 GameMode 是不是 NZBattleRoyaleGame，
-    // 再调 GameMode 虚函数 +0x5c4 (AddBotAt)。教学关用的，对局 GameMode 也是这个类。int 参数含义没确定，先给 1。
+    // ---------------- v1.84/v1.85 刷人机 ----------------
+    // v1.84 用教学关的 ServerAddBotAt（参数 1 = GameMode 人机类数组第 1 个，难度写死 1），刷出来站着不动。
+    // v1.85 改走对局自己的加人机：cave 'A<难度>' → 0x1014898(GM, 难度) 取人机类（BotDifficultMapping，没有就用 PVPBotTypeIndex）
+    //   → 0x10112d0 AddOneBot(GM, 类, 难度)（难度写进 AIController+0x3ec）→ 和 AddBotAt 一样 GM vt+0x5f8 / +0x39c 生出人物、传送到位置。
+    //   是 PVP 人机控制器（vt+0x344 == OnPossess 0xc1bbd8）时：标志 1 = ForceGiveAllEquipToAI 给装备；
+    //   标志 2 = 行为树没跑（BrainComponent +0x324 为空）就 SwitchToBattleBehaviorTree；标志 4 = 强制切战斗树。
+    //   buf：+88 类，+92 控制器，+96 人物，+100 出生岛树，+104 战斗树，+108 Brain（前），+112 难度，+120 Brain（后）。
+    //   结果码 +0：5b05 GameMode 不对，5b06 没拿到人机类/没刷出来，5b07 不是 PVP 人机控制器，5b08 成功。
     public static volatile String botState = "刷人机：还没试";
-    public static volatile int botArg = 1;
+    public static volatile String botInfo = "";
+    static final String[] DIFF = { "", "简单", "普通", "困难" };
+
+    /** 读一次人物位置：{x, y, z, yaw(度), GameMode}；没人物返回 null */
+    static synchronized double[] info() throws InterruptedException {
+        if (!installed || !call(0) || buf.getInt(0) != 0x5b02 || buf.getInt(8) == 0) return null;
+        float x = Float.intBitsToFloat(buf.getInt(12)), y = Float.intBitsToFloat(buf.getInt(16)), z = Float.intBitsToFloat(buf.getInt(20));
+        float qx = Float.intBitsToFloat(buf.getInt(72)), qy = Float.intBitsToFloat(buf.getInt(76)), qz = Float.intBitsToFloat(buf.getInt(80)), qw = Float.intBitsToFloat(buf.getInt(84));
+        double yaw = Math.atan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy * qy + qz * qz));
+        if (Double.isNaN(yaw)) yaw = 0;
+        return new double[] { x, y, z, Math.toDegrees(yaw), buf.getInt(28) & 0xffffffffL };
+    }
+    /** 在 (x,y,z) 加一个人机，面朝 yaw。返回结果码（0 = cave 没反应） */
+    static synchronized int addBot(int diff, double x, double y, double z, double yaw, int flags) throws InterruptedException {
+        if (!installed) return 0;
+        if (buf == null && !call(0)) return 0;
+        for (int o = 88; o < 128; o += 4) buf.putInt(o, 0);
+        buf.putFloat(40, (float) x); buf.putFloat(44, (float) y); buf.putFloat(48, (float) z);
+        buf.putFloat(52, 0f); buf.putFloat(56, (float) yaw); buf.putFloat(60, 0f);
+        buf.putInt(116, flags);
+        if (!call('A', diff)) return 0;
+        int code = buf.getInt(0);
+        botInfo = "结果 " + Integer.toHexString(code) + " 类 " + h(88) + " 控制器 " + h(92) + " 人物 " + h(96)
+            + " 出生岛树 " + h(100) + " 战斗树 " + h(104) + " 行为树前 " + h(108) + " 后 " + h(120) + " 难度 " + buf.getInt(112);
+        return code;
+    }
+    static String h(int o) { return Integer.toHexString(buf.getInt(o)); }
+    static String codeText(int c) {
+        switch (c) {
+            case 0x5b08: return "成功";
+            case 0x5b07: return "刷出来了，但不是对局人机（不会给装备）";
+            case 0x5b06: return "游戏没给人机类或没刷出来";
+            case 0x5b05: return "这局的 GameMode 不支持加人机";
+            case 0: return "补丁代码没反应（进对局后再按）";
+            default: return "未知结果 " + Integer.toHexString(c);
+        }
+    }
+
+    /** 菜单按钮：面前 8 米刷一个（当前难度） */
     public static void spawnBot() {
         if (busy) { GameOverlay.toastAny(state); return; }
         busy = true;
         new Thread(() -> {
             try {
-                String e = ahead(800, 50);
-                if (e != null) { GameOverlay.toastAny(botState = "刷人机：" + e); return; }
-                boolean ok = call('B', botArg) && buf.getInt(0) == 0x5b04;
-                botState = "刷人机：" + (ok ? "已调游戏的加人机（参数 " + botArg + "），看前面 8 米" : "补丁代码没反应 " + Integer.toHexString(buf.getInt(0)));
-                note(botState + " GameMode " + Integer.toHexString(buf.getInt(28)));
+                double[] p = info();
+                if (p == null) { GameOverlay.toastAny(botState = "刷人机：还没有人物（进对局、出生后再按）"); return; }
+                double r = Math.toRadians(p[3]);
+                int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, 1 | 2);
+                if (c == 0x5b08 || c == 0x5b07) Bots.spawned++;
+                botState = "刷人机（" + DIFF[Bots.diff] + "）：" + codeText(c);
+                note(botState + "；" + botInfo);
                 GameOverlay.toastAny(botState);
             } catch (Throwable e) { GameOverlay.toastAny(botState = "刷人机：出错 " + e); note(botState); }
             finally { busy = false; GameOverlay.refreshAny(); }

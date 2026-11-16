@@ -115,7 +115,8 @@ public class Con {
         exec("EnableCheats");
         int n = 0;
         for (String p : lv) {
-            if (p.endsWith("/WorldMeshesLevel") || p.endsWith("/NavigationSubLevel")) continue; // 只给服务器用的大网格/导航，跳过
+            // v1.85：导航网格要加载——单机持久关卡里的 RecastNavMesh 只有 4 字节（日志 RecastNavMeshSizeBytes=4），没有导航网格人机走不了
+            if (p.endsWith("/WorldMeshesLevel")) continue; // 只给服务器用的大网格，跳过
             if (exec("StreamLevelIn " + p)) n++;
         }
         sentAt = System.currentTimeMillis();
@@ -163,15 +164,11 @@ public class Con {
 
     // ===== 用引擎 SET 命令改类默认值（新对象和已存在的对象都会改） =====
     static final String[] TWEAKS = {
-        "set NZBRGameState WaitingPlayersCountDownTime 5",
-        "set NZBRGameState StartMatchCountDownTime 5",
-        "set NZBRGameState WaitingSkydivingCountDownTime 1",
-        "set NZBRLGameState WaitingPlayersCountDownTime 5",
-        "set NZBRLGameState StartMatchCountDownTime 5",
+        // v1.85：去掉等待/开局/跳伞倒计时 5 秒、1 秒的改动，恢复游戏表里的正常节奏（用户：开局太快、第一个圈直接出现）
         "set NZSceneDoorManager StandaloneUnloadAllDoor 0",
         "set NZGameMode bEnableAIDefaultWeap 1",
         "set NZGameMode bEnableGiveBotEquip 1",
-        "set NZBattleRoyaleGameMode MaxBotLimit 30",
+        "set NZBattleRoyaleGameMode MaxBotLimit 100",   // v1.85：100 人局
         // 最高帧率档；关掉引擎的帧率平滑上限（游戏表里最高只给 60）
         "set NZSystemSettingData FrameRateOption 4",
         "set GameEngine bSmoothFrameRate 0",
@@ -198,6 +195,9 @@ public class Con {
     static volatile int tweakDone; static volatile long waitAt, brAt;
     /** v1.49：当前是不是在对局地图里（大厅 = false）。加速/高跳/刷物品只在对局里用 */
     public static volatile boolean inMatch;
+    public static volatile String navInfo = "";
+    static final java.util.ArrayList<String> botLog = new java.util.ArrayList<>();
+    static String botLog() { synchronized (botLog) { return String.join("\n  ", botLog); } }
     public static volatile String tweakStatus = "等待游戏启动";
 
     // ===== 帧率 =====
@@ -247,7 +247,7 @@ public class Con {
         for (String c : TWEAKS) if (exec(c)) n++;
         applyGfx();
         tweakAt = System.currentTimeMillis();
-        tweakStatus = why + "：已发送 " + n + " 条（等待时间5秒/门/人机）";
+        tweakStatus = why + "：已发送 " + n + " 条（门/人机/帧率）";
     }
 
     // ===== v1.35 游戏流程：不上飞机 / 不刷毒 =====
@@ -455,7 +455,7 @@ public class Con {
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
-                    brMap = m;
+                    brMap = m; Bots.matchLoaded();
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
                 }
@@ -468,9 +468,15 @@ public class Con {
             circle = Math.round(Double.parseDouble(a[2].trim())) + " " + Math.round(Double.parseDouble(a[3].trim()));
         } catch (Throwable ignored) {} }
         if (l.contains("ApplyFrameRateOption")) fpsAt = System.currentTimeMillis();
+        // v1.85 诊断：导航网格大小、人机相关日志
+        int nv = l.indexOf("RecastNavMeshSizeBytes=");
+        if (nv >= 0) navInfo = (navInfo.length() > 300 ? "" : navInfo + " | ") + l.substring(nv, Math.min(l.length(), nv + 120)).trim();
+        if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
+            synchronized (botLog) { if (botLog.size() >= 30) botLog.remove(0); botLog.add(l.trim().length() > 220 ? l.trim().substring(0, 220) : l.trim()); }
+        }
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0) { synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
+        if (i >= 0) { Bots.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();
