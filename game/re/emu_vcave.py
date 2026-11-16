@@ -137,4 +137,23 @@ assert r(BUF) == 0x5b09 and r(BUF + 4) == 0xdead0 and r(0x33c00) == 756 and r(0x
 # 别的模式不受影响
 mu.mem_write(0x33c00, b'\0' * 8); W(BOTP + 0x324, 0x777); runE(BOTP, 1); assert r(BUF) == 0x5b08 and r(0x33c00) == 0
 print('M OK')
+# ---- v1.91 'G'：刷在地上 0x119d884(PC, Type, TSID, x, [sp] y z p yaw r) ----
+GND = 0x10f40
+mu.mem_write(GND, bytes.fromhex('14c09fe5' '0f008ce8' '0c00ade8' '0000a0e1'))
+# 简单桩：记 r0-r3 和栈上 5 个字
+mu.mem_write(GND, bytes.fromhex('2cc09fe5' '0f008ce8' '00009de5' '10008ce5' '04009de5' '14008ce5' '08009de5' '18008ce5' '0c009de5' '1c008ce5' '10009de5' '20008ce5' '1eff2fe1') + struct.pack('<I', 0x33d00))
+mu.mem_write(ORG + lab['lit10'] - ORG, struct.pack('<I', GND))
+mu.mem_write(BUF, b'\0' * 128)
+for k, v in zip(range(40, 64, 4), (0x401, 0x402, 0x403, 0x404, 0x405, 0x406)): W(BUF + k, v)
+W(BUF + 124, 2)
+s = 'G2010100x%d' % BUF
+mu.mem_write(STR, b''.join(struct.pack('<I', ord(c)) for c in s) + b'\0' * 4)
+mu.reg_write(UC_ARM_REG_SP, SP); mu.reg_write(UC_ARM_REG_R4, PCO); mu.reg_write(UC_ARM_REG_R5, STR); mu.reg_write(UC_ARM_REG_R6, len(s) + 1); mu.reg_write(UC_ARM_REG_R0, ord('G'))
+mu.mem_write(SP + 0x44, struct.pack('<9I', 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10a, 0x10b, END))
+mu.emu_start(ORG, END)
+g = [r(0x33d00 + 4 * i) for i in range(9)]
+print('G', hex(r(BUF)), [hex(x) for x in g])
+assert r(BUF) == 0x5b0a and g == [PCO, 2010100, 2, 0x401, 0x402, 0x403, 0x404, 0x405, 0x406]
+assert mu.reg_read(UC_ARM_REG_SP) == SP + 0x44 + 36 and mu.reg_read(UC_ARM_REG_R4) == 0x104
+print('G OK')
 print('OK')

@@ -1,3 +1,4 @@
+# v1.91 加 'G<Type>x<buf>'：0x119d884(PC, Type, TSID, x, y, z, pitch, yaw, roll) = SpawnOnePickUp 实现，在地上生成拾取物
 # v1.88 加 'M<字节数>x<buf>'：FMemory::Malloc(字节数, 16)，结果写 buf+4（毒圈数组扩成 8 圈用，内存归游戏管，地图卸载时游戏自己释放）
 # v1.86 加 'E<控制器地址>x<buf>'：对已有的 PVP 人机再给装备/切战斗树（标志同 A）
 # v1.85 加 'A<难度>x<buf>'：按难度加人机（游戏自己的 AddOneBot，带装备/切战斗行为树）
@@ -20,6 +21,9 @@ SRC = r'''
     beq go
     mov r11, #4
     cmp r0, #77
+    beq go
+    mov r11, #5
+    cmp r0, #71
     bne done
 go:
     mov r9, #1
@@ -54,6 +58,8 @@ e2:
     beq done
     cmp r11, #4
     beq mal
+    cmp r11, #5
+    beq gnd
     movw r0, #0x5b01
     str r0, [r8]
     str r4, [r8, #4]
@@ -256,6 +262,26 @@ mal:
     movw r0, #0x5b09
     str r0, [r8]
     b done
+gnd:
+    ldr r0, [r8, #44]
+    str r0, [sp]
+    ldr r0, [r8, #48]
+    str r0, [sp, #4]
+    ldr r0, [r8, #52]
+    str r0, [sp, #8]
+    ldr r0, [r8, #56]
+    str r0, [sp, #12]
+    ldr r0, [r8, #60]
+    str r0, [sp, #16]
+    mov r0, r4
+    mov r1, r7
+    ldr r2, [r8, #124]
+    ldr r3, [r8, #40]
+    ldr ip, [pc, #L:lit10]
+    .word 0xe12fff3c
+    movw r0, #0x5b0a
+    str r0, [r8]
+    b done
 fin:
     movw r0, #0x5b02
     str r0, [r8]
@@ -280,12 +306,14 @@ lit8:
     .word 0x88888888
 lit9:
     .word 0x99999999
+lit10:
+    .word 0xaaaaaaaa
 '''
-LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8', 'lit9')
+LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8', 'lit9', 'lit10')
 # 字面量顺序（Java 在 cave 后面按这个顺序拼地址，都要 + 库基址）：
 # lit 刷车 0x1102ca4，lit2 ServerAddBotAt 0x1115620，lit3 GM AddBotAt 实现 0x1012318（校验 GameMode），
 # lit4 难度→人机类 0x1014898，lit5 AddOneBot 0x10112d0，lit6 PVPAIController::OnPossess 0xc1bbd8（校验类），
-# lit7 ForceGiveAllEquipToAI 0xc1a534，lit8 SwitchToBattleBehaviorTree 0xc17fe0，lit9 FMemory::Malloc 0x1989c98（v1.88 'M<字节数>x<buf>'：用游戏自己的分配器要一块内存，地址写 buf+4，标记 5b09）
+# lit7 ForceGiveAllEquipToAI 0xc1a534，lit8 SwitchToBattleBehaviorTree 0xc17fe0，lit10 SpawnOnePickUp 实现 0x119d884（v1.91 'G<Type>x<buf>'，TSID 在 buf+124，位置 buf+40..48、朝向 buf+52..60：刷在地上，标记 5b0a），lit9 FMemory::Malloc 0x1989c98（v1.88 'M<字节数>x<buf>'：用游戏自己的分配器要一块内存，地址写 buf+4，标记 5b09）
 def build(org=0):
     lines = SRC.split('\n'); refs = []; out = []; k = 0
     for l in lines:
