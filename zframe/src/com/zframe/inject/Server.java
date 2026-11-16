@@ -397,7 +397,12 @@ public class Server {
         long gid = propGid(body, 1); int pos = 0;
         PB.R r = new PB.R(body); while (r.next()) if (r.field == 2 && r.wire == 0) pos = (int) r.val;
         PB res = new PB().u(1, gid < 0 ? 1 : 0);
-        if (gid >= 0) {
+        if (gid >= 0 && props.get(gid)[2] != 0) {   // v1.72：仓库里点角色 = 换男/女，用游戏自己的切换
+            for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
+                if (e.getValue()[2] != 0) { e.getValue()[1] = e.getKey() == gid ? 1 : 0; res.m(2, prop(e.getKey(), e.getValue())); }
+            final boolean m = props.get(gid)[2] == 1;
+            if (m != Mods.male) new Thread(() -> mark("换角色 " + (m ? "男" : "女") + " → " + Mods.setMale(m))).start();
+        } else if (gid >= 0) {
             if (pos == 0) pos = (int) props.get(gid)[1];
             for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
                 if (e.getValue()[1] == pos && e.getKey() != gid) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
@@ -423,7 +428,6 @@ public class Server {
         { 30213000000L }, { 30213000003L }, { 30213000004L }, { 30213000005L },   // v1.71：30213000001/02 游戏显示「未知道具」，去掉
         { 30301000000L }, { 30301000071L }, { 30303000005L }, { 30307000007L }, { 30232000006L },
         { 30315000050L }, { 30315000061L }, { 30323000002L },
-        { 30325000002L }, { 30325000003L }, { 30325000004L }, { 30325000005L },
         { 30318000000L },
     };
     static final ArrayList<long[]> mails = new ArrayList<>();   // {index, 已读}
@@ -467,7 +471,7 @@ public class Server {
         while (r.next()) {
             if (r.field == 1 && r.wire == 0) type = (int) r.val;
             else if (r.field == 2 && r.wire == 0) idx.add((int) r.val);
-            else if (r.field == 2 && r.wire == 2) { PB.R q = r.sub(); while (q.next()) idx.add((int) q.val); }   // packed
+            else if (r.field == 2 && r.wire == 2) for (long v : packed(r.raw())) idx.add((int) v);   // v1.72：packed 是连续 varint，不是子消息（v1.71 以前解析错，领取认不出邮件）
             else if (r.field == 3) del = r.val != 0;
         }
         PB change = new PB(); PB res = new PB().u(1, 0);
@@ -486,6 +490,11 @@ public class Server {
         for (int i : idx) res.u(4, i);
         if (del) res.u(5, 1);
         return res.bytes();
+    }
+    static ArrayList<Long> packed(byte[] b) {
+        ArrayList<Long> out = new ArrayList<>(); int i = 0;
+        while (i < b.length) { long v = 0; int sh = 0; while (i < b.length) { int x = b[i++] & 0xff; v |= (long) (x & 0x7f) << sh; sh += 7; if (x < 0x80) break; } out.add(v); }
+        return out;
     }
     /** 仓库里没有就加，返回 gid；已有返回 0 */
     static long addProp(long[] g) {

@@ -14,9 +14,9 @@ public class ServerTest {
         Server.newMail();
         w.println(hex(rec(0)));                                      // 25007 整包
         w.println(hex(Server.mailList()));                           // 25002
-        w.println(hex(Server.readMails(new PB().u(1, 1).u(2, 1).bytes())));   // 25004（领取 index 1）
+        w.println(hex(Server.readMails(new byte[] { 8, 1, 0x12, 1, 1, 0x18, 1 })));   // 25004（领取 index 1）
         w.println(hex(Server.depositProps()));                       // 领取后的 13002
-        w.println(hex(Server.readMails(new PB().u(1, 1).u(2, 1).bytes())));   // 再领一次：不重复给
+        w.println(hex(Server.readMails(new byte[] { 8, 1, 0x12, 1, 1, 0x18, 1 })));   // 再领一次：不重复给
         w.println(Server.sendGate(0x7b000000, 0x50000008, 0x10000));          // L[10]：v1.65 SEND 门
         w.close();
     }

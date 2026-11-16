@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.71"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.72"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -703,16 +703,9 @@ public class GameOverlay {
         pick(a, u, fl, "不上飞机", Mods.noPlane, () -> result(a, Mods.setPlane(!Mods.noPlane)));
         pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
         note(a, u, root, "不上飞机：直接在出生岛开打。不刷圈：没有毒圈。两个可以一起选。");
-        head(a, u, root, "角色");
-        LinearLayout gr = row(a, root);
-        pick(a, u, gr, "女", !Mods.male, () -> { if (Mods.male) { String r = Mods.setMale(false); if ("ok".equals(r)) Mods.hallAndReload(); result(a, r); } });
-        pick(a, u, gr, "男", Mods.male, () -> { if (!Mods.male) { String r = Mods.setMale(true); if ("ok".equals(r)) Mods.hallAndReload(); result(a, r); } });
         gfxRow(a, u, root);
         note(a, u, root, coatText());
         note(a, u, root, Mods.hallState);
-        LinearLayout eh = row(a, root);
-        pick(a, u, eh, "启动早装 开", Mods.early, () -> { Mods.early = true; a.getSharedPreferences("zframe", 0).edit().putBoolean("early_hooks", true).apply(); toast(a, "重启游戏后生效"); refreshAny(); });
-        pick(a, u, eh, "关", !Mods.early, () -> { Mods.early = false; a.getSharedPreferences("zframe", 0).edit().putBoolean("early_hooks", false).apply(); toast(a, "重启游戏后生效"); refreshAny(); });
         note(a, u, root, Mods.earlyState + "。游戏运行中再改大厅代码不生效，所以人物、仓库、服务端的钩子在游戏刚加载时装好（只改代码，不改数据，开服务端前不起作用）。");
         LinearLayout dg = row(a, root);
         btn(a, u, dg, "开启服务端", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
@@ -721,7 +714,7 @@ public class GameOverlay {
         btn(a, u, dg, "自动投递", () -> new Thread(() -> toastAny(Server.deliverAll())).start());
         btn(a, u, dg, "发邮件", () -> new Thread(() -> toastAny(Server.sendMail())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。v1.71：开启后自动把邮件和仓库数据交给游戏，去邮箱点领取，再进仓库看。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
+        note(a, u, root, Server.state + "。v1.72：开启后去邮箱点领取，东西进仓库；男女在仓库里点角色切换。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
@@ -826,6 +819,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.71", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.72", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
