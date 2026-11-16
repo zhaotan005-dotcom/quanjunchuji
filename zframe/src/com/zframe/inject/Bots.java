@@ -73,31 +73,40 @@ public class Bots {
             patch(m, END_A, END_A_N, END_A_O); patch(m, END_B, END_B_N, END_B_O);
         } catch (Throwable ignored) {}
     }
+    /** v1.95：用户说 v1.94 人数还在 2 和 100 之间闪。每 50 毫秒写一次，并记下内存被别处改掉的次数和值（诊断看是谁在改） */
+    public static volatile int foreign; public static volatile long foreignVal = -1, foreignAiVal = -1;
     static void counter(final int g, final long gm) {
         new Thread(() -> {
-            boolean first = true, ended = false;
-            while (g == gen && Con.inMatch) {
-                try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-                    long gs = Server.rd(m, gm + 0x2e0);
-                    if (gs >= 0x10000) {
-                        if (first) {
-                            String a = patch(m, ST_A, ST_A_O, NOP), b = patch(m, ST_B, ST_B_O, NOP);
-                            countInfo = "剩余人数 原来 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "），数人补丁 " + (a.equals(NOP) && b.equals(NOP) ? "已打" : "没打上 " + a + " " + b);
-                            Veh.note(countInfo); first = false;
+            boolean first = true, ended = false; int lastL = -1; long tick = 0;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+                while (g == gen && Con.inMatch) {
+                    try {
+                        long gs = Server.rd(m, gm + 0x2e0);
+                        if (gs >= 0x10000) {
+                            if (first) {
+                                String a = patch(m, ST_A, ST_A_O, NOP), b = patch(m, ST_B, ST_B_O, NOP);
+                                countInfo = "剩余人数 原来 " + Server.rd(m, gs + 0x774) + "（人机 " + Server.rd(m, gs + 0x778) + "），GameState " + Long.toHexString(gs) + "（GameMode+0x908 " + Long.toHexString(Server.rd(m, gm + 0x908)) + "），数人补丁 " + (a.equals(NOP) && b.equals(NOP) ? "已打" : "没打上 " + a + " " + b);
+                                Veh.note(countInfo); first = false; foreign = 0; foreignVal = -1;
+                            }
+                            long now = Server.rd(m, gs + 0x774);
+                            if (lastL >= 0 && now != lastL) { foreign++; foreignVal = now; foreignAiVal = Server.rd(m, gs + 0x778); }
+                            if (tick++ % 6 == 0) aliveBots(m);
+                            int left = Math.max(1, 100 - killed);
+                            Flow.wi(m, gs + 0x774, left); Flow.wi(m, gs + 0x778, left - 1); lastL = left;
+                            if (left == 1 && !ended) {
+                                ended = true;
+                                String a = patch(m, END_A, END_A_O, END_A_N), b = patch(m, END_B, END_B_O, END_B_N);
+                                Veh.note("人机：剩余 1，结算补丁 " + (a.equals(END_A_N) && b.equals(END_B_N) ? "已打" : "没打上 " + a + " " + b));
+                            }
                         }
-                        aliveBots(m);
-                        int left = Math.max(1, 100 - killed);
-                        Flow.wi(m, gs + 0x774, left); Flow.wi(m, gs + 0x778, left - 1);
-                        if (left == 1 && !ended) {
-                            ended = true;
-                            String a = patch(m, END_A, END_A_O, END_A_N), b = patch(m, END_B, END_B_O, END_B_N);
-                            Veh.note("人机：剩余 1，结算补丁 " + (a.equals(END_A_N) && b.equals(END_B_N) ? "已打" : "没打上 " + a + " " + b));
-                        }
-                    }
-                } catch (Throwable ignored) {}
-                try { Thread.sleep(300); } catch (InterruptedException e) { return; }
-            }
+                    } catch (Throwable ignored) {}
+                    try { Thread.sleep(50); } catch (InterruptedException e) { return; }
+                }
+            } catch (Throwable ignored) {}
         }, "zf-count").start();
+    }
+    static String countText() {
+        return countInfo + "，已死人机 " + killed + "，被别处改掉 " + foreign + " 次" + (foreign > 0 ? "（最后改成 " + foreignVal + "，人机 " + foreignAiVal + "）" : "");
     }
 
     static void matchLoaded() {

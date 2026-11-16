@@ -72,7 +72,7 @@ public class Flow {
             if (sys == null) { state = "毒圈：找不到系统表"; Thread.sleep(1000); continue; }
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
                 if (!circleDone) {
-                    String r = circle(m, sys, tb, side, 60);   // 起飞 1 分钟后才出第一个圈
+                    String r = circle(m, sys, tb, side, 120);   // 起飞 1 分钟后才出第一个圈
                     if (r != null) { circleDone = true; state = "毒圈（" + (small ? "4x4" : "8x8") + "）：" + r; Veh.note(state); }
                     else state = "毒圈：等游戏算好本局的圈";
                 }
@@ -116,12 +116,12 @@ public class Flow {
             float r0 = f(m, d + 0x10), w0 = f(m, d + 0x14), s0 = f(m, d + 0x18);
             float cx = f(m, d + 4), cy = f(m, d + 8), cz = f(m, d + 12);
             if (!(r0 > 10000 && r0 < 2e6f && w0 >= 0 && w0 < 7200 && s0 >= 0 && s0 < 7200 && Math.abs(cx) < 2e6f && Math.abs(cy) < 2e6f)) continue;
-            if (n >= tb.length + 2 && Math.abs(r0 - side * 0.75f) < 1f) return "已经是正式服的圈";
+            if (n >= tb.length + 3 && Math.abs(r0 - side * 0.75f) < 1f) return "已经是正式服的圈";
             String before = rows(m, d, n);
             byte[] first = new byte[ES], last = new byte[ES];
             m.seek(d); m.readFully(first);
             m.seek(d + ES * (n - 1)); m.readFully(last);
-            int cnt = tb.length + 2;
+            int cnt = tb.length + 3;
             byte[] nb = build(first, last, tb, side, firstWait, cz, new Random());
             long mem = Veh.malloc(cnt * ES);
             if (mem < 0x10000) return "要内存失败，没改（原来 " + before + "）";
@@ -140,7 +140,13 @@ public class Flow {
      *   不再用游戏自己定的第一圈（这个单机版的第一圈经常在地图边上甚至海上）。
      */
     static byte[] build(byte[] first, byte[] last, float[][] tb, float side, float firstWait, float cz, Random rnd) {
-        int cnt = tb.length + 2;
+        // v1.95：v1.94 实测：坐飞机时整张图就已经缩成第一圈（人在圈外）。原因：游戏的一项 = 「当前圈，等 W 秒，再用 S 秒缩到下一项」，
+        //   以前把第 k 圈自己的等/缩时间放在第 k 项上 → 第 0 项（整图，等 60 缩 1）1 秒就缩成了第一圈。现在时间往前挪一项：
+        //   第 0 项 整图 等 firstWait 缩 1（白圈 = 第 1 项 = 整图，看不见）
+        //   第 1 项 整图 等/缩 = 第一圈的时间（这时才显示第一圈白圈）
+        //   第 i+2 项 = 第 i 圈，等/缩 = 第 i+1 圈的时间；最后一项半径 0.1。
+        //   第一圈中心只在地图正中 ±(边长/2-半径)×0.3 内，不出岛。
+        int cnt = tb.length + 3;
         java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(cnt * ES).order(java.nio.ByteOrder.LITTLE_ENDIAN);
         float half = side / 2, pr = side * 0.75f, px = 0, py = 0;
         for (int i = 0; i < cnt; i++) {
@@ -148,12 +154,14 @@ public class Flow {
             b.position(o); b.put(i < cnt - 1 ? first : last);
             float r, w, s, x, y; int dmg;
             if (i == 0) { r = side * 0.75f; w = firstWait; s = 1; dmg = 1; x = 0; y = 0; }
+            else if (i == 1) { r = side * 0.75f; w = tb[0][1]; s = tb[0][2]; dmg = 1; x = 0; y = 0; }
             else {
-                if (i <= tb.length) { float[] t = tb[i - 1]; r = t[0]; w = t[1]; s = t[2]; dmg = (int) t[3]; }
-                else { r = 0.1f; w = 180; s = 15; dmg = 11; }
-                double room = i == 1 ? Math.max(0, (half - r) * 0.7) : Math.max(0, pr - r);
+                int k = i - 2;   // 第 k 圈（k == tb.length 是最后 0.1 米）
+                if (k < tb.length) { r = tb[k][0]; dmg = (int) tb[k][3]; } else { r = 0.1f; dmg = 11; }
+                if (k + 1 < tb.length) { w = tb[k + 1][1]; s = tb[k + 1][2]; } else if (k < tb.length) { w = 180; s = 15; } else { w = 9999; s = 1; }
+                double room = i == 2 ? Math.max(0, (half - r) * 0.3) : Math.max(0, pr - r);
                 double ang = rnd.nextDouble() * Math.PI * 2, dist = Math.sqrt(rnd.nextDouble()) * room;
-                x = (float) ((i == 1 ? 0 : px) + Math.cos(ang) * dist); y = (float) ((i == 1 ? 0 : py) + Math.sin(ang) * dist);
+                x = (float) ((i == 2 ? 0 : px) + Math.cos(ang) * dist); y = (float) ((i == 2 ? 0 : py) + Math.sin(ang) * dist);
             }
             b.putFloat(o + 4, x); b.putFloat(o + 8, y); b.putFloat(o + 12, cz);
             b.putFloat(o + 0x10, r); b.putFloat(o + 0x14, w); b.putFloat(o + 0x18, s); b.putInt(o + 0x1c, dmg);

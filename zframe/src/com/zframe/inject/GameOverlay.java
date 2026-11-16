@@ -52,7 +52,7 @@ public class GameOverlay {
             android.util.DisplayMetrics dm = a.getResources().getDisplayMetrics();
             int sw = Math.max(dm.widthPixels, dm.heightPixels), sh = Math.min(dm.widthPixels, dm.heightPixels);
             // v1.49：窄一点（和最早的版本差不多宽），高度不超过屏幕的 82%
-            final int pw = Math.min((int) (sw * 0.34f), u.dp(300)), ph = Math.min((int) (sh * 0.82f), u.dp(340));
+            final int pw = Math.min((int) (sw * 0.46f), u.dp(400)), ph = Math.min((int) (sh * 0.82f), u.dp(340));   // v1.95 左边竖排分页，所以宽一点
 
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.94"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.95"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -87,34 +87,36 @@ public class GameOverlay {
             status.setPadding(u.dp(16), 0, u.dp(16), u.dp(8));
             panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
 
-            // ---- 主体（可收起）：顶部文字分页 + 内容 ----
+            // ---- 主体（可收起）：v1.95 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
             final LinearLayout body = new LinearLayout(a);
-            body.setOrientation(LinearLayout.VERTICAL);
+            body.setOrientation(LinearLayout.HORIZONTAL);
             final LinearLayout tabsRow = new LinearLayout(a);
-            tabsRow.setOrientation(LinearLayout.HORIZONTAL);
-            tabsRow.setPadding(u.dp(10), 0, u.dp(10), 0);
-            final String[] tabs = {"常用", "刷车", "人机", "武器", "装备", "画面"};   // v1.93 刷车、人机分开两页；v1.88：刷车、刷人机单独一页（用户要求不放常用）；v1.79 衣服页删掉
+            tabsRow.setOrientation(LinearLayout.VERTICAL);
+            tabsRow.setPadding(u.dp(8), u.dp(4), u.dp(4), u.dp(10));
+            final String[] tabs = {"常用", "武器", "装备", "刷车", "人机", "画面"};
+            final int[] map = {0, 3, 4, 1, 2, 5};   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
             final LinearLayout content = new LinearLayout(a);
             content.setOrientation(LinearLayout.VERTICAL);
-            content.setPadding(u.dp(14), u.dp(4), u.dp(14), u.dp(14));
+            content.setPadding(u.dp(10), u.dp(2), u.dp(14), u.dp(14));
             sv.addView(content);
             for (int k = 0; k < tabs.length; k++) {
-                final int idx = k;
+                final int idx = map[k];
                 TextView t = new TextView(a);
                 t.setText(tabs[k]); t.setTextSize(12.5f); t.setGravity(Gravity.CENTER);
-                t.setPadding(0, u.dp(7), 0, u.dp(7));
-                tabsRow.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
+                t.setTag(idx);
+                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(58), u.dp(36)); tl.bottomMargin = u.dp(4);
+                tabsRow.addView(t, tl);
                 tv[k] = t;
                 t.setOnClickListener(v -> { tab = idx; paintTabs(tv, u); fill(a, u, content); sv.scrollTo(0, 0); });
             }
             paintTabs(tv, u);
-            body.addView(tabsRow, new LinearLayout.LayoutParams(-1, -2));
+            body.addView(tabsRow, new LinearLayout.LayoutParams(-2, -1));
             final View hr = new View(a); hr.setBackgroundColor(LINE);
-            body.addView(hr, new LinearLayout.LayoutParams(-1, 1));
-            body.addView(sv, new LinearLayout.LayoutParams(-1, ph - u.dp(90)));
+            body.addView(hr, new LinearLayout.LayoutParams(1, -1));
+            body.addView(sv, new LinearLayout.LayoutParams(0, ph - u.dp(56), 1));
             panel.addView(body, new LinearLayout.LayoutParams(-1, -2));
 
             final View tabsLine = hr;
@@ -170,15 +172,10 @@ public class GameOverlay {
 
     static void paintTabs(TextView[] tv, Ui u) {
         for (int j = 0; j < tv.length; j++) {
-            boolean on = j == tab;
-            tv[j].setTextColor(on ? TXT : SUBT);
+            boolean on = tv[j].getTag() instanceof Integer && (Integer) tv[j].getTag() == tab;
+            tv[j].setTextColor(on ? ON_TXT : SUBT);
             tv[j].setTypeface(on ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
-            // 选中：底部一条细白线
-            GradientDrawable line = new GradientDrawable(); line.setColor(on ? TXT : 0);
-            android.graphics.drawable.LayerDrawable ld = new android.graphics.drawable.LayerDrawable(new android.graphics.drawable.Drawable[]{line});
-            int w = u.dp(16);
-            ld.setLayerGravity(0, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL); ld.setLayerSize(0, w, u.dp(2));
-            tv[j].setBackground(on ? ld : null);
+            tv[j].setBackground(on ? box(ON_BG, u.dp(9)) : null);   // v1.95 选中：白色圆角块
         }
     }
 
@@ -858,6 +855,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v1.94", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.95", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
