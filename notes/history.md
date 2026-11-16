@@ -473,3 +473,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE 刷在地上：UFunction SpawnOnePickUp（exec 0x11fba30）→ 实现 0x119d884(this, ItemID{Type,TSID}, Pos x/y/z, Rot p/y/r)，this 只用来 GetWorld；要求 GameMode 是 ANZBattleRoyaleGameMode（0x11bd4ec 类检查），GM+0x509 为真走拾取管理器 [GM+0x524]（0xc7bea8，空就进待生成数组 +0x534），否则 GM vt+0x554 按物品名生成。ItemID 合成 = Type*10000+TSID（0xce36e8）。另：ServerDiscardItem exec 0xe67820（Inv, Count, DisableCapacityCheck, DisableValidationCheck，vt+0x348/0x34c）没用上。
 - v1.91（vc92/core92，未实测）：cave 加 'G<Type>x<buf>'（TSID 在 buf+124，位置/朝向 buf+40..60，标记 5b0a，lit10 = 0x119d884，emu 通过，cave 到 0x4a2dd84）；Veh.ground（面前 1.3 米起，脚下高度 -80，最多 3 堆）；常用页「刷物资放在：身上（背包）/ 地上（面前）」，开地上时武器/装备页刷的东西都放地上。
 - 17:42 用户：刷在地上直接放脚下。v1.92（vc93/core93，未实测）：Veh.ground 改 ahead(20,-80)，第一堆几乎正脚下，多堆随机散开 ±30 厘米；按钮改「地上（脚下）」。
+- 17:52 v1.92 实测反馈（notes/device-tests/v1.92/）：刷车、人机要分两页；车按钮直接显示中文名，不要读车表；「剩余」固定从 100 开始，只在身边刷几个人机，打死一个少一个，玩家和服务端算一个，减到 1 结束游戏并放结算动画；航线还是一小段、进去毒圈像已经刷过一圈 → 航线要穿过地图中间、跨度大。
+  诊断：v1.88 换毒圈数组生效了（开打时 CurrIndex 0 waittime 210 shinktime 240 = SMALL 第一行），但第一圈用的是游戏自己定的中心（这局 190448,19298 在地图东边缘），飞机期间就画白圈。航线原始数据很怪（4x4 原线在 x≈31 万的东边海上，v1.87 那局起点 X=0）。地图原点在正中：雨林 ±204000（截图量出来），海岛按 ±408000。诊断里 Flow 状态被回大厅（Browse→newMatch）清掉了，所以看不到航线改没改。
+  GameState 属性（UProperty 表）：+0x774 PlayerLeftCount，+0x778 AIPlayerLeftCount，+0x71c CurrentGamePhase，+0x720 UpdateAlivePlayerTimerHandle，+0x728 NumPlayersBeforeCountDown。人机控制器 +0x2c0 = 人物。
+- v1.93（vc94/core94，未实测）：
+  - 菜单页签：常用 / 刷车 / 人机 / 武器 / 装备 / 画面。刷车页车按钮写死编号（吉普 1,17,20,28；敞篷吉普 4,11,21；篷布吉普 5,12,22；轿车 2,23；蹦蹦 6,14,24；面包车 10；皮卡 29,30；摩托 9,15,25；三轮摩托 8,16,26；快艇 13,18,19；大船 3,27；car_002/003/005/006 的中文名是推测），不再读车表（Con 不再调 Veh.matchLoaded，spawnGroup 只 ahead+call）。
+  - 毒圈：数组第 0 项盖整张图（中心 0,0，半径 边长×0.75，等 60 秒，缩 1 秒），第 1 项起是表里的圈，第一圈中心在地图中间一带随机（整圈在图里），不用游戏自己的第一圈。FlowTest 2000×2 通过。
+  - 航线：方向随机、穿过离正中 ±10% 边长以内、长度 边长×1.1（图边到图边），Dir 0x318 一起写，跳伞段同长。
+  - 100 人局：Bots 记刷出来的 {控制器, 人物}，人物指针变了 = 死了；每 0.5 秒写 GameState+0x774=1、+0x778=99-已死；身边活着的人机少于 3 个就补到 2~4 个；死够 99 个时剩余写成 1 / 0，看游戏会不会自己结算（没做专门的结束调用，未实测）。诊断里记原来的两个值和已死人数，Flow 上一局结果不再被回大厅清掉。

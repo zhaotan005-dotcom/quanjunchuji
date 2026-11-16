@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.92"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.93"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -93,7 +93,7 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.HORIZONTAL);
             tabsRow.setPadding(u.dp(10), 0, u.dp(10), 0);
-            final String[] tabs = {"常用", "刷车人机", "武器", "装备", "画面"};   // v1.88：刷车、刷人机单独一页（用户要求不放常用）；v1.79 衣服页删掉
+            final String[] tabs = {"常用", "刷车", "人机", "武器", "装备", "画面"};   // v1.93 刷车、人机分开两页；v1.88：刷车、刷人机单独一页（用户要求不放常用）；v1.79 衣服页删掉
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -694,10 +694,11 @@ public class GameOverlay {
         root.removeAllViews();
         if (!Con.inMatch) { lobbyPage(a, u, root); return; }
         switch (tab) {
-            case 1: spawnPage(a, u, root); return;
-            case 2: weaponPage(a, u, root); return;
-            case 3: gearPage(a, u, root); return;
-            case 4: settingsPage(a, u, root); return;
+            case 1: vehPage(a, u, root); return;
+            case 2: botPage(a, u, root); return;
+            case 3: weaponPage(a, u, root); return;
+            case 4: gearPage(a, u, root); return;
+            case 5: settingsPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -764,28 +765,24 @@ public class GameOverlay {
         slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
     }
 
-    /** v1.88 刷车人机页（从常用里挪出来） */
-    static void spawnPage(final Activity a, final Ui u, final LinearLayout root) {
+    /** v1.93 刷车页：车按钮直接显示（编号写死，不用读车表），点了刷在面前 */
+    static void vehPage(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "载具");
         java.util.ArrayList<Veh.Group> vg = Veh.groups;
-        if (vg == null || vg.isEmpty()) {
-            LinearLayout vr = row(a, root);
-            btn(a, u, vr, "车表自动读取中…（读不出来再点这里）", Veh::spawnNext);
-        } else {
-            LinearLayout vr = null;
-            for (int i = 0; i < vg.size(); i++) {
-                if (i % 3 == 0) vr = row(a, root);
-                final int gi = i;
-                btn(a, u, vr, vg.get(i).label, () -> Veh.spawnGroup(gi));
-            }
+        LinearLayout vr = null;
+        for (int i = 0; i < vg.size(); i++) {
+            if (i % 3 == 0) vr = row(a, root);
+            final int gi = i;
+            btn(a, u, vr, vg.get(i).label, () -> Veh.spawnGroup(gi));
         }
-        note(a, u, root, Veh.state);
+        if (Veh.state.contains("没反应") || Veh.state.contains("出错") || Veh.state.contains("没有")) note(a, u, root, Veh.state);
+    }
+    /** v1.93 人机页 */
+    static void botPage(final Activity a, final Ui u, final LinearLayout root) {
         botRows(a, u, root);
         LinearLayout br = row(a, root);
         btn(a, u, br, "再刷一个（面前 8 米）", Veh::spawnBot);
-        note(a, u, root, Bots.state + "。" + Veh.botState + "。");
-        head(a, u, root, "毒圈和航线");
-        note(a, u, root, Flow.state + (Flow.air.isEmpty() ? "" : "。" + Flow.air));
+        note(a, u, root, Bots.state);
     }
 
     static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
@@ -861,6 +858,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v1.92", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.93", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

@@ -32,7 +32,8 @@ public class Flow {
         {14990, 90, 15, 3}, {7495, 45, 60, 5}, {3745, 45, 40, 7}, {1875, 30, 55, 9} };
     static final int ES = 0x54;
 
-    static void newMatch() { gen++; state = on ? "毒圈：等进对局" : "毒圈：不改（用游戏自带）"; air = ""; }
+    public static volatile String last = "";
+    static void newMatch() { if (!state.startsWith("毒圈：等进对局")) last = state + "。" + air; gen++; state = on ? "毒圈：等进对局" : "毒圈：不改（用游戏自带）"; air = ""; }
 
     static void matchLoaded(final String map) {
         final int g = ++gen;
@@ -46,7 +47,7 @@ public class Flow {
     static void run(int g, String map) throws Exception {
         boolean small = map != null && (map.contains("Savage") || map.contains("4x4"));
         float[][] tb = small ? SMALL : BIG;
-        float side = small ? 400000f : 800000f;
+        float side = small ? 408000f : 816000f;   // 地图边长（原点在地图正中，「传送到地图中间」BugItGo 0 0 也是这么用的）
         boolean circleDone = false, airDone = false; int ph = -1;
         Thread.sleep(3000);
         for (int i = 0; i < 120 && g == gen && Con.inMatch && !(circleDone && airDone); i++) {
@@ -58,7 +59,7 @@ public class Flow {
             if (sys == null) { state = "毒圈：找不到系统表"; Thread.sleep(1000); continue; }
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
                 if (!circleDone) {
-                    String r = circle(m, sys, tb);
+                    String r = circle(m, sys, tb, side, 60);   // 起飞 1 分钟后才出第一个圈
                     if (r != null) { circleDone = true; state = "毒圈（" + (small ? "4x4" : "8x8") + "）：" + r; Veh.note(state); }
                     else state = "毒圈：等游戏算好本局的圈";
                 }
@@ -94,7 +95,7 @@ public class Flow {
     }
 
     /** 换本局毒圈数组；没找到 / 还没算好返回 null */
-    static String circle(RandomAccessFile m, long[] sys, float[][] tb) throws Exception {
+    static String circle(RandomAccessFile m, long[] sys, float[][] tb, float side, float firstWait) throws Exception {
         for (long o : sys) {
             long ta = o + 0x354;
             long d = Server.rd(m, ta), n = Server.rd(m, ta + 4), mx = Server.rd(m, ta + 8);
@@ -102,13 +103,13 @@ public class Flow {
             float r0 = f(m, d + 0x10), w0 = f(m, d + 0x14), s0 = f(m, d + 0x18);
             float cx = f(m, d + 4), cy = f(m, d + 8), cz = f(m, d + 12);
             if (!(r0 > 10000 && r0 < 2e6f && w0 >= 0 && w0 < 7200 && s0 >= 0 && s0 < 7200 && Math.abs(cx) < 2e6f && Math.abs(cy) < 2e6f)) continue;
-            if (n >= tb.length + 1 && Math.abs(w0 - tb[0][1]) < 0.5f) return "已经是正式服的圈";
+            if (n >= tb.length + 2 && Math.abs(r0 - side * 0.75f) < 1f) return "已经是正式服的圈";
             String before = rows(m, d, n);
             byte[] first = new byte[ES], last = new byte[ES];
             m.seek(d); m.readFully(first);
             m.seek(d + ES * (n - 1)); m.readFully(last);
-            int cnt = tb.length + 1;
-            byte[] nb = build(first, last, tb, r0, cx, cy, cz, new Random());
+            int cnt = tb.length + 2;
+            byte[] nb = build(first, last, tb, side, firstWait, cz, new Random());
             long mem = Veh.malloc(cnt * ES);
             if (mem < 0x10000) return "要内存失败，没改（原来 " + before + "）";
             m.seek(mem); m.write(nb);
@@ -119,21 +120,27 @@ public class Flow {
         return null;
     }
 
-    /** 生成新数组：第 1 圈中心半径不动，后面按端游比例缩、中心在上一圈里随机 */
-    static byte[] build(byte[] first, byte[] last, float[][] tb, float r0, float cx, float cy, float cz, Random rnd) {
-        int cnt = tb.length + 1;
+    /**
+     * v1.93 生成新数组（用户：进去就已经刷过一圈了）：
+     *   第 0 项盖住整张图（中心在地图正中，半径 = 边长 × 0.75，地图角落也在里面），开局先等 firstWait 秒，不显示圈；
+     *   第 1 项起是正式服的圈：第一个圈中心在地图中间一带随机（整个圈都在图里），后面每圈在上一圈里随机；最后一项半径 0.1 = 缩没。
+     *   不再用游戏自己定的第一圈（这个单机版的第一圈经常在地图边上甚至海上）。
+     */
+    static byte[] build(byte[] first, byte[] last, float[][] tb, float side, float firstWait, float cz, Random rnd) {
+        int cnt = tb.length + 2;
         java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(cnt * ES).order(java.nio.ByteOrder.LITTLE_ENDIAN);
-        float k = r0 / tb[0][0], pr = r0, px = cx, py = cy;
+        float half = side / 2, pr = side * 0.75f, px = 0, py = 0;
         for (int i = 0; i < cnt; i++) {
             int o = i * ES;
-            b.position(o); b.put(i < tb.length ? first : last);
-            float r, w, s; int dmg;
-            if (i < tb.length) { r = i == 0 ? r0 : tb[i][0] * k; w = tb[i][1]; s = tb[i][2]; dmg = (int) tb[i][3]; }
-            else { r = 0.1f; w = 180; s = 15; dmg = 11; }
-            float x = px, y = py;
-            if (i > 0) {
-                double room = Math.max(0, pr - r), ang = rnd.nextDouble() * Math.PI * 2, dist = Math.sqrt(rnd.nextDouble()) * room;
-                x = (float) (px + Math.cos(ang) * dist); y = (float) (py + Math.sin(ang) * dist);
+            b.position(o); b.put(i < cnt - 1 ? first : last);
+            float r, w, s, x, y; int dmg;
+            if (i == 0) { r = side * 0.75f; w = firstWait; s = 1; dmg = 1; x = 0; y = 0; }
+            else {
+                if (i <= tb.length) { float[] t = tb[i - 1]; r = t[0]; w = t[1]; s = t[2]; dmg = (int) t[3]; }
+                else { r = 0.1f; w = 180; s = 15; dmg = 11; }
+                double room = i == 1 ? Math.max(0, (half - r) * 0.7) : Math.max(0, pr - r);
+                double ang = rnd.nextDouble() * Math.PI * 2, dist = Math.sqrt(rnd.nextDouble()) * room;
+                x = (float) ((i == 1 ? 0 : px) + Math.cos(ang) * dist); y = (float) ((i == 1 ? 0 : py) + Math.sin(ang) * dist);
             }
             b.putFloat(o + 4, x); b.putFloat(o + 8, y); b.putFloat(o + 12, cz);
             b.putFloat(o + 0x10, r); b.putFloat(o + 0x14, w); b.putFloat(o + 0x18, s); b.putInt(o + 0x1c, dmg);
@@ -157,15 +164,19 @@ public class Flow {
                 if (!(len > 1000 && Math.abs(len - tot) < Math.max(100, tot * 0.02) && Math.abs(sz - ez) < 1 && Math.abs(sx) < 2e6f && Math.abs(ey) < 2e6f)) continue;
                 seen++;
                 float speed = f(m, t + 0x2b8);
-                if (len >= side * 0.9) { sb.append("已经够长 ").append(Math.round(len / 100)).append(" 米 "); done++; continue; }
-                double dx = (ex - sx) / len, dy = (ey - sy) / len, mx = (sx + ex) / 2.0, my = (sy + ey) / 2.0, h = side / 2.0;
+                if (Math.abs(len - side * 1.1) < 100 && Math.hypot((sx + ex) / 2, (sy + ey) / 2) < side * 0.15) { sb.append("已经改过 "); done++; continue; }
+                // v1.93：航线穿过地图中间（离正中不超过边长 10%），方向随机，从这边图边飞到那边图边（用户：每局航线是地图中间一个很大的跨度）
+                Random rnd = new Random();
+                double ang = rnd.nextDouble() * Math.PI * 2, dx = Math.cos(ang), dy = Math.sin(ang), off = (rnd.nextDouble() * 2 - 1) * side * 0.1;
+                double mx = -dy * off, my = dx * off, h = side * 0.55;
                 float nsx = (float) (mx - dx * h), nsy = (float) (my - dy * h), nex = (float) (mx + dx * h), ney = (float) (my + dy * h);
                 wf(m, t + 0x300, nsx); wf(m, t + 0x304, nsy); wf(m, t + 0x30c, nex); wf(m, t + 0x310, ney);
-                wf(m, t + 0x324, side);
+                wf(m, t + 0x318, (float) dx); wf(m, t + 0x31c, (float) dy);   // Dir
+                wf(m, t + 0x324, (float) (2 * h));
                 // 能跳的范围也跟着拉长（原来是不是和航线同样两端都记下来）
                 float jsx = f(m, t + 0x328), jsy = f(m, t + 0x32c), jex = f(m, t + 0x334), jey = f(m, t + 0x338);
                 wf(m, t + 0x328, nsx); wf(m, t + 0x32c, nsy); wf(m, t + 0x334, nex); wf(m, t + 0x338, ney);
-                wf(m, t + 0x340, side);
+                wf(m, t + 0x340, (float) (2 * h));
                 sb.append(Math.round(len / 100)).append(" 米 → ").append(Math.round(side / 100)).append(" 米（起 ").append(Math.round(sx)).append(',').append(Math.round(sy))
                   .append(" 终 ").append(Math.round(ex)).append(',').append(Math.round(ey)).append(" 原跳伞段 ").append(Math.round(jsx)).append(',').append(Math.round(jsy))
                   .append('~').append(Math.round(jex)).append(',').append(Math.round(jey)).append(" 速度 ").append(Math.round(speed)).append("）");

@@ -188,7 +188,18 @@ public class Veh {
     /** v1.84：按车型分组（同一车型不同颜色合成一组，按一次换一个颜色）。名字读不到时一个编号一组 */
     static volatile boolean busy;
     static final class Group { String label; ArrayList<Long> ids = new ArrayList<>(); int at; }
-    static volatile ArrayList<Group> groups;
+    /** v1.93 车编号写死（用户：不要再读车表）。编号 = 游戏车表的行号，三张图同一张表（v1.89 读出来的）：
+     *  图标名 Uaz469=吉普，dacia=轿车，boat_pg117=大船，car_002/003=吉普另外两款（敞篷/篷布，按 PUBG 吉普三款推测），buggy=蹦蹦，
+     *  bike=摩托，bike_sidecart=三轮摩托，Chuan_001=快艇，car_005=面包车、car_006=皮卡（推测）。car_007/008 编号没读到，先不放。 */
+    static volatile ArrayList<Group> groups = fixed();
+    static ArrayList<Group> fixed() {
+        Object[][] t = { {"吉普", new long[]{1, 17, 20, 28}}, {"敞篷吉普", new long[]{4, 11, 21}}, {"篷布吉普", new long[]{5, 12, 22}},
+            {"轿车", new long[]{2, 23}}, {"蹦蹦", new long[]{6, 14, 24}}, {"面包车", new long[]{10}}, {"皮卡", new long[]{29, 30}},
+            {"摩托", new long[]{9, 15, 25}}, {"三轮摩托", new long[]{8, 16, 26}}, {"快艇", new long[]{13, 18, 19}}, {"大船", new long[]{3, 27}} };
+        ArrayList<Group> out = new ArrayList<>();
+        for (Object[] r : t) { Group g = new Group(); g.label = (String) r[0]; for (long id : (long[]) r[1]) g.ids.add(id); out.add(g); }
+        return out;
+    }
     static String base(String bp) {
         // BP_Vehicle_UAZ_01_C → uaz；去掉颜色/皮肤后缀数字
         String t = bp.replaceAll("(?i)^BP_(Vehicle_)?", "").replaceAll("(?i)_C$", "").replaceAll("(_?\\d+)+$", "");
@@ -264,8 +275,9 @@ public class Veh {
         busy = true;
         new Thread(() -> {
             try {
-                String e = loadTable();
+                String e = ahead(600, 150);
                 if (e != null) { GameOverlay.toastAny(state = "刷车：" + e); return; }
+                if (buf.getInt(36) == 0) { GameOverlay.toastAny(state = "刷车：这局没有车表"); return; }
                 ArrayList<Group> gs = groups;
                 if (gs == null || gs.isEmpty()) { GameOverlay.toastAny(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
                 if (gi < 0) { GameOverlay.toastAny(state = "刷车：读到 " + gs.size() + " 种车，菜单里点车名刷"); return; }
@@ -273,8 +285,8 @@ public class Veh {
                 long id = g.ids.get(g.at++ % g.ids.size());
                 boolean ok = call(id) && buf.getInt(0) == 0x5b03;
                 String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + g.label + "（编号 " + id + "）";
-                note(s);
-                GameOverlay.toastAny(state = s);
+                note(s); state = s;
+                if (!ok) GameOverlay.toastAny(s);
             } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();
