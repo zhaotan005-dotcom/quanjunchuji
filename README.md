@@ -1,6 +1,6 @@
 # ZFrame + 全军出击单机版2.0 修复项目（交接文档）
 
-更新时间：2026-11-16 07:10（北京时间）
+更新时间：2026-11-16 16:00（北京时间）
 接手的智能体请先读完本文件，再读 `notes/history.md`（每一版的详细记录和逆向发现，按时间顺序排列）。
 
 ## 目标
@@ -36,7 +36,7 @@
   - `protoext.py` + `protodump.py`：从 libUE4 里提取内嵌的 protobuf schema，生成到 `game/proto/`（已在 .gitignore 里，需要时自己跑脚本生成）。
 - `game/x/`：游戏 APK 解包（lib/libUE4.so 等）。
 - `notes/history.md`：完整历史，最重要。
-- `releases/`：各版 APK（v1.46–v1.60）。游戏原包和 obb 太大，放在 GitHub Releases 里。
+- `releases/`：各版 APK（v1.46–v1.84，最新 `releases/ZFrame-v1.84.apk`）。游戏原包和 obb 太大，放在 GitHub Releases 里。
 
 ## 构建发版
 - 环境：JDK21，build-tools r36，android-36 的 android.jar。
@@ -47,14 +47,35 @@
   4. 用 apksigner 签名：zframe.jks，密码 zframe123，别名 zf。
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
-## 当前状态（2026-11-16 07:10）
-- 最新构建版是 **v1.64**（vc65/core65，诊断版：自检钩子是否装上）。v1.63（vc64/core64）：收包改挂 FEngineLoop::Tick 0xb665a8（每帧必跑），Java 扫内存找 ConnectorService 对象。**未实测**。
-- v1.62 实测：UpdateService::Tick 在大厅也不跑（帧 0）。
-- v1.61 实测：请求 0、游戏已收 0（ConnectorService 的 Tick 离线不跑，大厅重进也不发请求）。
-- 用法：大厅 Z 菜单按「开启服务端」→ 大厅重进并自动推一封「补给」邮件 → 游戏邮箱里领取 → 进仓库看。「发邮件」按钮可再发一封。
-- v1.60 是测量版（40 个探针），已在手机上测过诊断输出。
-- 最后一个功能实测 OK 的版本是 v1.50。实测有效的功能：无敌、传送、刷枪/子弹、3级头 30304000005、3级甲 30305000003、999 子弹、找风衣（绝地风衣 = 30318000000）、开始游戏选图。
-- v1.51–v1.60 的功能**都没有实测成功**：开局自带风衣、跳跃加速、大厅灰人修复等。
+## 当前状态（2026-11-16 16:00）
+- **最新版 v1.84**（vc85/core85，`releases/ZFrame-v1.84.apk`，commit 见 git log）。**未实测**。
+- 构建/测试：`zframe/test/ServerTest` + `game/re/emu_server.py`（服务端）、`game/re/emu_vcave.py`（刷车/刷人机 cave）都通过。
+
+### 已实测能用（荣耀 X70）
+- 无敌、传送、刷枪/子弹、3 级头甲、999 子弹、开始游戏选图（v1.50 前）。
+- 自建服务端（v1.65 起启动早装钩子）：开服务端后自动发邮件，邮件能领取，物品进仓库（v1.72）。
+- 「邮件全皮」：扫内存把全部皮肤发邮件入库（v1.77）。
+- 大厅换角色（男/女）、大厅穿着能保留（v1.75/1.76）；穿脱即时（v1.78，空 5017 催发）；涂装对局可见；对局出生衣服 = 仓库穿着（v1.77）。
+- 刷车：v1.82 起能刷能开；v1.83 实测 31 种车（编号 1~32，缺 7）全部能刷，有些只是颜色不同。做法见 history v1.80/v1.82/v1.83（刷物品 cave 的 'V' 分支 → SpawnVehicle 实现 0x1102ca4；车表从 GNames 读）。
+- 信号枪能刷出；DP-28 = 20102000002 正确。
+
+### v1.84 改了什么（待实测）
+- 载具：读车表后菜单里每种车一个按钮，同车型不同颜色合成一个按钮，再按换颜色；车型名按 FName（FSoftObjectPath）从车表行里读，读不到就按编号显示。
+- 刷人机：刷车 cave 加 'B' 命令 → 调游戏教学关的 ServerAddBotAt_Implementation 0x1115620(PC, int=1, FVector, FRotator)，它先查 GameMode 是 NZBattleRoyaleGame，再调 GameMode 虚表 +0x5c4（AddBotAt）。人机刷在面前 8 米。int 参数含义未确认。
+- 诊断里多一行刷人机状态。
+
+### 已知问题
+- 加速/高跳：用户说 v1.80 起失效；v1.82 去掉了拖慢的全内存扫描，**待复测**（菜单状态括号里的「等人物/进图后生效」要用户报给我们）。
+- 口罩没找到（v1.79 按名字找是误判，v1.80 已清掉）；可能在 30308 Facing 分类。
+- 画面设置不即时生效；降落伞缺失；声音（Wwise 没初始化，不要改 0x53b5d58）。
+- 车/物资只能刷在面前，不能选「脚下地上」。
+
+## 接下来要做（用户排的顺序）
+1. **看 v1.84 实测**：刷人机出没出来、会不会闪退；车型按钮名字对不对。人机没出来 → 看诊断里刷人机那行（0x5b04=已调）。若已调但没人：int 参数可能是人机类型/数量，试 0、2、5；或者 GameMode 虚表 +0x5c4 在对局类里是别的函数（静态没核实，可用 cave 把 [GM] 虚表地址写进 buf 让 Java 算偏移）。
+2. **枪械伤害**：有人机后打人机，确认掉血/击倒/击杀。离线若不掉血，查 ServerForceEnablePlayerDamage（PC 原生表 0x4cd3bb0，thunk 0x11dd95c）。
+3. **刷物资**：刷物品目前是直接进背包；用户要能刷在地上/房子里有物资。离线可能不生成地面物资（ItemGenerator / PickupManager 路线没查）。GiveItem/SpawnPickupBox 的 Exec 被删了（bx lr）。
+4. **门**：离线房子没有门。线索：ANZSceneDoorManager（客户端门管理器，"Should never spawn On Server"）、NZDoorManager_C 蓝图、属性 StandaloneUnloadAllDoor（单机卸载全部门，可能就是原因）、日志 "[DS Load] Loaded DoorCount"、"cdfg CloseAllDoorOnMatchBegin"。先找 StandaloneUnloadAllDoor 的偏移和读它的代码，试着在早装时改成 0。
+5. 再往后：加速/高跳若仍失效要修；画面即时生效；口罩；降落伞。
 
 ## 主线问题：大厅灰色人物、换角色、换脸/换头发、仓库换装
 - 结论：大厅、仓库、角色页的人物都由 BP/Lua 驱动。数据来自服务器下发的「仓库物品」，离线时没有服务器，所以是灰人、仓库是空的。
@@ -83,15 +104,3 @@
   - **TICK**（v1.63 起）：FEngineLoop::Tick 0xb665a8 开头（原 `f04f2de9 1cb08de2`，跳回 0xb665b0）跳到 cave（v1.62 用的 UpdateService::Tick 0xfb0218 大厅不跑）。回包区头 32 字节（+12 连接器对象由 Java 找到后填，+16 FEngineLoop this，+20 帧数）。连接器找到后，cave 把每条回包交给 conn->vt+0x164（0xf95298），再执行原指令，v1.61 挂的 ConnectorService Tick 0xf92fb0 离线不跑。
 - Java 线程轮询请求：13001 返回假仓库物品，13003/13005 处理装备/卸下，其他带 key_pkg 的请求回一个空的成功包。开启后先主动推一个 13002，然后重开一次大厅。
 - 已验证：`game/re/emu_server.py` 通过（两个 cave 的模拟；Java 生成的包用游戏自己的 schema 解码，13002 里有 8 个物品，role_id 正确）；Java poll 单测通过（36001→空成功包，22005 不回，13001→物品列表）。
-
-## 接下来要做（按顺序）
-1. **确认 v1.61 能跑通**：用户在大厅按「开启服务端」，看邮箱有没有补给邮件、能不能领取，再按「导出诊断」把文件发回来。Server.report() 会写出请求数、回包数和「游戏已收」的数量。
-   - 风险 1：离线时 ConnectorService 的 Tick 可能根本不跑。如果「游戏已收」为 0，需要换一个每帧都会调用的点来投递回包。
-   - 风险 2：UNZOnlineLobby 的 bIsOffline / connector 为空，可能让请求在 SendMsg 0xf94a00 之前就被拦下，大厅也不处理回包。可能还要造一个假 connector 对象，放到 ConnectorService+0xfa054，它的 vtable 里 IsConnected 返回 1、Write/Read 接到环形缓冲区；或者把 bIsOffline 清零。
-   - 风险 3：启动时的登录包是在启动画面阶段发的（不能碰），大厅可能处于「未登录」状态，忽略仓库回包。如果这样，就主动推 36002/登录类回包，或者在大厅里重新触发 relogin（36001）。
-2. 仓库物品被接受后：加上脸、发型物品（equip_position 3/4，prop_role_attr），实现换角色、换脸、换头发；在 Z 菜单加「重新下发」按钮。需要的话用 25007 邮件推送，模仿私服的「领取」。
-3. 仓库换装：13003/13005 回包要正确更新 equip_position，同时让大厅预览模型刷新。
-4. 刷车：离线时 VehicleManager 没有载具数据表，SpawnVehicle 只能蓝图调用。可以看看服务端或训练营那条路。
-5. 训练营入口和资源：OnTrainingModeEntranceBtnClick 0x1375b68 走 BP/Lua。
-6. 信号枪不出空投：还没查，可能和 GM 权限或服务端有关。
-7. 其他遗留问题：无后座、聚点没生效（AnimInstance+0x18c4 的表对不上）；画质切换效果没确认；开局风衣 cave（v1.52）没实测；声音（Wwise 没初始化，不要再改 0x53b5d58）。
