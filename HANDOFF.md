@@ -1,8 +1,9 @@
-# 交接给下一个智能体（2026-11-16，v2.04）
+# 交接给下一个智能体（2026-11-16，v2.05）
 
 先读：README.md（总交接）→ notes/history.md（全部历史 + RE 偏移，末尾最新）→ notes/device-tests/v1.98/（最新实测诊断/崩溃日志/截图）。
 
 ## 当前版本
+- v2.05（vc106/core106），releases/ZFrame-v2.05.apk，未实测：启动时装联机作弊补丁三处、房主/客户端/单机三套菜单、苹果风浅色菜单、服务端自动开。
 - v2.04（vc105/core105），releases/ZFrame-v2.04.apk，未实测：联机作弊检查补丁 0x2e0a084、三张图开房、Gfx.java 设置画质即时生效、悬浮球菜单、标题联机版。
 - v2.03（vc104/core104），releases/ZFrame-v2.03.apk，未实测：局域网联机实验按钮（open 地图?listen / open IP:7777），Lan.java。
 - v2.02（vc103/core103），releases/ZFrame-v2.02.apk，未实测：头/甲/包每局只刷一次到身上（再刷=栈溢出闪退，见 history 末尾）。

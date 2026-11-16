@@ -86,6 +86,7 @@ public class Mods {
         LogCap.note("出生衣服钩子 → " + w); wearInstall = w;
         if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
         Server.preinstall();
+        Lan.preinstall();
         LogCap.note("刷车钩子 → " + Veh.install());
         earlyDone = "ok".equals(r);
         earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + Veh.state + "，" + (System.currentTimeMillis() - t0) + " ms";
@@ -208,6 +209,12 @@ public class Mods {
             storeHooked = true;
         }
         return "ok";
+    }
+    static String pokeByte(long addr, int v) {
+        if (addr < 0x10000) return "地址不对";
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            m.seek(addr); m.write(v & 0xff); m.seek(addr); return m.read() == (v & 0xff) ? "ok" : "写入没生效";
+        } catch (Throwable t) { return "出错 " + t.getMessage(); }
     }
     static String pokeInt(long addr, int v) {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {

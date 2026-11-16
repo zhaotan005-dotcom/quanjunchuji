@@ -26,9 +26,30 @@ final class Lan {
 
     /** 引擎在 Browse 里：用过控制台命令（作弊）+ URL 带 Listen → TravelFailure CheatCommands。0x2e0a084 beq→b 跳过这个检查。 */
     static final long CHEAT = 0x2e0a084L; static final String CHEAT_O = "2000000a", CHEAT_N = "200000ea";
-    static String unlock() { String r = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true); note("去掉联机作弊检查：" + r); return r; }
+    /** v2.05：v2.04 只改了上面这一处，实测还是 CheatCommands。改成启动时（还没执行过任何控制台命令、代码还没进指令缓存）就装三处：
+     *  1. 0x2a110b8 控制台 Exec 里把「用过作弊」标志（bss 0x5359ad8）置 1 的 mov r2,#1 → mov r2,#0，标志永远不会变成 1；
+     *  2. 0x2e0a084 Browse 里的检查 beq→b；3. 0x2bffb78 PendingNetGame::InitNetDriver（加入时）的检查 beq→b。 */
+    static final long SETF = 0x2a110b8L; static final String SETF_O = "0120a0e3", SETF_N = "0020a0e3";
+    static final long JOINC = 0x2bffb78L; static final String JOINC_O = "1a00000a", JOINC_N = "1a0000ea";
+    static final long FLAG = 0x5359ad8L;
+    static volatile String pre = "没装";
+    static void preinstall() {
+        String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
+        pre = "置标志 " + a + "，开房检查 " + b + "，加入检查 " + c;
+        LogCap.note("联机补丁（启动时）：" + pre);
+    }
+    static String unlock() {
+        String r = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true);
+        Mods.write(SETF, SETF_O, SETF_N, true); Mods.write(JOINC, JOINC_O, JOINC_N, true);
+        String f = Mods.pokeByte(Mods.base() + FLAG, 0);
+        note("联机补丁：" + pre + "；清标志 " + f);
+        return r;
+    }
+    /** 0 = 单机，1 = 房主（服务器），2 = 加入的客户端。回大厅清零。 */
+    static volatile int role;
     static String host(String map) {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
+        role = 1; Bots.auto = false;
         boolean ok = Con.exec("open " + map + "?listen");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
         note(state);
@@ -42,12 +63,14 @@ final class Lan {
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";
         unlock();
+        role = 2; Bots.auto = false;
         boolean ok = Con.exec("open " + ip);
         state = ok ? "加入：已发 open " + ip : "加入：命令没发出去";
         note(state);
         return ok ? "正在连 " + ip : "命令没发出去";
     }
 
+    static String roleText() { return role == 1 ? "房主（服务器）" : role == 2 ? "已加入别人的房间" : "单机"; }
     static void note(String s) {
         LogCap.note("联机 " + s);
         add(new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date()) + " " + s);

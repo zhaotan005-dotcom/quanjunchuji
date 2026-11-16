@@ -19,14 +19,13 @@ import com.zframe.ui.Ui;
 public class GameOverlay {
     static float px = -1, py = -1;
     static boolean collapsed = false;
-    static float bx = -1, by = -1;
-    static Runnable ballApply;
     static int tab = 0, weapCat = 0;
 
     // 配色（v1.49 简约：近黑半透明底 + 白/灰文字 + 一个低饱和蓝，只用细线分隔，不用渐变和彩色标签）
-    static final int PANEL = 0xF00E0F12, CARD = 0x0AFFFFFF, CARD2 = 0x0FFFFFFF, LINE = 0x17FFFFFF,
-            TXT = 0xFFEDEEF0, SUBT = 0xFF7D8088, ACC = 0xFF6E9BFF, ON_BG = 0xFFEDEEF0, ON_TXT = 0xFF111215,
-            ORANGE = 0xFFE0A24A, CHIP = 0x0FFFFFFF;
+    // v2.05 用户：不要黑底，参考苹果风格 → 浅灰毛玻璃底 + 白色卡片 + 系统蓝，开关绿色
+    static final int PANEL = 0xF5F2F2F7, CARD = 0xFFFFFFFF, CARD2 = 0xFFFFFFFF, LINE = 0x14000000,
+            TXT = 0xFF1C1C1E, SUBT = 0xFF8E8E93, ACC = 0xFF007AFF, ON_BG = 0xFF007AFF, ON_TXT = 0xFFFFFFFF,
+            ORANGE = 0xFFFF9500, CHIP = 0x0F000000, GREEN = 0xFF34C759;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -59,7 +58,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, LINE, u.dp(14), 1));
+            panel.setBackground(box(PANEL, u.dp(18)));
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
@@ -69,11 +68,11 @@ public class GameOverlay {
             head.setGravity(Gravity.CENTER_VERTICAL);
             head.setPadding(u.dp(16), u.dp(10), u.dp(8), u.dp(2));
             TextView title = new TextView(a);
-            title.setText("艾挽 · 全军出击联机版"); title.setTextColor(TXT); title.setTextSize(14); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setText("全军出击联机版"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v2.04"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v2.05"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -95,8 +94,8 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
             tabsRow.setPadding(u.dp(8), u.dp(4), u.dp(4), u.dp(10));
-            final String[] tabs = {"常用", "武器", "装备", "刷车", "人机", "画面"};
-            final int[] map = {0, 3, 4, 1, 2, 5};   // 显示顺序 → 原来的页号（fill 按页号填）
+            final String[] tabs = {"常用", "武器", "装备", "刷车", "人机", "联机", "画面"};
+            final int[] map = {0, 3, 4, 1, 2, 6, 5};   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -122,7 +121,20 @@ public class GameOverlay {
             panel.addView(body, new LinearLayout.LayoutParams(-1, -2));
 
             final View tabsLine = hr;
-            final Runnable mode = () -> { int v = Con.inMatch ? View.VISIBLE : View.GONE; tabsRow.setVisibility(v); tabsLine.setVisibility(v); };
+            // v2.05：对局里的分页按身份不同 —— 单机：常用/武器/装备/刷车/人机/画面；房主：人机换成联机；加入的客户端：只有联机/画面
+            final Runnable mode = () -> {
+                int v = Con.inMatch ? View.VISIBLE : View.GONE; tabsRow.setVisibility(v); tabsLine.setVisibility(v);
+                int r = Lan.role;
+                for (TextView t : tv) {
+                    int id = (Integer) t.getTag();
+                    boolean show = r == 0 ? id != 6 : r == 1 ? id != 2 : (id == 6 || id == 5);
+                    t.setVisibility(show ? View.VISIBLE : View.GONE);
+                }
+                if (Con.inMatch) {
+                    boolean ok = r == 0 ? tab != 6 : r == 1 ? tab != 2 : (tab == 6 || tab == 5);
+                    if (!ok) { tab = r == 2 ? 6 : 0; paintTabs(tv, u); }
+                }
+            };
             mode.run();
             refresher = () -> { mode.run(); paintStatus(status); fill(a, u, content); };
             paintStatus(status);
@@ -131,53 +143,20 @@ public class GameOverlay {
             tick[0] = () -> { if (panel.getParent() == null) return; if (panel.getVisibility() == View.VISIBLE) paintStatus(status); panel.postDelayed(tick[0], 1000); };
             panel.postDelayed(tick[0], 1000);
 
-            // v2.04 用户：菜单做成能收起的悬浮球（点「–」收成小球，点小球展开，小球可拖动）
-            final TextView ball = new TextView(a);
-            ball.setTag("zframe_ball");
-            ball.setText("艾"); ball.setTextColor(ON_TXT); ball.setTextSize(15); ball.setGravity(Gravity.CENTER);
-            ball.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            GradientDrawable bg = new GradientDrawable(); bg.setShape(GradientDrawable.OVAL); bg.setColor(ON_BG); bg.setStroke(u.dp(2), 0xFF4ADE80);
-            ball.setBackground(bg); ball.setElevation(u.dp(10)); ball.setAlpha(0.92f);
+            // v2.05 用户：不要「艾」悬浮球 → 「–」收起成只剩标题栏的小条，点标题栏或「+」展开
             final Runnable apply = () -> {
-                if (hidden) { ball.setVisibility(View.GONE); return; }
-                if (collapsed) {
-                    panel.animate().cancel(); panel.setVisibility(View.GONE);
-                    ball.setX(bx >= 0 ? bx : panel.getX()); ball.setY(by >= 0 ? by : panel.getY());
-                    ball.setVisibility(View.VISIBLE); ball.setScaleX(0.6f); ball.setScaleY(0.6f);
-                    ball.animate().scaleX(1f).scaleY(1f).setDuration(180).start();
-                } else {
-                    ball.setVisibility(View.GONE);
-                    panel.setAlpha(1f); panel.setScaleX(1f); panel.setScaleY(1f); panel.setTranslationY(0);
-                    panel.setVisibility(View.VISIBLE);
-                }
+                body.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+                status.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+                fold.setText(collapsed ? "+" : "–");
+                ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
+                if (lp0 != null) { lp0.width = collapsed ? u.dp(250) : pw; panel.setLayoutParams(lp0); }
             };
-            fold.setOnClickListener(v -> { collapsed = true; apply.run(); });
-            ball.setOnTouchListener(new View.OnTouchListener() {
-                float dx, dy, sx, sy; boolean moved;
-                public boolean onTouch(View v, MotionEvent e) {
-                    switch (e.getActionMasked()) {
-                        case MotionEvent.ACTION_DOWN: dx = e.getRawX(); dy = e.getRawY(); sx = ball.getX(); sy = ball.getY(); moved = false; return true;
-                        case MotionEvent.ACTION_MOVE:
-                            float mx = e.getRawX() - dx, my = e.getRawY() - dy;
-                            if (Math.abs(mx) + Math.abs(my) > u.dp(6)) moved = true;
-                            if (moved) { ball.setX(sx + mx); ball.setY(sy + my); bx = ball.getX(); by = ball.getY(); }
-                            return true;
-                        case MotionEvent.ACTION_UP:
-                            if (!moved) { collapsed = false; apply.run(); fill(a, u, content); }
-                            return true;
-                    }
-                    return false;
-                }
-            });
-            ballApply = apply;
+            fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
             hookKeys(a, panel, u);
             FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(pw, -2);
             flp.gravity = Gravity.TOP | Gravity.START;
             decor.addView(panel, flp);
-            FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(u.dp(46), u.dp(46));
-            blp.gravity = Gravity.TOP | Gravity.START;
-            decor.addView(ball, blp);
             if (px < 0) { px = u.dp(40); py = u.dp(24); }
             panel.setX(px); panel.setY(py);
             if (hidden) panel.setVisibility(View.GONE);
@@ -194,7 +173,7 @@ public class GameOverlay {
                             if (moved) { panel.setX(sx + mx); panel.setY(sy + my); px = panel.getX(); py = panel.getY(); }
                             return true;
                         case MotionEvent.ACTION_UP:
-                            if (!moved) { collapsed = true; apply.run(); }
+                            if (!moved) { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); }
                             return true;
                     }
                     return false;
@@ -270,9 +249,6 @@ public class GameOverlay {
     }
     static void showPanel(final View pv, boolean show, Ui u) {
         hidden = !show;
-        if (show) collapsed = false;
-        Runnable ba = ballApply; if (ba != null && !show) ba.run();
-        if (show && ba != null) { View b = ((View) pv.getParent()) instanceof ViewGroup ? ((ViewGroup) pv.getParent()).findViewWithTag("zframe_ball") : null; if (b != null) b.setVisibility(View.GONE); }
         pv.animate().cancel();
         if (show) {
             if (pv.getVisibility() == View.VISIBLE && pv.getAlpha() == 1f) return;
@@ -542,20 +518,16 @@ public class GameOverlay {
     }
     /** 小标题：左边一条短竖线 + 白字 */
     static void head(Activity a, Ui u, ViewGroup p, String s) {
-        TextView t = label(a, p, s, 11.5f, false, TXT);
+        TextView t = label(a, p, s, 11f, false, SUBT);
         t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        t.setLetterSpacing(0.04f);
-        GradientDrawable bar = box(ACC, u.dp(1));
-        bar.setSize(u.dp(3), u.dp(11));
-        t.setCompoundDrawablesWithIntrinsicBounds(bar, null, null, null);
-        t.setCompoundDrawablePadding(u.dp(7));
-        t.setPadding(u.dp(2), u.dp(16), 0, u.dp(7));
+        t.setLetterSpacing(0.03f);
+        t.setPadding(u.dp(6), u.dp(14), 0, u.dp(6));
     }
     /** 卡片容器 */
     static LinearLayout card(Activity a, Ui u, ViewGroup p) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackground(boxLine(CARD, LINE, u.dp(10), 1));
+        c.setBackground(box(CARD, u.dp(12)));
         c.setPadding(u.dp(12), u.dp(4), u.dp(12), u.dp(4));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.bottomMargin = u.dp(4);
         p.addView(c, lp);
@@ -564,11 +536,12 @@ public class GameOverlay {
     /** 普通按钮（卡片样式，按下有缩放反馈） */
     static TextView btn(Activity a, Ui u, LinearLayout row, String text, final Runnable r) {
         TextView b = new TextView(a);
-        b.setText(text); b.setTextColor(TXT); b.setTextSize(12);
+        b.setText(text); b.setTextColor(ACC); b.setTextSize(12.5f);
+        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
         b.setSingleLine(false); b.setMaxLines(2);
-        b.setPadding(u.dp(4), u.dp(9), u.dp(4), u.dp(9));
-        b.setBackground(boxLine(CARD2, LINE, u.dp(8), 1));
+        b.setPadding(u.dp(4), u.dp(10), u.dp(4), u.dp(10));
+        b.setBackground(box(CARD2, u.dp(10)));
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -593,7 +566,8 @@ public class GameOverlay {
         if (on) b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
         b.setPadding(u.dp(4), u.dp(8), u.dp(4), u.dp(8));
-        b.setBackground(on ? grad(u.dp(8)) : boxLine(0, LINE, u.dp(8), 1));
+        b.setBackground(on ? grad(u.dp(9)) : box(CARD2, u.dp(9)));
+        if (!on) b.setTextColor(TXT);
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -614,10 +588,10 @@ public class GameOverlay {
         }
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), h = getHeight(), r = h / 2f;
-            int off = 0x33FFFFFF;
-            if (pos > 0) { p.setColor(ACC); p.setAlpha((int) (255 * pos)); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
-            if (pos < 1) { p.setColor(off); p.setAlpha((int) (0x33 * (1 - pos))); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
+            p.setColor(0xFFE5E5EA); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p);
+            if (pos > 0) { p.setColor(GREEN); p.setAlpha((int) (255 * pos)); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
             float cx = r + (w - 2 * r) * pos;
+            p.setColor(0x22000000); c.drawCircle(cx, r + 1f, r - 2f, p);
             p.setColor(0xFFFFFFFF); c.drawCircle(cx, r, r - 2.5f, p);
         }
     }
@@ -663,11 +637,11 @@ public class GameOverlay {
         @Override protected void onDraw(Canvas c) {
             float cy = getHeight() * 0.42f, th = 2.5f * dens, x0 = x0(), x1 = x1();
             float cx = x0 + (x1 - x0) * (val - min) / (max - min);
-            p.setColor(0x26FFFFFF); c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
-            p.setColor(TXT); if (cx > x0) c.drawRoundRect(new RectF(x0, cy - th / 2, cx, cy + th / 2), th, th, p);
+            p.setColor(0xFFE5E5EA); c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
+            p.setColor(ACC); if (cx > x0) c.drawRoundRect(new RectF(x0, cy - th / 2, cx, cy + th / 2), th, th, p);
             float r = (drag ? 8 : 6.5f) * dens;
-            if (drag) { p.setColor(0x22FFFFFF); c.drawCircle(cx, cy, r + 6 * dens, p); }
-            p.setColor(0xFFFFFFFF); c.drawCircle(cx, cy, r, p);
+            if (drag) { p.setColor(0x22007AFF); c.drawCircle(cx, cy, r + 6 * dens, p); }
+            p.setColor(0x33000000); c.drawCircle(cx, cy + dens, r + 0.5f * dens, p); p.setColor(0xFFFFFFFF); c.drawCircle(cx, cy, r, p);
             float ey = getHeight() - 2 * dens;                                   // 两端刻度：0 和 最大
             ep.setTextAlign(Paint.Align.LEFT); c.drawText(fmt(min), x0 - 2 * dens, ey, ep);
             ep.setTextAlign(Paint.Align.RIGHT); c.drawText(fmt(max), x1 + 2 * dens, ey, ep);
@@ -752,6 +726,7 @@ public class GameOverlay {
             case 3: weaponPage(a, u, root); return;
             case 4: gearPage(a, u, root); return;
             case 5: settingsPage(a, u, root); return;
+            case 6: lanPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -763,51 +738,92 @@ public class GameOverlay {
         label(a, p, s, 10.5f, false, SUBT).setPadding(u.dp(3), u.dp(2), 0, u.dp(2));
     }
 
-    /** 大厅：开局前选好模式、角色、画质 */
+    /** v2.05 大厅：上面「联机版 / 单机版」切换。联机版 = 开房 / 加入（不刷人机）；单机版 = 游戏模式，点游戏的匹配赛开始（默认刷人机）。
+     *  服务端自动开（不显示开关）；日志放最下面。 */
+    static int lobbyTab = 0;
     static void lobbyPage(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "游戏模式");
-        LinearLayout fl = row(a, root);
-        pick(a, u, fl, "正常", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
-        pick(a, u, fl, "不上飞机", Mods.noPlane, () -> result(a, Mods.setPlane(!Mods.noPlane)));
-        pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
-        head(a, u, root, "人机难度");
-        LinearLayout d = row(a, root);
-        pick(a, u, d, "简单", Bots.diff == 1, () -> { Bots.diff = 1; refreshAny(); });
-        pick(a, u, d, "普通", Bots.diff == 2, () -> { Bots.diff = 2; refreshAny(); });
-        pick(a, u, d, "困难", Bots.diff == 3, () -> { Bots.diff = 3; refreshAny(); });
-        note(a, u, root, "单机默认刷人机。画质在游戏设置里选，选了立即生效（" + Gfx.state + "）。");
-        LinearLayout dg = row(a, root);
-        btn(a, u, dg, "开启服务端", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
-        btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
-        btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。开启后补给和全部皮肤直接在仓库里。");
-        lanRows(a, u, root);
+        LinearLayout seg = row(a, root);
+        seg.setBackground(box(0x1F767680, u.dp(10))); seg.setPadding(u.dp(2), u.dp(2), u.dp(2), u.dp(2));
+        segBtn(a, u, seg, "联机版", lobbyTab == 0, () -> { lobbyTab = 0; refreshAny(); });
+        segBtn(a, u, seg, "单机版", lobbyTab == 1, () -> { lobbyTab = 1; refreshAny(); });
+        if (lobbyTab == 0) {
+            head(a, u, root, "开房（我当服务器）");
+            LinearLayout hc = card(a, u, root);
+            kv(a, u, hc, "本机 IP", Lan.ip());
+            LinearLayout r = row(a, hc); r.setPadding(0, u.dp(4), 0, u.dp(6));
+            fillBtn(a, u, r, "老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
+            fillBtn(a, u, r, "新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
+            fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
+            note(a, u, root, "点地图直接进图当房主。外网玩家用内网穿透连你的 UDP 7777。");
+            head(a, u, root, "加入房间");
+            LinearLayout jc = card(a, u, root);
+            LinearLayout ir = row(a, jc); ir.setPadding(0, u.dp(6), 0, u.dp(6));
+            final EditText et = new EditText(a);
+            et.setHint("房主 IP，如 192.168.1.5 或 穿透地址:端口"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
+            et.setInputType(android.text.InputType.TYPE_CLASS_TEXT); et.setSingleLine(true);
+            if (Lan.lastIp != null) et.setText(Lan.lastIp);
+            et.setBackground(box(0xFFF2F2F7, u.dp(9))); et.setPadding(u.dp(10), u.dp(8), u.dp(10), u.dp(8));
+            LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2.4f); elp.setMargins(0, u.dp(3), u.dp(6), u.dp(3));
+            ir.addView(et, elp);
+            fillBtn(a, u, ir, "加入", () -> toast(a, Lan.join(et.getText().toString())));
+            if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
+        } else {
+            head(a, u, root, "游戏模式");
+            LinearLayout fl = row(a, root);
+            pick(a, u, fl, "正常", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
+            pick(a, u, fl, "不上飞机", Mods.noPlane, () -> result(a, Mods.setPlane(!Mods.noPlane)));
+            pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
+            note(a, u, root, "选好后点游戏里的「匹配赛」开始。单机自动刷人机，难度在对局里的「人机」页改。");
+            LinearLayout dg = row(a, root);
+            btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
+        }
+        logRow(a, u, root);
     }
-    /** v2.03 局域网联机（实验）：引擎里有 UWorld::Listen / IpNetDriver / 服务端 NMT_Login 处理（libUE4 里有 "LoadMap: failed to Listen"、
-     *  "IpNetDriver listening on port"）。房主：open 地图?listen；加入：open IP:7777。两台手机同一 Wi-Fi。结果看诊断里的「联机日志」。 */
-    static void lanRows(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "局域网联机（实验）");
-        note(a, u, root, "本机 IP：" + Lan.ip() + "。房主在大厅点开房会直接进图，不用再点开始。另一台填房主 IP 点加入（外网用内网穿透转发 UDP 7777）。");
-        LinearLayout r = row(a, root);
-        btn(a, u, r, "开房 老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
-        btn(a, u, r, "开房 新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
-        btn(a, u, r, "开房 雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
-        LinearLayout ir = row(a, root);
-        final EditText et = new EditText(a);
-        et.setHint("房主 IP，如 192.168.1.5"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
-        et.setInputType(android.text.InputType.TYPE_CLASS_TEXT); et.setSingleLine(true);
-        if (Lan.lastIp != null) et.setText(Lan.lastIp);
-        et.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); et.setPadding(u.dp(10), u.dp(7), u.dp(10), u.dp(7));
-        LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2); elp.setMargins(u.dp(3), u.dp(3), u.dp(3), u.dp(3));
-        ir.addView(et, elp);
-        btn(a, u, ir, "加入", () -> toast(a, Lan.join(et.getText().toString())));
+    /** 最下面：日志 */
+    static void logRow(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "日志");
+        LinearLayout dg = row(a, root);
+        btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
+        note(a, u, root, Server.state);
+    }
+    /** 对局里的「联机」页：房主 / 客户端都有 */
+    static void lanPage(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "联机");
+        LinearLayout c = card(a, u, root);
+        kv(a, u, c, "身份", Lan.roleText());
+        kv(a, u, c, "本机 IP", Lan.ip());
+        if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "房主", Lan.lastIp);
+        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要房主那边开，客户端改了也不生效。" : "你是房主：别人连你的 IP（UDP 7777）。房主这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
+        logRow(a, u, root);
+    }
+    /** iOS 分段控件里的一个按钮 */
+    static void segBtn(Activity a, Ui u, LinearLayout seg, String text, boolean on, Runnable r) {
+        TextView b = new TextView(a);
+        b.setText(text); b.setTextSize(12.5f); b.setGravity(Gravity.CENTER);
+        b.setTextColor(TXT); b.setTypeface(Typeface.create(on ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+        b.setPadding(0, u.dp(7), 0, u.dp(7));
+        if (on) { b.setBackground(box(0xFFFFFFFF, u.dp(8))); b.setElevation(u.dp(1)); }
+        b.setOnClickListener(v -> r.run());
+        seg.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
+    }
+    /** 实心蓝按钮 */
+    static TextView fillBtn(Activity a, Ui u, LinearLayout row, String text, Runnable r) {
+        TextView b = btn(a, u, row, text, r); b.setBackground(box(ACC, u.dp(10))); b.setTextColor(0xFFFFFFFF); return b;
+    }
+    /** 卡片里的一行：左名字，右灰字 */
+    static void kv(Activity a, Ui u, LinearLayout card, String k, String v) {
+        LinearLayout r = new LinearLayout(a); r.setOrientation(LinearLayout.HORIZONTAL); r.setGravity(Gravity.CENTER_VERTICAL);
+        r.setPadding(0, u.dp(9), 0, u.dp(9));
+        TextView kt = new TextView(a); kt.setText(k); kt.setTextColor(TXT); kt.setTextSize(13);
+        TextView vt = new TextView(a); vt.setText(v); vt.setTextColor(SUBT); vt.setTextSize(13); vt.setGravity(Gravity.END);
+        r.addView(kt, new LinearLayout.LayoutParams(-2, -2));
+        r.addView(vt, new LinearLayout.LayoutParams(0, -2, 1));
+        card.addView(r, new LinearLayout.LayoutParams(-1, -2));
     }
     /** v1.85 人机：100 人局开关 + 难度（不记忆，每次启动回到 开 / 普通） */
     static void botRows(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "人机");
-        LinearLayout r = row(a, root);
-        pick(a, u, r, "自动刷人机", Bots.auto, () -> { Bots.auto = !Bots.auto; if (!Bots.auto) Bots.newMatch(); refreshAny(); });
+        head(a, u, root, "人机难度");
         LinearLayout d = row(a, root);
         pick(a, u, d, "简单", Bots.diff == 1, () -> { Bots.diff = 1; refreshAny(); });
         pick(a, u, d, "普通", Bots.diff == 2, () -> { Bots.diff = 2; refreshAny(); });
@@ -938,6 +954,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v2.04", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v2.05", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

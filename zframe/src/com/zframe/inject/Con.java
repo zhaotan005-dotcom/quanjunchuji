@@ -459,6 +459,10 @@ public class Con {
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
+                if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
+                    Lan.role = 0; Bots.auto = true;
+                    if (!Server.on) new Thread(() -> { try { Thread.sleep(2500); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
+                }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m; Bots.matchLoaded(); Flow.matchLoaded(m);   // v1.93 不再自动读车表（车编号写死）
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
