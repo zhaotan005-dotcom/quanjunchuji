@@ -123,7 +123,7 @@ public class Server {
         push(22006, 2, false, new PB().u(1, 0).bytes(), "补回 22005");
         push(30015, 5, false, new PB().u(1, 0).bytes(), "补回 30014");
         mark("准备邮件");
-        newMail();
+        if (missingGift()) newMail();   // v1.79：补给都领过了就不再发
         mark("准备 13002");
         push(13002, 0, false, depositProps(true), "仓库");
         mark("开 SEND 门");
@@ -635,6 +635,11 @@ public class Server {
         mails.add(m);
         push(25007, 0, false, new PB().m(1, mailListOf(java.util.Collections.singletonList(m))).bytes());
     }
+    static synchronized boolean missingGift() {
+        initProps();
+        for (long[] g : GIFT) { boolean have = false; for (long[] p : props.values()) if (p[0] == g[0]) { have = true; break; } if (!have) return true; }
+        return false;
+    }
     /** Z 菜单「发邮件」：服务端开着才行 */
     public static String sendMail() {
         if (!on) return state = "自建服务端：先按「邮件全皮」";
@@ -676,7 +681,7 @@ public class Server {
     static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000002L, 30325000003L, 30325000004L, 30325000005L };
     static java.util.TreeMap<Long, Integer> scanSkins() throws java.io.IOException {
         java.util.TreeMap<Long, Integer> hit = new java.util.TreeMap<>();
-        other.clear();
+        other.clear(); nameHits.clear(); maskCand.clear();
         java.util.ArrayList<long[]> rs = new java.util.ArrayList<>();
         try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
             String l;
@@ -694,6 +699,7 @@ public class Server {
             for (long[] g : rs) for (long a = g[0]; a < g[1]; a += buf.length) {
                 int n = (int) Math.min(buf.length, g[1] - a);
                 try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
+                findNames(buf, n, a);
                 int k = n / 8;
                 ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(w, 0, k);
                 for (int i = 0; i < k; i++) {
@@ -712,6 +718,81 @@ public class Server {
         for (long b : BAD) hit.remove(b);
         return hit;
     }
+    // ---------------- v1.79 按名字找口罩 ----------------
+    // 物品名字在内存里（UTF-16 或 UTF-8）。找「口罩」「面罩」，看名字前后 512 字节里的服装编号（8 字节整数或十进制文字），
+    // 离名字最近的当作这个物品的编号。诊断里列出每处名字和附近编号，找到的编号存 filesDir/zf_mask.txt，以后每次开服务端直接放进仓库。
+    static final byte[][] NAMES = {
+        { (byte) 0xe3, 0x53, 0x69, 0x7f },                                   // 口罩 UTF-16LE
+        { 0x62, (byte) 0x97, 0x69, 0x7f },                                   // 面罩 UTF-16LE
+        { (byte) 0xe5, (byte) 0x8f, (byte) 0xa3, (byte) 0xe7, (byte) 0xbd, (byte) 0xa9 },   // 口罩 UTF-8
+        { (byte) 0xe9, (byte) 0x9d, (byte) 0xa2, (byte) 0xe7, (byte) 0xbd, (byte) 0xa9 },   // 面罩 UTF-8
+    };
+    static final ArrayList<String> nameHits = new ArrayList<>();
+    static final java.util.LinkedHashMap<Long, Integer> maskCand = new java.util.LinkedHashMap<>();
+    static void findNames(byte[] b, int n, long base) {
+        for (int k = 0; k < NAMES.length; k++) {
+            byte[] p = NAMES[k];
+            outer:
+            for (int i = 0; i + p.length <= n; i++) {
+                if (b[i] != p[0]) continue;
+                for (int j = 1; j < p.length; j++) if (b[i + j] != p[j]) continue outer;
+                boolean u16 = k < 2;
+                if (u16 && (i & 1) != 0) continue;
+                String text = around(b, n, i, u16);
+                long best = 0; int bestD = 1 << 30;
+                int lo = Math.max(0, i - 512) & ~7, hi = Math.min(n - 8, i + 512);
+                for (int q = lo; q <= hi; q += 8) {   // 8 字节整数
+                    long v = ByteBuffer.wrap(b, q, 8).order(ByteOrder.LITTLE_ENDIAN).getLong();
+                    if (isSkin(v) && Math.abs(q - i) < bestD) { bestD = Math.abs(q - i); best = v; }
+                }
+                java.util.regex.Matcher mt = java.util.regex.Pattern.compile("30[1-9]\\d{8}").matcher(text);   // 十进制文字
+                while (mt.find()) { long v = Long.parseLong(mt.group()); if (isSkin(v) && best == 0) best = v; }
+                synchronized (nameHits) {
+                    if (best != 0) maskCand.merge(best, 1, Integer::sum);
+                    if (nameHits.size() < 40) nameHits.add(Long.toHexString(base + i) + (u16 ? " U16 " : " U8 ") + "「" + text + "」 → " + (best == 0 ? "附近没编号" : best + "（距 " + bestD + "）"));
+                }
+                i += p.length - 1;
+            }
+        }
+    }
+    static boolean isSkin(long v) {
+        if (v < 30100000000L || v >= 31000000000L) return false;
+        long cat = v / 1000000, sub = v % 1000000;
+        return sub < 1000 && cat != 30304 && cat != 30305;
+    }
+    static String around(byte[] b, int n, int i, boolean u16) {
+        int s = Math.max(0, i - (u16 ? 40 : 60)), e = Math.min(n, i + (u16 ? 60 : 90));
+        if (u16) { s &= ~1; e &= ~1; }
+        String t = new String(b, s, e - s, u16 ? java.nio.charset.StandardCharsets.UTF_16LE : java.nio.charset.StandardCharsets.UTF_8);
+        StringBuilder o = new StringBuilder();
+        for (char c : t.toCharArray()) o.append(c < 0x20 || c == 0xfffd || Character.isSurrogate(c) ? '·' : c);
+        return o.toString().replaceAll("·{3,}", "··");
+    }
+    static java.io.File maskFile() { android.app.Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_mask.txt"); }
+    static ArrayList<Long> savedMasks() {
+        ArrayList<Long> l = new ArrayList<>(); java.io.File f = maskFile();
+        if (f == null || !f.exists()) return l;
+        try { for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) l.add(Long.parseLong(x)); } catch (Throwable ignored) {}
+        return l;
+    }
+    static void saveMasks(java.util.Collection<Long> ids) {
+        java.io.File f = maskFile(); if (f == null) return;
+        java.util.LinkedHashSet<Long> all = new java.util.LinkedHashSet<>(savedMasks()); all.addAll(ids);
+        StringBuilder b = new StringBuilder(); for (long v : all) b.append(v).append(' ');
+        try { java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes()); } catch (Throwable ignored) {}
+    }
+    /** 口罩：存过的 + 这次按名字找到的，仓库没有就直接放进去（不用领邮件），穿不穿你在仓库里选 */
+    static synchronized String giveMasks() {
+        java.util.LinkedHashSet<Long> ids = new java.util.LinkedHashSet<>(savedMasks());
+        synchronized (nameHits) { ids.addAll(maskCand.keySet()); }
+        if (!maskCand.isEmpty()) saveMasks(maskCand.keySet());
+        if (ids.isEmpty()) return "口罩：内存里没找到名字（" + nameHits.size() + " 处），等进过仓库再按一次「邮件全皮」";
+        initProps(); int added = 0;
+        for (long v : ids) if (addProp(new long[] { v }) != 0) added++;
+        if (added > 0) { push(13002, 0, false, depositProps(), "口罩入库"); saveProps(); }
+        return "口罩：编号 " + ids + "，新放进仓库 " + added + " 件";
+    }
+    static volatile String maskState = "";
     /** v1.74：扫出全部服装，做成第二封邮件「全部皮肤」（用户要在邮件里领）。连接器找到后自动跑一次 */
     public static String allSkins() {
         if (!on) return state = "自建服务端：先按「邮件全皮」";
@@ -719,6 +800,7 @@ public class Server {
             mark("开始扫全部皮肤");
             long t0 = System.currentTimeMillis();
             java.util.TreeMap<Long, Integer> hit = scanSkins();
+            maskState = giveMasks(); mark(maskState);
             int two = 0;
             for (int c : hit.values()) if (c >= 2) two++;
             final int min = 1;   // v1.76：只出现 1 次的也算（之前门槛 2 漏了口罩等）
@@ -808,6 +890,7 @@ public class Server {
           .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
         sb.append(connInfo).append("\n已投 ").append(rpl.getInt(28)).append(" 条，排队 ").append(cmds).append('\n');
         sb.append(selfCheck()).append('\n');
+        if (!maskState.isEmpty()) { sb.append(maskState).append('\n'); synchronized (nameHits) { for (String h : nameHits) sb.append("  名字 ").append(h).append('\n'); } }
         if (!skinState.isEmpty()) sb.append(skinState).append("\n  ").append(skinCats).append("\n  ").append(otherCats()).append("\n");
         sb.append("仓库 ").append(props == null ? 0 : props.size()).append(" 件\n");
         sb.append("邮件 ").append(mails.size()).append(" 封\n");

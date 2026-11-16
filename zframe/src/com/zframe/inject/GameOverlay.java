@@ -13,7 +13,7 @@ import com.zframe.ui.Ui;
  * v1.47 艾挽：游戏内菜单（全新暗色卡片界面）。
  *  - 标题栏可拖动，「—」收起成一条，「✕」关掉；五指同时点屏幕重新打开。
  *  - 顶部一排状态标签，随时看清当前开了什么（游戏模式 / 角色 / 加速 / 高跳 / 无后座 / 聚点 / 子弹 999）。
- *  - 左边 5 个分页：常用、武器、装备、衣服、设置。武器页上面一排分类标签。
+ *  - 4 个分页：常用、武器、装备、画面（v1.79 删了衣服页）。武器页上面一排分类标签。
  *  - 开关是滑动开关，倍数用新的圆角渐变滑条 + 快捷倍数按钮。
  */
 public class GameOverlay {
@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.78"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.79"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -93,7 +93,7 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.HORIZONTAL);
             tabsRow.setPadding(u.dp(10), 0, u.dp(10), 0);
-            final String[] tabs = {"常用", "武器", "装备", "衣服", "画面"};
+            final String[] tabs = {"常用", "武器", "装备", "画面"};   // v1.79：衣服页删掉（用户要求，衣服改在仓库里穿）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -682,8 +682,7 @@ public class GameOverlay {
         switch (tab) {
             case 1: weaponPage(a, u, root); return;
             case 2: gearPage(a, u, root); return;
-            case 3: coatPage(a, u, root); return;
-            case 4: settingsPage(a, u, root); return;
+            case 3: settingsPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -709,7 +708,7 @@ public class GameOverlay {
         btn(a, u, dg, "邮件全皮", () -> new Thread(() -> { toastAny(Server.start()); refreshAny(); }).start());
         btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-        note(a, u, root, Server.state + "。v1.78：点「邮件全皮」会自动来两封邮件：补给（角色、风衣等）和全部皮肤，点领取进仓库。仓库会存下来，重启还在。男女在仓库「角色设定」里换。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
+        note(a, u, root, Server.state + "。v1.79：点「邮件全皮」会自动来两封邮件：补给（角色、风衣等）和全部皮肤，点领取进仓库。仓库会存下来，重启还在。男女在仓库「角色设定」里换。闪退了重开游戏进大厅，会自动存记录到 下载/ZFrame/crash-*.txt。");
         note(a, u, root, "开始游戏后，菜单里会出现加速、刷枪等功能。");
     }
     static String coatText() { return Mods.coatOn ? "绝地风衣：已设为初始衣服，大厅里和出生时都穿着" : "绝地风衣：大厅加载好后自动穿上，大厅会刷新一次"; }
@@ -814,6 +813,6 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         note(a, u, root, "数字越大看得越宽。");
-        label(a, root, "v1.78", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.79", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }
