@@ -50,15 +50,17 @@ public class Mods {
         wearBuf.putInt(0, n);
         StringBuilder b = new StringBuilder();
         for (int i = 0; i < n; i++) b.append(i == 0 ? "" : ",").append(ids[i]);
-        wearState = "出生衣服：钩子 " + (wearHooked ? "已装" : "没装") + "，" + n + " 件 " + b;
+        wearState = "出生衣服：钩子 " + (wearHooked ? "已装" : "没装（" + wearInstall + "）") + "，" + n + " 件 " + b;
     }
-    static volatile boolean wearHooked;
+    static volatile boolean wearHooked; static volatile String wearInstall = "没试";
     static String installWear() {
         wearBuf = java.nio.ByteBuffer.allocateDirect(8 + 8 * WEAR_MAX + 16).order(java.nio.ByteOrder.LITTLE_ENDIAN);
         wearAddr = GameOverlay.bufAddr(wearBuf);
         if (wearAddr == 0) return "拿不到内存地址";
         int a = (int) wearAddr;
-        String r = write(COAT_CAVE, COAT_CAVE_O, String.format(WEAR_CAVE_T, armMov(false, 5, a & 0xffff), armMov(true, 5, (a >>> 16) & 0xffff)), true);
+        String nc = String.format(WEAR_CAVE_T, armMov(false, 5, a & 0xffff), armMov(true, 5, (a >>> 16) & 0xffff));
+        nc += COAT_CAVE_O.substring(nc.length());   // v1.77：长度要和原字节一样（v1.76 短了 → 原字节不符，钩子没装上）
+        String r = write(COAT_CAVE, COAT_CAVE_O, nc, true);
         if (!"ok".equals(r)) return "cave " + r;
         r = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
         if ("ok".equals(r)) wearHooked = true;
@@ -78,7 +80,7 @@ public class Mods {
         if ("ok".equals(r)) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
         hallState = "ok".equals(r) ? "大厅人物：已改好（" + (male ? "男" : "女") + "，启动时装）" : "大厅人物：没改成，" + r;
         String w = installWear();
-        LogCap.note("出生衣服钩子 → " + w);
+        LogCap.note("出生衣服钩子 → " + w); wearInstall = w;
         if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
         Server.preinstall();
         earlyDone = "ok".equals(r);

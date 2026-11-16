@@ -316,7 +316,7 @@ public class Server {
     }
     /** 一条一条投递：先记下要投哪条，再把上限 +1，游戏线程下一帧投它 */
     public static String deliverOne() {
-        if (!on) return "先按「开启服务端」";
+        if (!on) return "先按「邮件全皮」";
         if (rpl.getInt(12) == 0) return "还没找到连接器，等几秒";
         int n = rpl.getInt(28), got = rpl.getInt(8);
         if (got < n) return "上一条还没被游戏收走（已收 " + got + "/" + n + "）";
@@ -347,14 +347,14 @@ public class Server {
 
     /** 自动投递：上限放到最大，回包一来就交给游戏 */
     public static String deliverAll() {
-        if (!on) return "先按「开启服务端」";
+        if (!on) return "先按「邮件全皮」";
         mark("自动投递开（排队 " + cmds.size() + " 条，已投 " + rpl.getInt(28) + "）");
         rpl.putInt(28, 0x7fffffff);
         return "自动投递已开，回包会直接交给游戏";
     }
     /** 跳过 1 条：不交给游戏，直接把读指针挪过去 */
     public static synchronized String skipOne() {
-        if (!on) return "先按「开启服务端」";
+        if (!on) return "先按「邮件全皮」";
         int n = rpl.getInt(28), got = rpl.getInt(8);
         if (got < n) return "上一条还没被游戏收走";
         if (n >= cmds.size()) return "没有可跳过的了";
@@ -545,6 +545,13 @@ public class Server {
                     if (e.getValue()[2] == 0 && e.getValue()[1] == slotOf(props.get(hg)[0]) && e.getKey() != hg) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
                 props.get(hg)[1] = slotOf(props.get(hg)[0]); res.m(2, prop(hg, props.get(hg)));
             }
+            // v1.77：脸上涂装 facial_tattoos_prop(7)：有就穿上（同类替换），没有就脱掉所有涂装
+            long tg = propGid(body, 7);
+            for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) {
+                long[] v = e.getValue();
+                if (v[2] == 0 && v[1] != 0 && v[0] / 1000000 % 1000 == 328 && e.getKey() != tg) { v[1] = 0; res.m(2, prop(e.getKey(), v)); }
+            }
+            if (tg >= 0 && props.get(tg)[2] == 0) { props.get(tg)[1] = slotOf(props.get(tg)[0]); res.m(2, prop(tg, props.get(tg))); }
             if (m != Mods.male) new Thread(() -> mark("换角色 " + (m ? "男" : "女") + " → " + Mods.setMale(m))).start();
         } else if (gid >= 0) {
             pos = slotOf(props.get(gid)[0]);   // v1.75：之前请求里没位置 → pos=0 → 穿上的衣服被记成没穿，回大厅就没了
@@ -606,7 +613,7 @@ public class Server {
     }
     /** Z 菜单「发邮件」：服务端开着才行 */
     public static String sendMail() {
-        if (!on) return state = "自建服务端：先按「开启服务端」";
+        if (!on) return state = "自建服务端：先按「邮件全皮」";
         newMail();
         return "已发一封补给邮件，去邮箱领取";
     }
@@ -645,6 +652,7 @@ public class Server {
     static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000002L, 30325000003L, 30325000004L, 30325000005L };
     static java.util.TreeMap<Long, Integer> scanSkins() throws java.io.IOException {
         java.util.TreeMap<Long, Integer> hit = new java.util.TreeMap<>();
+        other.clear();
         java.util.ArrayList<long[]> rs = new java.util.ArrayList<>();
         try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
             String l;
@@ -666,11 +674,13 @@ public class Server {
                 ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(w, 0, k);
                 for (int i = 0; i < k; i++) {
                     long v = w[i];
-                    if (v < 30100000000L || v >= 30400000000L) continue;
+                    if (v < 10000000000L || v >= 100000000000L) continue;
                     long cat = v / 1000000, sub = v % 1000000;
-                    if (sub >= 1000 || cat == 30304 || cat == 30305) continue;
+                    if (sub >= 1000 || sub == 0 && cat % 100 == 0) continue;
+                    other.merge(cat, 1, Integer::sum);
+                    // v1.77：衣服扩到 301xx~309xx（30304 头盔 / 30305 防弹衣是对局装备，不发）
                     int c3 = (int) (cat / 100);
-                    if (c3 != 301 && c3 != 302 && c3 != 303) continue;
+                    if (c3 < 301 || c3 > 309 || cat == 30304 || cat == 30305) continue;
                     hit.merge(v, 1, Integer::sum);
                 }
             }
@@ -680,7 +690,7 @@ public class Server {
     }
     /** v1.74：扫出全部服装，做成第二封邮件「全部皮肤」（用户要在邮件里领）。连接器找到后自动跑一次 */
     public static String allSkins() {
-        if (!on) return state = "自建服务端：先按「开启服务端」";
+        if (!on) return state = "自建服务端：先按「邮件全皮」";
         try {
             mark("开始扫全部皮肤");
             long t0 = System.currentTimeMillis();
@@ -710,6 +720,13 @@ public class Server {
         } catch (Throwable e) { return skinState = "全部皮肤：出错 " + e; }
     }
     static volatile String skinState = "", skinCats = "";
+    /** v1.77：内存里所有 11 位编号按分类计数（找降落伞/口罩等在哪个分类，诊断用） */
+    static final java.util.TreeMap<Long, Integer> other = new java.util.TreeMap<>();
+    static String otherCats() {
+        StringBuilder b = new StringBuilder("全部编号分类（≥3 次）：");
+        synchronized (other) { for (java.util.Map.Entry<Long, Integer> e : other.entrySet()) if (e.getValue() >= 3) b.append(e.getKey()).append('=').append(e.getValue()).append(' '); }
+        return b.toString();
+    }
 
     static ArrayList<Long> packed(byte[] b) {
         ArrayList<Long> out = new ArrayList<>(); int i = 0;
@@ -767,7 +784,7 @@ public class Server {
           .append(connState).append("，帧 ").append(rpl.getInt(20)).append("（开后 1 秒多跑 ").append(frames1s).append("）\n");
         sb.append(connInfo).append("\n已投 ").append(rpl.getInt(28)).append(" 条，排队 ").append(cmds).append('\n');
         sb.append(selfCheck()).append('\n');
-        if (!skinState.isEmpty()) sb.append(skinState).append("\n  ").append(skinCats).append("\n");
+        if (!skinState.isEmpty()) sb.append(skinState).append("\n  ").append(skinCats).append("\n  ").append(otherCats()).append("\n");
         sb.append("仓库 ").append(props == null ? 0 : props.size()).append(" 件\n");
         sb.append("邮件 ").append(mails.size()).append(" 封\n");
         for (String l : log) sb.append(l).append('\n');
