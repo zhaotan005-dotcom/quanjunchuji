@@ -433,8 +433,16 @@ public class Server {
                     int k = def.contains(p[0]) ? 2 : (p[0] / 1000000 % 1000 == 113 || p[0] / 1000000 % 1000 == 213) ? 1 : 0;
                     if (k == pass) l.add(p[0]);
                 }
-            long[] a = new long[l.size()]; for (int i = 0; i < a.length; i++) a[i] = l.get(i);
+            // v1.97：用户说以前对局里仓库衣服能脱、能捡。塞进「默认衣服」列表的东西是焊在身上的，
+            //   所以出生列表只留 角色 + 发型 + 默认衣服，自己换上的衣服改成进对局后像普通物品一样发到身上（Bots.giveOutfit）。
+            ArrayList<Long> base = new ArrayList<>(), own = new ArrayList<>();
+            for (int i = 0; i < l.size(); i++) {
+                long id = l.get(i); int cat = (int) (id / 1000000 % 1000);
+                if (i == 0 || cat == 113 || cat == 213 || def.contains(id)) base.add(id); else own.add(id);
+            }
+            long[] a = new long[base.size()]; for (int i = 0; i < a.length; i++) a[i] = base.get(i);
             Mods.setWear(a);
+            Bots.outfit = own;
         } catch (Throwable e) { LogCap.note("syncWear " + e); }
     }
     /** v1.76：游戏点「穿上/脱下」前会在日志里写一行 EquipItemsForHallRole（试穿后的整套，冲突已经由游戏处理好）。

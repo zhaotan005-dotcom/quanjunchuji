@@ -112,6 +112,31 @@ public class Bots {
         return countInfo + "，已死人机 " + killed + "，被别处改掉 " + foreign + " 次" + (foreign > 0 ? "（最后改成 " + foreignVal + "，人机 " + foreignAiVal + "）" : "");
     }
 
+    /** v1.97：仓库里穿着的衣服（不含默认衣服、发型），进对局后当普通物品发到身上，能脱能捡 */
+    public static volatile java.util.List<Long> outfit = new java.util.ArrayList<>();
+    public static volatile String outfitState = "仓库衣服：还没发";
+    static void giveOutfit(final int g) {
+        final java.util.List<Long> l = outfit;
+        if (l == null || l.isEmpty()) { outfitState = "仓库衣服：没有要发的"; return; }
+        new Thread(() -> {
+            try {
+                Thread.sleep(3000);
+                for (int t = 0; t < 30 && GameOverlay.giveSt != 2; t++) Thread.sleep(1000);
+                StringBuilder b = new StringBuilder();
+                for (long id : l) {
+                    if (g != gen || !Con.inMatch) return;
+                    final String c = "AddAvaItem P" + id + "x1";
+                    android.app.Activity a = Con.act; if (a == null) return;
+                    a.runOnUiThread(() -> Con.exec(c));
+                    b.append(b.length() == 0 ? "" : ",").append(id);
+                    Thread.sleep(500);
+                }
+                outfitState = "仓库衣服：进对局发了 " + l.size() + " 件 " + b;
+                Veh.note(outfitState);
+            } catch (Throwable e) { outfitState = "仓库衣服：出错 " + e; }
+        }, "zf-outfit").start();
+    }
+
     static void matchLoaded() {
         final int g = ++gen; spawned = 0; phase = -1; synchronized (live) { live.clear(); } killed = 0;
         unpatchEnd();
@@ -119,7 +144,7 @@ public class Bots {
             try {
                 for (int i = 0; i < 120 && g == gen && Con.inMatch; i++) {
                     double[] q = Veh.info();
-                    if (q != null && (long) q[4] >= 0x10000) { counter(g, (long) q[4]); return; }
+                    if (q != null && (long) q[4] >= 0x10000) { counter(g, (long) q[4]); giveOutfit(g); return; }
                     Thread.sleep(1000);
                 }
             } catch (Throwable ignored) {}

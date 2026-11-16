@@ -17,11 +17,11 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v1.96 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame v1.97 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
-              .append("\n  人机日志：\n  ").append(Con.botLog()).append("\n  ").append(Flow.state).append("\n  ").append(Flow.air).append("\n  上一局：").append(Flow.last).append("\n  ").append(Bots.countText()).append("\n  航线/毒圈日志：\n  ").append(Con.flowLog()).append("\n");
+              .append("\n  人机日志：\n  ").append(Con.botLog()).append("\n  ").append(Flow.state).append("\n  ").append(Flow.air).append("\n  上一局：").append(Flow.last).append("\n  ").append(Bots.countText()).append("\n  ").append(Bots.outfitState).append("\n  航线/毒圈日志：\n  ").append(Con.flowLog()).append("\n");
             long b = Mods.base();
             sb.append("libUE4=").append(Long.toHexString(b)).append('\n');
             sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 1877bfc=").append(peek(b, 0x1877bfcL, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("\n").append(Mods.storeInfo()).append("\n").append(Mods.wearState).append("\n").append("  cave 171e610=").append(peek(b, 0x171e610L, 32))
