@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.16";
+    static final String VER = "v2.17";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -129,11 +129,11 @@ public class GameOverlay {
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = r == 0 ? id != 6 : r == 1 ? id != 2 : (id == 6 || id == 5 || id == 0);
+                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? id != 2 : (id == 6 || id == 5 || id == 0);
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
-                    boolean ok = r == 0 ? tab != 6 : r == 1 ? tab != 2 : (tab == 6 || tab == 5 || tab == 0);
+                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? tab != 2 : (tab == 6 || tab == 5 || tab == 0);
                     if (!ok) { tab = r == 2 ? 6 : 0; paintTabs(tv, u); }
                 }
             };
@@ -205,8 +205,8 @@ public class GameOverlay {
     /** 当前状态：一行文字，例如「● 不上飞机 · 不刷圈 · 男 · 加速 2 · 无后座 · 聚点 · 子弹 999」 */
     static void paintStatus(TextView st) {
         StringBuilder b = new StringBuilder();
-        if (!Mods.noPlane && !Mods.noPoison) b.append("正常模式");
-        else { if (Mods.noPlane) b.append("不上飞机"); if (Mods.noPoison) b.append(b.length() > 0 ? " · " : "").append("不刷圈"); }
+        if (!Mods.noPlane && !Mods.noPoison) b.append("正常对局");
+        else { if (Mods.noPlane || Mods.noPoison) b.append("不刷毒对局"); }
         if (!Con.inMatch) { st.setText(dot(b.toString() + " · " + VER + " " + Ed.name())); return; }   // v1.73：不显示男女和大厅
         if (Mods.speed != 1f) b.append(" · 加速 ").append(fmt(Mods.speed));
         if (Mods.jump != 1f) b.append(" · 高跳 ").append(fmt(Mods.jump));
@@ -788,14 +788,12 @@ public class GameOverlay {
         } else {
             head(a, u, root, "游戏模式");
             LinearLayout fl = row(a, root);
-            pick(a, u, fl, "正常", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
-            pick(a, u, fl, "不上飞机", Mods.noPlane, () -> result(a, Mods.setPlane(!Mods.noPlane)));
-            pick(a, u, fl, "不刷圈", Mods.noPoison, () -> result(a, Mods.setPoison(!Mods.noPoison)));
+            // v2.17 用户：只要两个模式；「不刷毒对局」= 不上飞机（直接在出生岛开打）+ 不刷圈。去掉清空仓库、日志
+            pick(a, u, fl, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
+            pick(a, u, fl, "不刷毒对局", Mods.noPlane || Mods.noPoison, () -> result(a, Mods.setNoZone()));
             note(a, u, root, "选好后点游戏里的「匹配赛」开始。单机自动刷人机，难度在对局里的「人机」页改。");
-            LinearLayout dg = row(a, root);
-            btn(a, u, dg, "清空仓库", () -> new Thread(() -> toastAny(Server.resetProps())).start());
         }
-        logRow(a, u, root);
+        note(a, u, root, Server.state);
     }
     /** 最下面：日志 */
     static void logRow(final Activity a, final Ui u, final LinearLayout root) {

@@ -554,3 +554,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.14（vc115/core115，未实测）：房主版刷东西固定刷在脚下（不显示身上/地上选项）；装备页加「吉利服」：槽位推断 Ghillie=30309（EAvaItemSlot 顺序对上 30304 头/30305 甲/30306 手套/30307 包），编号按 30309000001..06、…000 试；刷身上自动判断，刷地上每点一次换下一个。新增 zframe/build3.sh 一次打三版。
 - v2.15（vc116/core116，未实测）：客户端版「常用」只留无后座/防抖聚点/无限子弹/加速/高跳（clientMain），客户端分页 = 常用/联机/画面。新增「衣服」页（页号 7，房主/单机）：顶上「刷绝地风衣」(30318000000)，下面 Server.scanSkins 只读扫内存得全部服装编号，按分类（30Xyy：01 裤子 02 上衣 03 鞋 06 手套 07 背包外观 08 面部 09 吉利服 12 帽子 …，301 男/302 女）分组，名字 = 分类+序号（无中文物品名表），每页 30 个，列表存 filesDir/zf_clothes.txt。
 - v2.16（vc117/core117，未实测）：房主「常用」加「全员无敌」（Con.setAllGod：每 3 秒 set Character bCanBeDamaged 0，第一次 getall 验证；关时 set 1 并恢复房主自己的 God）。
+- 一体包：/workspace/work/full/全军出击单机版-ZFrame-v2.16.apk = qjcj-zframe.apk 换 classes2.dex 为单机 inject.dex，zipalign（rkenv/aapt2tools/build-tools/zipalign）+ apksigner --key assets/gkey.pk8 --cert assets/gcert.der。不用装 ZFrame。
+- 安卓15 一体包：游戏 manifest targetSdk 19→24（mf/AndroidManifest.xml，替换后 zipalign+签名），文件 全军出击{单机,房主}版-安卓15-v2.16.apk。
+- 用户要求回退：不要安卓15（targetSdk 24）包，已删；一体包保持原 targetSdk 19。
+
+- 2026-11-17 00:19 一体包 v2.16c：libMczi.so 整个删掉 + classes.dex TPShellApplication.preInitial 里 loadLibrary("Mczi") 改 nop（dex 偏移 0x550298，修 sha1/adler）；libUE4 带 UPD/SND/GI 补丁。用户实测：能进大厅、自建服务端已开。
+- 00:43 用户：人机在旁边时丢枪到地上闪退（有概率），怀疑人机自动拾取（同 v1.94/v1.98 丢枪闪退，至今没有现场）。
+- v2.17（vc118/core118）：大厅只两个模式 正常对局 / 不刷毒对局（= 不上飞机 + 不刷圈，Mods.setNoZone）；大厅去掉清空仓库、日志/导出诊断；单机版去掉衣服页；Server.autoCrashSave 发现新的 Bugly tomb_*.txt（24 小时内、没存过）就进大厅自动存 crash-*.txt。单机一体包 全军出击单机版-v2.17.apk（v2.16c 换 classes2）。

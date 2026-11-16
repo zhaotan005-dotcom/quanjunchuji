@@ -288,6 +288,12 @@ public class Mods {
         String r2 = setPoison(false);
         return "ok".equals(r) ? r2 : r;
     }
+    /** v2.17：不刷毒对局 = 不上飞机 + 不刷圈 */
+    public static String setNoZone() {
+        String r = setPlane(true);
+        String r2 = setPoison(true);
+        return "ok".equals(r) ? r2 : r;
+    }
     public static String setMale(boolean on) {
         String r = write(MALE, MALE_O, MALE_N, on);
         if (hallOn) { long b = base(); if (b != 0) r = r + "，大厅 " + pokeInt(b + HALL_LIT, on ? LIT_M : LIT_F); }

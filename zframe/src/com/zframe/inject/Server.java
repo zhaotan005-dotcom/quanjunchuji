@@ -361,6 +361,21 @@ public class Server {
     /** v1.70 自动记录：上次运行用过服务端（留下了步骤文件），这次进大厅 6 秒后自动导出一份诊断到 下载/ZFrame/crash-*.txt，每份记录只存一次 */
     public static void autoCrashSave() {
         try {
+            // v2.17：任何闪退（Bugly 留了新的 tomb_*.txt）下次进大厅自动存一份 crash-*.txt，每个 tomb 只存一次（大厅已去掉「导出诊断」）
+            try {
+                java.io.File[] ts = new java.io.File("/data/data/com.tencent.tmgp.pubgm/app_bugly").listFiles((d, n) -> n.startsWith("tomb"));
+                java.io.File nt = null;
+                if (ts != null) for (java.io.File t : ts) if (nt == null || t.lastModified() > nt.lastModified()) nt = t;
+                java.io.File st = Con.act == null ? null : new java.io.File(Con.act.getFilesDir(), "zf_tomb_saved");
+                if (nt != null && st != null && System.currentTimeMillis() - nt.lastModified() < 24 * 3600_000L) {
+                    String k = nt.getName();
+                    if (!(st.exists() && k.equals(new String(java.nio.file.Files.readAllBytes(st.toPath()), "UTF-8")))) {
+                        java.nio.file.Files.write(st.toPath(), k.getBytes("UTF-8"));
+                        GameOverlay.toastAny("上次闪退了，诊断" + AvatarLog.export(Con.act, "crash-"));
+                        return;
+                    }
+                }
+            } catch (Throwable ignored) {}
             java.io.File f = stepFile(); if (f == null) return;
             java.io.File prev = new java.io.File(f.getParentFile(), "zf_server_steps_prev.txt");
             if (!prev.exists()) return;
