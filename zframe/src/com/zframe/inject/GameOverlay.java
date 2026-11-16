@@ -71,7 +71,7 @@ public class GameOverlay {
             title.setLetterSpacing(0.04f);
             head.addView(title, new LinearLayout.LayoutParams(-2, -2));
             TextView ver = new TextView(a);
-            ver.setText("  v1.91"); ver.setTextColor(SUBT); ver.setTextSize(10);
+            ver.setText("  v1.92"); ver.setTextColor(SUBT); ver.setTextSize(10);
             head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView fold = iconBtn(a, u, "–");
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
@@ -752,7 +752,7 @@ public class GameOverlay {
         head(a, u, root, "刷物资放在");
         LinearLayout gr = row(a, root);
         pick(a, u, gr, "身上（背包）", !onGround, () -> { onGround = false; refreshAny(); });
-        pick(a, u, gr, "地上（面前）", onGround, () -> { onGround = true; refreshAny(); });
+        pick(a, u, gr, "地上（脚下）", onGround, () -> { onGround = true; refreshAny(); });
         head(a, u, root, "枪");
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
@@ -861,6 +861,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v1.91", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, "v1.92", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

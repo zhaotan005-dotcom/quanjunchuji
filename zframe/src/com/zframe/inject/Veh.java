@@ -67,16 +67,16 @@ public class Veh {
         return false;
     }
 
-    /** v1.91 刷在地上：游戏自己的 SpawnOnePickUp（cave 'G'），在面前 1.5 米左右的地上放 piles 堆；返回 null = 成功 */
+    /** v1.91 刷在地上：游戏自己的 SpawnOnePickUp（cave G），v1.92 起放在脚下，piles 堆；返回 null = 成功 */
     static synchronized String ground(long id, int piles) throws InterruptedException {
         if (!installed) return state;
         long type = id / 10000, tsid = id % 10000;
         java.util.Random rnd = new java.util.Random();
         for (int i = 0; i < piles; i++) {
-            String e = ahead(130 + 40 * i, -80);   // 人物中心离地约 90 厘米
+            String e = ahead(20, -80);   // v1.92 直接脚下（人物中心离地约 90 厘米），几堆靠随机散开
             if (e != null) return e;
-            buf.putFloat(40, buf.getFloat(40) + (rnd.nextFloat() - 0.5f) * 40);
-            buf.putFloat(44, buf.getFloat(44) + (rnd.nextFloat() - 0.5f) * 40);
+            buf.putFloat(40, buf.getFloat(40) + (rnd.nextFloat() - 0.5f) * (i == 0 ? 10 : 60));
+            buf.putFloat(44, buf.getFloat(44) + (rnd.nextFloat() - 0.5f) * (i == 0 ? 10 : 60));
             buf.putFloat(52, 0f); buf.putFloat(60, 0f);
             buf.putInt(124, (int) tsid);
             if (!call('G', type) || buf.getInt(0) != 0x5b0a) return "补丁代码没反应";

@@ -472,3 +472,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 17:37 用户：常用里加「刷在身上 / 刷在地上」。17:38 问游戏设置里改画质能否立即生效 → 答还不能，流畅/最高画质按钮先留，等设置里的画质能即时生效并实测后再删。
 - RE 刷在地上：UFunction SpawnOnePickUp（exec 0x11fba30）→ 实现 0x119d884(this, ItemID{Type,TSID}, Pos x/y/z, Rot p/y/r)，this 只用来 GetWorld；要求 GameMode 是 ANZBattleRoyaleGameMode（0x11bd4ec 类检查），GM+0x509 为真走拾取管理器 [GM+0x524]（0xc7bea8，空就进待生成数组 +0x534），否则 GM vt+0x554 按物品名生成。ItemID 合成 = Type*10000+TSID（0xce36e8）。另：ServerDiscardItem exec 0xe67820（Inv, Count, DisableCapacityCheck, DisableValidationCheck，vt+0x348/0x34c）没用上。
 - v1.91（vc92/core92，未实测）：cave 加 'G<Type>x<buf>'（TSID 在 buf+124，位置/朝向 buf+40..60，标记 5b0a，lit10 = 0x119d884，emu 通过，cave 到 0x4a2dd84）；Veh.ground（面前 1.3 米起，脚下高度 -80，最多 3 堆）；常用页「刷物资放在：身上（背包）/ 地上（面前）」，开地上时武器/装备页刷的东西都放地上。
+- 17:42 用户：刷在地上直接放脚下。v1.92（vc93/core93，未实测）：Veh.ground 改 ahead(20,-80)，第一堆几乎正脚下，多堆随机散开 ±30 厘米；按钮改「地上（脚下）」。
