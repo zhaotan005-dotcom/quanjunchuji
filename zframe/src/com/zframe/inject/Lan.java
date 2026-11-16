@@ -24,7 +24,11 @@ final class Lan {
         return "没连 Wi-Fi";
     }
 
+    /** 引擎在 Browse 里：用过控制台命令（作弊）+ URL 带 Listen → TravelFailure CheatCommands。0x2e0a084 beq→b 跳过这个检查。 */
+    static final long CHEAT = 0x2e0a084L; static final String CHEAT_O = "2000000a", CHEAT_N = "200000ea";
+    static String unlock() { String r = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true); note("去掉联机作弊检查：" + r); return r; }
     static String host(String map) {
+        String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
         boolean ok = Con.exec("open " + map + "?listen");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
         note(state);
@@ -37,6 +41,7 @@ final class Lan {
         if (!ip.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d{1,5})?")) return "IP 格式不对";
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";
+        unlock();
         boolean ok = Con.exec("open " + ip);
         state = ok ? "加入：已发 open " + ip : "加入：命令没发出去";
         note(state);
@@ -54,7 +59,7 @@ final class Lan {
         if (l.contains("LogNet") || l.contains("NetDriver") || l.contains("Listen") || l.contains("NMT_") || l.contains("PendingNet")
                 || l.contains("NetConnection") || l.contains("Welcomed") || l.contains("TravelFailure") || l.contains("NetworkFailure")
                 || l.contains("PreLogin") || l.contains("Login") && l.contains("NZ") || l.contains("Beacon") || l.contains("NetMode")) {
-            if (l.contains("UNZMobilePlayerinput")) return;
+            if (l.contains("UNZMobilePlayerinput") || l.contains("AvaListener") || l.contains("EventListener") || l.contains("KeyLobbyMsg")) return;
             add(l.trim());
         }
     }

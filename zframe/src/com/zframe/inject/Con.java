@@ -247,7 +247,7 @@ public class Con {
         if (fps == 0) loadFps();
         applyFps();
         for (String c : TWEAKS) if (exec(c)) n++;
-        applyGfx();
+        // v2.04：画质改由游戏设置决定（Gfx.java 选了立即生效），不再发我们自己的画质
         tweakAt = System.currentTimeMillis();
         tweakStatus = why + "：已发送 " + n + " 条（门/人机/帧率）";
     }
@@ -443,9 +443,10 @@ public class Con {
             } catch (Throwable ignored) {}
         }
         Lan.line(l);
+        Gfx.line(l);
         int av = l.indexOf("OnAvatarAssembler In Items");
         if (av >= 0) LogCap.note("身上装备编号: " + l.substring(av).trim());
-        if (engineSeenAt == 0 && l.contains("LogLoad: Took")) { engineSeenAt = System.currentTimeMillis(); LogCap.note("引擎就绪，10秒后发送设置"); loadAudioPref(); }
+        if (engineSeenAt == 0 && l.contains("LogLoad: Took")) { engineSeenAt = System.currentTimeMillis(); LogCap.note("引擎就绪，10秒后发送设置"); loadAudioPref(); Gfx.start(); }
         if (l.contains("UNZFrontEndAudioManager: init") || l.contains("UNZPlatformAudioHelper::OnInitialize")) {
             if (!feAudioSeen) { feAudioSeen = true; feSeenAt = System.currentTimeMillis(); LogCap.note("声音修复: 看到大厅音频初始化"); }
             if (bounce != 1) audioFix = "大厅音频已初始化";

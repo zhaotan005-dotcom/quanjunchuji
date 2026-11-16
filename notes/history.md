@@ -529,3 +529,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 20:27 用户：「地上（脚下）」刷不闪退（之前那次可能是没背包时刷枪+配件再丢）。要做局域网联机。
   RE：libUE4 的 TCHAR 是 UTF-32。有服务端网络代码：UWorld::Listen（"LoadMap: failed to Listen(%s)"）、"%s IpNetDriver listening on port %i"、UNetDriver::InitListen、服务端 "NMT_Login: Invalid URL"、UNZIpNetDriver（D:/QJCJ/Game/Source/NZNetHandle）、"Listening for LAN beacon requests"。之前说「做不了」是错的，没核实。单机开局是 LogNet: Browse 地图（不带参数）。
 - v2.03（vc104/core104，未实测）：大厅页加「局域网联机（实验）」：显示本机 Wi-Fi IP；开房（海岛/雨林）= Con.exec("open <地图>?listen")；加入 = open IP:7777。新 Lan.java 收网络相关日志行，诊断里「联机日志」。
+- 20:52 用户（v2.03 实测）：开房没反应。日志：Browse ...?listen → TravelFailure CheatCommands「Console commands were used which are disallowed in netplay」。只有一台设备，想把房主放云电脑/虚拟机 + 内网穿透。要求：UI 改名「全军出击联机版」；菜单做成可收起的悬浮球；大厅不放刷人机开关（单机默认刷）；三张图；游戏设置里选画质立即生效。
+  RE：检查在 0x2e098bc（UEngine::Browse）0x2e0a074：ldrb 作弊标志 → beq 0x2e0a10c；不为 0 且 URL HasOption("Listen") → 失败。补丁 0x2e0a084 2000000a→200000ea（Lan.unlock，开房/加入前写）。
+  画质 RE：UNZSystemSettingData::ApplyRenderQuality 0xca14e0（this+0x7c RenderQualityOption，+0x930 bCanApply，+0x58 每档命令表，CalcRenderQuality 0xca21e0），只在 PreLoadMap 0xca120c 调；设置界面提示 SystemSetting_NextMatchWork。ERenderQualityOption: Low/Middle/High/VeryHigh/Ultra。
+- v2.04（vc105/core105，未实测）：Lan.unlock 去作弊检查；开房三张图（老海岛 ErangelMobile_Runtime/BR-Erangel_Mobile_Main、新海岛、雨林）。Gfx.java：引擎就绪后每 3 秒 getall NZSystemSettingData RenderQualityOption，变了就发对应档位 sg./r. 命令（第一次不发）；删掉我们自己的画质按钮，runTweaks 不再发画质。大厅：去掉「自动刷人机」开关，只留难度。标题「艾挽 · 全军出击联机版」。「–」收成可拖动的悬浮球「艾」，点球展开。联机日志过滤掉 AvaListener 刷屏。
