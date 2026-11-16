@@ -37,6 +37,33 @@ public class Mods {
     static final String COAT_CAVE_O = "00009fe7000090e520000be5040095e5007095e5000050e302008fe001708f00046080e25310a0e3040097e4010050e10500000a3f3ac6eb0040a0e1040016e53c3ac6eb000054e10b00001a040097e4041096e4002091e1f3ffff1aec029fe520101be500009fe7000090e5010050e018d04b02f08bbd08d439c6ebc40198e5000050e3f4ffff0a700090e5000050e31840901500005413";
     static final String COAT_CAVE_N = "f0412de90140a0e11a12d5eb005094e5046094e50070a0e3060057e11c0000aa878185e0000098e5041098e5412109e3142e40e3020050e1070051030600001a80270fe3172f40e3002088e50720a0e3042088e5017087e2eeffffea80230de3232e40e3020050e10700510301708712e8ffff1a016046e2863185e0000093e5041093e5000088e5041088e5046084e5e0ffffeaf081bde8";
     public static volatile boolean coatOn;
+    /* v1.76 出生衣服：同一个钩子位置 0x10d882c，先照常补默认衣服，再用 wearBuf 里的列表（角色 + 仓库里穿着的）整个替换。
+     * wearBuf：+0 条数，+8 起每条 int64。条数为 0 就不动（用游戏默认）。写不下时按容量截断。运行中改 wearBuf 是改数据，下一局生效。 */
+    static final String WEAR_CAVE_T = "f0412de90140a0e11a12d5eb%s%s006095e5000056e31000000a087094e5070056e10760a0c1000094e5085085e20010a0e3060051e1070000aa813185e0002093e504c093e5813180e0002083e504c083e5011081e2f5ffffea046084e5f081bde8";
+    static java.nio.ByteBuffer wearBuf; static long wearAddr; public static volatile String wearState = "出生衣服：没装";
+    static final int WEAR_MAX = 24;
+    /** 把要穿的列表写进 wearBuf（服务端每次穿/脱后调用） */
+    static synchronized void setWear(long[] ids) {
+        if (wearBuf == null) return;
+        int n = Math.min(ids.length, WEAR_MAX);
+        for (int i = 0; i < n; i++) wearBuf.putLong(8 + 8 * i, ids[i]);
+        wearBuf.putInt(0, n);
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < n; i++) b.append(i == 0 ? "" : ",").append(ids[i]);
+        wearState = "出生衣服：钩子 " + (wearHooked ? "已装" : "没装") + "，" + n + " 件 " + b;
+    }
+    static volatile boolean wearHooked;
+    static String installWear() {
+        wearBuf = java.nio.ByteBuffer.allocateDirect(8 + 8 * WEAR_MAX + 16).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        wearAddr = GameOverlay.bufAddr(wearBuf);
+        if (wearAddr == 0) return "拿不到内存地址";
+        int a = (int) wearAddr;
+        String r = write(COAT_CAVE, COAT_CAVE_O, String.format(WEAR_CAVE_T, armMov(false, 5, a & 0xffff), armMov(true, 5, (a >>> 16) & 0xffff)), true);
+        if (!"ok".equals(r)) return "cave " + r;
+        r = write(COAT_HOOK, COAT_HOOK_O, COAT_HOOK_N, true);
+        if ("ok".equals(r)) wearHooked = true;
+        return r;
+    }
     /** v1.65 启动早装：v1.64 自检证明运行中改已经跑过的代码不生效（钩子字节在，但从没跑到；假仓库取角色 0 次也是这个原因）。
      *  所以在 libUE4 刚加载、大厅代码还没跑之前，把风衣、大厅人物、假仓库、服务端钩子一次装好，之后不再重进大厅。 */
     public static volatile boolean early = true, earlyDone;
@@ -50,6 +77,9 @@ public class Mods {
         String r = setHall(male);
         if ("ok".equals(r)) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
         hallState = "ok".equals(r) ? "大厅人物：已改好（" + (male ? "男" : "女") + "，启动时装）" : "大厅人物：没改成，" + r;
+        String w = installWear();
+        LogCap.note("出生衣服钩子 → " + w);
+        if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
         Server.preinstall();
         earlyDone = "ok".equals(r);
         earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + (System.currentTimeMillis() - t0) + " ms";

@@ -239,8 +239,14 @@ public class Server {
         String what;
         switch (cmd) {
             case 13001: push(13002, seq, key, depositProps()); what = "仓库物品"; break;
-            case 13003: push(13004, seq, key, equip(body)); saveProps(); what = "穿上"; break;
-            case 13005: push(13006, seq, key, unequip(body)); saveProps(); what = "脱下"; break;
+            case 13003: {
+                push(13004, seq, key, equip(body)); saveProps(); what = "穿上";
+                long id = reqId(body);
+                if (id / 100000000L == 101 || id / 100000000L == 102) { syncWear(); pushStore(); what = "换角色/发型"; }
+                else followPreview("ReqStoreEquipProp", id);
+                break;
+            }
+            case 13005: push(13006, seq, key, unequip(body)); saveProps(); what = "脱下"; followPreview("ReqStoreUnEquipProp", reqId(body)); break;
             case 25001: push(25002, seq, key, mailList()); what = "邮件列表 " + mails.size() + " 封"; break;
             case 25003: {
                 int before = props == null ? 0 : props.size();
@@ -384,6 +390,67 @@ public class Server {
         if (a == null) try { a = (android.content.Context) Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null); } catch (Throwable ignored) {}
         return a == null ? null : new java.io.File(a.getFilesDir(), "zf_props.txt");
     }
+    /** v1.76：把「角色 + 穿着的衣服」交给出生衣服钩子（进对局时用）。没有存档时不改 */
+    static synchronized void syncWear() {
+        try {
+            if (props == null) { java.io.File f = propsFile(); if (f == null || !f.exists()) return; initProps(); }
+            ArrayList<Long> l = new ArrayList<>();
+            l.add(role());
+            // 列表容量有限（默认一般 6 格），按优先级排：自己换上的衣服 → 发型 → 默认衣服
+            java.util.List<Long> def = java.util.Arrays.asList(30301000001L, 30302000000L, 30303000006L, 30306000000L);
+            for (int pass = 0; pass < 3; pass++)
+                for (long[] p : props.values()) {
+                    if (p[2] != 0 || p[1] == 0 || l.contains(p[0])) continue;
+                    int k = def.contains(p[0]) ? 2 : (p[0] / 1000000 % 1000 == 113 || p[0] / 1000000 % 1000 == 213) ? 1 : 0;
+                    if (k == pass) l.add(p[0]);
+                }
+            long[] a = new long[l.size()]; for (int i = 0; i < a.length; i++) a[i] = l.get(i);
+            Mods.setWear(a);
+        } catch (Throwable e) { LogCap.note("syncWear " + e); }
+    }
+    /** v1.76：游戏点「穿上/脱下」前会在日志里写一行 EquipItemsForHallRole（试穿后的整套，冲突已经由游戏处理好）。
+     *  回包后读日志尾，按这一行重设穿着，再推一次 13002 让游戏的仓库缓存更新（13004 的列表游戏不拿来更新缓存）。 */
+    static void followPreview(final String req, final long id) {
+        new Thread(() -> {
+            String set = null;
+            for (int t = 0; t < 12 && set == null; t++) {
+                try { Thread.sleep(250); } catch (Throwable ignored) {}
+                try {
+                    java.io.File f = Con.findUeLog(Con.act); if (f == null) continue;
+                    String txt = AvatarLog.readText(f, 256 * 1024);
+                    int k = txt.lastIndexOf(req + "   propID = " + id);
+                    if (k < 0) continue;
+                    int e = txt.lastIndexOf("EquipItemsForHallRole  ", k);
+                    if (e < 0) continue;
+                    int nl = txt.indexOf('\n', e);
+                    set = txt.substring(e + "EquipItemsForHallRole  ".length(), nl < 0 ? txt.length() : nl);
+                } catch (Throwable ex) { mark("读试穿行出错 " + ex); return; }
+            }
+            if (set == null) { mark(req + " " + id + "：日志里没找到试穿行，只按类别处理"); pushStore(); return; }
+            applyPreview(set);
+        }, "zf-preview").start();
+    }
+    static void applyPreview(String set) {
+        synchronized (Server.class) {
+            java.util.HashSet<Long> want = new java.util.HashSet<>();
+            for (String x : set.split(",")) { x = x.trim(); if (x.matches("\\d{11}")) want.add(Long.parseLong(x)); }
+            int on = 0;
+            java.util.HashSet<Long> done = new java.util.HashSet<>();
+            for (long[] p : props.values()) {
+                if (p[2] != 0) continue;
+                boolean w = want.contains(p[0]) && done.add(p[0]);
+                p[1] = w ? slotOf(p[0]) : 0;
+                if (w) on++;
+            }
+            mark("按试穿行设穿着 " + on + " 件：" + set);
+        }
+        saveProps();
+        pushStore();
+    }
+    static void pushStore() {
+        push(13002, 0, false, depositProps(true), "仓库（穿脱后）");
+        syncWear();
+    }
     /** 存档里在用的角色：1 男，2 女，0 没有存档 */
     static int savedSex() {
         try {
@@ -444,6 +511,11 @@ public class Server {
         for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
             if (roles || e.getValue()[2] == 0) res.m(2, prop(e.getKey(), e.getValue()));
         return res.u(5, role()).bytes();
+    }
+    static long reqId(byte[] body) {
+        PB.R r = new PB.R(body); long id = 0;
+        while (r.next()) if (r.field == 1 && r.wire == 2) { PB.R p = r.sub(); while (p.next()) if (p.field == 1) id = p.val; }
+        return id;
     }
     static long propGid(byte[] body, int field) {
         PB.R r = new PB.R(body); long id = 0, gid = 0;
@@ -615,7 +687,7 @@ public class Server {
             java.util.TreeMap<Long, Integer> hit = scanSkins();
             int two = 0;
             for (int c : hit.values()) if (c >= 2) two++;
-            final int min = two >= 30 ? 2 : 1;
+            final int min = 1;   // v1.76：只出现 1 次的也算（之前门槛 2 漏了口罩等）
             java.util.TreeMap<Long, Integer> cats = new java.util.TreeMap<>();
             ArrayList<long[]> l = new ArrayList<>();
             synchronized (Server.class) {
@@ -625,7 +697,7 @@ public class Server {
                     cats.merge(e.getKey() / 1000000, 1, Integer::sum);
                     boolean have = false;
                     for (long[] p : props.values()) if (p[0] == e.getKey()) { have = true; break; }
-                    if (!have && l.size() < 400) l.add(new long[] { e.getKey() });
+                    if (!have && l.size() < 800) l.add(new long[] { e.getKey() });
                 }
                 skinCats = "门槛 " + min + " 次，分类 " + cats;
                 if (l.isEmpty()) return skinState = "全部皮肤：仓库里都有了（找到 " + cats.values().stream().mapToInt(Integer::intValue).sum() + " 件）";
