@@ -48,7 +48,7 @@
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
 ## 当前状态（2026-11-16 16:00）
-- **最新版 v1.84**（vc85/core85，`releases/ZFrame-v1.84.apk`，commit 见 git log）。**未实测**。
+- **最新版 v1.84**（vc85/core85，`releases/ZFrame-v1.84.apk`）。**已实测（16:05）：刷人机成功、枪能打死人机**；车型按钮名字待确认。实测诊断/截图在 `notes/device-tests/`。
 - 构建/测试：`zframe/test/ServerTest` + `game/re/emu_server.py`（服务端）、`game/re/emu_vcave.py`（刷车/刷人机 cave）都通过。
 
 ### 已实测能用（荣耀 X70）
@@ -71,8 +71,8 @@
 - 车/物资只能刷在面前，不能选「脚下地上」。
 
 ## 接下来要做（用户排的顺序）
-1. **看 v1.84 实测**：刷人机出没出来、会不会闪退；车型按钮名字对不对。人机没出来 → 看诊断里刷人机那行（0x5b04=已调）。若已调但没人：int 参数可能是人机类型/数量，试 0、2、5；或者 GameMode 虚表 +0x5c4 在对局类里是别的函数（静态没核实，可用 cave 把 [GM] 虚表地址写进 buf 让 Java 算偏移）。
-2. **枪械伤害**：有人机后打人机，确认掉血/击倒/击杀。离线若不掉血，查 ServerForceEnablePlayerDamage（PC 原生表 0x4cd3bb0，thunk 0x11dd95c）。
+1. **v1.84 实测结果**：人机能刷、能打死（伤害正常）。人机全死后「剩余 2」（玩家+一个空位）立刻结算吃鸡——已问用户要不要做「不结算」开关（等回复）。以下为原排查思路备用：刷人机出没出来、会不会闪退；车型按钮名字对不对。人机没出来 → 看诊断里刷人机那行（0x5b04=已调）。若已调但没人：int 参数可能是人机类型/数量，试 0、2、5；或者 GameMode 虚表 +0x5c4 在对局类里是别的函数（静态没核实，可用 cave 把 [GM] 虚表地址写进 buf 让 Java 算偏移）。
+2. ~~枪械伤害~~：v1.84 实测已正常。离线若不掉血，查 ServerForceEnablePlayerDamage（PC 原生表 0x4cd3bb0，thunk 0x11dd95c）。
 3. **刷物资**：刷物品目前是直接进背包；用户要能刷在地上/房子里有物资。离线可能不生成地面物资（ItemGenerator / PickupManager 路线没查）。GiveItem/SpawnPickupBox 的 Exec 被删了（bx lr）。
 4. **门**：离线房子没有门。线索：ANZSceneDoorManager（客户端门管理器，"Should never spawn On Server"）、NZDoorManager_C 蓝图、属性 StandaloneUnloadAllDoor（单机卸载全部门，可能就是原因）、日志 "[DS Load] Loaded DoorCount"、"cdfg CloseAllDoorOnMatchBegin"。先找 StandaloneUnloadAllDoor 的偏移和读它的代码，试着在早装时改成 0。
 5. 再往后：加速/高跳若仍失效要修；画面即时生效；口罩；降落伞。
