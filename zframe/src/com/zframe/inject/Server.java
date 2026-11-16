@@ -116,6 +116,11 @@ public class Server {
         on = true;
         rpl.putInt(28, manual ? 0 : 0x7fffffff);   // 默认自动投递；调试时可改成逐条
         // v1.71：v1.65~1.68 的闪退是 SEND 门的 bug（已修），恢复自动投递：邮件推送 + 仓库
+        // v1.74：开服务端前游戏发的 36001（关键消息，seq1）一直没回，游戏就一直认为「有可靠消息在等回复」，
+        // 后面的穿/脱(13003/13005)只能排队，再收一个包才发出去 → 大部分被丢。先把这几个补回掉。
+        push(36002, 1, true, new PB().u(1, 0).bytes(), "补回 36001");
+        push(22006, 2, false, new PB().u(1, 0).bytes(), "补回 22005");
+        push(30015, 5, false, new PB().u(1, 0).bytes(), "补回 30014");
         mark("准备邮件");
         newMail();
         mark("准备 13002");
@@ -148,6 +153,7 @@ public class Server {
                 mark("找到连接器 " + Long.toHexString(c) + connInfo);
                 rpl.putInt(12, (int) c);
                 connState = "连接器：" + Long.toHexString(c) + "（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）";
+                new Thread(() -> { try { Thread.sleep(3000); } catch (Throwable ignored) {} allSkins(); }, "zf-skins").start();
             }
         } catch (Throwable e) { connState = "连接器：出错 " + e; }
     }
@@ -405,7 +411,10 @@ public class Server {
     static long role() { for (long[] p : props.values()) if (p[2] != 0 && p[1] == 1) return p[0]; return ROLE_F; }
 
     static PB prop(long gid, long[] p) {
-        PB x = new PB().u(1, p[0]).u(2, gid).u(3, p[2] != 0 ? 0 : role()).u(4, 1).u(10, p[1]);
+        // v1.74：游戏按 owner_id 判断「穿在身上」。之前所有衣服 owner 都是角色 → 全部算穿着（背包去不掉、衣服重叠）。
+        // 现在：衣服穿着才 owner=角色；角色本身在用的 owner=1（和启动时假仓库一致），其余 0
+        long owner = p[2] != 0 ? (p[1] != 0 ? 1 : 0) : (p[1] != 0 ? role() : 0);
+        PB x = new PB().u(1, p[0]).u(2, gid).u(3, owner).u(4, 1).u(10, p[1]);
         if (p[2] != 0) x.m(13, new PB().u(1, p[2]));
         return x;
     }
@@ -433,6 +442,18 @@ public class Server {
             for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
                 if (e.getValue()[2] != 0) { e.getValue()[1] = e.getKey() == gid ? 1 : 0; res.m(2, prop(e.getKey(), e.getValue())); }
             final boolean m = props.get(gid)[2] == 1;
+            // v1.74：换角色时脱掉另一性别专属的衣服/发型（301 男款，302 女款），再按请求里的 hair_prop(6) 穿发型
+            long other = m ? 302 : 301;
+            for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) {
+                long[] v = e.getValue();
+                if (v[2] == 0 && v[1] != 0 && v[0] / 100000000L == other) { v[1] = 0; res.m(2, prop(e.getKey(), v)); }
+            }
+            long hg = propGid(body, 6);
+            if (hg >= 0 && props.get(hg)[2] == 0) {
+                for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
+                    if (e.getValue()[2] == 0 && e.getValue()[1] == 4 && e.getKey() != hg) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
+                props.get(hg)[1] = 4; res.m(2, prop(hg, props.get(hg)));
+            }
             if (m != Mods.male) new Thread(() -> mark("换角色 " + (m ? "男" : "女") + " → " + Mods.setMale(m))).start();
         } else if (gid >= 0) {
             if (pos == 0) pos = (int) props.get(gid)[1];
@@ -467,14 +488,17 @@ public class Server {
 
     static PB mail(long[] m) {
         PB att = new PB();
-        for (long[] g : GIFT) {
+        for (long[] g : gifts(m)) {
             PB p = new PB().u(1, g[0]).u(4, 1);
             if (g.length > 1) p.m(13, new PB().u(1, g[1]).u(2, g[2]));
             att.m(1, p);
         }
-        return new PB().u(1, m[2]).s(3, "补给").s(4, "服务端已开启，点领取把角色、发型和衣服放进仓库。")
+        boolean all = m.length > 3 && m[3] == 1;
+        return new PB().u(1, m[2]).s(3, all ? "全部皮肤" : "补给").s(4, all ? "游戏里能找到的服装都在这里，点领取放进仓库。" : "服务端已开启，点领取把角色、发型和衣服放进仓库。")
             .m(6, att).u(7, m[1]).u(8, m[0]).u(10, 0);
     }
+    static long[][] skinGift = new long[0][];
+    static long[][] gifts(long[] m) { return m.length > 3 && m[3] == 1 ? skinGift : GIFT; }
     static PB mailListOf(java.util.List<long[]> ms) {
         PB l = new PB().u(1, MAIL_SYS);
         for (long[] m : ms) l.m(2, mail(m));
@@ -483,8 +507,9 @@ public class Server {
     static synchronized byte[] mailList() { return new PB().u(1, 0).m(2, mailListOf(mails)).bytes(); }
 
     /** 新建一封邮件并推给游戏（25007） */
-    static synchronized void newMail() {
-        long[] m = { ++mailSeq, 0, System.currentTimeMillis() / 1000 };
+    static synchronized void newMail() { newMail(0); }
+    static synchronized void newMail(int kind) {
+        long[] m = { ++mailSeq, 0, System.currentTimeMillis() / 1000, kind };
         mails.add(m);
         push(25007, 0, false, new PB().m(1, mailListOf(java.util.Collections.singletonList(m))).bytes());
     }
@@ -511,7 +536,7 @@ public class Server {
             if (!idx.contains((int) m[0])) continue;
             if (m[1] == 0) {
                 m[1] = 1;
-                for (long[] g : GIFT) {
+                for (long[] g : gifts(m)) {
                     long gid = addProp(g);
                     if (gid != 0) change.m(2, prop(gid, props.get(gid)));
                 }
@@ -562,32 +587,35 @@ public class Server {
         for (long b : BAD) hit.remove(b);
         return hit;
     }
+    /** v1.74：扫出全部服装，做成第二封邮件「全部皮肤」（用户要在邮件里领）。连接器找到后自动跑一次 */
     public static String allSkins() {
         if (!on) return state = "自建服务端：先按「开启服务端」";
         try {
             mark("开始扫全部皮肤");
             long t0 = System.currentTimeMillis();
             java.util.TreeMap<Long, Integer> hit = scanSkins();
-            int add = 0, seen = 0, two = 0;
+            int two = 0;
             for (int c : hit.values()) if (c >= 2) two++;
-            final int min = two >= 30 ? 2 : 1;   // 出现 2 次以上的够多就只要这些，不够就全要
+            final int min = two >= 30 ? 2 : 1;
             java.util.TreeMap<Long, Integer> cats = new java.util.TreeMap<>();
-            for (java.util.Map.Entry<Long, Integer> e : hit.entrySet()) if (e.getValue() >= min) cats.merge(e.getKey() / 1000000, 1, Integer::sum);
-            skinCats = "门槛 " + min + " 次，分类 " + cats;
+            ArrayList<long[]> l = new ArrayList<>();
             synchronized (Server.class) {
                 initProps();
                 for (java.util.Map.Entry<Long, Integer> e : hit.entrySet()) {
                     if (e.getValue() < min) continue;
-                    seen++;
-                    if (add >= 800) break;
-                    if (addProp(new long[] { e.getKey() }) != 0) add++;
+                    cats.merge(e.getKey() / 1000000, 1, Integer::sum);
+                    boolean have = false;
+                    for (long[] p : props.values()) if (p[0] == e.getKey()) { have = true; break; }
+                    if (!have && l.size() < 400) l.add(new long[] { e.getKey() });
                 }
-                push(13002, 0, false, depositProps());
-                saveProps();
+                skinCats = "门槛 " + min + " 次，分类 " + cats;
+                if (l.isEmpty()) return skinState = "全部皮肤：仓库里都有了（找到 " + cats.values().stream().mapToInt(Integer::intValue).sum() + " 件）";
+                skinGift = l.toArray(new long[0][]);
+                newMail(1);
             }
-            String r = "全部皮肤：找到 " + seen + " 件，新入库 " + add + " 件（" + (System.currentTimeMillis() - t0) + " ms），去仓库看";
-            mark(r); skinState = r;
-            return r;
+            String r = "全部皮肤：发了一封邮件，" + l.size() + " 件（" + (System.currentTimeMillis() - t0) + " ms），去邮箱领取";
+            mark(r);
+            return skinState = r;
         } catch (Throwable e) { return skinState = "全部皮肤：出错 " + e; }
     }
     static volatile String skinState = "", skinCats = "";

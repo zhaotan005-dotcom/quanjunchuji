@@ -77,7 +77,7 @@ r=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[7])); ids=[p.id for p in r.
 print('25004:',r.result,'type',r.type,'read',list(r.read_indexs),'新物品',len(ids))
 ok&= r.result==0 and list(r.read_indexs)==[1] and 30323000002 in ids and 30318000000 in ids and 10200000000 not in ids and len(set(ids))==len(ids)
 d=M('msg.CSDepositGetPropsRes').FromString(bytes.fromhex(L[8])); print('领取后 13002:',len(d.prop_list),'个')
-ok&= len(d.prop_list)==7+len(ids) and all(p.owner_id==10200000000 for p in d.prop_list if p.id//100000000!=101 and p.id//100000000!=102)
+ok&= len(d.prop_list)==7+len(ids) and all((p.owner_id==10200000000)==(p.equip_position!=0) for p in d.prop_list if p.id//100000000 not in (101,102)) and [p.owner_id for p in d.prop_list if p.id==10200000000]==[1] and [p.owner_id for p in d.prop_list if p.id==30306000000]==[0]
 r2=M('msg.CSReadMailsRes').FromString(bytes.fromhex(L[9])); print('再领:',len(r2.change.prop_changes)); ok&= len(r2.change.prop_changes)==0
 # --- v1.65 SEND 门：+24 为 0 时照原样跑原函数开头再回 0x50000008；为 1 时进服务端（这里服务端放在 0x10000）---
 mg=Uc(UC_ARCH_ARM,UC_MODE_ARM)
