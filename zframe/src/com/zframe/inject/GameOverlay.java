@@ -18,6 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
+    static final String VER = "v2.07";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -66,19 +67,19 @@ public class GameOverlay {
             LinearLayout head = new LinearLayout(a);
             head.setOrientation(LinearLayout.HORIZONTAL);
             head.setGravity(Gravity.CENTER_VERTICAL);
-            head.setPadding(u.dp(16), u.dp(10), u.dp(8), u.dp(2));
+            head.setPadding(u.dp(8), u.dp(8), u.dp(8), u.dp(4));
+            // v2.07 用户：左边一个三角方块（点开展开菜单、再点折叠），标题居中，版本号不放标题栏
+            final TextView fold = new TextView(a);
+            fold.setTextColor(ACC); fold.setTextSize(13); fold.setGravity(Gravity.CENTER);
+            fold.setBackground(box(0x14007AFF, u.dp(8)));
+            head.addView(fold, new LinearLayout.LayoutParams(u.dp(30), u.dp(30)));
             TextView title = new TextView(a);
             title.setText("全军出击联机版"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            title.setLetterSpacing(0.04f);
-            head.addView(title, new LinearLayout.LayoutParams(-2, -2));
-            TextView ver = new TextView(a);
-            ver.setText("  v2.06"); ver.setTextColor(SUBT); ver.setTextSize(10);
-            head.addView(ver, new LinearLayout.LayoutParams(0, -2, 1));
-            final TextView fold = iconBtn(a, u, "–");
-            head.addView(fold, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
+            title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
+            head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
             close.setOnClickListener(v -> showPanel(panel, false, u));
-            head.addView(close, new LinearLayout.LayoutParams(u.dp(32), u.dp(28)));
+            head.addView(close, new LinearLayout.LayoutParams(u.dp(30), u.dp(30)));
             panel.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
             // ---- 当前状态：一行灰字 ----
@@ -147,9 +148,9 @@ public class GameOverlay {
             final Runnable apply = () -> {
                 body.setVisibility(collapsed ? View.GONE : View.VISIBLE);
                 status.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-                fold.setText(collapsed ? "+" : "–");
+                fold.setText(collapsed ? "▶" : "▼");
                 ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
-                if (lp0 != null) { lp0.width = collapsed ? u.dp(250) : pw; panel.setLayoutParams(lp0); }
+                if (lp0 != null) { lp0.width = collapsed ? u.dp(210) : pw; panel.setLayoutParams(lp0); }
             };
             fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
@@ -205,7 +206,7 @@ public class GameOverlay {
         StringBuilder b = new StringBuilder();
         if (!Mods.noPlane && !Mods.noPoison) b.append("正常模式");
         else { if (Mods.noPlane) b.append("不上飞机"); if (Mods.noPoison) b.append(b.length() > 0 ? " · " : "").append("不刷圈"); }
-        if (!Con.inMatch) { st.setText(dot(b.toString())); return; }   // v1.73：不显示男女和大厅
+        if (!Con.inMatch) { st.setText(dot(b.toString() + " · " + VER)); return; }   // v1.73：不显示男女和大厅
         if (Mods.speed != 1f) b.append(" · 加速 ").append(fmt(Mods.speed));
         if (Mods.jump != 1f) b.append(" · 高跳 ").append(fmt(Mods.jump));
         if (Mods.noRecoil) b.append(" · 无后座");
@@ -214,7 +215,7 @@ public class GameOverlay {
         if (Con.godOn) b.append(" · 无敌");
         if ((Mods.speed != 1f || Mods.jump != 1f || Mods.noRecoil || Mods.noShake || Mods.infAmmo) && !Mods.moveState.isEmpty() && !"已生效".equals(Mods.moveState))
             b.append("（").append(Mods.moveState).append("）");
-        st.setText(dot(b.toString()));
+        st.setText(dot(b.toString() + " · " + VER));
     }
     static CharSequence dot(String s) {
         android.text.SpannableString ss = new android.text.SpannableString("●  " + s);
@@ -954,6 +955,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, "v2.06", 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, VER, 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

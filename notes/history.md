@@ -540,3 +540,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 21:19 v2.05：日志确认「GameNetDriver NZIpNetDriver_0 IpNetDriver listening on port 7777」，开房监听成功；之后在同步 LoadMap 里闪退（21:19:28 后），导出拿不到。已让用户重开在大厅导出（带上一次 backup 日志）。
 - 21:22 v2.05 开房：listen 7777 成功，游戏日志停在 21:19:24.714「Bringing up level for play」（NZStreamingLevelsPolicyServer 已建），之后进程没了，没有 tombstone（怀疑内存爆/被杀，未证实）。同时自动开服务端在点开房后 1 秒（21:19:20）启动，加载中扫连接器。
 - v2.06（vc107/core107，未实测）：联机时（Lan.role≠0）进图不发调整命令、不跑 Flow/Bots；开房后或已在联机里不自动开服务端；开房/加入后每秒把 VmSize/VmRSS 写进持久步骤文件（下次导出「上次运行最后几步」可见）；联机日志也写步骤文件；去掉每次启动自动存 crash 文件；菜单默认收起。
+- v2.07（vc108/core108）：标题栏改为左边三角方块（▶ 收起 / ▼ 展开）、标题居中、版本号移到状态行和画面页；收起宽 210dp。含 v2.06 全部改动，未实测。
