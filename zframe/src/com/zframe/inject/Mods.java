@@ -45,6 +45,8 @@ public class Mods {
         long t0 = System.currentTimeMillis();
         String c = "不装（v1.73 改成邮件领取）";   // 用户要求：去掉初始风衣
         coatOn = false;
+        int sm = Server.savedSex();          // v1.75：按仓库存档里在用的角色决定大厅男女
+        if (sm != 0) male = sm == 1;
         String r = setHall(male);
         if ("ok".equals(r)) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
         hallState = "ok".equals(r) ? "大厅人物：已改好（" + (male ? "男" : "女") + "，启动时装）" : "大厅人物：没改成，" + r;
@@ -74,6 +76,10 @@ public class Mods {
     static final String HALL_RCAVE_N = "0c909be508a09be509309ae10593f71a00a60ae3f7af45e30290a0e30193f7ea"; // 女
     static final String HALL_RCAVE_M = "0c909be508a09be509309ae10593f71a00a50ce301aa45e30290a0e30193f7ea";
     static final String HALL_GEN_F = "00a60ae3f7af45e3", HALL_GEN_M = "00a50ce301aa45e3";
+    // v1.75：大厅角色编号不再写死在指令里（运行中改指令不生效），改成 ldr r10,[pc,#-0x28] 读 0x171e600 的一个字（数据，运行中改得动）
+    static final long HALL_LIT = 0x171e600L;
+    static final String HALL_GEN_L = "28a01fe500f020e3";
+    static final int LIT_F = 0x5ff7a600, LIT_M = 0x5a01c500;
     static final String HALL_COAT_O = "737dddeb", HALL_COAT_N = "de6b08eb";
     static final String HALL_CAVE_O = "0700a0e10810a0e1391d37eb2c001be5", HALL_CAVE_N = "f0412de90040a0e19111d5ebb2ffffea";
     public static volatile boolean hallOn;
@@ -83,7 +89,11 @@ public class Mods {
         String r = write(HALL_RCAVE, HALL_RCAVE_O, HALL_RCAVE_N, true);
         if (r.startsWith("原字节不符") && "ok".equals(write(HALL_RCAVE, HALL_RCAVE_O, HALL_RCAVE_M, true))) r = "ok"; // 之前写成了男
         if (!"ok".equals(r)) return r;
-        r = write(HALL_GEN, m ? HALL_GEN_F : HALL_GEN_M, m ? HALL_GEN_M : HALL_GEN_F, true);
+        long b = base(); if (b == 0) return "找不到游戏库";
+        r = pokeInt(b + HALL_LIT, m ? LIT_M : LIT_F);
+        if (!"ok".equals(r)) return "角色字 " + r;
+        r = write(HALL_GEN, HALL_GEN_F, HALL_GEN_L, true);
+        if (r.startsWith("原字节不符")) r = write(HALL_GEN, HALL_GEN_M, HALL_GEN_L, true);
         if (!"ok".equals(r)) return r;
         if (coatOn) {
             String c = write(HALL_CAVE, HALL_CAVE_O, HALL_CAVE_N, true);
@@ -236,8 +246,9 @@ public class Mods {
     }
     public static String setMale(boolean on) {
         String r = write(MALE, MALE_O, MALE_N, on);
+        if (hallOn) { long b = base(); if (b != 0) r = r + "，大厅 " + pokeInt(b + HALL_LIT, on ? LIT_M : LIT_F); }
         LogCap.note("男角色 " + on + " → " + r);
-        if ("ok".equals(r)) { male = on; }
+        if (r.startsWith("ok")) { male = on; }
         return r;
     }
 

@@ -373,19 +373,38 @@ public class Server {
         props.put(ROLE_F, new long[] { ROLE_F, male ? 0 : 1, 2 });
         props.put(ROLE_M, new long[] { ROLE_M, male ? 1 : 0, 1 });
         // v1.73：初始不再带风衣（改成邮件领取），背包 30306000000 默认不穿
-        long[][] wear = { { 30302000000L, 5 }, { 30301000001L, 6 }, { 30306000000L, 0 }, { 30303000006L, 11 },
-                          { 30213000003L, male ? 0 : 4 } };
+        long[][] wear = { { 30302000000L, 302 }, { 30301000001L, 301 }, { 30306000000L, 0 }, { 30303000006L, 303 },
+                          { 30213000003L, male ? 0 : 213 } };
         long gid = 1001;
         for (long[] w : wear) props.put(gid++, new long[] { w[0], w[1], 0 });
     }
     // v1.73：仓库存到 filesDir/zf_props.txt，重启游戏还在。一行：gid 编号 位置 性别
-    static java.io.File propsFile() { android.app.Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_props.txt"); }
+    static java.io.File propsFile() {
+        android.content.Context a = Con.act;
+        if (a == null) try { a = (android.content.Context) Class.forName("android.app.ActivityThread").getMethod("currentApplication").invoke(null); } catch (Throwable ignored) {}
+        return a == null ? null : new java.io.File(a.getFilesDir(), "zf_props.txt");
+    }
+    /** 存档里在用的角色：1 男，2 女，0 没有存档 */
+    static int savedSex() {
+        try {
+            java.io.File f = propsFile(); if (f == null || !f.exists()) return 0;
+            for (String l : new String(java.nio.file.Files.readAllBytes(f.toPath()), "UTF-8").split("\n")) {
+                String[] x = l.trim().split(" "); if (x.length < 4) continue;
+                if (!"0".equals(x[3]) && "1".equals(x[2])) return Integer.parseInt(x[3]);
+            }
+        } catch (Throwable ignored) {}
+        return 0;
+    }
+    /** v1.75：游戏的穿戴请求不带位置，按道具类别定位置（例 30318 → 318，发型 302 13 → 213），同类互相替换 */
+    static int slotOf(long id) { int c = (int) (id / 1000000 % 1000); return c == 0 ? 1 : c; }
     static boolean loadProps() {
         try {
             java.io.File f = propsFile(); if (f == null || !f.exists()) return false;
             for (String l : new String(java.nio.file.Files.readAllBytes(f.toPath()), "UTF-8").split("\n")) {
                 String[] x = l.trim().split(" "); if (x.length < 4) continue;
-                props.put(Long.parseLong(x[0]), new long[] { Long.parseLong(x[1]), Long.parseLong(x[2]), Long.parseLong(x[3]) });
+                long id = Long.parseLong(x[1]), pos = Long.parseLong(x[2]), sex = Long.parseLong(x[3]);
+                if (sex == 0 && pos != 0) pos = slotOf(id);   // v1.75：旧存档的位置换成按类别
+                props.put(Long.parseLong(x[0]), new long[] { id, pos, sex });
             }
             if (!props.containsKey(ROLE_F) || !props.containsKey(ROLE_M)) { props.clear(); return false; }
             return true;
@@ -451,14 +470,14 @@ public class Server {
             long hg = propGid(body, 6);
             if (hg >= 0 && props.get(hg)[2] == 0) {
                 for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
-                    if (e.getValue()[2] == 0 && e.getValue()[1] == 4 && e.getKey() != hg) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
-                props.get(hg)[1] = 4; res.m(2, prop(hg, props.get(hg)));
+                    if (e.getValue()[2] == 0 && e.getValue()[1] == slotOf(props.get(hg)[0]) && e.getKey() != hg) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
+                props.get(hg)[1] = slotOf(props.get(hg)[0]); res.m(2, prop(hg, props.get(hg)));
             }
             if (m != Mods.male) new Thread(() -> mark("换角色 " + (m ? "男" : "女") + " → " + Mods.setMale(m))).start();
         } else if (gid >= 0) {
-            if (pos == 0) pos = (int) props.get(gid)[1];
+            pos = slotOf(props.get(gid)[0]);   // v1.75：之前请求里没位置 → pos=0 → 穿上的衣服被记成没穿，回大厅就没了
             for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
-                if (e.getValue()[1] == pos && e.getKey() != gid) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
+                if (e.getValue()[2] == 0 && e.getValue()[1] == pos && e.getKey() != gid) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
             props.get(gid)[1] = pos;
             res.m(2, prop(gid, props.get(gid)));
         }

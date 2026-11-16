@@ -18,7 +18,7 @@ print('13002:', len(r.prop_list),'props role_id',r.role_id)
 for p in r.prop_list: print('  ',p.id,p.gid,p.owner_id,p.equip_position, p.prop_role_attr.sex if p.HasField('prop_role_attr') else '')
 ok&= len(r.prop_list)==7 and r.role_id==10200000000
 e=M('msg.CSDepositEquipPropRes').FromString(bytes.fromhex(L[3])); print('13004:',e)
-ok&= e.prop_list[0].equip_position==8
+ok&= e.prop_list[0].equip_position==302 and e.prop_list[0].owner_id==10200000000
 k=M('msg.CSPkg').FromString(bytes.fromhex(L[4])); print('pkg:',k.head.cmd,k.head.client_sequence_id,k.head.key_pkg)
 ok&= k.head.cmd==36001 and k.head.key_pkg
 # --- SEND ---
