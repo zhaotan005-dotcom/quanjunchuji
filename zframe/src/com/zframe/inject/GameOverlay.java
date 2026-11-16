@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.12";
+    static final String VER = "v2.13";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -75,7 +75,7 @@ public class GameOverlay {
             fold.setBackground(box(0x1F007AFF, u.dp(4)));
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             TextView title = new TextView(a);
-            title.setText("全军出击联机版"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setText(Ed.single() ? "全军出击单机版" : "全军出击联机版"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
             head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
@@ -207,7 +207,7 @@ public class GameOverlay {
         StringBuilder b = new StringBuilder();
         if (!Mods.noPlane && !Mods.noPoison) b.append("正常模式");
         else { if (Mods.noPlane) b.append("不上飞机"); if (Mods.noPoison) b.append(b.length() > 0 ? " · " : "").append("不刷圈"); }
-        if (!Con.inMatch) { st.setText(dot(b.toString() + " · " + VER)); return; }   // v1.73：不显示男女和大厅
+        if (!Con.inMatch) { st.setText(dot(b.toString() + " · " + VER + " " + Ed.name())); return; }   // v1.73：不显示男女和大厅
         if (Mods.speed != 1f) b.append(" · 加速 ").append(fmt(Mods.speed));
         if (Mods.jump != 1f) b.append(" · 高跳 ").append(fmt(Mods.jump));
         if (Mods.noRecoil) b.append(" · 无后座");
@@ -216,7 +216,7 @@ public class GameOverlay {
         if (Con.godOn) b.append(" · 无敌");
         if ((Mods.speed != 1f || Mods.jump != 1f || Mods.noRecoil || Mods.noShake || Mods.infAmmo) && !Mods.moveState.isEmpty() && !"已生效".equals(Mods.moveState))
             b.append("（").append(Mods.moveState).append("）");
-        st.setText(dot(b.toString() + " · " + VER));
+        st.setText(dot(b.toString() + " · " + VER + " " + Ed.name()));
     }
     static CharSequence dot(String s) {
         android.text.SpannableString ss = new android.text.SpannableString("●  " + s);
@@ -744,11 +744,10 @@ public class GameOverlay {
      *  服务端自动开（不显示开关）；日志放最下面。 */
     static int lobbyTab = 0;
     static void lobbyPage(final Activity a, final Ui u, final LinearLayout root) {
-        LinearLayout seg = row(a, root);
-        seg.setBackground(box(0x1F767680, u.dp(10))); seg.setPadding(u.dp(2), u.dp(2), u.dp(2), u.dp(2));
-        segBtn(a, u, seg, "联机版", lobbyTab == 0, () -> { lobbyTab = 0; refreshAny(); });
-        segBtn(a, u, seg, "单机版", lobbyTab == 1, () -> { lobbyTab = 1; refreshAny(); });
+        // v2.13：分版本，不再有联机/单机切换
+        lobbyTab = Ed.single() ? 1 : 0;
         if (lobbyTab == 0) {
+          if (Ed.ED == 1) {
             head(a, u, root, "开房（我当服务器）");
             LinearLayout hc = card(a, u, root);
             kv(a, u, hc, "本机 IP", Lan.ip());
@@ -757,6 +756,7 @@ public class GameOverlay {
             fillBtn(a, u, r, "新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
             fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
             note(a, u, root, "点地图直接进图当房主。外网玩家用内网穿透连你的 UDP 7777。");
+          } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
             LinearLayout ir = row(a, jc); ir.setPadding(0, u.dp(6), 0, u.dp(6));
@@ -768,6 +768,8 @@ public class GameOverlay {
             LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2.4f); elp.setMargins(0, u.dp(3), u.dp(6), u.dp(3));
             ir.addView(et, elp);
             fillBtn(a, u, ir, "加入", () -> toast(a, Lan.join(et.getText().toString())));
+            note(a, u, root, "房主先进图，再点加入。");
+          }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         } else {
             head(a, u, root, "游戏模式");
@@ -956,6 +958,6 @@ public class GameOverlay {
         head(a, u, root, "视野");
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
-        label(a, root, VER, 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+        label(a, root, VER + " " + Ed.name(), 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
     }
 }

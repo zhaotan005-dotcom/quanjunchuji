@@ -80,12 +80,14 @@ public class Mods {
         int sm = Server.savedSex();          // v1.75：按仓库存档里在用的角色决定大厅男女
         if (sm != 0) male = sm == 1;
         String r = setHall(male);
-        if ("ok".equals(r)) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
+        if ("ok".equals(r) && Ed.single()) { String st = setStore(male); if (!"ok".equals(st)) r = "仓库数据 " + st; }
         hallState = "ok".equals(r) ? "大厅人物：已改好（" + (male ? "男" : "女") + "，启动时装）" : "大厅人物：没改成，" + r;
-        String w = installWear();
-        LogCap.note("出生衣服钩子 → " + w); wearInstall = w;
-        if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
-        Server.preinstall();
+        if (Ed.single()) {   // v2.13：联机两个版本不装仓库/出生衣服/自建服务端
+            String w = installWear();
+            LogCap.note("出生衣服钩子 → " + w); wearInstall = w;
+            if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
+            Server.preinstall();
+        } else wearState = "出生衣服：" + Ed.name() + "不装";
         Lan.preinstall();
         LogCap.note("刷车钩子 → " + Veh.install());
         earlyDone = "ok".equals(r);

@@ -35,12 +35,16 @@ final class Lan {
     /** v2.12：开房闪退现场（Bugly tomb）= 0x276f058 ldr r1,[r0,#4]，r0=0。所在函数是 UNavigationSystem::GetDefaultNavDataInstance：
      *  找不到导航数据就 CreateNavigationDataInstance(默认 "Default" 35/144) → 返回空 → 给空指针加 RF_Transient 标志 → 崩。
      *  把这三条（读标志/或 0x40/写回）换成 nop：返回空就空着，不加标志。 */
+    /** v2.13：房主进图约 2 分钟弹「网络异常无法收到结算数据」：日志 NZGameMode.cpp:2452 All players have quit game! NumPlayers[1]。
+     *  0xc898e0 每 2 秒查一次：对局中且 vtbl+0x3f0（有连接的玩家数）==0 → 过 AllQuitEndGameProtectTime(120s) 就结束。
+     *  房主自己的角色没有网络连接，算成 0 人。把 0xc89960 的 bne 改成 b，永远不走这条。 */
+    static final long QUIT = 0xc89960L; static final String QUIT_O = "0d00001a", QUIT_N = "0d0000ea";
     static final long NAV = 0x276f058L; static final String NAV_O = "041090e5401081e3041080e5", NAV_N = "00f020e300f020e300f020e3";
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
-        String d = Mods.write(NAV, NAV_O, NAV_N, true);
-        pre = "置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d;
+        String d = Mods.write(NAV, NAV_O, NAV_N, true), e = Mods.write(QUIT, QUIT_O, QUIT_N, true);
+        pre = "置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e;
         LogCap.note("联机补丁（启动时）：" + pre);
     }
     static String unlock() {

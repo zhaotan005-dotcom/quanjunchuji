@@ -549,3 +549,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.11（vc112/core112）：诊断把最新 2 份 app_bugly/tomb_*.txt 整份打出来（闪退调用栈）。
 - 21:52 v2.11：Bugly tomb 拿到。所有开房闪退同一处：GameThread SIGSEGV fault 0x4，pc libUE4+0x276f058（ldr r1,[r0,#4]，r0=0），函数 0x276edfc（vtable 槽 @0x4ed9af4）= UNavigationSystem::GetDefaultNavDataInstance：FNavDataConfig "Default"（半径 35、高 144、步高 -1、0.5、范围 50/50/250）→ vtable+0x124 CreateNavigationDataInstance 返回空 → 设 RF_Transient 崩。客户端包里导航网格是空的（RecastNavMeshSizeBytes=4）。
 - v2.12（vc113/core113，未实测）：启动时把 0x276f058..060 三条换 nop（Lan.NAV），返回空不再崩。之后可能在别处用空导航崩，看下一份 tomb。
+- 22:10 v2.12 实测：房主进图成功（新海岛，出生岛→飞机→落地→捡到头盔背包），没闪退，导航修复有效。约 2 分钟后弹「网络异常无法收到结算数据」：NZGameMode.cpp:2452 All players have quit game! NumPlayers[1]（AllQuitEndGameProtectTime 120）。函数 0xc898e0：对局中且 vtbl+0x3f0()==0 → 结束；房主本地角色无连接算 0。飞机仍 200 米（联机跳过 Flow）。
+- v2.13（vc114/core114，未实测）：分三个包 ZFrame-v2.13-单机/房主/客户端.apk（Ed.ED 0/1/2，build 时 sed 改）。房主/客户端版不装 setStore/出生衣服/自建服务端，大厅只显示开房或加入；0xc89960 bne→b（Lan.QUIT，全员退出不结束）；房主进图跑 Flow（1000 米航线+毒圈修正），不刷人机。客户端刷东西不生效（服务器权威），要房主刷。

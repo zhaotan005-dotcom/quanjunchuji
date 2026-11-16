@@ -1,0 +1,1245 @@
+ZFrame v2.12 诊断
+大厅人物：已改好（女，启动时装）
+启动早装（等库 828 ms）：风衣 不装（v1.73 改成邮件领取），人物 ok，服务端 启动时，刷车：已装（启动时），361 ms
+刷车：已刷 跑车（编号 29）
+  刷人机：还没试
+  
+人机：人机：自动刷新已关，难度 普通，已刷 0，阶段 -1
+  最后一个人机：
+  装备：
+  导航网格： | RecastNavMeshSizeBytes=4, Ar.IsLoading()=1, Ar.IsSaving()=0, Ar.IsCooking()=0, NavMeshVersion=13, this=RecastNavMesh-Def
+  服务器关卡：正在进图…
+  人机日志：
+  [2026.11.16-22.04.02:387][10772]NZ: Error: [NZGameMode.cpp:3208] CalcuAIRatioLevel failed, NumPlayers=1, NumBots=0
+  [2026.11.16-22.06.08:220][20191]NZ: [NZGameMode.cpp:2452] All players have quit game! NumPlayers[1], NumSpectators[0], NumBots[0], MatchStartTime[105.018951], AllQuitEndGameProtectTime[120.000000]
+  毒圈：等进对局
+  
+  上一局：
+  ，现在 -1（人机 -1），已死人机 0
+  人机配枪：还没试
+  仓库衣服：还没发
+  航线/毒圈日志：
+  [2026.11.16-22.02.07:359][ 1622]LogNavigation: Error: Attempt to build nav collision data for /Game/Blueprints/BattleRoyaleGame/RestrictedAreaMesh.RestrictedAreaMesh:NavCollision_0 when we are unable to. This platform requires cooked packages.
+  [2026.11.16-22.02.07:537][ 1622]LogActor: Warning: BP_BaseRestrictedAreaInfostate_C /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main.BR-ErangelRenew_Mobile_Main:PersistentLevel.BP_BaseRestrictedAreaInfostate_C_0 has natively added scene compone
+  [2026.11.16-22.02.13:690][ 1622]NZ: [NZBRGameState.cpp:304] WaitingPlayersCountDownTime=1.000000, StartMatchCountDownTime=45.000000, WaitingSkydivingCountDownTime=1.000000, SkydivingTime=120.000000, bUseServerFogDistance=0, ServerFogDistance=18000.000000
+  [2026.11.16-22.02.14:782][ 1624]NZ: [RestrictedAreaSystem.cpp:213] InitArea[0], WaitTime:900.000000, ShrinkTime:180.000000, Radius:150000.000000, Damage:1, Center: x=151194.203125, y=205900.062500
+  [2026.11.16-22.02.14:782][ 1624]NZ: [RestrictedAreaSystem.cpp:213] InitArea[1], WaitTime:900.000000, ShrinkTime:180.000000, Radius:0.100000, Damage:5, Center: x=151194.265625, y=205900.046875
+  [2026.11.16-22.02.14:938][ 1625]NZ: [AirTransporterSystem.cpp:252] AirTransporterSystem::CalcAirLineByRestrictedAreaInfo air line center 77067.062500 170464.468750 24000.000000
+  [2026.11.16-22.02.14:945][ 1625]NZ: [AirTransporterSystem.cpp:279] AirTransporterSystem::CalcAirLineByRestrictedAreaInfo StartLoc: X=131192.875000, Y=57239.554688, Z=20000.000000, EndLoc: X=22941.242188, Y=283689.375000, Z=20000.000000, StartJumpLoc: X=120367.
+  [2026.11.16-22.03.14:133][ 6781]NZ: [NZBRGameState.cpp:73] [ANZBRGameState::SetGamePhase] current[0] new[1]
+  [2026.11.16-22.03.14:135][ 6781]NZ: [NZBattleRoyaleGameMode.cpp:1002] bEnableQuickStartMatch[1] BRGameState->ResetStartMatchCountDownTime[5.00]
+  [2026.11.16-22.04.02:269][10772]NZ: [NZBRGameState.cpp:73] [ANZBRGameState::SetGamePhase] current[1] new[2]
+  [2026.11.16-22.04.02:398][10772]NZ: [NZBRGameState.cpp:73] [ANZBRGameState::SetGamePhase] current[2] new[3]
+  [2026.11.16-22.04.02:443][10773]NZ: [NZBRGameState.cpp:73] [ANZBRGameState::SetGamePhase] current[3] new[4]
+  [2026.11.16-22.04.02:444][10773]LogTemp: CurrRoundRestrictedAreaRepInfo CurrIndex = 0, radius = 150000.000000, waittime = 900.000000, shinktime = 180.000000, center = 151194.203125, 205900.062500
+  [2026.11.16-22.04.02:447][10773]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.04.12:733][11305]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.04.22:755][12181]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.04.32:758][12970]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.04.42:763][13801]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.04.52:772][14731]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.05.02:783][15620]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.05.12:795][16516]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.05.25:396][17213]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.05.35:578][17916]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.05.45:582][18659]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.05.55:584][19394]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.06.05:588][20053]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.06.08:221][20191]NZ: [NZBRGameState.cpp:73] [ANZBRGameState::SetGamePhase] current[4] new[10]
+  [2026.11.16-22.06.15:590][20614]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.06.25:882][21132]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  [2026.11.16-22.06.35:997][21555]NZ: [RestrictedAreaSystem.cpp:479] ARestrictedAreaSystem::Tick BlueCircle: 2, 576999, 151194,205900,24000
+  画质：已切到 流畅（发了 11 条）
+  联机：房主（服务器），置标志 ok，开房检查 ok，加入检查 ok，导航空指针 ok，开房：已发 open BR-ErangelRenew_Mobile_Main?listen，等加载，本机 192.168.1.8（wlan0）
+  联机日志：
+  [2026.11.16-22.01.40:085][    0]LogNetVersion: PUBGM , NetCL: 0, EngineNetVer: 2, GameNetVer: 0 (Checksum: 620235833)
+  [2026.11.16-22.01.40:514][    0]LogTemp: CrashNotifyHandler SetListener.
+  [2026.11.16-22.01.40:523][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:40 522] | Error | [GCloud] |0xab068af0| ApolloAccountService.cpp:82|Initialize| CApolloAccountService::CApolloAccountService() GetLoginRecord error:7
+  [2026.11.16-22.01.40:591][    0]NZFrontEnd: QuickLogin: in stage 4
+  [2026.11.16-22.01.42:166][    0]LogNet: UNZGameInstance::CreateInitialPlayer Set LocalPlayer UniqueNetId to 002907532A0B1610000100A637AAC03E
+  [2026.11.16-22.01.42:209][    0]LogNet: Browse: /Game/Startup/StartupMap?Name=Player
+  [2026.11.16-22.01.46:995][  265]LogNet: Browse: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+  [2026.11.16-22.01.48:774][  265]LogTemp: UNZOnlineMatch:RequestReLoginInfo
+  [2026.11.16-22.01.48:812][  265]LogTemp: UNZFrontEndUIController::InitQuickLogin
+  [2026.11.16-22.01.48:836][  265]NZFrontEnd: QuickLogin: Broadcast post wakeupinfo
+  [2026.11.16-22.01.57:512][  895]LogTemp: UNZOnlineMatch:OnResReLoginInfo
+  22:02:04 联机补丁：置标志 ok，开房检查 ok，加入检查 ok，导航空指针 ok；清标志 ok
+  22:02:04 开房：已发 open BR-ErangelRenew_Mobile_Main?listen，等加载
+  [2026.11.16-22.02.04:546][ 1622]LogNet: Browse: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?listen
+  [2026.11.16-22.02.07:507][ 1622]LogNet: eth1_ip 192.168.1.8
+  [2026.11.16-22.02.07:507][ 1622]LogNet: Find LocalAddrs Num=2, IPs=192.168.1.8;127.0.0.1;
+  [2026.11.16-22.02.07:508][ 1622]LogNet: Created new socket 0
+  [2026.11.16-22.02.07:509][ 1622]LogNet: Created new socket 0
+  [2026.11.16-22.02.07:514][ 1622]LogNet: GameNetDriver NZIpNetDriver_0 IpNetDriver listening on port 7777
+  22:02:14 进图完成（联机：不改航线/毒圈/人机）
+  [2026.11.16-22.02.14:280][ 1622]LogNet: UNetDriver::TickDispatch: Very long time between ticks. DeltaTime: 0.00, Realtime: 6.78. NZIpNetDriver_0
+  [2026.11.16-22.02.14:536][ 1623]LogNet: UNetDriver::TickDispatch: Very long time between ticks. DeltaTime: 9.98, Realtime: 0.00. NZIpNetDriver_0
+libUE4=abd13000
+入口 1503230=f66c08ea  仓库 1877bfc=8b9afaea 171e630=0f502de9102b0ee3192340e3
+假仓库：取角色 2 次，ds=a365e900，入库后 9 条（准备了 9 条），缓冲 319eb10
+出生衣服：钩子 已装，4 件 10200000000,30213000003,30301000001,30306000000
+  cave 171e610=0c909be508a09be509309ae10593f71a28a01fe500f020e30290a0e30193f7ea
+风衣 1503680=737dddeb  171e600=00a6f75f0810a0e1391d37eb2c001be5
+自建服务端：已开
+钩子：启动时
+上次运行最后几步：
+  21:52:04.287 开服务端，钩子：启动时
+  21:52:04.295 补给直接入库
+  21:52:04.299 准备 13002
+  21:52:04.312 开 SEND 门
+  21:52:04.321 服务端已开（没重进大厅）
+  21:52:04.328 开始扫连接器
+  21:52:10.735 找到连接器 9a267000  连接器 +fa038=9b1eba40 +fa054=e329ac10 队列 0
+  21:52:13.744 开始扫全部皮肤
+这次：
+  22:02:11.605 开房加载 7s VmSize: 535202484 kB VmRSS: 850296 kB VmSwap: 8188 kB 
+  22:02:12.612 开房加载 8s VmSize: 535267800 kB VmRSS: 907440 kB VmSwap: 11904 kB 
+  22:02:13.619 开房加载 9s VmSize: 535284588 kB VmRSS: 918796 kB VmSwap: 16512 kB 
+  22:02:14.626 开房加载 10s VmSize: 535359896 kB VmRSS: 985724 kB VmSwap: 17448 kB 
+  22:02:14.898 联机 进图完成（联机：不改航线/毒圈/人机）
+  22:02:15.634 开房加载 11s VmSize: 535351808 kB VmRSS: 981124 kB VmSwap: 20180 kB 已进图
+  22:04:31.320 刷车：已刷 吉普（编号 1）
+  22:04:36.645 刷车：已刷 跑车（编号 29）
+请求 1 个（丢 0），回包 5，催发包 917，回包区用了 26 KB 个，游戏已收 28 个
+连接器：9a222000（扫了 846 MB，5542 ms），帧 21882（开后 1 秒多跑 80）
+  连接器 +fa038=9b161a00 +fa054=e3295570 队列 0
+已投 0 条，排队 [36002 补回 36001（16 字节）, 22006 补回 22005（14 字节）, 30015 补回 30014（14 字节）, 13002 仓库（12576 字节）, 37011（16 字节）]
+自检 TICK@b665a8=04f01fe5400674b0 SEND@f950e0=04f01fe5400774b0
+  cave=f3412de9104007e3174b4ae3100084e5 缓冲=ab177010 直读帧=21883 直读连接器=9a222000
+  空隙段=ac5cc000-b0741000 r-xp 008b9000 libUE4.so
+  Tick段=ac5cc000-b0741000 r-xp 008b9000 libUE4.so
+全部皮肤：仓库里都有了（找到 734 件）
+  门槛 1 次，分类 {30101=1, 30102=8, 30103=1, 30113=14, 30123=1, 30124=2, 30176=2, 30178=2, 30179=1, 30180=1, 30182=1, 30183=1, 30184=2, 30185=2, 30186=1, 30187=1, 30190=1, 30199=1, 30202=8, 30203=1, 30204=4, 30207=1, 30210=24, 30211=4, 30213=21, 30214=1, 30215=1, 30216=1, 30218=1, 30219=3, 30221=2, 30223=1, 30224=2, 30225=1, 30227=1, 30232=10, 30301=70, 30302=153, 30303=54, 30306=5, 30307=8, 30308=9, 30309=2, 30310=36, 30311=23, 30312=44, 30314=4, 30315=57, 30316=1, 30317=5, 30318=4, 30319=17, 30320=1, 30321=8, 30323=7, 30324=32, 30326=8, 30328=44, 30329=3, 30330=5, 30331=4}
+  全部编号分类（≥3 次）：10100=34 10200=40 11286=6 16643=3 16841=4 17180=36 20101=72 20102=6 20103=16 20104=48 20105=22 20106=5 20201=28 20301=18 20401=12 20501=28 20502=12 20503=28 20504=24 20505=10 20600=18 20734=5 20938=3 28261=28 30101=5 30102=47 30103=5 30113=70 30123=5 30124=10 30176=6 30178=6 30179=3 30180=3 30182=3 30183=3 30184=7 30185=6 30186=3 30187=3 30190=3 30199=3 30202=41 30203=5 30204=12 30207=3 30210=116 30211=14 30213=147 30214=3 30215=5 30216=3 30218=3 30219=9 30221=6 30223=3 30224=10 30225=3 30227=3 30232=53 30301=433 30302=942 30303=331 30304=14 30305=10 30306=49 30307=59 30308=67 30309=12 30310=216 30311=138 30312=306 30314=28 30315=378 30316=7 30317=30 30318=40 30319=95 30320=5 30321=40 30323=37 30324=160 30325=24 30326=53 30328=220 30329=15 30330=25 30331=20 31536=4 34360=14 40100=8 40101=6 40300=6 40400=318 40500=140 40600=170 40700=135 40800=16 40901=6 40902=4 40904=4 40905=4 41001=840 41100=6 41600=54 43055=4 43058=4 43059=4 47246=27 58487=15 68258=5 72022=13 80898=3 85417=7 89491=8 89712=4 97780=9 97790=11 
+仓库 736 件
+邮件 0 封
+37010 seq8 key 长0 → 空的成功包  
+
+== 系统日志（闪退）==
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #15 pc 002912ac  /system/framework/framework.jar (offset 0x125c000) (android.os.Handler.handleCallback+4)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #16 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #17 pc 002910ec  /system/framework/framework.jar (offset 0x125c000) (android.os.Handler.dispatchMessage+8)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #18 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #19 pc 002c4b1c  /system/framework/framework.jar (offset 0x125c000) (android.os.Looper.loopOnce+544)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #20 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #21 pc 002c5470  /system/framework/framework.jar (offset 0x125c000) (android.os.Looper.loop+68)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #22 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #23 pc 001dde34  /system/framework/framework.jar (offset 0x7000) (android.app.ActivityThread.main+756)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #24 pc 000ccbc5  /apex/com.android.art/lib/libart.so (art_quick_invoke_stub_internal+68) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #25 pc 0065505d  /apex/com.android.art/lib/libart.so (art_quick_invoke_static_stub+246) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #26 pc 0027664f  /apex/com.android.art/lib/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+186) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #27 pc 00591c33  /apex/com.android.art/lib/libart.so (_jobject* art::InvokeMethod<(art::PointerSize)4>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jobject*, _jobject*, unsigned int)+1410) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #28 pc 00526b2f  /apex/com.android.art/lib/libart.so (art::Method_invoke(_JNIEnv*, _jobject*, _jobject*, _jobjectArray*) (.__uniq.165753521025965369065708152063621506277)+22) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #29 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #30 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #31 pc 003e95da  /system/framework/framework.jar (offset 0x23fb000) (com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run+18)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #32 pc 000c91ac  /apex/com.android.art/lib/libart.so (nterp_helper+5276) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #33 pc 003ee0ea  /system/framework/framework.jar (offset 0x23fb000) (com.android.internal.os.ZygoteInit.main+686)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #34 pc 000ccbc5  /apex/com.android.art/lib/libart.so (art_quick_invoke_stub_internal+68) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #35 pc 0065505d  /apex/com.android.art/lib/libart.so (art_quick_invoke_static_stub+246) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #36 pc 0027664f  /apex/com.android.art/lib/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+186) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #37 pc 005934d5  /apex/com.android.art/lib/libart.so (art::JValue art::InvokeWithVarArgs<_jmethodID*>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jmethodID*, std::__va_list)+360) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.098 F/DEBUG   ( 7740):       #38 pc 0049d20d  /apex/com.android.art/lib/libart.so (art::JNI<true>::CallStaticVoidMethodV(_JNIEnv*, _jclass*, _jmethodID*, std::__va_list)+480) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:18:30.099 F/DEBUG   ( 7740):       #39 pc 000c4e17  /system/lib/libandroid_runtime.so (_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)+18) (BuildId: c6a2e21badf5d10047ff0cd1db332a6d)
+11-16 03:18:30.099 F/DEBUG   ( 7740):       #40 pc 000e7cab  /system/lib/libandroid_runtime.so (android::AndroidRuntime::start(char const*, android::Vector<android::String8> const&, bool)+902) (BuildId: c6a2e21badf5d10047ff0cd1db332a6d)
+11-16 03:18:30.099 F/DEBUG   ( 7740):       #41 pc 000025f9  /system/bin/app_process32 (main+936) (BuildId: a45aebd9163e396f8a6ff898544071a6)
+11-16 03:18:30.099 F/DEBUG   ( 7740):       #42 pc 0004a059  /apex/com.android.runtime/lib/bionic/libc.so (__libc_init+72) (BuildId: f5aae4373d3a809a46cab1f6865c7a56)
+11-16 03:22:37.434 F/libc    (11209): Fatal signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x644 in tid 11209 (MainThread-UE4), pid 11209 (MainThread-UE4)
+11-16 03:22:38.582 F/DEBUG   (11601): Cmdline: com.tencent.tmgp.pubgm
+11-16 03:22:38.582 F/DEBUG   (11601): signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x00000644
+11-16 03:22:38.584 F/DEBUG   (11601): backtrace:
+11-16 03:22:38.584 F/DEBUG   (11601):       #00 pc 00b6858c  /data/app/~~Zu3Ep7LVavt1VAID1klsfA==/com.tencent.tmgp.pubgm-yf5YvZS04JTMvMxHB2D-mg==/lib/arm/libUE4.so (Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand+68)
+11-16 03:22:38.585 F/DEBUG   (11601):       #01 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #02 pc 000ccbc5  /apex/com.android.art/lib/libart.so (art_quick_invoke_stub_internal+68) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #03 pc 00654f5d  /apex/com.android.art/lib/libart.so (art_quick_invoke_stub+248) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #04 pc 0027660f  /apex/com.android.art/lib/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+122) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #05 pc 00591c33  /apex/com.android.art/lib/libart.so (_jobject* art::InvokeMethod<(art::PointerSize)4>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jobject*, _jobject*, unsigned int)+1410) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #06 pc 00526b2f  /apex/com.android.art/lib/libart.so (art::Method_invoke(_JNIEnv*, _jobject*, _jobject*, _jobjectArray*) (.__uniq.165753521025965369065708152063621506277)+22) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #07 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #08 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #09 pc 0000631a  /data/user/0/com.tencent.tmgp.pubgm/code_cache/zcore.dex (com.zframe.inject.Con.exec+62)
+11-16 03:22:38.585 F/DEBUG   (11601):       #10 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #11 pc 0000ac8c  /data/user/0/com.tencent.tmgp.pubgm/code_cache/zcore.dex (com.zframe.inject.GameOverlay.lambda$askPawn$8+32)
+11-16 03:22:38.585 F/DEBUG   (11601):       #12 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #13 pc 00008644  /data/user/0/com.tencent.tmgp.pubgm/code_cache/zcore.dex (com.zframe.inject.GameOverlay$$ExternalSyntheticLambda9.run+0)
+11-16 03:22:38.585 F/DEBUG   (11601):       #14 pc 000c91ac  /apex/com.android.art/lib/libart.so (nterp_helper+5276) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #15 pc 002912ac  /system/framework/framework.jar (offset 0x125c000) (android.os.Handler.handleCallback+4)
+11-16 03:22:38.585 F/DEBUG   (11601):       #16 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #17 pc 002910ec  /system/framework/framework.jar (offset 0x125c000) (android.os.Handler.dispatchMessage+8)
+11-16 03:22:38.585 F/DEBUG   (11601):       #18 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #19 pc 002c4b1c  /system/framework/framework.jar (offset 0x125c000) (android.os.Looper.loopOnce+544)
+11-16 03:22:38.585 F/DEBUG   (11601):       #20 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #21 pc 002c5470  /system/framework/framework.jar (offset 0x125c000) (android.os.Looper.loop+68)
+11-16 03:22:38.585 F/DEBUG   (11601):       #22 pc 000c7d48  /apex/com.android.art/lib/libart.so (nterp_helper+56) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #23 pc 001dde34  /system/framework/framework.jar (offset 0x7000) (android.app.ActivityThread.main+756)
+11-16 03:22:38.585 F/DEBUG   (11601):       #24 pc 000ccbc5  /apex/com.android.art/lib/libart.so (art_quick_invoke_stub_internal+68) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #25 pc 0065505d  /apex/com.android.art/lib/libart.so (art_quick_invoke_static_stub+246) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #26 pc 0027664f  /apex/com.android.art/lib/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+186) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #27 pc 00591c33  /apex/com.android.art/lib/libart.so (_jobject* art::InvokeMethod<(art::PointerSize)4>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jobject*, _jobject*, unsigned int)+1410) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #28 pc 00526b2f  /apex/com.android.art/lib/libart.so (art::Method_invoke(_JNIEnv*, _jobject*, _jobject*, _jobjectArray*) (.__uniq.165753521025965369065708152063621506277)+22) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #29 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #30 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #31 pc 003e95da  /system/framework/framework.jar (offset 0x23fb000) (com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run+18)
+11-16 03:22:38.585 F/DEBUG   (11601):       #32 pc 000c91ac  /apex/com.android.art/lib/libart.so (nterp_helper+5276) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #33 pc 003ee0ea  /system/framework/framework.jar (offset 0x23fb000) (com.android.internal.os.ZygoteInit.main+686)
+11-16 03:22:38.585 F/DEBUG   (11601):       #34 pc 000ccbc5  /apex/com.android.art/lib/libart.so (art_quick_invoke_stub_internal+68) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #35 pc 0065505d  /apex/com.android.art/lib/libart.so (art_quick_invoke_static_stub+246) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #36 pc 0027664f  /apex/com.android.art/lib/libart.so (art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)+186) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #37 pc 005934d5  /apex/com.android.art/lib/libart.so (art::JValue art::InvokeWithVarArgs<_jmethodID*>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jmethodID*, std::__va_list)+360) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #38 pc 0049d20d  /apex/com.android.art/lib/libart.so (art::JNI<true>::CallStaticVoidMethodV(_JNIEnv*, _jclass*, _jmethodID*, std::__va_list)+480) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 03:22:38.585 F/DEBUG   (11601):       #39 pc 000c4e17  /system/lib/libandroid_runtime.so (_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)+18) (BuildId: c6a2e21badf5d10047ff0cd1db332a6d)
+11-16 03:22:38.585 F/DEBUG   (11601):       #40 pc 000e7cab  /system/lib/libandroid_runtime.so (android::AndroidRuntime::start(char const*, android::Vector<android::String8> const&, bool)+902) (BuildId: c6a2e21badf5d10047ff0cd1db332a6d)
+11-16 03:22:38.585 F/DEBUG   (11601):       #41 pc 000025f9  /system/bin/app_process32 (main+936) (BuildId: a45aebd9163e396f8a6ff898544071a6)
+11-16 03:22:38.585 F/DEBUG   (11601):       #42 pc 0004a059  /apex/com.android.runtime/lib/bionic/libc.so (__libc_init+72) (BuildId: f5aae4373d3a809a46cab1f6865c7a56)
+11-16 03:35:07.307 F/crashpad(21064): #r'1Pp%u~w+k0v5O_eO6{fZ1V_~dyg_X|n+QV_bq!ovN;SUrO-HQV_bqsAu7t-%_X.gs&mYys)cQkNlTX1ccR}}mXq1*dI/Dj+/ROA-)U`DedtEL?7BnSv7G;bee(Naq(Iy[p=?5ztd4z2))ga\t)?iIdu6`fK}R}4->8Gs;.t-7~ZRc^4F5PAD_T#l,|lZ=VSbzk,|lZ=BM2y]ZEK`}SW*akNYjTRI&6ipWMKV0ylxu(?tlStoaFJI.cD&G>KX1;surBc
+11-16 03:35:07.355 F/crashpad(21064): #:)w}y{KZw75eejFH*@1?u,pk;h`\PHEgF*2\C|SRA.oD]p`^1:f75EsVc^8Zri(u_\f7/J_Le)r9"O3%5fqgQHEgFx)$l`bQA0pe_A:_HEaA:(gS:cE?r[NHE1Wzv7/J_wv9CZRdS'T4zN*`5_?8Y(&Bsn(Xbtkg>z7s_4b&q"b%`H_*q_tr:KHJ>I]$6%Z@EN^bifEuv?c6}Mu|$rTzj~wUF{gmk;D1Bq*&Aa5ZJNvFulvdgccJH}4:W,PEJ}4{+na*x
+11-16 04:21:46.968 E/AndroidRuntime(19279): FATAL EXCEPTION: MainThread-UE4
+11-16 04:22:10.906 E/AndroidRuntime(20681): FATAL EXCEPTION: MainThread-UE4
+11-16 04:22:29.185 E/AndroidRuntime(21298): FATAL EXCEPTION: MainThread-UE4
+11-16 04:26:53.259 E/AndroidRuntime(21847): FATAL EXCEPTION: MainThread-UE4
+11-16 04:51:36.865 E/AndroidRuntime( 6399): FATAL EXCEPTION: MainThread-UE4
+11-16 11:59:11.675 F/libc    (19995): Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7bcfe78 in tid 20071 (GameThread), pid 19995 (MainThread-UE4)
+11-16 11:59:12.740 F/DEBUG   (20804): Cmdline: com.tencent.tmgp.pubgm
+11-16 11:59:12.740 F/DEBUG   (20804): signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7bcfe78
+11-16 11:59:12.742 F/DEBUG   (20804): backtrace:
+11-16 11:59:12.743 F/DEBUG   (20804):       #00 pc 0005b924  /apex/com.android.runtime/lib/bionic/libc.so (realpath+0) (BuildId: f5aae4373d3a809a46cab1f6865c7a56)
+11-16 11:59:12.743 F/DEBUG   (20804):       #01 pc 0001245d  /apex/com.android.art/lib/libopenjdk.so (canonicalize+76) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 11:59:12.743 F/DEBUG   (20804):       #02 pc 00014ba9  /apex/com.android.art/lib/libopenjdk.so (Java_java_io_UnixFileSystem_canonicalize0+80) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 11:59:12.743 F/DEBUG   (20804):       #03 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 11:59:12.743 F/DEBUG   (20804):       #04 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 11:59:12.743 F/DEBUG   (20804):       #05 pc 000f0754  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize0+40)
+11-16 11:59:12.743 F/DEBUG   (20804):       #06 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 11:59:12.743 F/DEBUG   (20804):       #07 pc 000f05cc  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize+8)
+11-16 11:59:12.743 F/DEBUG   (20804):       #08 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 11:59:12.743 F/DEBUG   (20804):       #09 pc 000dd0a4  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalPath+28)
+11-16 11:59:12.743 F/DEBUG   (20804):       #10 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 11:59:12.743 F/DEBUG   (20804):       #11 pc 000dceb0  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalFile+0)
+11-16 11:59:12.743 F/DEBUG   (20804):       #12 pc 224a8670  [anon:dalvik-main space (region space)]
+11-16 12:07:18.959 F/libc    (28035): Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7f2ee78 in tid 28087 (GameThread), pid 28035 (MainThread-UE4)
+11-16 12:07:19.913 F/DEBUG   (28638): Cmdline: com.tencent.tmgp.pubgm
+11-16 12:07:19.913 F/DEBUG   (28638): signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7f2ee78
+11-16 12:07:19.915 F/DEBUG   (28638): backtrace:
+11-16 12:07:19.916 F/DEBUG   (28638):       #00 pc 0005b924  /apex/com.android.runtime/lib/bionic/libc.so (realpath+0) (BuildId: f5aae4373d3a809a46cab1f6865c7a56)
+11-16 12:07:19.916 F/DEBUG   (28638):       #01 pc 0001245d  /apex/com.android.art/lib/libopenjdk.so (canonicalize+76) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 12:07:19.916 F/DEBUG   (28638):       #02 pc 00014ba9  /apex/com.android.art/lib/libopenjdk.so (Java_java_io_UnixFileSystem_canonicalize0+80) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 12:07:19.916 F/DEBUG   (28638):       #03 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:07:19.916 F/DEBUG   (28638):       #04 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:07:19.916 F/DEBUG   (28638):       #05 pc 000f0754  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize0+40)
+11-16 12:07:19.916 F/DEBUG   (28638):       #06 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:07:19.916 F/DEBUG   (28638):       #07 pc 000f05cc  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize+8)
+11-16 12:07:19.916 F/DEBUG   (28638):       #08 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:07:19.916 F/DEBUG   (28638):       #09 pc 000dd0a4  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalPath+28)
+11-16 12:07:19.916 F/DEBUG   (28638):       #10 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:07:19.916 F/DEBUG   (28638):       #11 pc 000dceb0  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalFile+0)
+11-16 12:07:19.916 F/DEBUG   (28638):       #12 pc 392ca58b  <unknown>
+11-16 12:15:41.268 F/libc    ( 2780): Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7cbfe78 in tid 2905 (GameThread), pid 2780 (MainThread-UE4)
+11-16 12:15:42.355 F/DEBUG   ( 4949): Cmdline: com.tencent.tmgp.pubgm
+11-16 12:15:42.356 F/DEBUG   ( 4949): signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7cbfe78
+11-16 12:15:42.358 F/DEBUG   ( 4949): backtrace:
+11-16 12:15:42.358 F/DEBUG   ( 4949):       #00 pc 0005b924  /apex/com.android.runtime/lib/bionic/libc.so (realpath+0) (BuildId: f5aae4373d3a809a46cab1f6865c7a56)
+11-16 12:15:42.358 F/DEBUG   ( 4949):       #01 pc 0001245d  /apex/com.android.art/lib/libopenjdk.so (canonicalize+76) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 12:15:42.358 F/DEBUG   ( 4949):       #02 pc 00014ba9  /apex/com.android.art/lib/libopenjdk.so (Java_java_io_UnixFileSystem_canonicalize0+80) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 12:15:42.358 F/DEBUG   ( 4949):       #03 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:15:42.358 F/DEBUG   ( 4949):       #04 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:15:42.358 F/DEBUG   ( 4949):       #05 pc 000f0754  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize0+40)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #06 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #07 pc 000f05cc  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize+8)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #08 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #09 pc 000dd0a4  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalPath+28)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #10 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #11 pc 000dceb0  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalFile+0)
+11-16 12:15:42.359 F/DEBUG   ( 4949):       #12 pc 0a057f7d  [anon:dalvik-main space (region space)]
+11-16 12:24:14.208 F/libc    (11075): Fatal signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7cc9e78 in tid 11154 (GameThread), pid 11075 (MainThread-UE4)
+11-16 12:24:15.612 F/DEBUG   (11684): Cmdline: com.tencent.tmgp.pubgm
+11-16 12:24:15.612 F/DEBUG   (11684): signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0xe7cc9e78
+11-16 12:24:15.614 F/DEBUG   (11684): backtrace:
+11-16 12:24:15.614 F/DEBUG   (11684):       #00 pc 0005b924  /apex/com.android.runtime/lib/bionic/libc.so (realpath+0) (BuildId: f5aae4373d3a809a46cab1f6865c7a56)
+11-16 12:24:15.614 F/DEBUG   (11684):       #01 pc 0001245d  /apex/com.android.art/lib/libopenjdk.so (canonicalize+76) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 12:24:15.614 F/DEBUG   (11684):       #02 pc 00014ba9  /apex/com.android.art/lib/libopenjdk.so (Java_java_io_UnixFileSystem_canonicalize0+80) (BuildId: aac7b562de1c4c05c552c4e2748e2f6b)
+11-16 12:24:15.614 F/DEBUG   (11684):       #03 pc 000d42dd  /apex/com.android.art/lib/libart.so (art_quick_generic_jni_trampoline+44) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:24:15.614 F/DEBUG   (11684):       #04 pc 000c886c  /apex/com.android.art/lib/libart.so (nterp_helper+2908) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:24:15.615 F/DEBUG   (11684):       #05 pc 000f0754  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize0+40)
+11-16 12:24:15.615 F/DEBUG   (11684):       #06 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:24:15.615 F/DEBUG   (11684):       #07 pc 000f05cc  /apex/com.android.art/javalib/core-oj.jar (java.io.UnixFileSystem.canonicalize+8)
+11-16 12:24:15.615 F/DEBUG   (11684):       #08 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:24:15.615 F/DEBUG   (11684):       #09 pc 000dd0a4  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalPath+28)
+11-16 12:24:15.615 F/DEBUG   (11684):       #10 pc 000c8800  /apex/com.android.art/lib/libart.so (nterp_helper+2800) (BuildId: 0afa6cdd92f4bf476686f03f01476c44)
+11-16 12:24:15.615 F/DEBUG   (11684):       #11 pc 000dceb0  /apex/com.android.art/javalib/core-oj.jar (java.io.File.getCanonicalFile+0)
+11-16 12:24:15.615 F/DEBUG   (11684):       #12 pc 0670ff77  [anon:dalvik-main space (region space)]
+（150 行）
+== 游戏私有目录里的崩溃文件 ==
+--- 闪退现场 tomb_1794836312124.txt 21:38:32 ---
+--- --- --- --- --- --- --- Bugly NDK 3.3.1 --- --- --- --- --- --- --- 
+Build fingerprint: HONOR/MTN-AN00/HNMTN-Q:16/HONORMTN-AN00/10DLDLD135C00E130:user/release-keys
+Revision: 0
+ABI: arm
+time: 2026-11-16 21:38:32
+pid: 18146, tid: 18203, name: GameThread  >>> com.tencent.tmgp.pubgm <<<
+signal: 11 (SIGSEGV), code: 1 (SEGV_MAPERR) fault addr: 0x4
+si_errno:0, si_errnoMsg:Success, sending pid:0, sending uid:0
+    r0: 0x00000000  r1: 0x00000000  r2: 0x982f5339  r3: 0x00000000
+    r4: 0x9754b180  r5: 0xab89ba58  r6: 0xa0227180  r7: 0xa0227000
+    r8: 0xffffffe0  r9: 0x00000000  r10: 0x9754b180  fp: 0xab89ba88
+    ip: 0xe7120800  sp: 0xab89ba20  lr: 0xe7120a28  pc: 0xae3af058
+    cpsr: 0x60010010
+        #00    pc 0276f058    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #01    pc 0276f054    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #02    pc 0276f050    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #03    pc 0276f04c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #04    pc 0276f048    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #05    pc 0276f044    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #06    pc 0276f040    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #07    pc 0276f03c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #08    pc 0276f038    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #09    pc 0276f034    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #10    pc 0276f030    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #11    pc 0276f02c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #12    pc 0276f028    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #13    pc 0276f024    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #14    pc 0276f020    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #15    pc 0276f01c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #16    pc 0276f018    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #17    pc 0276f014    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #18    pc 0276f010    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #19    pc 0276f00c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #20    pc 0276f008    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #21    pc 0276f004    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #22    pc 0276f000    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #23    pc 0276effc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #24    pc 0276eff8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #25    pc 0276eff4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #26    pc 0276eff0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #27    pc 0276efec    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #28    pc 0276efe8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #29    pc 0276efe4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #30    pc 0276efe0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #31    pc 0276efdc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #32    pc 0276efd8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #33    pc 0276efd4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #34    pc 0276efd0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #35    pc 0276efcc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #36    pc 0276efc8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #37    pc 0276efc4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #38    pc 0276efc0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #39    pc 0276efbc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #40    pc 0276efb8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #41    pc 0276efb4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #42    pc 0276efb0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #43    pc 0276efac    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #44    pc 0276efa8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #45    pc 0276efa4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #46    pc 0276efa0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #47    pc 0276ef9c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #48    pc 0276ef98    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+
+--- 闪退现场 tomb_1794836262561.txt 21:37:42 ---
+--- --- --- --- --- --- --- Bugly NDK 3.3.1 --- --- --- --- --- --- --- 
+Build fingerprint: HONOR/MTN-AN00/HNMTN-Q:16/HONORMTN-AN00/10DLDLD135C00E130:user/release-keys
+Revision: 0
+ABI: arm
+time: 2026-11-16 21:37:42
+pid: 17444, tid: 17491, name: GameThread  >>> com.tencent.tmgp.pubgm <<<
+signal: 11 (SIGSEGV), code: 1 (SEGV_MAPERR) fault addr: 0x4
+si_errno:0, si_errnoMsg:Success, sending pid:0, sending uid:0
+    r0: 0x00000000  r1: 0x00000000  r2: 0x8aea5486  r3: 0x00000000
+    r4: 0x9b221800  r5: 0xb1276a58  r6: 0xa85e9180  r7: 0xa85e9000
+    r8: 0xffffffe0  r9: 0x00000000  r10: 0x9b221800  fp: 0xb1276a88
+    ip: 0x989ed400  sp: 0xb1276a20  lr: 0x989ed628  pc: 0xae4c3058
+    cpsr: 0x60010010
+        #00    pc 0276f058    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #01    pc 0276f054    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #02    pc 0276f050    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #03    pc 0276f04c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #04    pc 0276f048    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #05    pc 0276f044    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #06    pc 0276f040    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #07    pc 0276f03c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #08    pc 0276f038    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #09    pc 0276f034    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #10    pc 0276f030    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #11    pc 0276f02c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #12    pc 0276f028    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #13    pc 0276f024    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #14    pc 0276f020    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #15    pc 0276f01c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #16    pc 0276f018    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #17    pc 0276f014    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #18    pc 0276f010    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #19    pc 0276f00c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #20    pc 0276f008    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #21    pc 0276f004    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #22    pc 0276f000    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #23    pc 0276effc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #24    pc 0276eff8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #25    pc 0276eff4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #26    pc 0276eff0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #27    pc 0276efec    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #28    pc 0276efe8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #29    pc 0276efe4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #30    pc 0276efe0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #31    pc 0276efdc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #32    pc 0276efd8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #33    pc 0276efd4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #34    pc 0276efd0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #35    pc 0276efcc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #36    pc 0276efc8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #37    pc 0276efc4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #38    pc 0276efc0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #39    pc 0276efbc    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #40    pc 0276efb8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #41    pc 0276efb4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #42    pc 0276efb0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #43    pc 0276efac    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #44    pc 0276efa8    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #45    pc 0276efa4    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #46    pc 0276efa0    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #47    pc 0276ef9c    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #48    pc 0276ef98    /data/app/~~jWhdC6RkbzGqjH86-8JPgQ==/com.tencent.tmgp.pubgm-I8SkqQzIhdirlGQOinXEiA==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+
+22:02:10 /data/data/com.tencent.tmgp.pubgm/databases/bugly_db_msdk 8192000
+22:01:34 /data/data/com.tencent.tmgp.pubgm/app_crashrecord/1004 58
+22:01:34 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794837694452153.txt 0
+21:51:44 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794837104628793.txt 0
+21:47:03 /data/data/com.tencent.tmgp.pubgm/files/zf_crash_saved 18
+21:46:42 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794836802965910.txt 0
+21:38:32 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_1794836312124.txt 9569
+21:37:42 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_1794836262561.txt 9569
+21:20:52 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794835252316011.txt 0
+21:19:25 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_1794835164732.txt 9567
+21:16:37 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_1794834996848.txt 9569
+21:01:49 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794834109698534.txt 0
+20:44:05 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794833045319111.txt 0
+19:44:46 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794829486195771.txt 0
+19:22:41 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794828161186311.txt 0
+19:22:32 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_1794828152761.txt 9568
+== 上一次游戏日志最后 80 行 ==
+PUBGM-backup-2026.11.16-22.01.36.log 250156 字节
+[2026.11.16-21.52.10:782][  789]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=37011, sequenceid=8, len=16
+[2026.11.16-21.52.10:804][  791]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_n_MAX.ubulk
+[2026.11.16-21.52.10:805][  791]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_n_MAX.ubulk
+[2026.11.16-21.52.10:806][  791]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_n_MAX.ubulk
+[2026.11.16-21.52.10:807][  791]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_MRO.ubulk
+[2026.11.16-21.52.10:808][  791]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_MRO.ubulk
+[2026.11.16-21.52.10:809][  791]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_MRO.ubulk
+[2026.11.16-21.52.10:814][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_d.ubulk
+[2026.11.16-21.52.10:814][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Boot/30326000010/M_Shoes_d.ubulk
+[2026.11.16-21.52.10:815][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/MRO.ubulk
+[2026.11.16-21.52.10:816][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/MRO.ubulk
+[2026.11.16-21.52.10:817][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/MRO.ubulk
+[2026.11.16-21.52.10:817][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/M_Jacket_PU_01_N_MAX.ubulk
+[2026.11.16-21.52.10:818][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/M_Jacket_PU_01_N_MAX.ubulk
+[2026.11.16-21.52.10:819][  792]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/M_Jacket_PU_01_N_MAX.ubulk
+[2026.11.16-21.52.10:824][  793]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/M_Jacket_PU_01_Mat_3in1.ubulk
+[2026.11.16-21.52.10:826][  793]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/M_Jacket_PU_01_Mat_3in1.ubulk
+[2026.11.16-21.52.10:827][  793]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/CoatCutInsideWithHat/30318000000/M_Jacket_PU_01_Mat_3in1.ubulk
+[2026.11.16-21.52.10:827][  793]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000021/F_Body_PU_01_D_03_3IN1_NEW.ubulk
+[2026.11.16-21.52.10:829][  793]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000021/F_Body_PU_01_D_03_3IN1_NEW.ubulk
+[2026.11.16-21.52.10:829][  793]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000021/F_Body_PU_01_D_03_3IN1_NEW.ubulk
+[2026.11.16-21.52.10:835][  794]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000004/F_MRO.ubulk
+[2026.11.16-21.52.10:837][  794]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000004/F_MRO.ubulk
+[2026.11.16-21.52.10:837][  794]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000004/F_MRO.ubulk
+[2026.11.16-21.52.10:838][  794]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000004/F_Body_PU_01_N_MAX.ubulk
+[2026.11.16-21.52.10:841][  794]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000004/F_Body_PU_01_N_MAX.ubulk
+[2026.11.16-21.52.10:841][  794]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Shirt/30302000004/F_Body_PU_01_N_MAX.ubulk
+[2026.11.16-21.52.10:847][  795]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Facing/30308000005/mask_Normal.ubulk
+[2026.11.16-21.52.10:847][  795]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Facing/30308000005/mask_Normal.ubulk
+[2026.11.16-21.52.10:848][  795]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Facing/30308000005/mask_MRO.ubulk
+[2026.11.16-21.52.10:848][  795]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Facing/30308000005/mask_MRO.ubulk
+[2026.11.16-21.52.10:849][  795]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Facing/30308000005/mask_D.ubulk
+[2026.11.16-21.52.10:849][  795]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Avatar/Common/Facing/30308000005/mask_D.ubulk
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-21.52.10:865][  795]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:1!
+[2026.11.16-21.52.10:956][  807]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.11:262][  843]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.11:564][  879]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.11:873][  908]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.12:191][  939]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.12:484][  973]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.12:824][ 1000]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.12:880][ 1002]LogAndroid: Case APP_CMD_LOST_FOCUS
+[2026.11.16-21.52.12:881][ 1002]LogAndroidEvents: Display: DequeueAppEvent : 10, 0
+[2026.11.16-21.52.13:103][ 1017]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.13:204][ 1022]0) NZSystemSettingData /Engine/Transient.NZSystemSettingData_0.RenderQualityOption = Low
+[2026.11.16-21.52.13:377][ 1035]LuaLog: Display: [lua log] [Mon Nov 16 21:52:13 2026] HotUpdate can't not find achievementawardui  
+
+[2026.11.16-21.52.13:380][ 1035]LuaLog: Display: [lua log] [Mon Nov 16 21:52:13 2026] HotUpdate can't not find achievementawarditem  
+
+[2026.11.16-21.52.13:409][ 1039]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.13:534][ 1041]LogTemp: PhysCostTime:0.000|SimCostTime:0.000|StatCnt:740
+[2026.11.16-21.52.13:617][ 1041]LogTemp: TERSAFE:HandleAntiData
+[2026.11.16-21.52.13:752][ 1044]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-21.52.13:797][ 1045]LogAndroid: Case APP_CMD_PAUSE
+[2026.11.16-21.52.13:814][ 1045]LogAndroidEvents: Display: DequeueAppEvent : 6, 0
+[2026.11.16-21.52.13:814][ 1045]LogTemp: [NZGame] recv APP_EVENT_STATE_ON_PAUSE, so set bHaveGame=false
+[2026.11.16-21.52.13:822][ 1045]LogTemp: UNZPlatformAudioHelper::OnApplicationWillDeactive : AkGameplay Suspend
+[2026.11.16-21.52.13:823][ 1045]LogRHI: Saving shader cache: ../../../PUBGM/Saved/DrawCache-GLSL_ES3_1_ANDROID.ushadercache
+[2026.11.16-21.52.13:909][ 1045]NZPluginGEM: AppToBackground
+[2026.11.16-21.52.13:909][ 1045]NZPluginGEM: NZEnd
+[2026.11.16-21.52.13:984][ 1045]LogTemp: Android pause audio
+[2026.11.16-21.52.14:085][ 1045]LogAndroid: Case APP_CMD_SAVE_STATE
+[2026.11.16-21.52.14:086][ 1045]LogAndroid: Case APP_CMD_TERM_WINDOW
+[2026.11.16-21.52.14:086][ 1045]LogAndroidEvents: Display: DequeueAppEvent : 12, 0
+[2026.11.16-21.52.14:087][ 1045]LogAndroidEvents: Display: DequeueAppEvent : 3, 0
+[2026.11.16-21.52.14:201][ 1045]LogAndroid: Case APP_CMD_STOP
+[2026.11.16-21.52.14:201][ 1045]LogAndroidEvents: Display: DequeueAppEvent : 8, 0
+[2026.11.16-21.52.14:202][ 1045]LogTemp: [NZGame] recv APP_EVENT_STATE_ON_STOP, so set bHaveGame=false
+
+[2026.11.16-22.01.40:073][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_fa99b647693bd17e97be2567ea293086-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Hair/".
+[2026.11.16-22.01.40:073][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_fa6c84bf1535954412ab099bbe8359ed-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.16-22.01.40:073][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f9af588468b6760f3d17e4dd5de5753c-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/ShortTrousers/".
+[2026.11.16-22.01.40:073][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f70cf86cc4d21209baf0e5e1ac5f7dba-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.16-22.01.40:073][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f54ab436001b08a695d4f74fb69aecc6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.16-22.01.40:073][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f38af86e6e7efee88bc9b8623eeda7c0-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_ec9122d878eedb0ac276c571f121c0f2-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_ec780b2bff70c2307ed9c3c691cf493c-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_dbf22f402fe361f4e441345e4d5ea1f6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_da4189438fd6cb5f2ac32120293b652c-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Bagpack/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_d027922abdfe89d0842a5438a29da712-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_cd9212e2e38c12614982698db7651402-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_cc7a30127ee122f70ef6a67dc8ab315f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Ghillie/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c8e99f9de7928c6d39a6e1ee29025d56-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c7f03540b1fd2aba92c9444b425f84f9-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000001/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c3b9b854c61d6c2a8f9cef14c905a770-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Overall/30323000002/".
+[2026.11.16-22.01.40:074][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c0835539d1e79faf163680a12bd46e46-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Character/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_bbfb5128122db5166cfad4453e20fce6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/LongShirt/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_b8953424c632f491edbdf06bcd64144a-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_adb009fe8097657ef9c5b2d76e4fa2e1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_a9e9e6afb3d3392e3379fecf62adb1af-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_a7ebfd2047d2dc5c38a19435d2d0c408-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Character/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_a17880e1d682285f29358c9478752687-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:075][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_9c5cc489bfcfb02a6257eae2e4ce63db-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortShirt/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_8df5a046a694a93ee2ae2e0d94dd0379-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_8c34b1c2ede410563d4462ba2710dab8-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Hair/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_8624257f5faf3889e31f716a00ae1195-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_7fc37d0f115660a03a98ef8ed40e29be-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_7b5fa81bebdc7380dd2f95c67798b249-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_77a400ff2fd3e787a12a47dc55ecb27b-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_7756f80f9cf4e1f5ddeb5c7d4e35fd58-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Hair/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_771a490be57e06921b1a7944b0dfc521-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Helmet/".
+[2026.11.16-22.01.40:076][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_71e04843d5240e9b8be8d4750f8904ac-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortTrousers/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_6c21aee3354de113b5ce8f2839bae6ee-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Character/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_6529ba153fb97a1204ae64eeeabcffb1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Character/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_5bfc1b91987145bb3480b1bf1ad78f96-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_5a848240bb2b31ed4762f59da5c3ed7d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_5987e7cbde0143e3223ea2dd4c7355e1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/BareMidriff/30232000006/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_549d30de8c43344d14a79aefdb0eec7b-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:077][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_543662cef52321407afc50823c3a8e7d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_50b2f1f172478e071b87703fc7471f64-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000002/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_49bbdaf460a1ecd155b9dd5817615e64-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Bagpack/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_47ceced952058a6ee550739458fce99d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/ShortTrousers/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_43b90cd02c5439f4924196dbd61fb438-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/BareMidriff/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3f69ca52523ef7887e3fbbd97533bb0f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3c1325f30e93c652271e3918a9ca07e1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_352d9ea3c58bbf6f3a4595b111fd9761-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3508239e2c800a0baec5fc95785acb3f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000005/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_325c16cc4994c10aba4a941824ead5ae-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000004/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3246e7f563465d56d99cb058ae20602a-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2e2de190da27e20d5def758b380ff9dc-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000000/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2d7aea3dd936e90bc911e2eff95a8e62-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Base/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2b0b86fc799c1ef898bb8fd06a0c40bb-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.16-22.01.40:078][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2a792d0fcc99d58a14298541d6ad0eb0-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortShirt/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_29124eda5141ddd75e8f7fe409690f20-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/30315000061/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_28846ddb7087223c1536f0b77522a856-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Hair/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_27a5fa662ae90d4d595ec8ef29071edb-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Character/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_24c67bfe1b0f7f699bdcd476b72a62bf-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shoes/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_1aa28ee9b72290407313467d684f18f9-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_19a29c93cf7e533c8e52e14f6440ecb1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000003/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_17d6b92c19a82b2666186f1fd54132cc-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_1759f4fc3963ef3226b4724e028e95b5-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_16d93c15c4ad3bba0d0fd920581581c6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_165f5090aa690031d77a09169168bb4f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_1452221a648d9d867c7e5b0762ff111d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shoes/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_133cd30b503a5d4bbcdf5193f7c55d5b-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_0afa5b1512a9ded1dc79ce1bda307989-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/30301000071/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_0af6413dfe41acb5315c7441a1c283d8-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_0a6dbea994f26aed26fa0365033bf35f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000005/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_08b56ec2e06bf0ad57fe294bc9575e7e-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortShirt/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_04551149b029499062ef02ade1f9d8fb-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/LongShirt/".
+[2026.11.16-22.01.40:079][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_03be91f8e94271a1baac80118f0cc740-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.16-22.01.40:080][    0]LogPluginManager: Mounting plugin MergeAvatarPlugin
+[2026.11.16-22.01.40:082][    0]LogInit: Memory total: Physical=11445.67MB (12GB approx) Available=3790.77MB PageSize=4.0KB
+[2026.11.16-22.01.40:086][    0]LogTemp: cidefeng -------- 0x9c2a8000
+[2026.11.16-22.01.40:086][    0]LogTemp: cidefeng UNZUserCustomData -------- 0x9d5f4de0
+[2026.11.16-22.01.40:523][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:40 522] | Error | [GCloud] |0xab068af0| ApolloAccountService.cpp:82|Initialize| CApolloAccountService::CApolloAccountService() GetLoginRecord error:7
+[2026.11.16-22.01.40:601][    0]LogTemp: cidefeng -------- 0x9bd38460
+[2026.11.16-22.01.40:604][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:40 601] | Error | [GCloud] |0x99d13af0| puffer_init_action.cpp:162|MakeSureDirUseFull| dir is usefull /storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files/PufferCache
+[2026.11.16-22.01.40:604][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:40 602] | Error | [GCloud] |0x99d13af0| puffer_init_action.cpp:162|MakeSureDirUseFull| dir is usefull /storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files/PufferCache/puffer_temp
+[2026.11.16-22.01.40:604][    0]LogTemp: cidefeng UNZUserCustomData -------- 0x9b160940
+[2026.11.16-22.01.40:605][    0]LogTemp: cidefeng UNZSystemSettingData UpdateByVersion
+[2026.11.16-22.01.40:605][    0]LogTemp: cidefeng UNZSystemSettingData UpdateByVersion NewVersion:9 CurVersion:9
+[2026.11.16-22.01.40:606][    0]LogTemp: cidefeng UNZSystemSettingData OnLoadInit
+[2026.11.16-22.01.42:221][    0]LogTemp: cidefeng UNZSystemSettingData PreLoadMap: /Game/Startup/StartupMap
+[2026.11.16-22.01.42:222][    0]LogTemp: cidefeng ApplyRenderQuality bCanApplyRenderQuality:0
+[2026.11.16-22.01.42:260][    0]LogLoad: LoadMap: /Game/Startup/StartupMap?Name=Player
+[2026.11.16-22.01.42:703][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:42 703] | Error | [GCloud] |0xab068af0| version_mgr_imp.cpp:46|Init| UsrConfig[{
+[2026.11.16-22.01.42:706][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:42 706] | Error | [GCloud] |0xab068af0| action_factory.cpp:102|init| init str :{
+[2026.11.16-22.01.42:707][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:42 707] | Error | [GCloud] |0xab068af0| action_factory.cpp:162|init| User_Data=
+[2026.11.16-22.01.42:707][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:42 707] | Error | [GCloud] |0xab068af0| action_factory.cpp:169|init| apollopath=/storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files/update/
+[2026.11.16-22.01.42:710][    0]NZOnlineSubsystem: Error: [2026-11-16 22:01:42 710] | Error | [GCloud] |0xab068af0| action_factory.cpp:152|init| m_update_type=20
+[2026.11.16-22.01.42:781][    0]LogTemp: cidefeng PostLoadMapWithWorld World: StartupMap
+[2026.11.16-22.01.42:781][    0]LogTemp: cidefeng UNZSystemSettingData SetWorldContext WorldContextRef: StartupMap
+[2026.11.16-22.01.42:781][    0]LogTemp: cidefeng PostLoadMapWithWorld Before bHadInited_UseRTTInBag:1 bUseRTTInBag:1
+[2026.11.16-22.01.42:782][    0]LogTemp: cidefeng PostLoadMapWithWorld After bHadInited_UseRTTInBag:1 bUseRTTInBag:1
+[2026.11.16-22.01.42:782][    0]LogTemp: cidefeng ApplyMSAA bUseMSAA:0 bRealUseMSAA: 0
+[2026.11.16-22.01.42:795][    0]LogLoad: Took 0.535811 seconds to LoadMap(/Game/Startup/StartupMap)
+[2026.11.16-22.01.43:838][    4]NZOnlineSubsystem: Error: [2026-11-16 22:01:43 837] | Error | [GCloud] |0xab068af0| IFSOpenArchive.cpp:120|SFileOpenArchive| [result]:read ifs failed and error=107
+[2026.11.16-22.01.43:838][    4]NZOnlineSubsystem: Error: [2026-11-16 22:01:43 838] | Error | [GCloud] |0xab068af0| first_extract_action.cpp:354|Initifs| SFileOpenArchive apk:///data/app/~~uW5Zj_GJQvXTEpDaQ16n1w==/com.tencent.tmgp.pubgm-wGZ8za65l1CawNYHM5iA7w==/base.apk?assets/nzres.png 107
+[2026.11.16-22.01.43:838][    4]NZOnlineSubsystem: Error: [2026-11-16 22:01:43 838] | Error | [GCloud] |0xab068af0| first_extract_action.cpp:92|DoAction| init ifs failed
+[2026.11.16-22.01.43:840][    4]NZFrontEnd: [lb#OnResUpdateResult] InErrorCode: 107, InInfo: 更新中(100):
+[2026.11.16-22.01.43:999][   10]NZOnlineSubsystem: Error: [2026-11-16 22:01:43 997] | Error | [GCloud] |0x99d13af0| address_service.cpp:640|ProcessResponse| Recv_QueryAddrInfo ret:0, rsp.result:-101
+[2026.11.16-22.01.43:999][   10]NZOnlineSubsystem: Error: [2026-11-16 22:01:43 999] | Error | [GCloud] |0x99d13af0| rpc.cpp:495|OnGetServiceAddress| GetIpPorts failed(-11).
+[2026.11.16-22.01.46:520][  208]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.47:004][  265]LogTemp: cidefeng UNZSystemSettingData PreLoadMap: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+[2026.11.16-22.01.47:006][  265]LogTemp: cidefeng FTerSafeAPI:IsRunningInSimulator 0
+[2026.11.16-22.01.47:006][  265]LogTemp: cidefeng UNZSystemSettingData CheckIsRunInSimulator IsRunningInSimulator: 0 TAS:0
+[2026.11.16-22.01.47:006][  265]LogTemp: cidefeng UNZSystemSettingData CheckIsRunInSimulator : 0
+[2026.11.16-22.01.47:049][  265]LogLoad: LoadMap: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+[2026.11.16-22.01.47:378][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:378][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:451][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:451][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:451][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:451][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:451][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:452][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:664][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:665][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:701][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:702][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:702][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:702][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.47:754][  265]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.01.47:763][  265]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.01.47:764][  265]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.01.47:765][  265]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.01.47:790][  265]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.01.47:795][  265]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.01.47:845][  265]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.16-22.01.47:845][  265]LogTemp: cidefeng UNZUIEventManager::Get Create UIEventManager
+[2026.11.16-22.01.47:846][  265]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.16-22.01.47:846][  265]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.16-22.01.47:846][  265]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.16-22.01.47:847][  265]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.16-22.01.47:847][  265]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.16-22.01.48:048][  265]NZ: [NZUIAvatarProxyManager.cpp:114] ###jayzhong### ANZUIAvatarProxyManager::InitProxyManager
+[2026.11.16-22.01.48:775][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:775][  265]NZOnlineSubsystem: KeyLobbyMsg: SendMsg 36001, waiting for response 36002, SequenceID=1, IsKeyMsg=1
+[2026.11.16-22.01.48:779][  265]NZFrontEnd: UNZFrontEndUIController::InitAvatar
+[2026.11.16-22.01.48:779][  265]LogTemp: UNZStoreDataServer::CacheStoreProp Avatar = 10200000000 ownerid = 1
+[2026.11.16-22.01.48:779][  265]LogTemp: UNZStoreDataServer::CacheStoreProp Avatar = 10100000000 ownerid = 0
+[2026.11.16-22.01.48:779][  265]LogTemp: UNZStoreDataServer::CacheStoreProp  CacheProp Num = 9
+[2026.11.16-22.01.48:781][  265]NZ: Error: [NZFrontEndSceneMgr.cpp:233] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultDirectLight
+[2026.11.16-22.01.48:781][  265]NZ: Error: [NZFrontEndSceneMgr.cpp:243] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultSkyLight
+[2026.11.16-22.01.48:781][  265]NZ: [NZFrontEndSceneMgr.cpp:246] ANZUIAvatarProxyManager SwitchLight with type 1 result type 1
+[2026.11.16-22.01.48:785][  265]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry roleID = 10200000000
+[2026.11.16-22.01.48:786][  265]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30302000000
+[2026.11.16-22.01.48:786][  265]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30301000001
+[2026.11.16-22.01.48:786][  265]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30306000000
+[2026.11.16-22.01.48:786][  265]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30213000003
+[2026.11.16-22.01.48:786][  265]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30303000006
+[2026.11.16-22.01.48:786][  265]NZ: [NZUIAvatarProxyManager.cpp:224] ###jayzhong### EquipItemsForHallRole  10200000000, 30302000000, 30301000001, 30306000000, 30213000003, 30303000006, 
+[2026.11.16-22.01.48:788][  265]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.01.48:791][  265]NZ: Warning: [NZBRCharacterUI.cpp:113] NZBRCharacterUI PlayUIAnimSet USkeletalMeshComponent empty at UICharacter_2
+[2026.11.16-22.01.48:791][  265]NZFrontEnd: UNZFrontEndUIController::InitAvatar  EquipItemsForHallRole
+[2026.11.16-22.01.48:792][  265]NZ: [NZBRWeaponUI.cpp:800] ANZBRWeaponUI EquipWeapon weapon ids: WeaponId:0, WeaponSuiteSkin:0, WeaponSkin:0, Adapters 0, AdapterSkins 0
+[2026.11.16-22.01.48:794][  265]NZFrontEnd: UNZFrontEndUIController::InitAvatar End
+[2026.11.16-22.01.48:796][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:796][  265]NZOnlineSubsystem: KeyLobbyMsg: SendMsg 22005, waiting for response 22006, SequenceID=2, IsKeyMsg=0
+[2026.11.16-22.01.48:797][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:798][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:813][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:813][  265]NZOnlineSubsystem: KeyLobbyMsg: SendMsg 30014, waiting for response 30015, SequenceID=5, IsKeyMsg=0
+[2026.11.16-22.01.48:816][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:818][  265]NZOnlineSubsystem: KeyLobbyMsg: reliable msg is waiting for response, message 37010 is add to pending list=1
+[2026.11.16-22.01.48:823][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.48:823][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.48:823][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.48:823][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.48:823][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.48:823][  265]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.48:824][  265]NZ: Error: [NZFrontEndSceneMgr.cpp:233] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultDirectLight
+[2026.11.16-22.01.48:824][  265]NZ: Error: [NZFrontEndSceneMgr.cpp:243] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultSkyLight
+[2026.11.16-22.01.48:824][  265]NZ: [NZFrontEndSceneMgr.cpp:246] ANZUIAvatarProxyManager SwitchLight with type 1 result type 1
+[2026.11.16-22.01.48:837][  265]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.01.48:945][  265]LogTemp: cidefeng PostLoadMapWithWorld World: FrontEndMap_NEW
+[2026.11.16-22.01.48:945][  265]LogTemp: cidefeng UNZSystemSettingData SetWorldContext WorldContextRef: FrontEndMap_NEW
+[2026.11.16-22.01.48:945][  265]LogTemp: cidefeng PostLoadMapWithWorld Before bHadInited_UseRTTInBag:1 bUseRTTInBag:1
+[2026.11.16-22.01.48:946][  265]LogTemp: cidefeng PostLoadMapWithWorld After bHadInited_UseRTTInBag:1 bUseRTTInBag:1
+[2026.11.16-22.01.48:946][  265]LogTemp: cidefeng ApplyMSAA bUseMSAA:0 bRealUseMSAA: 0
+[2026.11.16-22.01.48:993][  265]LogLoad: Took 1.944583 seconds to LoadMap(/Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW)
+[2026.11.16-22.01.49:070][  265]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.16-22.01.49:071][  265]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.16-22.01.49:380][  266]LogHttp: Warning: 0x989ebe00: request failed, libcurl error: 3 (Error)
+[2026.11.16-22.01.49:715][  266]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:0 CRQ:6
+[2026.11.16-22.01.49:715][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.49:716][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.49:718][  266]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.49:719][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.49:720][  266]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.49:720][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.01.49:720][  266]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.50:015][  274]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:015][  274]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.50:061][  275]NZ: [:1299] ###jayzhong###OnChangeHairColor CurrColorIdx:0, newColorIdx: 1, is ui: TRUE
+[2026.11.16-22.01.50:065][  275]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:1!
+[2026.11.16-22.01.50:115][  276]NZ: [:1299] ###jayzhong###OnChangeHairColor CurrColorIdx:1, newColorIdx: 1, is ui: TRUE
+[2026.11.16-22.01.57:511][  895]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=36002, sequenceid=1, len=16
+[2026.11.16-22.01.57:519][  895]NZOnlineSubsystem: KeyLobbyMsg Debug: SendPendingMsg after recv, SendMsgID=37010, SequenceID=8, waiting for response 37011
+[2026.11.16-22.01.57:520][  895]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=22006, sequenceid=2, len=14
+[2026.11.16-22.01.57:521][  895]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=30015, sequenceid=5, len=14
+[2026.11.16-22.01.57:522][  895]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=13002, sequenceid=0, len=12576
+[2026.11.16-22.01.57:523][  895]NZFrontEnd: UNZOnlineStore::OnResStoreGetProp errorID = 0
+[2026.11.16-22.01.57:524][  895]LogTemp: UNZStoreDataServer::CacheStoreProp Avatar = 10200000000 ownerid = 1
+[2026.11.16-22.01.57:524][  895]LogTemp: UNZStoreDataServer::CacheStoreProp Avatar = 10100000000 ownerid = 0
+[2026.11.16-22.01.57:524][  895]LogTemp: UNZStoreDataServer::CacheStoreProp  CacheProp Num = 736
+[2026.11.16-22.01.57:524][  895]LogTemp: [Ivy][Avatar]UNZOnlineStore::OnResStoreGetProp() has_showInfo:0, showInfoCount:0.
+[2026.11.16-22.01.57:524][  895]LogTemp: [Ivy]UNZStoreDataServer::CacheShowInfo() showInfoCount:0.
+[2026.11.16-22.01.57:525][  895]NZFrontEnd: UNZFrontEndUIController::InitAvatar
+[2026.11.16-22.01.57:525][  895]NZ: [NZFrontEndSceneMgr.cpp:246] ANZUIAvatarProxyManager SwitchLight with type 1 result type 1
+[2026.11.16-22.01.57:525][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry roleID = 10200000000
+[2026.11.16-22.01.57:525][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---storeClotheTry ClotheID = 30301000001
+[2026.11.16-22.01.57:525][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---storeClotheTry ClotheID = 30306000000
+[2026.11.16-22.01.57:525][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---storeClotheTry ClotheID = 30213000003
+[2026.11.16-22.01.57:525][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---storeClotheTry ClotheID = 30318000000
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---storeClotheTry ClotheID = 30308000005
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---storeClotheTry ClotheID = 30326000010
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30301000001
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30306000000
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30213000003
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30318000000
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30308000005
+[2026.11.16-22.01.57:526][  895]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---All ClotheID = 30326000010
+[2026.11.16-22.01.57:526][  895]NZ: [NZUIAvatarProxyManager.cpp:224] ###jayzhong### EquipItemsForHallRole  10200000000, 30301000001, 30306000000, 30213000003, 30318000000, 30308000005, 30326000010, 
+[2026.11.16-22.01.57:526][  895]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.01.57:527][  895]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30306000000,30308000005,30213000003,30318000000,30326000010
+[2026.11.16-22.01.57:527][  895]NZAvatar: Warning: RetrievePathArray Invalid ItemSolt slot 13, resType: 21
+[2026.11.16-22.01.57:527][  895]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30306000000,30308000005,30318000000,30326000010
+[2026.11.16-22.01.57:528][  895]NZFrontEnd: UNZFrontEndUIController::InitAvatar  EquipItemsForHallRole
+[2026.11.16-22.01.57:528][  895]NZ: [NZBRWeaponUI.cpp:800] ANZBRWeaponUI EquipWeapon weapon ids: WeaponId:0, WeaponSuiteSkin:0, WeaponSkin:0, Adapters 0, AdapterSkins 0
+[2026.11.16-22.01.57:529][  895]NZFrontEnd: UNZFrontEndUIController::InitAvatar End
+[2026.11.16-22.01.57:529][  895]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=37011, sequenceid=8, len=16
+[2026.11.16-22.01.57:533][  895]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.57:533][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.57:533][  895]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.57:533][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.57:533][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.01.57:534][  895]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.01.57:618][  901]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:1!
+[2026.11.16-22.01.57:768][  920]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.58:074][  956]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.58:377][  991]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.58:678][ 1027]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.58:981][ 1063]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.59:294][ 1096]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.59:593][ 1131]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.01.59:893][ 1164]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.00:206][ 1190]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.00:514][ 1222]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.00:827][ 1254]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.01:123][ 1283]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.01:432][ 1314]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.01:731][ 1346]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.02:040][ 1375]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.02:346][ 1404]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.02:644][ 1434]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.02:956][ 1464]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.03:263][ 1497]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.03:563][ 1529]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.03:871][ 1559]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.04:066][ 1580]LogHttp: Warning: 0x9b1a9d40: request failed, libcurl error: 52 (Error)
+[2026.11.16-22.02.04:176][ 1590]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.04:462][ 1617]NZOnlineSubsystem: Error: [2026-11-16 22:02:04 458] | Error | [GCloud] |0x99d13af0| puffer_init_action.cpp:622|MakeSureGetUrlFromServer| connect server timeout
+[2026.11.16-22.02.04:493][ 1619]NZOnlineSubsystem: KeyLobbyMsg: Recv msgid=5017, sequenceid=0, len=11
+[2026.11.16-22.02.04:546][ 1622]LogTemp: UNZUIEventManager::OnBeforeLoadMap MapName: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main
+[2026.11.16-22.02.04:546][ 1622]LogTemp: cidefeng UNZUIEventManager::OnBeforeLoadMap Clear UIEventManager
+[2026.11.16-22.02.04:587][ 1622]LogTemp: cidefeng UNZSystemSettingData PreLoadMap: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main
+[2026.11.16-22.02.04:587][ 1622]LogTemp: cidefeng ApplyRenderQuality bCanApplyRenderQuality:0
+[2026.11.16-22.02.04:824][ 1622]LogLoad: LoadMap: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?listen
+[2026.11.16-22.02.04:917][ 1622]NZOnlineSubsystem: Error: [2026-11-16 22:02:04 885] | Error | [GCloud] |0x99d13af0| address_service.cpp:640|ProcessResponse| Recv_QueryAddrInfo ret:0, rsp.result:-101
+[2026.11.16-22.02.04:917][ 1622]NZOnlineSubsystem: Error: [2026-11-16 22:02:04 887] | Error | [GCloud] |0x99d13af0| rpc.cpp:495|OnGetServiceAddress| GetIpPorts failed(-11).
+[2026.11.16-22.02.07:087][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.07:087][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.10:832][ 1622]LogTemp: cidefeng UNZUIEventManager::Get Create UIEventManager
+[2026.11.16-22.02.10:832][ 1622]LogTemp: cidefeng UNZMobileMovementButtonView PostInit AddDynamic
+[2026.11.16-22.02.10:832][ 1622]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative GS :1
+[2026.11.16-22.02.10:832][ 1622]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative Sys :1
+[2026.11.16-22.02.10:832][ 1622]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative :1
+[2026.11.16-22.02.12:224][ 1622]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.02.12:225][ 1622]LogTemp: ###jayzhong### DS is nullptr
+[2026.11.16-22.02.12:227][ 1622]LogTemp: ###jayzhong### After find default role List Size: 4, 10200000000, 30213000003, 30301000001, 30306000000, uin:1
+[2026.11.16-22.02.12:227][ 1622]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.02.12:282][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.12:282][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.12:282][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.12:282][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.12:282][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.12:282][ 1622]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.13:618][ 1622]LogTemp: Display: InventoryID: 20301000001, Skin Index: 0 in WeaponMode: 1
+[2026.11.16-22.02.13:625][ 1622]LogTemp: [ConfigUpdateDataServer] Begin ApplyUpdateConfigsInTable at table WeaponSkinTable with 0 configs
+[2026.11.16-22.02.13:625][ 1622]NZ: [NZDataTableManager.cpp:199] Load NewDataTable[WeaponSkinTable] type:43, Num:172
+[2026.11.16-22.02.13:625][ 1622]NZ: Error: [NZWeaponBase.cpp:843] Can't Find Item in WeaponSkinTable, InventoryIdName=20301000001
+[2026.11.16-22.02.13:684][ 1622]LogTemp: cidefeng SetGameModeType MainGameModeType=-1, SubGameModeType=-1
+[2026.11.16-22.02.13:816][ 1622]LogTemp: Error: UNZSoundVisualizationManager::Init FNZSoundVisualDistTableRow index :19 sourceType: 255  error
+[2026.11.16-22.02.13:817][ 1622]LogTemp: Error: UNZSoundVisualizationManager::Init StopSoundVisualizationRestrictIndex index :5 
+[2026.11.16-22.02.14:132][ 1622]NZ: cidefeng ANZSceneItemManager::Set From:BP_NZBRPlayerController_C_0:BP_SceneItemManager_64:0
+[2026.11.16-22.02.14:133][ 1622]LogTemp: cidefeng UNZSystemSettingData GetCurrentMobileLevel : 5
+[2026.11.16-22.02.14:133][ 1622]LogTemp: cidefeng UNZSystemSettingData CalcDeviceLevel Result: 5
+[2026.11.16-22.02.14:133][ 1622]LogTemp: cidefeng UNZSystemSettingData GetCurrentMobileLevel : 5
+[2026.11.16-22.02.14:133][ 1622]LogTemp: cidefeng UNZSystemSettingData CalcDeviceLevel Result: 5
+[2026.11.16-22.02.14:134][ 1622]LogTemp: UCharacterCaptureComponent::BeginPlay enableBagRoleAvatar
+[2026.11.16-22.02.14:143][ 1622]LogTemp: Display: InventoryID: 20301000001, Skin Index: 0 in WeaponMode: 1
+[2026.11.16-22.02.14:143][ 1622]NZ: Error: [NZWeaponBase.cpp:843] Can't Find Item in WeaponSkinTable, InventoryIdName=20301000001
+[2026.11.16-22.02.14:149][ 1622]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.16-22.02.14:150][ 1622]LogTemp: ###jayzhong### GameMode is nullptr or playerController is nullptr
+[2026.11.16-22.02.14:150][ 1622]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.02.14:150][ 1622]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.02.14:151][ 1622]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.02.14:151][ 1622]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.02.14:153][ 1622]LogSkinnedMeshComp: Warning: GetSocketByName(FPPCamera): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_NZBRCharacter_BaseMan_C_0)
+[2026.11.16-22.02.14:153][ 1622]LogSkinnedMeshComp: Warning: GetSocketByName(FPPCamera): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_NZBRCharacter_BaseMan_C_0)
+[2026.11.16-22.02.14:217][ 1622]LogTemp: cidefeng PostLoadMapWithWorld World: BR-ErangelRenew_Mobile_Main
+[2026.11.16-22.02.14:217][ 1622]LogTemp: cidefeng UNZSystemSettingData SetWorldContext WorldContextRef: BR-ErangelRenew_Mobile_Main
+[2026.11.16-22.02.14:217][ 1622]LogTemp: cidefeng PostLoadMapWithWorld Before bHadInited_UseRTTInBag:1 bUseRTTInBag:1
+[2026.11.16-22.02.14:217][ 1622]LogTemp: cidefeng PostLoadMapWithWorld After bHadInited_UseRTTInBag:1 bUseRTTInBag:1
+[2026.11.16-22.02.14:217][ 1622]LogTemp: cidefeng ApplyMSAA bUseMSAA:0 bRealUseMSAA: 0
+[2026.11.16-22.02.14:279][ 1622]LogLoad: Took 9.455348 seconds to LoadMap(/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main)
+[2026.11.16-22.02.14:350][ 1622]LogSkinnedMeshComp: Warning: GetSocketByName(FPPCamera): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_NZBRCharacter_BaseMan_IsLand_C_0)
+[2026.11.16-22.02.14:423][ 1622]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.02.14:423][ 1622]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.02.14:426][ 1622]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.02.14:426][ 1622]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.02.14:488][ 1623]LogHttp: Warning: 0x989e2080: request failed, libcurl error: 52 (Error)
+[2026.11.16-22.02.14:604][ 1623]LogStreamableManager: Error: RequestAsyncLoad called with empty or only null assets!
+[2026.11.16-22.02.14:735][ 1624]LogHttp: Warning: 0x8d94a780: request failed, libcurl error: 52 (Error)
+[2026.11.16-22.02.14:758][ 1624]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.02.14:758][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.02.14:758][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.02.14:759][ 1624]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.02.14:759][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.02.14:759][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.02.14:761][ 1624]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.02.14:761][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.02.14:762][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.02.14:765][ 1624]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.02.14:765][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.02.14:766][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.02.14:767][ 1624]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.02.14:768][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.02.14:768][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.02.14:769][ 1624]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.02.14:770][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.02.14:771][ 1624]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.02.14:771][ 1624]NZAvatar: Error: Lower Device for Original Mesh! 
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:873][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:874][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:874][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:874][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:874][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:895][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:896][ 1625]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.02.14:960][ 1625]NZAvatar: ###jayzhong### HideLoadingProgress
+[2026.11.16-22.02.14:968][ 1625]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:0!
+[2026.11.16-22.02.14:985][ 1626]LogHttp: Warning: 0x9b1a9d40: request failed, libcurl error: 52 (Error)
+[2026.11.16-22.02.15:105][ 1631]LogHttp: Warning: 0x8a7f3b80: request failed, libcurl error: 52 (Error)
+[2026.11.16-22.02.25:316][ 2530]NZOnlineSubsystem: Error: [2026-11-16 22:02:25 305] | Error | [GCloud] |0x99d13af0| puffer_init_action.cpp:622|MakeSureGetUrlFromServer| connect server timeout
+[2026.11.16-22.02.25:316][ 2530]NZOnlineSubsystem: Error: [2026-11-16 22:02:25 316] | Error | [GCloud] |0x99d13af0| puffer_init_action.cpp:80|run| [CPufferInitAction::run] get url from server failed 70254639
+[2026.11.16-22.02.26:985][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:985][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:985][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:985][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:985][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:987][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:987][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:987][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:987][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.26:987][ 2682]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.28:712][ 2842]NZ:     bUseRTTInBag: 1
+[2026.11.16-22.02.28:712][ 2842]NZ:     bUIDisableUseRTTInBag: 0
+[2026.11.16-22.02.28:712][ 2842]NZ:     bHadInited_UseRTTInBag: 1
+[2026.11.16-22.02.28:712][ 2842]NZ:     DeviceLevelForRTTInBag[4]:2 3 4 5 
+[2026.11.16-22.02.28:712][ 2842]NZ:     bAutoPickupBetterArmorAndBag: 1
+[2026.11.16-22.02.28:713][ 2842]NZ:     bAutoPickupMedicineBag: 1
+[2026.11.16-22.02.28:718][ 2842]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative GS :1
+[2026.11.16-22.02.28:718][ 2842]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative Sys :1
+[2026.11.16-22.02.28:718][ 2842]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative :1
+[2026.11.16-22.02.28:729][ 2842]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.02.38:665][ 3650]LogTemp: cidefeng ShowRoleCapture Ch:0x8e0f28c0 DBRA:0 UIRTTIB:1 UIDURTTIB:0 RTTS:1 SRC:1
+[2026.11.16-22.02.38:922][ 3663]LogTemp: cidefeng ShowRoleCapture Ch:0x8e0f28c0 DBRA:0 UIRTTIB:1 UIDURTTIB:0 RTTS:1 SRC:1
+[2026.11.16-22.02.52:496][ 4675]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.52:496][ 4675]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.52:496][ 4675]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.52:496][ 4675]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.52:496][ 4675]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.53:172][ 4727]NZ:     bUseRTTInBag: 1
+[2026.11.16-22.02.53:172][ 4727]NZ:     bUIDisableUseRTTInBag: 0
+[2026.11.16-22.02.53:172][ 4727]NZ:     bHadInited_UseRTTInBag: 1
+[2026.11.16-22.02.53:172][ 4727]NZ:     DeviceLevelForRTTInBag[4]:2 3 4 5 
+[2026.11.16-22.02.53:172][ 4727]NZ:     bAutoPickupBetterArmorAndBag: 1
+[2026.11.16-22.02.53:172][ 4727]NZ:     bAutoPickupMedicineBag: 1
+[2026.11.16-22.02.53:175][ 4727]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative GS :1
+[2026.11.16-22.02.53:175][ 4727]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative Sys :1
+[2026.11.16-22.02.53:175][ 4727]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative :1
+[2026.11.16-22.02.53:176][ 4727]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.02.55:285][ 4895]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:285][ 4895]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:285][ 4895]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:285][ 4895]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:285][ 4895]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:856][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:856][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcRenderQuality InDeviceLevel:5 InRenderOption:1
+[2026.11.16-22.02.55:857][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcRenderQuality Result:3
+[2026.11.16-22.02.55:869][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:870][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:870][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:870][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.55:870][ 4941]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.56:413][ 4983]NZ:     bUseRTTInBag: 1
+[2026.11.16-22.02.56:413][ 4983]NZ:     bUIDisableUseRTTInBag: 0
+[2026.11.16-22.02.56:413][ 4983]NZ:     bHadInited_UseRTTInBag: 1
+[2026.11.16-22.02.56:413][ 4983]NZ:     DeviceLevelForRTTInBag[4]:2 3 4 5 
+[2026.11.16-22.02.56:413][ 4983]NZ:     bAutoPickupBetterArmorAndBag: 1
+[2026.11.16-22.02.56:413][ 4983]NZ:     bAutoPickupMedicineBag: 1
+[2026.11.16-22.02.56:416][ 4983]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative GS :1
+[2026.11.16-22.02.56:416][ 4983]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative Sys :1
+[2026.11.16-22.02.56:416][ 4983]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative :1
+[2026.11.16-22.02.56:416][ 4983]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.02.57:891][ 5107]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.57:891][ 5107]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.57:891][ 5107]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.57:891][ 5107]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.57:891][ 5107]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.58:937][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.58:937][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcRenderQuality InDeviceLevel:5 InRenderOption:0
+[2026.11.16-22.02.58:937][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcRenderQuality Result:2
+[2026.11.16-22.02.58:938][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.58:938][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.58:938][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.58:938][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.58:938][ 5203]LogTemp: cidefeng UNZSystemSettingData CalcUseableRenderOption RenderOption.Default:2 Options:4
+[2026.11.16-22.02.59:511][ 5253]NZ:     bUseRTTInBag: 1
+[2026.11.16-22.02.59:511][ 5253]NZ:     bUIDisableUseRTTInBag: 0
+[2026.11.16-22.02.59:512][ 5253]NZ:     bHadInited_UseRTTInBag: 1
+[2026.11.16-22.02.59:512][ 5253]NZ:     DeviceLevelForRTTInBag[4]:2 3 4 5 
+[2026.11.16-22.02.59:512][ 5253]NZ:     bAutoPickupBetterArmorAndBag: 1
+[2026.11.16-22.02.59:512][ 5253]NZ:     bAutoPickupMedicineBag: 1
+[2026.11.16-22.02.59:515][ 5253]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative GS :1
+[2026.11.16-22.02.59:515][ 5253]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative Sys :1
+[2026.11.16-22.02.59:515][ 5253]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative :1
+[2026.11.16-22.02.59:515][ 5253]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.16-22.04.02:339][10772]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.02:339][10772]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30306000000,30307000007,30213000003
+[2026.11.16-22.04.02:340][10772]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30306000000,30307000007,30213000003
+[2026.11.16-22.04.02:387][10772]NZ: Error: [NZGameMode.cpp:3208] CalcuAIRatioLevel failed, NumPlayers=1, NumBots=0
+[2026.11.16-22.04.02:407][10772]NZ: Warning: [NZBRVehicleManager.cpp:127] SpawnVehicleByAllRandom: TotalSPCount=0, VehicleSpawnComponentList.Num()=0, SpawnedVechileCount=0, TotalSpawnedFailCount=0, StoreInGridMapCount=0, SpawnBoatCount=0
+[2026.11.16-22.04.02:407][10772]NZ: Warning: [NZBRVehicleManager.cpp:199] SpawnVehicleByTotalCount: TotalSPCount=0, VehicleSpawnComponentList.Num()=0, SpawnedVechileCount=0, TotalSpawnedFailCount=0, StoreInGridMapCount=0, SpawnBoatCount=0
+[2026.11.16-22.04.02:417][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:417][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.02:417][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.02:417][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.02:418][10772]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30306000000,30307000007,30213000003
+[2026.11.16-22.04.02:418][10772]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30306000000,30307000007,30213000003
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:418][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.04.02:419][10772]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.02:419][10772]NZAvatar: Error: Lower Device for Original Mesh! 
+[2026.11.16-22.04.02:645][10778]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:0!
+[2026.11.16-22.04.02:646][10778]NZAvatar: ###jayzhong### HideLoadingProgress
+[2026.11.16-22.04.02:657][10779]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.02:657][10779]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.02:657][10779]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.02:657][10779]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.02:657][10779]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.02:657][10779]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.11:172][11193]LogStreamableManager: Error: RequestAsyncLoad called with empty or only null assets!
+[2026.11.16-22.04.15:837][11623]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.15:838][11623]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.04.15:838][11623]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.15:838][11623]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.04.15:838][11623]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30306000000,30213000003
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.15:838][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.04.15:839][11623]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.15:839][11623]NZAvatar: Error: Lower Device for Original Mesh! 
+[2026.11.16-22.04.15:840][11623]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:0!
+[2026.11.16-22.04.15:840][11623]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:0!
+[2026.11.16-22.04.15:848][11623]NZAvatar: ###jayzhong### HideLoadingProgress
+[2026.11.16-22.04.31:130][12850]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.31:183][12854]LogTemp: Console Cmd[AddAvaItem V1x52444992]
+[2026.11.16-22.04.31:272][12854]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.31:273][12854]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.31:273][12854]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.31:273][12854]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.31:273][12854]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.31:273][12854]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.31:273][12854]NZ: [NZVehicleSkeletalMeshComponent.cpp:33] [zachma] this=VehicleMesh OnAnimUpdateRateParamsCreatedFunc
+[2026.11.16-22.04.36:501][13282]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.36:550][13286]LogTemp: Console Cmd[AddAvaItem V29x52444992]
+[2026.11.16-22.04.36:616][13286]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.36:616][13286]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.36:616][13286]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.36:616][13286]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.36:616][13286]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.36:616][13286]NZ: [NZVehicleSkeletalMeshComponent.cpp:33] [zachma] this=VehicleMesh OnAnimUpdateRateParamsCreatedFunc
+[2026.11.16-22.04.36:621][13286]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:062][13829]LogTemp: Console Cmd[AddAvaItem P30304000005x1x52453192]
+[2026.11.16-22.04.43:080][13829]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.43:081][13829]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30304000005,30306000000,30213000003
+[2026.11.16-22.04.43:081][13829]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30304000005,30306000000,30213000003
+[2026.11.16-22.04.43:082][13829]LogTemp: Console Cmd[AddAvaItem P30305000003x1x52453192]
+[2026.11.16-22.04.43:092][13829]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.43:092][13829]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30304000005,30305000003,30306000000,30213000003
+[2026.11.16-22.04.43:092][13829]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30304000005,30305000003,30306000000,30213000003
+[2026.11.16-22.04.43:093][13829]LogTemp: Console Cmd[AddAvaItem P30307000006x1x52453192]
+[2026.11.16-22.04.43:101][13829]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.43:101][13829]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30304000005,30305000003,30306000000,30307000006,30213000003
+[2026.11.16-22.04.43:101][13829]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30304000005,30305000003,30306000000,30307000006,30213000003
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:116][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.16-22.04.43:117][13830]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30304000005,30305000003,30306000000,30307000006,30213000003
+[2026.11.16-22.04.43:117][13830]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30304000005,30305000003,30306000000,30307000006,30213000003
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.16-22.04.43:117][13830]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.16-22.04.43:269][13839]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:0!
+[2026.11.16-22.04.43:269][13839]NZAvatar: ###jayzhong### HideLoadingProgress
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:276][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:277][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.43:277][13840]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.16-22.04.48:792][14352]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.48:853][14356]LogTemp: Console Cmd[AddAvaItem G3030400x52444992]
+[2026.11.16-22.04.48:894][14360]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.48:948][14365]LogTemp: Console Cmd[AddAvaItem G3030700x52444992]
+[2026.11.16-22.04.48:995][14369]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.49:051][14374]LogTemp: Console Cmd[AddAvaItem G3030500x52444992]
+[2026.11.16-22.04.52:218][14676]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:251][14679]LogTemp: Console Cmd[AddAvaItem G2010100x52444992]
+[2026.11.16-22.04.52:306][14684]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:357][14689]LogTemp: Console Cmd[AddAvaItem G2060000x52444992]
+[2026.11.16-22.04.52:407][14694]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:458][14699]LogTemp: Console Cmd[AddAvaItem G2060000x52444992]
+[2026.11.16-22.04.52:516][14705]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:556][14709]LogTemp: Console Cmd[AddAvaItem G2060000x52444992]
+[2026.11.16-22.04.52:615][14715]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:666][14720]LogTemp: Console Cmd[AddAvaItem G2050100x52444992]
+[2026.11.16-22.04.52:713][14725]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:761][14730]LogTemp: Console Cmd[AddAvaItem G2050100x52444992]
+[2026.11.16-22.04.52:817][14736]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:864][14741]LogTemp: Console Cmd[AddAvaItem G2050200x52444992]
+[2026.11.16-22.04.52:913][14746]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.52:972][14752]LogTemp: Console Cmd[AddAvaItem G2050200x52444992]
+[2026.11.16-22.04.53:025][14757]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:071][14760]LogTemp: Console Cmd[AddAvaItem G2050300x52444992]
+[2026.11.16-22.04.53:122][14765]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:174][14770]LogTemp: Console Cmd[AddAvaItem G2050300x52444992]
+[2026.11.16-22.04.53:221][14774]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:273][14779]LogTemp: Console Cmd[AddAvaItem G2050300x52444992]
+[2026.11.16-22.04.53:330][14784]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:372][14788]LogTemp: Console Cmd[AddAvaItem G2050300x52444992]
+[2026.11.16-22.04.53:425][14793]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:476][14798]LogTemp: Console Cmd[AddAvaItem G2050300x52444992]
+[2026.11.16-22.04.53:536][14804]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:581][14808]LogTemp: Console Cmd[AddAvaItem G2050300x52444992]
+[2026.11.16-22.04.53:633][14813]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:680][14817]LogTemp: Console Cmd[AddAvaItem G2050400x52444992]
+[2026.11.16-22.04.53:738][14822]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.53:786][14826]LogTemp: Console Cmd[AddAvaItem G2050500x52444992]
+[2026.11.16-22.04.58:550][15241]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.58:608][15246]LogTemp: Console Cmd[AddAvaItem G2040100x52444992]
+[2026.11.16-22.04.58:654][15251]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.58:701][15256]LogTemp: Console Cmd[AddAvaItem G2040100x52444992]
+[2026.11.16-22.04.58:749][15261]LogTemp: Console Cmd[AddAvaItem V0x52444992]
+[2026.11.16-22.04.58:804][15266]LogTemp: Console Cmd[AddAvaItem G2040100x52444992]
+[2026.11.16-22.06.09:793][20267]LogTemp: cidefeng ANZPlayerController QueryQuitMatch, Uin[1], Reason[1]
+[2026.11.16-22.06.09:793][20267]LogTemp: cidefeng ANZPlayerController ClientQuitMatch, reason[1]
+
+共 746 行，日志 PUBGM.log 764646 字节
