@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.15";
+    static final String VER = "v2.16";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -861,6 +861,7 @@ public class GameOverlay {
         head(a, u, root, "保命");
         LinearLayout oc = card(a, u, root);
         switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
+        if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（房主这边算伤害）", Con.allGod, v -> Con.setAllGod(v));
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
         if (Ed.ED == 1) { onGround = true; note(a, u, root, "房主版：刷的东西都放在脚下，自己捡。"); }

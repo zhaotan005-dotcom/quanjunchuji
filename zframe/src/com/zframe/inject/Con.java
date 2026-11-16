@@ -526,4 +526,34 @@ public class Con {
             else if (f.getName().endsWith(".log") && f.length() > 0) out.add(f);
         }
     }
+
+    /** v2.16 全员无敌（房主）：伤害在房主这边算，God 只是把自己人物的 bCanBeDamaged 关掉。
+     *  这里用 set Character bCanBeDamaged 0 把所有人物（含后加入、重生的）都关掉，每 3 秒补一次。 */
+    public static volatile boolean allGod;
+    static Thread godT;
+    public static String setAllGod(boolean on) {
+        allGod = on;
+        if (!on) {
+            exec("set Character bCanBeDamaged 1");
+            if (godOn) exec("God");   // 关全员会把房主自己的也打开，自己的无敌重新开回去
+            godOn = false;
+            return "全员无敌已关";
+        }
+        exec("EnableCheats");
+        if (godT == null || !godT.isAlive()) {
+            godT = new Thread(() -> {
+                boolean first = true;
+                while (allGod) {
+                    try {
+                        exec("set Character bCanBeDamaged 0");
+                        if (first) { exec("getall Character bCanBeDamaged"); first = false; }
+                        Thread.sleep(3000);
+                    } catch (Throwable e) { break; }
+                }
+            }, "zf-allgod");
+            godT.start();
+        }
+        LogCap.note("全员无敌：开");
+        return "ok";
+    }
 }

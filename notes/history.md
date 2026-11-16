@@ -553,3 +553,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.13（vc114/core114，未实测）：分三个包 ZFrame-v2.13-单机/房主/客户端.apk（Ed.ED 0/1/2，build 时 sed 改）。房主/客户端版不装 setStore/出生衣服/自建服务端，大厅只显示开房或加入；0xc89960 bne→b（Lan.QUIT，全员退出不结束）；房主进图跑 Flow（1000 米航线+毒圈修正），不刷人机。客户端刷东西不生效（服务器权威），要房主刷。
 - v2.14（vc115/core115，未实测）：房主版刷东西固定刷在脚下（不显示身上/地上选项）；装备页加「吉利服」：槽位推断 Ghillie=30309（EAvaItemSlot 顺序对上 30304 头/30305 甲/30306 手套/30307 包），编号按 30309000001..06、…000 试；刷身上自动判断，刷地上每点一次换下一个。新增 zframe/build3.sh 一次打三版。
 - v2.15（vc116/core116，未实测）：客户端版「常用」只留无后座/防抖聚点/无限子弹/加速/高跳（clientMain），客户端分页 = 常用/联机/画面。新增「衣服」页（页号 7，房主/单机）：顶上「刷绝地风衣」(30318000000)，下面 Server.scanSkins 只读扫内存得全部服装编号，按分类（30Xyy：01 裤子 02 上衣 03 鞋 06 手套 07 背包外观 08 面部 09 吉利服 12 帽子 …，301 男/302 女）分组，名字 = 分类+序号（无中文物品名表），每页 30 个，列表存 filesDir/zf_clothes.txt。
+- v2.16（vc117/core117，未实测）：房主「常用」加「全员无敌」（Con.setAllGod：每 3 秒 set Character bCanBeDamaged 0，第一次 getall 验证；关时 set 1 并恢复房主自己的 God）。
