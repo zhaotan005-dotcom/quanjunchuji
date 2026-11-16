@@ -514,3 +514,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v1.99（vc100/core100，未实测）：人机只在玩家高度 <120 米且站稳 15 秒后刷；恢复 nop 游戏数人（不写人数，避免弹大厅和闪）。
 - v1.99 补：第一批人机落地站稳后随机 30~120 秒（版本号不变，用户要求）；写 HANDOFF.md 交接。
 - v1.99 补：每局人机随机 15~30 个、每批 1~2 个（版本号不变）。
+- 19:52 v1.99 实测（用户截图）：坐飞机时地图上已经有圈、人在圈外（「毒圈还是会刷」）；还是经常没开伞摔死。
+  RE（跳伞）：UNZBRCharacterSkydivingComponent 构造 0x1121ed8：+0x25c ForceParachuteOpenHeightRate=0.23，+0x2c0 SkydivingStartHeight=150000（1500 米）。
+  0x1127de0（vt+0x228）= |离地距离 +0x280 / StartHeight| 夹到 1；0x1128498 每帧向下射线（20 km）把离地距离写 +0x280，比例 <0.23 且阶段 2（自由落体）→ GotoStage(3) 强制开伞。
+  这个单机版航线 Z=20000（200 米），离地太近，强制开伞时动画没放完就落地。
+- v2.00（vc101/core101，未实测）：Flow 把航线起终点和跳伞段的 Z 写成 100000（1000 米，PLANE_Z）；开局整图圈半径 边长×0.75 → ×1.5（WHOLE），防止坐飞机时地图上出圈。

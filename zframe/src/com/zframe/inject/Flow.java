@@ -31,6 +31,12 @@ public class Flow {
     static final float[][] SMALL = { {142755, 210, 240, 1}, {99930, 120, 120, 1}, {59955, 90, 120, 1}, {29980, 45, 135, 1},
         {14990, 90, 15, 3}, {7495, 45, 60, 5}, {3745, 45, 40, 7}, {1875, 30, 55, 9} };
     static final int ES = 0x54;
+    /** v2.00：飞机高度（cm）。这个单机版航线 Z=20000（200 米），跳伞组件按「离地距离 / 1500 米」算比例，低于 0.23 才强制开伞，
+     *  200 米跳下去离地太近、开伞动画没放完就落地 → 摔死。游戏组件默认 SkydivingStartHeight=150000（构造函数 0x1121ed8），
+     *  所以把航线（和跳伞段）抬到 1000 米：离地约 345 米时自动开伞。 */
+    static final float PLANE_Z = 100000f;
+    /** v2.00：开局整图圈的半径 = 边长 × WHOLE（以前 0.75，用户：坐飞机时地图上还是有圈、人在圈外） */
+    static final float WHOLE = 1.5f;
 
     public static volatile String last = "";
     /** v1.94：游戏日志里的本局航线 {StartLoc, EndLoc, StartJumpLoc, EndJumpLoc}（xyz），按值在内存里找 */
@@ -116,7 +122,7 @@ public class Flow {
             float r0 = f(m, d + 0x10), w0 = f(m, d + 0x14), s0 = f(m, d + 0x18);
             float cx = f(m, d + 4), cy = f(m, d + 8), cz = f(m, d + 12);
             if (!(r0 > 10000 && r0 < 2e6f && w0 >= 0 && w0 < 7200 && s0 >= 0 && s0 < 7200 && Math.abs(cx) < 2e6f && Math.abs(cy) < 2e6f)) continue;
-            if (n >= tb.length + 3 && Math.abs(r0 - side * 0.75f) < 1f) return "已经是正式服的圈";
+            if (n >= tb.length + 3 && Math.abs(r0 - side * WHOLE) < 1f) return "已经是正式服的圈";
             String before = rows(m, d, n);
             byte[] first = new byte[ES], last = new byte[ES];
             m.seek(d); m.readFully(first);
@@ -148,13 +154,13 @@ public class Flow {
         //   第一圈中心只在地图正中 ±(边长/2-半径)×0.3 内，不出岛。
         int cnt = tb.length + 3;
         java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(cnt * ES).order(java.nio.ByteOrder.LITTLE_ENDIAN);
-        float half = side / 2, pr = side * 0.75f, px = 0, py = 0;
+        float half = side / 2, pr = side * WHOLE, px = 0, py = 0;
         for (int i = 0; i < cnt; i++) {
             int o = i * ES;
             b.position(o); b.put(i < cnt - 1 ? first : last);
             float r, w, s, x, y; int dmg;
-            if (i == 0) { r = side * 0.75f; w = firstWait; s = 1; dmg = 1; x = 0; y = 0; }
-            else if (i == 1) { r = side * 0.75f; w = tb[0][1]; s = tb[0][2]; dmg = 1; x = 0; y = 0; }
+            if (i == 0) { r = side * WHOLE; w = firstWait; s = 1; dmg = 1; x = 0; y = 0; }
+            else if (i == 1) { r = side * WHOLE; w = tb[0][1]; s = tb[0][2]; dmg = 1; x = 0; y = 0; }
             else {
                 int k = i - 2;   // 第 k 圈（k == tb.length 是最后 0.1 米）
                 if (k < tb.length) { r = tb[k][0]; dmg = (int) tb[k][3]; } else { r = 0.1f; dmg = 11; }
@@ -206,14 +212,14 @@ public class Flow {
             for (int k = 0; k + 24 <= b.length; k += 4) {
                 if (bb.getInt(k) != s0 || bb.getInt(k + 4) != s1 || bb.getInt(k + 12) != e0 || bb.getInt(k + 16) != e1) continue;
                 long a = o + k;
-                wf(m, a, nsx); wf(m, a + 4, nsy); wf(m, a + 12, nex); wf(m, a + 16, ney);
+                wf(m, a, nsx); wf(m, a + 4, nsy); wf(m, a + 12, nex); wf(m, a + 16, ney); wf(m, a + 8, PLANE_Z); wf(m, a + 20, PLANE_Z);
                 if (k + 0x2c <= b.length && Math.abs(Math.hypot(bb.getFloat(k + 0x18), bb.getFloat(k + 0x1c)) - 1) < 0.01) { wf(m, a + 0x18, (float) dx); wf(m, a + 0x1c, (float) dy); }
                 double len0 = Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]);
                 if (k + 0x28 <= b.length && Math.abs(bb.getFloat(k + 0x24) - len0) < Math.max(100, len0 * 0.02)) wf(m, a + 0x24, (float) (2 * h));
                 // 跳伞段：起点后 0x80 字节内找 StartJumpLoc / EndJumpLoc 的值
                 if (la[2] != null && la[3] != null) for (int j = k + 12; j + 24 <= Math.min(b.length, k + 0x80); j += 4) {
                     if (bb.getInt(j) == Float.floatToRawIntBits(la[2][0]) && bb.getInt(j + 4) == Float.floatToRawIntBits(la[2][1]) && bb.getInt(j + 12) == Float.floatToRawIntBits(la[3][0]) && bb.getInt(j + 16) == Float.floatToRawIntBits(la[3][1]) && j != k) {
-                        wf(m, o + j, nsx); wf(m, o + j + 4, nsy); wf(m, o + j + 12, nex); wf(m, o + j + 16, ney);
+                        wf(m, o + j, nsx); wf(m, o + j + 4, nsy); wf(m, o + j + 12, nex); wf(m, o + j + 16, ney); wf(m, o + j + 8, PLANE_Z); wf(m, o + j + 20, PLANE_Z);
                         double jl = Math.hypot(la[3][0] - la[2][0], la[3][1] - la[2][1]);
                         if (j + 0x1c <= b.length && Math.abs(bb.getFloat(j + 0x18) - jl) < Math.max(100, jl * 0.02)) wf(m, o + j + 0x18, (float) (2 * h));
                         break;
@@ -223,7 +229,7 @@ public class Flow {
             }
         }
         if (hits == 0) return null;
-        return Math.round(Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]) / 100) + " 米 → " + Math.round(2 * h / 100) + " 米，穿过地图中间（改了 " + hits + " 处：" + sb.toString().trim() + "）";
+        return Math.round(Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]) / 100) + " 米 → " + Math.round(2 * h / 100) + " 米，高 " + Math.round(PLANE_Z / 100) + " 米，穿过地图中间（改了 " + hits + " 处：" + sb.toString().trim() + "）";
     }
     static byte[] read(RandomAccessFile m, long a, int n) { try { byte[] b = new byte[n]; m.seek(a); m.readFully(b); return b; } catch (Throwable e) { return null; } }
 
@@ -250,12 +256,12 @@ public class Flow {
                 double ang = rnd.nextDouble() * Math.PI * 2, dx = Math.cos(ang), dy = Math.sin(ang), off = (rnd.nextDouble() * 2 - 1) * side * 0.1;
                 double mx = -dy * off, my = dx * off, h = side * 0.55;
                 float nsx = (float) (mx - dx * h), nsy = (float) (my - dy * h), nex = (float) (mx + dx * h), ney = (float) (my + dy * h);
-                wf(m, t + 0x300, nsx); wf(m, t + 0x304, nsy); wf(m, t + 0x30c, nex); wf(m, t + 0x310, ney);
+                wf(m, t + 0x300, nsx); wf(m, t + 0x304, nsy); wf(m, t + 0x30c, nex); wf(m, t + 0x310, ney); wf(m, t + 0x308, PLANE_Z); wf(m, t + 0x314, PLANE_Z);
                 wf(m, t + 0x318, (float) dx); wf(m, t + 0x31c, (float) dy);   // Dir
                 wf(m, t + 0x324, (float) (2 * h));
                 // 能跳的范围也跟着拉长（原来是不是和航线同样两端都记下来）
                 float jsx = f(m, t + 0x328), jsy = f(m, t + 0x32c), jex = f(m, t + 0x334), jey = f(m, t + 0x338);
-                wf(m, t + 0x328, nsx); wf(m, t + 0x32c, nsy); wf(m, t + 0x334, nex); wf(m, t + 0x338, ney);
+                wf(m, t + 0x328, nsx); wf(m, t + 0x32c, nsy); wf(m, t + 0x334, nex); wf(m, t + 0x338, ney); wf(m, t + 0x330, PLANE_Z); wf(m, t + 0x33c, PLANE_Z);
                 wf(m, t + 0x340, (float) (2 * h));
                 sb.append(Math.round(len / 100)).append(" 米 → ").append(Math.round(side / 100)).append(" 米（起 ").append(Math.round(sx)).append(',').append(Math.round(sy))
                   .append(" 终 ").append(Math.round(ex)).append(',').append(Math.round(ey)).append(" 原跳伞段 ").append(Math.round(jsx)).append(',').append(Math.round(jsy))

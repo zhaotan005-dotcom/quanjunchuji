@@ -1,8 +1,9 @@
-# 交接给下一个智能体（2026-11-16，v1.99）
+# 交接给下一个智能体（2026-11-16，v2.00）
 
 先读：README.md（总交接）→ notes/history.md（全部历史 + RE 偏移，末尾最新）→ notes/device-tests/v1.98/（最新实测诊断/崩溃日志/截图）。
 
 ## 当前版本
+- v2.00（versionCode 101，CORE_VER=101），releases/ZFrame-v2.00.apk，**未实测**：飞机/跳伞段高度 200 米 → 1000 米（修摔死，原因见 history 末尾）；开局整图圈半径 ×1.5。
 - v1.99（versionCode 100，ZInit.CORE_VER=100），releases/ZFrame-v1.99.apk，**未实测**。
 - 构建：见 README「构建」；`python3 rel.py ../releases/ZFrame-v1.98.apk build/unsigned.apk 1.98 1.99 99 100`，签名 zframe.jks / zframe123 / zf。
 - 规矩：简体中文；每版小改动；cave 用 unicorn 模拟（game/re/emu_*.py）；启动画面期间不改内存；不解密 pak、不绕保护、不联网外挂；每版 versionCode/CORE_VER/菜单版本号/history/README 同步并 push。
