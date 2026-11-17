@@ -18,16 +18,16 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.63";
+    static final String VER = "v2.64";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
     // 配色（v1.49 简约：近黑半透明底 + 白/灰文字 + 一个低饱和蓝，只用细线分隔，不用渐变和彩色标签）
     // v2.05 用户：不要黑底，参考苹果风格 → 浅灰毛玻璃底 + 白色卡片 + 系统蓝，开关绿色
-    // v2.63 用户：菜单照他给的 ZFrameSafeConsole 界面 → 深蓝底、卡片、青→紫渐变选中、青色字（更新弹窗不变）
-    static final int PANEL = 0xF50B1220, CARD = 0xFF111827, CARD2 = 0xFF1F2937, LINE = 0x3394A3B8,
-            TXT = 0xFFF1F5F9, SUBT = 0xFF94A3B8, ACC = 0xFF22D3EE, ON_BG = 0xFF22D3EE, ON_TXT = 0xFF0B1220,
-            ORANGE = 0xFFF59E0B, CHIP = 0x1494A3B8, GREEN = 0xFF34D399, TRACK = 0xFF334155, PURPLE = 0xFFA78BFA, STROKE = 0x6E94A3B8;
+    // v2.64 用户：v2.63 太丑、GPT 那个也不要 → 简约：近黑半透明底、白字、没有边框和渐变，选中=白底黑字，开关绿色
+    static final int PANEL = 0xEB121214, CARD = 0x0DFFFFFF, CARD2 = 0x17FFFFFF, LINE = 0x14FFFFFF,
+            TXT = 0xFFF2F2F2, SUBT = 0x8CFFFFFF, ACC = 0xFFF2F2F2, ON_BG = 0xFFF2F2F2, ON_TXT = 0xFF111111,
+            ORANGE = 0xFFFF9F0A, CHIP = 0x12FFFFFF, GREEN = 0xFF30D158, TRACK = 0x33FFFFFF, PURPLE = 0xFFF2F2F2, STROKE = 0x00000000;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -39,8 +39,7 @@ public class GameOverlay {
     }
     /** 选中态：白底（深色字） */
     static GradientDrawable grad(float r) {
-        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{ACC, PURPLE});
-        g.setCornerRadius(r); return g;
+        return box(ON_BG, r);
     }
 
     static Runnable refresher;
@@ -70,7 +69,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, 0x5522D3EE, u.dp(16), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
+            panel.setBackground(boxLine(PANEL, 0x1AFFFFFF, u.dp(12), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
@@ -78,20 +77,20 @@ public class GameOverlay {
             LinearLayout head = new LinearLayout(a);
             head.setOrientation(LinearLayout.HORIZONTAL);
             head.setGravity(Gravity.CENTER_VERTICAL);
-            head.setPadding(u.dp(6), u.dp(4), u.dp(6), u.dp(4));
-            head.setBackground(box(CARD, 0));   // v2.08 ImGui 风：单独一条灰色标题栏
+            head.setPadding(u.dp(12), u.dp(2), u.dp(4), u.dp(2));   // v2.08 ImGui 风：单独一条灰色标题栏
             // v2.07 用户：左边一个三角方块（点开展开菜单、再点折叠），标题居中，版本号不放标题栏
             final TextView fold = new TextView(a);
             fold.setTextColor(ON_TXT); fold.setTextSize(13); fold.setGravity(Gravity.CENTER);
             fold.setBackground(grad(u.dp(8)));
+            fold.setVisibility(View.GONE);   // v2.64 简约：不要三角方块，点标题收起/展开
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             TextView title = new TextView(a);
-            titleRef = title; title.setText(titleText()); title.setTextColor(TXT); title.setTextSize(15.5f); title.setTypeface(Typeface.DEFAULT_BOLD);
-            title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
+            titleRef = title; title.setText(titleText()); title.setTextColor(TXT); title.setTextSize(13.5f); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setGravity(Gravity.CENTER_VERTICAL); title.setSingleLine(true); title.setEllipsize(android.text.TextUtils.TruncateAt.END);
             head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
             close.setOnClickListener(v -> showPanel(panel, false, u));
-            head.addView(close, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
+            head.addView(close, new LinearLayout.LayoutParams(u.dp(34), u.dp(34)));
             panel.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
             // ---- 当前状态：一行灰字 ----
@@ -100,13 +99,14 @@ public class GameOverlay {
             status.setEllipsize(android.text.TextUtils.TruncateAt.END);
             status.setPadding(u.dp(14), u.dp(6), u.dp(14), u.dp(6));
             panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
+            status.setVisibility(View.GONE);   // v2.64 简约：不要状态行
 
             // ---- 主体（可收起）：v1.99 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
             final LinearLayout body = new LinearLayout(a);
             body.setOrientation(LinearLayout.HORIZONTAL);
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
-            tabsRow.setPadding(u.dp(6), u.dp(4), u.dp(4), u.dp(4));
+            tabsRow.setPadding(u.dp(6), u.dp(2), u.dp(4), u.dp(4));
             // v2.41 用户：服务端把刷人机删了
             // v2.61 用户：刷武器、特殊武器、子弹单独分页；道具单独一页
             final String[] tabs = Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "联机", "画面"} : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "人机", "联机", "画面"};
@@ -121,9 +121,9 @@ public class GameOverlay {
             for (int k = 0; k < tabs.length; k++) {
                 final int idx = map[k];
                 TextView t = new TextView(a);
-                t.setText(icon(tabs[k]) + " " + tabs[k]); t.setTextSize(12f); t.setGravity(Gravity.CENTER);
+                t.setText(tabs[k]); t.setTextSize(12.5f); t.setGravity(Gravity.CENTER);
                 t.setTag(idx);
-                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(62), u.dp(25)); tl.bottomMargin = u.dp(2);
+                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(48), u.dp(26)); tl.bottomMargin = u.dp(1);
                 tabsRow.addView(t, tl);
                 tv[k] = t;
                 t.setOnClickListener(v -> { tab = idx; paintTabs(tv, u); fill(a, u, content); sv.scrollTo(0, 0); });
@@ -134,7 +134,7 @@ public class GameOverlay {
             tsv.setVerticalScrollBarEnabled(false);
             tsv.addView(tabsRow);
             body.addView(tsv, new LinearLayout.LayoutParams(-2, ph - u.dp(56)));
-            final View hr = new View(a); hr.setBackgroundColor(LINE);
+            final View hr = new View(a); hr.setBackgroundColor(0);
             body.addView(hr, new LinearLayout.LayoutParams(1, -1));
             body.addView(sv, new LinearLayout.LayoutParams(0, ph - u.dp(56), 1));
             final int svH = ph - u.dp(56);
@@ -170,10 +170,10 @@ public class GameOverlay {
             // v2.05 用户：不要「艾」悬浮球 → 「–」收起成只剩标题栏的小条，点标题栏或「+」展开
             final Runnable apply = () -> {
                 body.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-                status.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+                close.setVisibility(collapsed ? View.GONE : View.VISIBLE);
                 fold.setText(collapsed ? "▶" : "▼");
                 ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
-                int nw = collapsed ? u.dp(210) : pw;
+                int nw = collapsed ? u.dp(150) : pw;   // v2.64 收起=只剩一小条标题
                 if (lp0 != null) {
                     int ow = lp0.width > 0 ? lp0.width : nw; lp0.width = nw;
                     if (lp0 instanceof WindowManager.LayoutParams) { try { pwm.updateViewLayout(panel, lp0); } catch (Throwable ignored) {} }
@@ -185,7 +185,7 @@ public class GameOverlay {
             fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
             hookKeys(a, panel, u);
-            if (px < 0) { px = (sw - (collapsed ? u.dp(210) : pw)) / 2f; py = u.dp(4); }   // v2.19 用户：默认放中上（以前偏左，容易点到电竞页）
+            if (px < 0) { px = (sw - (collapsed ? u.dp(150) : pw)) / 2f; py = u.dp(4); }   // v2.19 用户：默认放中上（以前偏左，容易点到电竞页）
             // v2.36 用户：菜单上滑动游戏还是跟着动（v2.29 的拦截没用）。游戏是 NativeActivity，触摸先进引擎的输入队列、再给界面，
             // 同一个窗口里拦不住。所以菜单放进自己的小窗口（只有菜单那么大），按在菜单上的触摸根本不会到游戏窗口。
             plp = null; pwm = null;
@@ -295,7 +295,8 @@ public class GameOverlay {
             boolean on = tv[j].getTag() instanceof Integer && (Integer) tv[j].getTag() == tab;
             tv[j].setTextColor(on ? ON_TXT : SUBT);
             tv[j].setTypeface(on ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
-            tv[j].setBackground(on ? grad(u.dp(10)) : null);   // v1.99 选中：白色圆角块
+            tv[j].setBackground(on ? box(CARD2, u.dp(7)) : null);   // v2.64 选中：浅灰块 + 白字
+            tv[j].setTextColor(on ? TXT : SUBT);   // v1.99 选中：白色圆角块
         }
     }
 
@@ -691,14 +692,14 @@ public class GameOverlay {
         TextView t = label(a, p, s, 11f, false, SUBT);
         t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         t.setLetterSpacing(0.03f);
-        t.setPadding(u.dp(4), u.dp(8), 0, u.dp(3)); t.setTextColor(TXT); t.setTypeface(Typeface.DEFAULT_BOLD); t.setTextSize(12f);
+        t.setPadding(u.dp(2), u.dp(8), 0, u.dp(3)); t.setTextSize(10.5f);
     }
     /** 卡片容器 */
     static LinearLayout card(Activity a, Ui u, ViewGroup p) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackground(box(CARD, u.dp(14)));
-        c.setPadding(u.dp(12), u.dp(4), u.dp(12), u.dp(4));
+        c.setBackground(box(CARD, u.dp(10)));
+        c.setPadding(u.dp(10), u.dp(2), u.dp(10), u.dp(2));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.bottomMargin = u.dp(4);
         p.addView(c, lp);
         return c;
@@ -706,12 +707,11 @@ public class GameOverlay {
     /** 普通按钮（卡片样式，按下有缩放反馈） */
     static TextView btn(Activity a, Ui u, LinearLayout row, String text, final Runnable r) {
         TextView b = new TextView(a);
-        b.setText(text); b.setTextColor(ACC); b.setTextSize(12.5f);
-        b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+        b.setText(text); b.setTextColor(TXT); b.setTextSize(12f);
         b.setGravity(Gravity.CENTER);
         b.setSingleLine(false); b.setMaxLines(2);
         b.setPadding(u.dp(3), u.dp(7), u.dp(3), u.dp(7));
-        b.setBackground(boxLine(CARD2, STROKE, u.dp(10), Math.max(1, u.dp(1))));
+        b.setBackground(box(CARD2, u.dp(8)));
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -736,7 +736,7 @@ public class GameOverlay {
         if (on) b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
         b.setPadding(u.dp(3), u.dp(6), u.dp(3), u.dp(6));
-        b.setBackground(on ? grad(u.dp(6)) : boxLine(CARD2, STROKE, u.dp(10), Math.max(1, u.dp(1))));
+        b.setBackground(on ? grad(u.dp(8)) : box(CARD2, u.dp(8)));
         if (!on) b.setTextColor(TXT);
         press(b);
         b.setOnClickListener(v -> r.run());
@@ -770,9 +770,9 @@ public class GameOverlay {
     static void switchRow(final Activity a, final Ui u, ViewGroup p, String name, String sub, boolean on, final BCb cb) {
         LinearLayout r = new LinearLayout(a);
         r.setOrientation(LinearLayout.HORIZONTAL); r.setGravity(Gravity.CENTER_VERTICAL);
-        r.setPadding(0, u.dp(8), 0, u.dp(8));
+        r.setPadding(0, u.dp(6), 0, u.dp(6));
         LinearLayout t = new LinearLayout(a); t.setOrientation(LinearLayout.VERTICAL);
-        TextView n = new TextView(a); n.setText(name); n.setTextColor(TXT); n.setTextSize(13);
+        TextView n = new TextView(a); n.setText(name); n.setTextColor(TXT); n.setTextSize(12.5f);
         t.addView(n);
         final TextView s = new TextView(a); s.setText(sub); s.setTextColor(SUBT); s.setTextSize(10);
         if (sub != null && !sub.isEmpty()) t.addView(s);
@@ -810,7 +810,7 @@ public class GameOverlay {
             p.setColor(TRACK); c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
             p.setColor(ACC); if (cx > x0) c.drawRoundRect(new RectF(x0, cy - th / 2, cx, cy + th / 2), th, th, p);
             float r = (drag ? 8 : 6.5f) * dens;
-            if (drag) { p.setColor(0x3322D3EE); c.drawCircle(cx, cy, r + 6 * dens, p); }
+            if (drag) { p.setColor(0x22FFFFFF); c.drawCircle(cx, cy, r + 6 * dens, p); }
             p.setColor(0x33000000); c.drawCircle(cx, cy + dens, r + 0.5f * dens, p); p.setColor(0xFFFFFFFF); c.drawCircle(cx, cy, r, p);
             float ey = getHeight() - 2 * dens;                                   // 两端刻度：0 和 最大
             ep.setTextAlign(Paint.Align.LEFT); c.drawText(fmt(min), x0 - 2 * dens, ey, ep);

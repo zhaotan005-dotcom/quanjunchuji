@@ -232,8 +232,19 @@ public class Prop {
             vt = Server.rd(m, sel);
             if (Server.rd(m, vt + 0x348) != b + 0xf2e3c4L) return "道具函数对不上";
             byte[] x = new byte[1]; m.seek(sel + 0x336); m.readFully(x);
-            if (x[0] == 0) return "放置点无效，换个平地";
             for (It it : useList) if (it.p == sel) cls = it.cls;
+            if (x[0] == 0) {   // v2.64：v2.63 实测预览一直是红的（CanUseThisItem 5）→ 不管，放到面前 1.5 米脚下，强行生成
+                double[] q = Veh.info();
+                if (q == null) return "放置点无效，读不到人物位置";
+                double yaw = Math.toRadians(q[3]);
+                try (RandomAccessFile w = new RandomAccessFile("/proc/self/mem", "rw")) {
+                    Mods.wf(w, sel + 0x338, (float) (q[0] + Math.cos(yaw) * 150));
+                    Mods.wf(w, sel + 0x33c, (float) (q[1] + Math.sin(yaw) * 150));
+                    Mods.wf(w, sel + 0x340, (float) (q[2] - 88));
+                    Mods.wf(w, sel + 0x344, 0f); Mods.wf(w, sel + 0x348, (float) q[3]); Mods.wf(w, sel + 0x34c, 0f);
+                }
+                LogCap.note("用道具：预览红色，强行放到面前 " + cls);
+            }
         } catch (Throwable e) { return "出错 " + e; }
         try {
             long[] r = Veh.ucall(sel, 0, 0x3a4, 0, null);
