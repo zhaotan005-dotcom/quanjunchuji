@@ -1,29 +1,27 @@
-# 交接给下一个智能体（2026-11-16，v2.05）
+# 交接给下一个智能体（2026-11-17 11:35，v2.19）
 
-先读：README.md（总交接）→ notes/history.md（全部历史 + RE 偏移，末尾最新）→ notes/device-tests/v1.98/（最新实测诊断/崩溃日志/截图）。
+先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
 ## 当前版本
-- v2.05（vc106/core106），releases/ZFrame-v2.05.apk，未实测：启动时装联机作弊补丁三处、房主/客户端/单机三套菜单、苹果风浅色菜单、服务端自动开。
-- v2.04（vc105/core105），releases/ZFrame-v2.04.apk，未实测：联机作弊检查补丁 0x2e0a084、三张图开房、Gfx.java 设置画质即时生效、悬浮球菜单、标题联机版。
-- v2.03（vc104/core104），releases/ZFrame-v2.03.apk，未实测：局域网联机实验按钮（open 地图?listen / open IP:7777），Lan.java。
-- v2.02（vc103/core103），releases/ZFrame-v2.02.apk，未实测：头/甲/包每局只刷一次到身上（再刷=栈溢出闪退，见 history 末尾）。
-- v2.01（versionCode 102，CORE_VER=102），releases/ZFrame-v2.01.apk，**未实测**：毒圈前几圈游戏按玩家位置定圈心（0xd99cf4）→ 刷到地图外，补丁 0xd97d68 bge→b 并把 CenterPointOffsetMax 写 0。含 v2.00：飞机/跳伞段高度 200 米 → 1000 米（修摔死，原因见 history 末尾）；开局整图圈半径 ×1.5。
-- v1.99（versionCode 100，ZInit.CORE_VER=100），releases/ZFrame-v1.99.apk，**未实测**。
-- 构建：见 README「构建」；`python3 rel.py ../releases/ZFrame-v1.98.apk build/unsigned.apk 1.98 1.99 99 100`，签名 zframe.jks / zframe123 / zf。
-- 规矩：简体中文；每版小改动；cave 用 unicorn 模拟（game/re/emu_*.py）；启动画面期间不改内存；不解密 pak、不绕保护、不联网外挂；每版 versionCode/CORE_VER/菜单版本号/history/README 同步并 push。
+- v2.19（vc120/core120，commit 94c08e8），releases/ZFrame-v2.19-单机/房主/客户端.apk，**未实测**，只发了单机版给用户。
+- v2.18：丢枪闪退修复（Recast queryPolygons 空 m_nav，0x25cb8e8 → cave 0x171e700 返回失败）。未实测。
+- 一体包（游戏+框架一个 APK）在沙盒 /workspace/work/full/，太大不进库；装了 ZFrame 单机 APK 就会覆盖一体包内置核心 → **以后只发小的 ZFrame-v*-单机.apk**（用户明确要求）。
+- 构建：`cd zframe && ./build3.sh <旧> <新> <旧vc> <新vc>`（三个版本一起出，Ed.ED 0 单机/1 房主/2 客户端）。改完写 notes/history.md、本文件，push。
 
-## v1.99 改了什么
-1. 人机只在玩家高度 <120 米、高度站稳 15 秒后才开始刷，第一批再随机等 30~120 秒（Bots.run）；每局人机总数随机 15~30 个，每批 1~2 个，身边少于 3 个才补（用户：不用真刷 100 个，一次别太多）。原因：v1.98 在飞机上（高度不变）就刷了，人机刷在空中摔死。
-2. 恢复 nop 游戏数人（ST_A/ST_B），但不写人数。原因：v1.98 用真实人数，人机摔死后只剩玩家 → 阶段 4→10，无结算直接弹回大厅。
+## 规矩
+简体中文、直接给结果；每版小改动，用户在手机上测（荣耀 X70，安卓16，无 root）；不推荐第三方工具/虚拟机；不解密 pak、不绕保护、不做联网外挂；不删枪和门；沐岑(libMczi)已彻底删除。崩溃看 下载/ZFrame/crash-*.txt（Bugly tomb，只看 pc/lr/fault addr）。
 
-## 待改（按用户优先级）
-1. **门、地上物资、车都没有**。线索：海岛2(Renew) 日志从没出现 `StreamingServerLayer Add`（0x117bb7c，verbosity≥5 才打），服务器专用关卡层（物资点/门/车点）单机从未加载。门：ANZSceneDoorManager（BeginPlay 0xce8ea4 只打日志；StandaloneUnloadAllDoor 在门管理器+0x380；服务器门由 `[DS Load]` 0xc7b7b8 加载，客户端靠 ClientSyncBatchDoorData）。地上刷物资可用 cave 'G'（SpawnOnePickUp 0x119d884）。
-2. **人机没枪**：cave 'I'（Veh.giveTo，ADDCHECK 0xccecbc + GIVE 0xcd3bdc）把枪放进人机背包成功（诊断 5b0b，能放 1 返回 1），但人机不拿在手上 → 要找装备/切换武器的函数（AI 或背包组件里的 Equip/SwitchWeapon）。
-3. **人机在地图上显示成队友**：不是 Uin（诊断：人机 Uin=3、玩家=1）。要查 TeamID（PlayerState 里的队伍号，诊断「队伍 b07b006c」是人机队伍字段读数，需和玩家比）及 IsTeammate 判定（NZBRTeamInfo.cpp 0x102281c 附近）。v1.98 写 Uin 900000+序号那段可删。
-4. **开局仍等约 60 秒**：日志 WaitingPlayersCountDownTime=1，但阶段 0→1 仍 50~60 秒；真正计时来源未找到（还有 bEnableQuickStartMatch ResetStartMatchCountDownTime[5.00]，阶段 1 仍 45 秒）。用户没回是否缩短 45 秒倒计时。
-5. **丢枪闪退**（v1.98 又复现）：crash-1116-191836 / 192302，最后一行是丢枪后 `Load NewDataTable[CommonItemDataTable]`，无 tombstone。
-6. **没有结算页面**：人机全死/玩家赢的结算没做（v1.94 的 END 补丁 0x100fc58/5c 已移除）；数人已 nop，需要我们自己在人机全死时触发胜利结算。
-7. 降落伞经常没有；画质设置即时生效（做到后删我们的画质按钮）；局域网联机。
+## v2.19 做了（待用户实测确认）
+1. 菜单「常用」下面新页「功能」(页号 8)：加速、高跳；「动作放慢」默认折叠。
+2. 大厅菜单高度自适应不留白；腾讯加载页不显示菜单，进大厅才出现（GameOverlay.lobbyReady）；默认位置中上。
+3. 人机页去掉难度，改「固定人机 / 自由人机」。手动刷的也配枪（Bots.manual→loadout）；固定人机每秒把移动组件 MaxWalkSpeed 0x164/蹲 0x168/MaxAcceleration 0x178/JumpZ 0x128 写 0。
+4. 所有人机随机衣服（Bots.dress，301/303 款按部位随机，用 'I' 发到身上）和动画角色名字（Bots.NAMES；写 PlayerState 的 FString，候选偏移 0x210/0x260/0x2f0，哪个是显示名**未确认**，看诊断「人机名字」）。
+5. 单机版看到开始加载大厅就开自建服务端（仓库衣服不用等）。
 
-## 用户未回答的问题
-- 45 秒倒计时要不要缩短；「柜子里怎么可以捡」是什么意思；要不要「出生只穿初始衣服」开关。
+## 待做（用户 11:07 提的，按顺序）
+1. **空投落地是空的、地图不刷物资、门不显示**（单机）。老问题：ServerOnly 流式关卡层（Door/Pickups/车点）单机不加载，见 history「StreamingServerLayer」「ANZSceneDoorManager」。地上刷物品可用 cave 'G'（SpawnOnePickUp 0x119d884）；可考虑自己按建筑位置撒物资。空投箱内容要找空投 actor 的生成物品逻辑。
+2. **双排/四排可选 + 人机队友填充**：选图界面单机下双排四排不可选；队友名字从 Bots.NAMES 随机（用户给的名单，不要「幼儿园小朋友」这类）。需要：解锁组队模式选择、刷出的人机设成玩家同队（PlayerState 队伍字段 +0x340 附近、IsTeammate 判定在 NZBRTeamInfo 0x102281c 附近）并让队友 AI 不打玩家。
+3. **军需页面抽奖**：大厅协议走自建服务端（Server.java，CSPkg protobuf，协议定义在 libUE4 里，导出在 game/proto）。要找军需/抽奖的请求号并回包。
+4. **电竞页面按钮**：用户要大厅的电竞入口（两个，左上角附近）点了有反应但不跳转。已向用户要大厅截图标位置，还没收到。
+5. 用户还要测：v2.17 两个模式（正常/不刷毒）、v2.18 丢枪不闪退、v2.19 以上全部。
+6. 老的未完成：掉虚空、结算页（人机全死不结算）、吉利服编号确认、房主一体包仍是 v2.16c。
