@@ -1,4 +1,5 @@
 package com.zframe.inject;
+import android.app.Activity;
 
 /**
  * v2.20 联机房主：地图物资 / 门 / 空投（只在房主版装，客户端版和单机版什么都不改）。
@@ -25,13 +26,30 @@ final class Loot {
     static volatile String pre = "地图物资/门补丁：" + (Ed.ED == 1 ? "没装" : "只在房主版装");
 
     /** 启动早装（Lan.preinstall 里调）。代码在进图前就要改好（运行中改已经跑过的代码不生效） */
+    /** v2.21：云手机房主进图一会儿闪退，怀疑是这块。改成大厅开关，默认关；开了才装，关掉就还原。 */
+    static volatile boolean on;
     static void preinstall() {
         if (Ed.ED != 1) return;
-        String c = Mods.write(SL_CAVE, SL_CAVE_O, SL_CAVE_N, true);
-        String h = "ok".equals(c) ? Mods.write(SL_HOOK, SL_HOOK_O, SL_HOOK_N, true) : "没装（cave " + c + "）";
-        String p = Mods.write(PK, PK_O, PK_N, true);
-        pre = "服务器物资层 " + h + "，物资点 " + p;
-        LogCap.note("房主地图物资/门（启动时）：" + pre);
+        pre = "地图物资/门：关（大厅开房页可打开）";
+    }
+    static String set(boolean want) {
+        if (Ed.ED != 1) return "只在房主版有";
+        String c, h, p;
+        if (want) {
+            c = Mods.write(SL_CAVE, SL_CAVE_O, SL_CAVE_N, true);
+            h = "ok".equals(c) ? Mods.write(SL_HOOK, SL_HOOK_O, SL_HOOK_N, true) : "没装（cave " + c + "）";
+            p = Mods.write(PK, PK_O, PK_N, true);
+            on = "ok".equals(h) || "ok".equals(p);
+        } else {
+            h = Mods.write(SL_HOOK, SL_HOOK_O, SL_HOOK_N, false);
+            c = Mods.write(SL_CAVE, SL_CAVE_O, SL_CAVE_N, false);
+            p = Mods.write(PK, PK_O, PK_N, false);
+            on = false;
+        }
+        pre = "地图物资/门：" + (on ? "开" : "关") + "（物资层 " + h + "，物资点 " + p + "）";
+        LogCap.note(pre);
+        try { Activity a = Con.act; if (a != null) a.getSharedPreferences("zframe", 0).edit().putBoolean("loot_on", on).apply(); } catch (Throwable t) {}
+        return on ? "地图物资/门 已开" : "地图物资/门 已关";
     }
 
     // ---- 一局里的计数，只在导出诊断时显示 ----
@@ -48,7 +66,7 @@ final class Loot {
 
     /** Con 的日志监视每行都调（只做字符串判断） */
     static void line(String l) {
-        if (Ed.ED != 1 || Lan.role != 1) return;
+        if (Ed.ED != 1 || Lan.role != 1 || !on) return;
         if (l.contains("StreamingServerLayer Add")) { layerAdds++; if (lastLayer.isEmpty()) lastLayer = cut(l); return; }
         if (l.contains("[Pickup] SPAWN")) { pickupSpawn++; return; }
         if (l.contains("RegisterDoor") || l.contains("[DS Load]") || l.contains("Add %d Doors") || l.contains("Doors to GridMap")) { doorLines++; lastDoor = cut(l); return; }

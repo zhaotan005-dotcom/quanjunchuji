@@ -583,3 +583,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Con：联机时不发 StreamLevelIn（以前收到「StreamingServerLayer Add」会自动发）；每行日志给 Loot.line 计数（服务器层关卡 / [Pickup] SPAWN / 门 / 空箱），只在「导出诊断」里显示；房主联机页多一行状态。
   - 测试：javac 过；game/re/emu_loot.py 在真 libUE4 代码上跑 unicorn：SL 7 种情况（房主加入、满了扩容、已存在不重复、无控制块、单机/专用服/客户端不变、world 空、层空，寄存器/栈恢复），PK 5 种世界类型 × 4 种网络模式（只多放开 NetMode 2）。
   - 没验证：客户端包里到底有没有 ServerOnly 关卡文件（缓存里没有就什么都不会加载）；房主加载 WorldMeshes 的内存；只按房主视野加载（离房主远的客户端身边可能没物资/门）；门/物资同步到客户端（GridMap 在 listen server 上是否建）；「LockServer--Pos」那行在设备日志里是否打印。
+
+## v2.21（vc122/core122，2026-11-17 16:10）
+- 用户：v2.20 房主在云手机（SM-G9810 安卓14，172.29.10.8）上联机进图一会儿闪退；下载里没有崩溃文件（没点导出诊断）。
+- 改动：Loot（ServerOnly 物资层 cave + 物资点放开 + 空投兜底）不再启动时装，改成大厅开房页「地图物资/门 关/开」开关，默认关，开=写补丁，关=还原（先还原钩子再还原 cave）。Loot.line 在关的时候不处理。
+- 目的：A/B 定位闪退是不是 Loot 导致。关着不闪 → 是 Loot；关着也闪 → 云手机本身（内存/32 位）或别的。

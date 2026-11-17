@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.20";
+    static final String VER = "v2.21";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -783,7 +783,10 @@ public class GameOverlay {
             fillBtn(a, u, r, "老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
             fillBtn(a, u, r, "新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
             fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
-            note(a, u, root, "点地图直接进图当房主。外网玩家用内网穿透连你的 UDP 7777。");
+            LinearLayout lr = row(a, root);
+            pick(a, u, lr, "地图物资/门 关", !Loot.on, () -> { toast(a, Loot.set(false)); refreshAny(); });
+            pick(a, u, lr, "地图物资/门 开", Loot.on, () -> { toast(a, Loot.set(true)); refreshAny(); });
+            note(a, u, root, "点地图直接进图当房主。外网玩家用内网穿透连你的 UDP 7777。物资/门默认关，先关着测进图稳不稳。");
           } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
