@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.34";
+    static final String VER = "v2.35";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -257,8 +257,33 @@ public class GameOverlay {
     static volatile boolean lobbySeen; static volatile View panelRef;
     /** v2.19：第一次进大厅（或进图）后才把菜单显示出来 */
     static void lobbyReady() {
-        if (lobbySeen) return; lobbySeen = true;
-        MAIN.post(() -> { View p = panelRef; if (p != null && !hidden) p.setVisibility(View.VISIBLE); });
+        if (lobbySeen) { mapShown(); return; } lobbySeen = true;
+        mapShown();
+    }
+    /** v2.35 用户：进大厅、进对局菜单出来时，也要和五指打开一样的过渡动画。切图（Browse）时先收起，图加载好再弹出来 */
+    static volatile int mapGen;
+    static void mapShown() {
+        final int g = ++mapGen;
+        MAIN.post(() -> { View p = panelRef; if (p != null && !hidden && g == mapGen) enterAnim(p); });
+    }
+    static void mapLeaving() {
+        final int g = ++mapGen;
+        MAIN.post(() -> {
+            final View p = panelRef; if (p == null || hidden || p.getVisibility() != View.VISIBLE) return;
+            p.animate().cancel();
+            p.animate().alpha(0f).scaleX(0.85f).scaleY(0.85f).setDuration(180)
+                    .withEndAction(() -> { if (g == mapGen) p.setVisibility(View.GONE); }).start();
+            // 加载失败没收到进图：40 秒后照样弹回来
+            MAIN.postDelayed(() -> { if (g == mapGen && !hidden) enterAnim(p); }, 40000);
+        });
+    }
+    static void enterAnim(View pv) {
+        pv.animate().cancel();
+        float d = pv.getResources().getDisplayMetrics().density;
+        pv.setVisibility(View.VISIBLE);
+        pv.setAlpha(0f); pv.setScaleX(0.85f); pv.setScaleY(0.85f); pv.setTranslationY(-30 * d);
+        pv.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0).setDuration(260)
+                .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();
     }
     static volatile boolean onPanel;
     static void hookKeys(final Activity a, final View panel, final Ui u) {

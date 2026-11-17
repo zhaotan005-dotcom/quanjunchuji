@@ -652,3 +652,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 19:47 v2.33 实测：拉人修好（PlayerArray 找到 2/2，但房主自己也被算进去了：GameOverlay.pawnAddr() 在房主上是 0）；客户端加速仍不生效（「跟房主：还没收到房主的数」）；客户端可以设置→退出了；上车仍 ClientUseVehicleFailed；服务端菜单拖出屏幕（标题栏出界）拉不回来。
 - v2.34 (vc135/core135): 根因——客户端没有刷物品补丁，askPawn 永远拿不到人物地址 → Mods 的加速/高跳/跟房主从来没跑。新增 Mods.myPawn()：pawnAddr 为 0 时用刷车 cave Veh.info()[6]（buf+8 本机人物），2 秒一问，出图清零。tickMove、syncFromHost、Crew.find 都用它（房主不再把自己当加入的人）。跟房主诊断写明卡在哪（找不到人物/没有 PS/Score=…）。菜单 clamp：拖动、松手、宽度变化、decor 尺寸变化都把面板夹回屏幕（标题栏完整在内）。
 - 上车失败未修：只有客户端日志（ClientUseVehicleFailed→CancelPreEnterVehicle），要房主同时刻诊断。游戏有自己的 NZStreamingLevelsTilesCollection（日志 UpdateActorPosTriggerLoadLevels ... PlayerNum），猜测与服务端位置不同步/房主那边地形没加载有关，未证实。
+- v2.35 (vc136/core136): 用户要求进大厅/进对局菜单出现时用五指打开同款动画。GameOverlay.mapLeaving()（Con Browse 时淡出收起，40 秒没进图兜底弹回）+ mapShown()/enterAnim()（每次地图加载完 lobbyReady 时弹出，0.85→1 缩放+下滑+Overshoot 260ms）。用户手动 ✕ 关掉的（hidden）不弹。
