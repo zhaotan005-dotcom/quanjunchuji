@@ -68,7 +68,7 @@ public class Flow {
         float side = small ? 408000f : 816000f;   // 地图边长（原点在地图正中，「传送到地图中间」BugItGo 0 0 也是这么用的）
         boolean circleDone = false, airDone = false; int ph = -1; sideNow = side;
         Thread.sleep(3000);
-        if (on) Veh.note("毒圈不按玩家位置定圈心：" + Mods.write(Mods.POOL, Mods.POOL_O, Mods.POOL_N, true));
+        if (on) { if (nat) Veh.note("毒圈换圈用游戏自己的逻辑（还原 0xd97d68）：" + Mods.write(Mods.POOL, Mods.POOL_O, Mods.POOL_N, false)); else Veh.note("毒圈不按玩家位置定圈心：" + Mods.write(Mods.POOL, Mods.POOL_O, Mods.POOL_N, true)); }
         for (int i = 0; i < 300 && g == gen && Con.inMatch; i++) {
             double[] p = Veh.info();
             if (p == null) { state = "毒圈：等人物出生"; Thread.sleep(1000); continue; }
@@ -123,7 +123,7 @@ public class Flow {
             float r0 = f(m, d + 0x10), w0 = f(m, d + 0x14), s0 = f(m, d + 0x18);
             float cx = f(m, d + 4), cy = f(m, d + 8), cz = f(m, d + 12);
             if (!(r0 > 10000 && r0 < 2e6f && w0 >= 0 && w0 < 7200 && s0 >= 0 && s0 < 7200 && Math.abs(cx) < 2e6f && Math.abs(cy) < 2e6f)) continue;
-            if (n >= tb.length + 3 && Math.abs(r0 - side * WHOLE) < 1f) return "已经是正式服的圈";
+            if (n >= tb.length + 3 && Math.abs(r0 - side * WHOLE) < 1f) return "游戏自己按正式服表生成（" + rows(m, d, n) + "）";
             String before = rows(m, d, n);
             byte[] first = new byte[ES], last = new byte[ES];
             m.seek(d); m.readFully(first);
@@ -286,5 +286,78 @@ public class Flow {
     static void wf(RandomAccessFile m, long a, float v) throws java.io.IOException { wi(m, a, Float.floatToRawIntBits(v)); }
     static void wi(RandomAccessFile m, long a, int b) throws java.io.IOException {
         m.seek(a); m.write(new byte[] { (byte) b, (byte) (b >> 8), (byte) (b >> 16), (byte) (b >> 24) });
+    }
+
+    // ---------------- v2.45 毒圈从底层改：游戏自己的 InitArea 直接读正式服的表 ----------------
+    // 用户：别在游戏生成以后再改一遍，改底层。InitArea(0xd9777c) 把 DefaultRestrictedAreaInfos(+0x33c/+0x340) 逐项拷到本局数组，
+    //   圈心由游戏自己算（第一圈：预设点/FirstCenterPoint；之后 RandomCenter 0xd96364 在上一圈里随机并检查落点）。
+    //   这个单机版的表只有 2 项（1500 米、等 900 秒），所以开局就有圈、位置乱。
+    // 做法：0xd977ec 跳到 cave A：把 +0x33c/+0x340/+0x344 换成我们的表（每项 +0x20 以后的字节照抄游戏原表），
+    //   函数出口 0xd97b6c 跳到 cave B：换回原来的数组（游戏的内存归游戏管，我们的表不会被它释放）。
+    //   表在进图（Browse）时按地图写好；InitArea 之后游戏自己的换圈逻辑照常跑（前一半圈按玩家位置定圈心）。
+    //   zone_cave.py 生成并用 unicorn 测过。
+    static final long ZA = 0xd977ecL, ZB = 0xd97b6cL, ZS = Server.SLACK + 0x990;
+    static final String ZA_O = "4c5394e560008de5", ZB_O = "1cd04be2f08fbde8";
+    static final String ZCA = "60008de52cc04fe200109ce5000051e32700000a08209ce5000052e32400001a3c2394e5400394e5000052e32000000a010050e31e0000ba08408ce50c208ce510008ce5443394e514308ce5010040e25430a0e3902320e004309ce5c0002de90050a0e3030055e10d0000aa016043e2060055e100e0a00102e0a0115460a0e395162ce02070a0e307609ee707608ce7047087e2540057e3faffffba015085e2efffffeac000bde83c1384e5403384e5443384e54c5394e504f01fe5", ZCB = "e8c04fe208109ce5000051e30700000a0c209ce53c2381e510209ce5402381e514209ce5442381e50020a0e308208ce51cd04be2f08fbde8";
+    static volatile boolean nat; public static volatile String natState = "";
+    static java.nio.ByteBuffer tbuf; static long taddr;
+    static synchronized String natInstall() {
+        if (nat) return "ok";
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        String caveA = ZCA + Server.w32((int) (b + 0xd977f4L));
+        byte[] body = Patches.hex("0000000000000000000000000000000000000000000000000000000000000000" + caveA + ZCB);
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            byte[] cur = new byte[body.length]; m.seek(b + ZS); m.readFully(cur);
+            boolean zero = true; for (byte x : cur) if (x != 0) { zero = false; break; }
+            byte[] curCode = java.util.Arrays.copyOfRange(cur, 32, cur.length), want = java.util.Arrays.copyOfRange(body, 32, body.length);
+            if (!zero && !java.util.Arrays.equals(curCode, want)) return "空位被占 " + Patches.hexs(java.util.Arrays.copyOf(cur, 16));
+            if (zero) { m.seek(b + ZS); m.write(body); }
+        } catch (Throwable e) { return "出错 " + e.getMessage(); }
+        String ra = Mods.write(ZA, ZA_O, "04f01fe5" + Server.w32((int) (b + ZS + 0x20)), true);
+        if (!"ok".equals(ra)) return "入口 " + ra;
+        String rb = Mods.write(ZB, ZB_O, "04f01fe5" + Server.w32((int) (b + ZS + 0xe0)), true);
+        if (!"ok".equals(rb)) { Mods.write(ZA, ZA_O, "04f01fe5" + Server.w32((int) (b + ZS + 0x20)), false); return "出口 " + rb; }
+        nat = true; return "ok";
+    }
+    /** 进对局地图（Browse）时调：按地图写好本局的表（游戏 InitArea 会用） */
+    static void natPrepare(String l) {
+        try {
+            if (l.contains("FrontEnd") || l.contains("RoleHall") || !l.contains("/Game/Maps/") || Lan.role == 2) return;
+            String r = natInstall();
+            if (!"ok".equals(r)) { natState = "毒圈底层：没装上（" + r + "）"; Veh.note(natState); return; }
+            boolean small = l.contains("Savage") || l.contains("4x4");
+            float[][] tb = small ? SMALL : BIG; float side = small ? 408000f : 816000f;
+            int cnt = tb.length + 3;
+            if (tbuf == null) { tbuf = java.nio.ByteBuffer.allocateDirect(16 * ES).order(java.nio.ByteOrder.LITTLE_ENDIAN); taddr = GameOverlay.bufAddr(tbuf); }
+            if (taddr <= 0 || taddr > 0xffffffffL) { natState = "毒圈底层：表内存地址不对"; return; }
+            byte[] t = table(tb, side, small ? 180 : 240);
+            tbuf.position(0); tbuf.put(t);
+            long b = Mods.base();
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+                wi(m, b + ZS + 8, 0); wi(m, b + ZS + 4, cnt); wi(m, b + ZS, (int) taddr);
+            }
+            natState = "毒圈底层：已装，本局 " + (small ? "4x4" : "8x8") + " " + cnt + " 项（游戏自己定圈心）";
+            Veh.note(natState);
+        } catch (Throwable e) { natState = "毒圈底层：出错 " + e; }
+    }
+    /** 正式服节奏的表（圈心留给游戏算；+0 CenterPointOffsetMax = 能离上一圈中心多远） */
+    static byte[] table(float[][] tb, float side, float firstWait) {
+        int cnt = tb.length + 3;
+        java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(cnt * ES).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+        float whole = side * WHOLE, pr = whole;
+        for (int i = 0; i < cnt; i++) {
+            int o = i * ES; float r, w, s, off; int dmg;
+            if (i == 0) { r = whole; w = firstWait; s = 1; dmg = 1; off = 0; }
+            else if (i == 1) { r = whole; w = tb[0][1]; s = tb[0][2]; dmg = 1; off = 0; }
+            else {
+                int k = i - 2;
+                if (k < tb.length) { r = tb[k][0]; dmg = (int) tb[k][3]; } else { r = 0.1f; dmg = 11; }
+                if (k + 1 < tb.length) { w = tb[k + 1][1]; s = tb[k + 1][2]; } else if (k < tb.length) { w = 180; s = 15; } else { w = 9999; s = 1; }
+                off = i == 2 ? Math.max(0, side / 2 - r) : Math.max(0, pr - r);
+            }
+            b.putFloat(o, off); b.putFloat(o + 0x10, r); b.putFloat(o + 0x14, w); b.putFloat(o + 0x18, s); b.putInt(o + 0x1c, dmg);
+            pr = r;
+        }
+        return b.array();
     }
 }
