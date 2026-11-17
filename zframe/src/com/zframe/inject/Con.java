@@ -299,6 +299,7 @@ public class Con {
     // 做法：第一次进海岛后，如果本次启动还没见过大厅音频初始化，就先 open 大厅，等音频初始化完成后再 open 回同一张地图。
     static final String LOBBY = "/Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW";
     public static volatile boolean audioAuto = true;
+    static volatile boolean earlySrv;
     static volatile boolean feAudioSeen; static volatile int bounce; // 0 未做 1 已去大厅 2 已回地图
     static volatile long brLoadedAt, feSeenAt; static volatile String brMap;
     public static volatile String audioFix = "等待进图";
@@ -451,6 +452,11 @@ public class Con {
             if (!feAudioSeen) { feAudioSeen = true; feSeenAt = System.currentTimeMillis(); LogCap.note("声音修复: 看到大厅音频初始化"); }
             if (bounce != 1) audioFix = "大厅音频已初始化";
         }
+        // v2.19 用户：仓库衣服刚进大厅没有、要等服务端开 → 单机版一看到开始加载大厅就开服务端（不等加载完 + 2.5 秒）
+        if (Ed.single() && !Server.on && !earlySrv && l.contains("LoadMap") && (l.contains("RoleHall") || l.contains("FrontEnd")) && !l.contains("LogLoad: Took")) {
+            earlySrv = true;
+            new Thread(() -> { if (Lan.role != 0 || Lan.busy || inMatch) { earlySrv = false; return; } LogCap.note("大厅开始加载，提前开服务端 → " + Server.start()); }, "zf-srv0").start();
+        }
         int tk = l.indexOf("LogLoad: Took");
         if (tk >= 0) {
             int lm = l.indexOf("LoadMap(", tk);
@@ -458,10 +464,10 @@ public class Con {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
-                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
+                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Lan.role = 0; Bots.auto = true;
-                    if (!Server.on && Ed.single()) new Thread(() -> { try { Thread.sleep(2500); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
+                    if (!Server.on && Ed.single()) new Thread(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;

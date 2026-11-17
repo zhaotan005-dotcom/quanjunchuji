@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.18";
+    static final String VER = "v2.19";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -96,8 +96,8 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
             tabsRow.setPadding(u.dp(8), u.dp(4), u.dp(4), u.dp(10));
-            final String[] tabs = {"常用", "武器", "装备", "衣服", "刷车", "人机", "联机", "画面"};
-            final int[] map = {0, 3, 4, 7, 1, 2, 6, 5};   // 显示顺序 → 原来的页号（fill 按页号填）
+            final String[] tabs = {"常用", "功能", "武器", "装备", "衣服", "刷车", "人机", "联机", "画面"};
+            final int[] map = {0, 8, 3, 4, 7, 1, 2, 6, 5};   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -120,20 +120,25 @@ public class GameOverlay {
             final View hr = new View(a); hr.setBackgroundColor(LINE);
             body.addView(hr, new LinearLayout.LayoutParams(1, -1));
             body.addView(sv, new LinearLayout.LayoutParams(0, ph - u.dp(56), 1));
+            final int svH = ph - u.dp(56);
             panel.addView(body, new LinearLayout.LayoutParams(-1, -2));
 
             final View tabsLine = hr;
             // v2.05：对局里的分页按身份不同 —— 单机：常用/武器/装备/刷车/人机/画面；房主：人机换成联机；加入的客户端：只有联机/画面
             final Runnable mode = () -> {
                 int v = Con.inMatch ? View.VISIBLE : View.GONE; tabsRow.setVisibility(v); tabsLine.setVisibility(v);
+                // v2.19 用户：大厅菜单下面一大片空白 → 大厅里内容多高就多高
+                LinearLayout.LayoutParams sl = (LinearLayout.LayoutParams) sv.getLayoutParams();
+                int want = Con.inMatch ? svH : -2;
+                if (sl.height != want) { sl.height = want; sv.setLayoutParams(sl); }
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? id != 2 : (id == 6 || id == 5 || id == 0);
+                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? id != 2 : (id == 6 || id == 5 || id == 0 || id == 8);
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
-                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? tab != 2 : (tab == 6 || tab == 5 || tab == 0);
+                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? tab != 2 : (tab == 6 || tab == 5 || tab == 0 || tab == 8);
                     if (!ok) { tab = r == 2 ? 6 : 0; paintTabs(tv, u); }
                 }
             };
@@ -151,7 +156,8 @@ public class GameOverlay {
                 status.setVisibility(collapsed ? View.GONE : View.VISIBLE);
                 fold.setText(collapsed ? "▶" : "▼");
                 ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
-                if (lp0 != null) { lp0.width = collapsed ? u.dp(210) : pw; panel.setLayoutParams(lp0); }
+                int nw = collapsed ? u.dp(210) : pw;
+                if (lp0 != null) { int ow = lp0.width > 0 ? lp0.width : nw; lp0.width = nw; panel.setLayoutParams(lp0); if (ow != nw) { panel.setX(panel.getX() + (ow - nw) / 2f); px = panel.getX(); } }
             };
             fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
@@ -159,9 +165,10 @@ public class GameOverlay {
             FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(pw, -2);
             flp.gravity = Gravity.TOP | Gravity.START;
             decor.addView(panel, flp);
-            if (px < 0) { px = u.dp(40); py = u.dp(24); }
+            if (px < 0) { px = (sw - (collapsed ? u.dp(210) : pw)) / 2f; py = u.dp(4); }   // v2.19 用户：默认放中上（以前偏左，容易点到电竞页）
             panel.setX(px); panel.setY(py);
-            if (hidden) panel.setVisibility(View.GONE);
+            if (hidden || !lobbySeen) panel.setVisibility(View.GONE);   // v2.19 用户：腾讯加载页不显示，到大厅才出来
+            panelRef = panel;
             apply.run();
 
             head.setOnTouchListener(new View.OnTouchListener() {
@@ -226,6 +233,12 @@ public class GameOverlay {
 
     // v1.40：五指同时点屏幕 → 打开菜单；标题栏右边 ✕ → 关掉（带出场/退场动画）
     static volatile boolean hidden;
+    static volatile boolean lobbySeen; static volatile View panelRef;
+    /** v2.19：第一次进大厅（或进图）后才把菜单显示出来 */
+    static void lobbyReady() {
+        if (lobbySeen) return; lobbySeen = true;
+        MAIN.post(() -> { View p = panelRef; if (p != null && !hidden) p.setVisibility(View.VISIBLE); });
+    }
     static void hookKeys(final Activity a, final View panel, final Ui u) {
         try {
             final android.view.Window w = a.getWindow();
@@ -743,6 +756,7 @@ public class GameOverlay {
             case 5: settingsPage(a, u, root); return;
             case 6: lanPage(a, u, root); return;
             case 7: clothesPage(a, u, root); return;
+            case 8: funcPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -791,7 +805,7 @@ public class GameOverlay {
             // v2.17 用户：只要两个模式；「不刷毒对局」= 不上飞机（直接在出生岛开打）+ 不刷圈。去掉清空仓库、日志
             pick(a, u, fl, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
             pick(a, u, fl, "不刷毒对局", Mods.noPlane || Mods.noPoison, () -> result(a, Mods.setNoZone()));
-            note(a, u, root, "选好后点游戏里的「匹配赛」开始。单机自动刷人机，难度在对局里的「人机」页改。");
+            note(a, u, root, "选好后点游戏里的「匹配赛」开始。单机自动刷人机。");
         }
         note(a, u, root, Server.state);
     }
@@ -874,10 +888,24 @@ public class GameOverlay {
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "聚点", "子弹不散开，打得更准", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
+    }
+    /** v2.19「功能」页：加速、高跳；「动作放慢」默认折叠，点标题展开 */
+    static boolean slowOpen;
+    static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
+        boolean cl = Lan.role == 2 || Ed.ED == 2;
         head(a, u, root, "跑跳");
-        slider(a, u, root, "加速", "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "加速", cl ? "跑得更快，拖到最左边是关；太快会被服务器拉回去" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
         slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
-        slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
+        LinearLayout fc = card(a, u, root);
+        LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);
+        TextView fn = new TextView(a); fn.setText("动作放慢"); fn.setTextColor(TXT); fn.setTextSize(13);
+        fr.addView(fn, new LinearLayout.LayoutParams(-2, -2));
+        TextView fs = new TextView(a); fs.setText("  加速时人物动作 " + fmt(Mods.slowMo)); fs.setTextColor(SUBT); fs.setTextSize(10);
+        fr.addView(fs, new LinearLayout.LayoutParams(0, -2, 1));
+        TextView fa = new TextView(a); fa.setText(slowOpen ? "收起 ▲" : "展开 ▼"); fa.setTextColor(ACC); fa.setTextSize(12);
+        fr.addView(fa, new LinearLayout.LayoutParams(-2, -2));
+        fr.setOnClickListener(v -> { slowOpen = !slowOpen; refreshAny(); });
+        if (slowOpen) slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
     }
 
     /** v1.93 刷车页：车按钮直接显示（编号写死，不用读车表），点了刷在面前 */
@@ -894,9 +922,12 @@ public class GameOverlay {
     }
     /** v1.93 人机页 */
     static void botPage(final Activity a, final Ui u, final LinearLayout root) {
-        botRows(a, u, root);
+        // v2.19 用户：去掉难度；刷人机分两种 —— 固定人机（站着不动当靶子）、自由人机（会跑会打）
+        head(a, u, root, "刷人机（面前 8 米）");
         LinearLayout br = row(a, root);
-        btn(a, u, br, "再刷一个（面前 8 米）", Veh::spawnBot);
+        btn(a, u, br, "固定人机", () -> Veh.spawnBot(true));
+        btn(a, u, br, "自由人机", () -> Veh.spawnBot(false));
+        note(a, u, root, "手动刷的人机也会随机配枪、头甲、衣服和名字。");
         note(a, u, root, Bots.state);
     }
 
@@ -951,10 +982,6 @@ public class GameOverlay {
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "防抖 / 聚点", "镜头不晃、子弹不散开", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "无限子弹", "客户端改的，房主那边可能不认", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
-        head(a, u, root, "跑跳");
-        slider(a, u, root, "加速", "跑得更快，拖到最左边是关；太快会被服务器拉回去", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
-        slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
     }
 
     /** v2.15「衣服」页（房主/单机）：最上面绝地风衣单独一个按钮；下面是从游戏内存里读出来的全部服装编号（Server.scanSkins，只读），

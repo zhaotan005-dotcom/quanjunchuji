@@ -26,7 +26,7 @@ public class Bots {
     static volatile int gen;
     static final Random rnd = new Random();
 
-    static void newMatch() { gen++; spawned = 0; phase = -1; equipState = ""; synchronized (live) { live.clear(); } killed = 0; state = auto ? "人机：等进对局" : "人机：自动刷新已关"; }
+    static void newMatch() { usedNames.clear(); gen++; spawned = 0; phase = -1; equipState = ""; synchronized (live) { live.clear(); } killed = 0; state = auto ? "人机：等进对局" : "人机：自动刷新已关"; }
 
     // ---------------- v1.93/v1.94 100 人局 ----------------
     // 用户：上面「剩余」从 100 开始，只在身边刷几个人机，打死一个少一个；玩家和服务端算一个人；减到 1 就结束游戏、放结算动画。
@@ -102,7 +102,7 @@ public class Bots {
         }, "zf-count").start();
     }
     static String countText() {
-        return countInfo + "，现在 " + foreignVal + "（人机 " + foreignAiVal + "），已死人机 " + killed + "\n  " + gunState;
+        return countInfo + "，现在 " + foreignVal + "（人机 " + foreignAiVal + "），已死人机 " + killed + "\n  " + gunState + "\n  " + dressState + "\n  " + nameState;
     }
 
     /** v1.97：仓库里穿着的衣服（不含默认衣服、发型），进对局后当普通物品发到身上，能脱能捡 */
@@ -134,7 +134,7 @@ public class Bots {
     }
 
     static void matchLoaded() {
-        final int g = ++gen; spawned = 0; phase = -1; synchronized (live) { live.clear(); } killed = 0;
+        usedNames.clear(); final int g = ++gen; spawned = 0; phase = -1; synchronized (live) { live.clear(); } killed = 0;
         unpatchEnd();
         new Thread(() -> {   // 剩余人数：不管自动刷人机开没开都数
             try {
@@ -234,10 +234,141 @@ public class Bots {
             if (rnd.nextBoolean()) Veh.giveTo(pawn, Long.parseLong(HELM[rnd.nextInt(HELM.length)]), 1);
             if (rnd.nextBoolean()) Veh.giveTo(pawn, Long.parseLong(VEST[rnd.nextInt(VEST.length)]), 1);
             if (rnd.nextInt(3) == 0) Veh.giveTo(pawn, 40100000001L + rnd.nextInt(2), 1 + rnd.nextInt(3));
+            dress(pawn);
+            name(ctrl, pawn);
             gunState = "人机配枪：第 " + idx + " 个 枪 " + gun[0] + " → " + Integer.toHexString(c1) + "（能放 " + cap + "，返回 " + ret + "），子弹 → " + Integer.toHexString(c2) + "；" + uinState;
             if (idx <= 3) Veh.note(gunState);
         } catch (Throwable e) { gunState = "人机配枪：出错 " + e; }
     }
+    // ---------------- v2.19 人机衣服随机 + 名字 + 固定人机 ----------------
+    /** 衣服池：仓库存档里的衣服 + 衣服页存过的列表；都没有就扫一次内存（后台，只扫一次）。按部位分：01 裤 02 上衣 03 鞋 12 帽 14/15 外套 */
+    static volatile java.util.Map<Integer, java.util.ArrayList<Long>> pool;
+    static volatile boolean poolBusy;
+    public static volatile String dressState = "人机衣服：还没试";
+    static java.util.Map<Integer, java.util.ArrayList<Long>> pool() {
+        java.util.Map<Integer, java.util.ArrayList<Long>> pl = pool;
+        if (pl != null) return pl;
+        java.util.TreeSet<Long> ids = new java.util.TreeSet<>();
+        try { if (Server.props != null) for (long[] v : Server.props.values()) ids.add(v[0]); } catch (Throwable ignored) {}
+        try {
+            java.io.File f = GameOverlay.clothFile();
+            if (f != null && f.exists()) for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) ids.add(Long.parseLong(x));
+        } catch (Throwable ignored) {}
+        java.util.Map<Integer, java.util.ArrayList<Long>> m = new java.util.HashMap<>();
+        for (long id : ids) {
+            int big = (int) (id / 100000000L) % 1000, yy = (int) (id / 1000000 % 100);
+            if (big != 301 && big != 303) continue;              // 只用男款和通用（人机是男模型）
+            if (id == 30304000000L || yy == 4 || yy == 5 || yy == 13) continue;
+            int slot = yy == 15 ? 14 : yy;
+            if (slot != 1 && slot != 2 && slot != 3 && slot != 12 && slot != 14) continue;
+            m.computeIfAbsent(slot, k -> new java.util.ArrayList<>()).add(id);
+        }
+        int n = 0; for (java.util.ArrayList<Long> l : m.values()) n += l.size();
+        if (n >= 6) { pool = m; return m; }
+        if (!poolBusy) {
+            poolBusy = true;
+            new Thread(() -> {
+                try {
+                    java.util.TreeSet<Long> all = new java.util.TreeSet<>(Server.scanSkins().keySet());
+                    java.io.File f = GameOverlay.clothFile();
+                    StringBuilder b = new StringBuilder(); for (long v : all) b.append(v).append(' ');
+                    if (f != null && !all.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
+                    dressState = "人机衣服：扫到 " + all.size() + " 件";
+                } catch (Throwable e) { dressState = "人机衣服：扫衣服出错 " + e; }
+                poolBusy = false;
+            }, "zf-botcloth").start();
+        }
+        return m;
+    }
+    static void dress(long pawn) {
+        try {
+            java.util.Map<Integer, java.util.ArrayList<Long>> m = pool();
+            StringBuilder b = new StringBuilder();
+            for (int slot : new int[] { 2, 1, 3, 12, 14 }) {
+                java.util.ArrayList<Long> l = m.get(slot);
+                if (l == null || l.isEmpty()) continue;
+                if ((slot == 12 || slot == 14) && rnd.nextBoolean()) continue;   // 帽子、外套一半概率
+                long id = l.get(rnd.nextInt(l.size()));
+                int c = Veh.giveTo(pawn, id, 1);
+                b.append(id).append('=').append(Integer.toHexString(c)).append(' ');
+            }
+            dressState = b.length() == 0 ? "人机衣服：衣服池是空的（" + dressState + "）" : "人机衣服：" + b;
+        } catch (Throwable e) { dressState = "人机衣服：出错 " + e; }
+    }
+
+    /** 人机名字：动画角色名里随机，一局不重复 */
+    static final String[] NAMES = (
+        "喜羊羊 美羊羊 懒羊羊 沸羊羊 暖羊羊 慢羊羊 快羊羊 软绵绵 刀羊 羚羊公主 羚羊王子 忽悠老羊 羊大力 荷花 古羊族族长 威哥 吉祥 如意 小可爱 外母鸡 恶龙 " +
+        "灰太狼 红太狼 小灰灰 蕉太狼 黑太狼 武大狼 小白狼 香太狼 夜太狼 白眼狼 拳击狼 灰二太太狼 巫师狼 双刀狼 双叉狼 狼将军 芯太狼 鱼淘淘 " +
+        "咚咚锵 嘭恰恰 白牛国王 黑牛国王 虎威太岁 阿豹 壁虎军师 精灵兔 小蜜蜂 包包大人 泰哥 小强 乌鸦 飞哥 河马 犀牛 狮子 大象 " +
+        "熊大 熊二 光头强 赵琳 纳雅 萨尔塔 团子 鹿希 毛毛 吉吉 蹦蹦 涂涂 萝卜头 肥波 小狸 老鳄 翠花 铁掌大师 拖拖 胖头 肥肥 球球 柯基 嘟嘟 贝丝 南海怪兽 天才威 洞洞幺 大马猴 二狗 李老板 王老板 强爸 强妈 光头强奶奶 虎妞 崽崽 小月亮 虎子 猫头鹰 黑风 象奶奶 AGE Coco 金鹿角守护者 大鹿 猴头菇精灵 乐天 小可 团子妈妈 麋鹿 老酋长 驯鹿 雪人 雪熊 猫头鹰老师 熊妈妈 熊爸爸 小树 大树 跳跳 豆豆 毛毛表弟 野猪 山羊 刺猬 松鼠 啄木鸟 青蛙 兔子 小鸟 " +
+        "洛洛 王嘉洛 霹雳火 急先锋 龙卷风 超音速 力霸天 冲击波 风火轮 闪电 风雪 急先锋师父 月神殿城主 时光之城老城主 能源之城老城主 " +
+        "晶晶 猛虎王 狂野猩 暴龙神 金铁兽 银铁兽 绿豹兽 蓝豹兽 紫龙兽 蓝毒兽 紫毒兽 银毒兽 黑毒兽 黑豹兽 黑铁兽 冰狼兽 地藏虎 " +
+        "南宫问天 南宫问雅 东方铁心 北冥雪 西门孝 北冥雷 阿娇 阿莎 南宫逸 玉燕 西门豪 北冥正 东方雄 天地盟主 玄天圣帝 玄天帝姬 燕侠 武勇 玉龙国女王 宽容王子 希望王子 纯真公主 白燕 白月蟾蜍 天马 白羊 美人鱼 " +
+        "天晶兽 玉灵龙 凤凰 神农兽 小太虚 太虚兽 十方明亮 惊邪 炎兽 虎魄 巨灵龙 魔兵天晶 神兽坐骑 " +
+        "胡图图 图图 张小丽 胡英俊 张帅子 刷子 壮壮 小美 牛爷爷 健康哥哥 芳芳老师 小怪 麦大星 麦小星 图图爷爷 图图奶奶 王子 快快 大龙 二龙 帅子妈 壮壮妈 小美妈"
+        ).split(" ");
+    static final java.util.Set<String> usedNames = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    public static volatile String nameState = "人机名字：还没试";
+    static String pickName() {
+        for (int t = 0; t < 50; t++) { String n = NAMES[rnd.nextInt(NAMES.length)]; if (usedNames.add(n)) return n; }
+        return NAMES[rnd.nextInt(NAMES.length)];
+    }
+    /** PlayerState 里的名字是 FString{data,num,max}，TCHAR 4 字节。三个候选偏移（反射表里叫 PlayerName 的属性：0x210/0x260/0x2f0），
+     *  看着像字符串、并且原来的空间放得下新名字才写（不另外分配内存，免得游戏释放时崩）。 */
+    static final int[] NAME_OFF = { 0x210, 0x260, 0x2f0 };
+    static void name(long ctrl, long pawn) {
+        String nm = pickName();
+        StringBuilder b = new StringBuilder("人机名字 " + nm + "：");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            long ps = Server.rd(m, ctrl + 0x2c4); if (ps < 0x10000) ps = Server.rd(m, pawn + 0x2c4);
+            if (ps < 0x10000) { nameState = b + "找不到 PlayerState"; return; }
+            int[] cps = nm.codePoints().toArray();
+            for (int off : NAME_OFF) {
+                long data = Server.rd(m, ps + off); int num = (int) Server.rd(m, ps + off + 4), max = (int) Server.rd(m, ps + off + 8);
+                b.append(Integer.toHexString(off)).append('[');
+                if (data < 0x10000 || num < 1 || num > 64 || max < num || max > 256) { b.append("不像 ").append(num).append('/').append(max).append("] "); continue; }
+                StringBuilder old = new StringBuilder();
+                for (int i = 0; i < num - 1; i++) { int c = (int) Server.rd(m, data + 4L * i); if (c <= 0 || c > 0x10ffff) { old.setLength(0); old.append('?'); break; } old.appendCodePoint(c); }
+                b.append(old);
+                if (max >= cps.length + 1) {
+                    for (int i = 0; i < cps.length; i++) Flow.wi(m, data + 4L * i, cps[i]);
+                    Flow.wi(m, data + 4L * cps.length, 0);
+                    Flow.wi(m, ps + off + 4, cps.length + 1);
+                    b.append("→写了");
+                } else b.append(" 放不下 ").append(max);
+                b.append("] ");
+            }
+        } catch (Throwable e) { b.append("出错 ").append(e); }
+        nameState = b.toString();
+    }
+
+    /** 固定人机：人物移动组件的 MaxWalkSpeed(0x164)/蹲走(0x168)/MaxAcceleration(0x178)/JumpZ(0x128) 写 0，每秒补一次（会转身开枪，不会走） */
+    static void hold(final int g, final long pawn) {
+        new Thread(() -> {
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+                while (g == gen && Con.inMatch) {
+                    long c = Server.rd(m, pawn + Mods.P_CMC);
+                    int hp = (int) Server.rd(m, pawn + 0x5a0);
+                    if (c < 0x10000 || hp < 1) return;
+                    for (int o : new int[] { 0x164, 0x168, 0x178, 0x128 }) Mods.wf(m, c + o, 0f);
+                    Thread.sleep(1000);
+                }
+            } catch (Throwable ignored) {}
+        }, "zf-bot-hold").start();
+    }
+    /** v2.19 手动刷：和自动刷的人机一样配枪/衣服/名字；fixed = 固定人机 */
+    static void manual(long ctrl, boolean fixed) {
+        final int g = gen; spawned++; track(ctrl);
+        long pawn = 0;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { pawn = Server.rd(m, ctrl + 0x2c0); } catch (Throwable ignored) {}
+        if (pawn < 0x10000) pawn = Veh.buf.getInt(96) & 0xffffffffL;
+        final long pw = pawn; final int idx = spawned;
+        new Thread(() -> regive(g, ctrl), "zf-bot-eq").start();
+        new Thread(() -> loadout(g, ctrl, pw, idx), "zf-bot-gun").start();
+        if (fixed && pw >= 0x10000) hold(g, pw);
+    }
+
     /** v1.98 人机在地图上显示成队友（日志 IsTeammateByUin! Found!）：队伍按 PlayerState+0x3b0 的 Uin 认人，
      *  单机下人机和玩家的 Uin 都是 0 → 被当成队友。给每个人机一个不同的 Uin。 */
     public static volatile String uinState = "";

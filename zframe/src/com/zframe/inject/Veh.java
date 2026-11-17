@@ -370,7 +370,8 @@ public class Veh {
     }
 
     /** 菜单按钮：面前 8 米刷一个（当前难度） */
-    public static void spawnBot() {
+    public static void spawnBot() { spawnBot(false); }
+    public static void spawnBot(final boolean fixed) {
         if (busy) { GameOverlay.toastAny(state); return; }
         busy = true;
         new Thread(() -> {
@@ -379,8 +380,8 @@ public class Veh {
                 if (p == null) { GameOverlay.toastAny(botState = "刷人机：还没有人物（进对局、出生后再按）"); return; }
                 double r = Math.toRadians(p[3]);
                 int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, 1 | 4);
-                if (c == 0x5b08 || c == 0x5b07) { Bots.spawned++; Bots.track(lastCtrl()); }
-                botState = "刷人机（" + DIFF[Bots.diff] + "）：" + codeText(c);
+                if (c == 0x5b08 || c == 0x5b07) Bots.manual(lastCtrl(), fixed);
+                botState = "刷" + (fixed ? "固定" : "自由") + "人机：" + codeText(c);
                 note(botState + "；" + botInfo);
                 GameOverlay.toastAny(botState);
             } catch (Throwable e) { GameOverlay.toastAny(botState = "刷人机：出错 " + e); note(botState); }
