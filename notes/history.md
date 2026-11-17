@@ -606,3 +606,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户：加入房间的 IP 框能打字但删不掉。悬浮窗里的 EditText 删除键（KEYCODE_DEL 按键事件）被游戏吃掉，提交文字走 InputConnection 所以能打。
 - 改：去掉 EditText，换成自带键盘（0-9 . : 退格 清空 加入），上面显示 ___.___.___.___ 格式和是否合法（每段 ≤255，端口可省，默认 7777）。不弹系统键盘。
 - 衣服「按编号穿」的数字框没改，可能同样删不了。
+
+## v2.25（vc126/core126，2026-11-17 17:10）— 穿透域名
+- 用户的 Sakura FRP 隧道（UDP，本地 7777）给的是域名 frp-put.com:47937（官方不建议节点 IP 直连）。
+- 加入房间：键盘加「粘贴」（读剪贴板，去掉 xxx:// 和尾部斜杠）；Lan.join 遇到域名就开后台线程 InetAddress 解析成 IPv4，再在主线程 open 数字IP:端口。lastIp 记域名。

@@ -95,6 +95,24 @@ final class Lan {
     static String join(String ip) {
         ip = ip == null ? "" : ip.trim();
         int k = ip.indexOf('（'); if (k > 0) ip = ip.substring(0, k);
+        // v2.25：穿透给的是域名（frp-put.com:47937），先在后台解析成数字 IP 再连
+        if (ip.matches("[A-Za-z0-9.-]*[A-Za-z][A-Za-z0-9.-]*(:\\d{1,5})?")) {
+            final String dom = ip; final int c = dom.indexOf(':');
+            final String host = c < 0 ? dom : dom.substring(0, c), port = c < 0 ? "7777" : dom.substring(c + 1);
+            note("解析域名 " + dom);
+            new Thread(() -> {
+                String num = null;
+                try { for (java.net.InetAddress x : java.net.InetAddress.getAllByName(host)) if (x instanceof java.net.Inet4Address) { num = x.getHostAddress(); break; } }
+                catch (Throwable t) { note("域名解析失败 " + t); }
+                final String r = num;
+                GameOverlay.MAIN.post(() -> {
+                    String msg = r == null ? "域名解析不出来，检查网络或地址" : join(r + ":" + port);
+                    if (r != null) { lastIp = dom; note(dom + " → " + r); }
+                    android.app.Activity a = Con.act; if (a != null) GameOverlay.toast(a, msg);
+                });
+            }, "zf-dns").start();
+            return "正在解析 " + host;
+        }
         if (!ip.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d{1,5})?")) return "IP 格式不对";
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";

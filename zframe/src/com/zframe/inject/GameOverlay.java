@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.24";
+    static final String VER = "v2.25";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -803,7 +803,7 @@ public class GameOverlay {
             final Runnable show = () -> {
                 ipShow.setText(ipBuf.isEmpty() ? "___.___.___.___" : ipBuf);
                 ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT);
-                ipFmt.setText(ipOk(ipBuf) ? "格式对了" + (ipBuf.indexOf(':') < 0 ? "（端口默认 7777）" : "") : "格式：192.168.1.5 或 1.2.3.4:端口");
+                ipFmt.setText(ipOk(ipBuf) ? "格式对了" + (ipBuf.indexOf(':') < 0 ? "（端口默认 7777）" : "") : ipBuf.matches(".*[A-Za-z].*") ? "域名，加入时自动解析" : "格式：192.168.1.5 或 1.2.3.4:端口；穿透域名复制后点粘贴");
             };
             show.run();
             String[][] keys = {{"1", "2", "3", "4"}, {"5", "6", "7", "8"}, {"9", "0", ".", ":"}};
@@ -814,6 +814,15 @@ public class GameOverlay {
             LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(6));
             btn(a, u, er, "退格", () -> { if (!ipBuf.isEmpty()) ipBuf = ipBuf.substring(0, ipBuf.length() - 1); show.run(); });
             btn(a, u, er, "清空", () -> { ipBuf = ""; show.run(); });
+            btn(a, u, er, "粘贴", () -> {
+                try {
+                    android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                    CharSequence t = cm.hasPrimaryClip() ? cm.getPrimaryClip().getItemAt(0).coerceToText(a) : null;
+                    String v = t == null ? "" : t.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", "");
+                    if (v.isEmpty()) { toast(a, "剪贴板是空的"); return; }
+                    ipBuf = v.length() > 60 ? v.substring(0, 60) : v; show.run();
+                } catch (Throwable e) { toast(a, "读不到剪贴板"); }
+            });
             fillBtn(a, u, er, "加入", () -> toast(a, Lan.join(ipBuf)));
             note(a, u, root, "房主先进图，再点加入。");
           }
