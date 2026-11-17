@@ -640,3 +640,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.29 客户端：粘贴 frp-put.com:47937 点加入，状态「已发 open frp-put.com:47937」但进不去（房主已在图里）。v2.26 把域名原样交给 open，游戏不自己解析域名。
 - 改回：Lan.join 遇到字母地址 → 后台线程 InetAddress 取 IPv4 → 主线程 openJoin(数字IP:端口)。界面和状态只显示域名，日志记「域名 → IP」。
 - 房主设置里「退出比赛」卡住：还在等房主 导出诊断（静态：OnConfirmExit 0x162f38c → 0x130475c → 0x12486a8）。
+
+## v2.31（vc132/core132，2026-11-17 18:50）— 加入的人拉到房主身边；加速/高跳跨局保留
+- 18:27 双端诊断：客户端经穿透连上了（房主日志 Join succeeded: Guest4，127.0.0.1 = frp 本地转发）。客户端出生在随机点（快速开局，没飞机），常在水里，和房主不在一处。
+- 新 vcave 指令 'T<人物>x<buf>'：0x273d654 = K2_TeleportTo 的实现（内部走 vt+0x250 TeleportTo(loc, rot, false, false)），位置 buf+40..48，朝向 +52..60，返回 +4，标记 5b0d。emu_vcave.py 加 T 测试，通过。cave 1424 字节，到 0x4a2ded0（< 0x4a2e000）。
+- Crew：日志出现 Join succeeded → 6 秒、12 秒各找一次人（Alive.collect），把加入的玩家传到房主身边 2 米（每人每局一次）。联机页加「把加入的人拉到我身边」。诊断导出加 Crew.state / pullState。
+- 加速/高跳没生效：Con 进图 Browse 时 Mods.resetMatch() 把 speed/jump/枪开关清回 1 —— 大厅里拉好的数进图就没了。v2.31 不再清这些，只清内部状态；setMove 记日志。

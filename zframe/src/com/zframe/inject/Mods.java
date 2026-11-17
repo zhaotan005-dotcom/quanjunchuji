@@ -243,7 +243,7 @@ public class Mods {
     }
 
     static void resetMatch() {
-        speed = 1f; jump = 1f; noRecoil = false; noShake = false; infAmmo = false;
+        // v2.31：加速/高跳/枪的开关跨局保留（在大厅拉好进图也生效），只清内部状态
         cmc = 0; lastJump = Float.NaN; tableAi = 0; tableAt = 0;
     }
 
@@ -339,6 +339,7 @@ public class Mods {
     /** 滑条 0~10：小于 1 就是关（×1） */
     public static void setMove(float s, float j) {
         speed = Math.max(1f, s); jump = Math.max(1f, j);
+        LogCap.note("加速=" + speed + " 高跳=" + jump);
         startMover();
         if (Ed.ED == 1) Crew.start();   // v2.26 房主：加给加入的玩家
     }

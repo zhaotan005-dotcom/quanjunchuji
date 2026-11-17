@@ -17,6 +17,32 @@ final class Crew {
     static long lastFind;
 
     static boolean want() { return Lan.role == 1 && Con.inMatch && (Mods.speed != 1f || Mods.jump != 1f || Mods.infAmmo); }
+    /** v2.31：新加入的玩家拉到房主身边（每人每局一次）；按钮 pull() 再拉一次 */
+    static final java.util.HashSet<Long> pulled = new java.util.HashSet<>();
+    static volatile String pullState = "拉人：还没有人加入";
+    static volatile boolean pullAll;
+    static void pull() { pullAll = true; lastFind = 0; }
+    /** 日志里出现 Join succeeded：等 6 秒（人物生成）后找人并拉一次，12 秒后再补一次 */
+    static volatile long joinAt;
+    static volatile int joinStage;
+    static void joined() { joinStage = 0; joinAt = System.currentTimeMillis(); start(); }
+    static void doPull(java.util.ArrayList<Long> ps) {
+        boolean all = pullAll; pullAll = false;
+        double[] me;
+        try { me = Veh.info(); } catch (Throwable t) { me = null; }
+        if (me == null) { pullState = "拉人：读不到房主位置"; return; }
+        int i = 0, ok = 0, n = 0;
+        for (long p : ps) {
+            i++;
+            if (!all && pulled.contains(p)) continue;
+            n++;
+            double a = Math.toRadians(me[3] + 90 * i);
+            boolean r;
+            try { r = Veh.teleport(p, me[0] + 200 * Math.cos(a), me[1] + 200 * Math.sin(a), me[2] + 30, me[3]); } catch (Throwable t) { r = false; }
+            if (r) { ok++; pulled.add(p); }
+        }
+        if (n > 0) { pullState = "拉人：拉到房主身边 " + ok + "/" + n; LogCap.note(pullState); GameOverlay.refreshAny(); }
+    }
 
     static synchronized void start() {
         if (th != null) return;
@@ -30,8 +56,15 @@ final class Crew {
     }
 
     static void tick() throws Exception {
-        if (!want()) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); baseJump.clear(); lastFind = 0; } return; }
+        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); baseJump.clear(); pulled.clear(); lastFind = 0; } return; }
         long now = System.currentTimeMillis();
+        // v2.31：有人加入（日志）或点了按钮才找人、拉到房主身边；开着加速/高跳/子弹时照旧每 15 秒找一次
+        long ja = joinAt;
+        boolean jt = false;
+        if (ja != 0 && joinStage == 0 && now - ja > 6000) { joinStage = 1; jt = true; }
+        else if (ja != 0 && joinStage == 1 && now - ja > 12000) { joinStage = 0; joinAt = 0; jt = true; }
+        if (pullAll || jt) { lastFind = now; find(); doPull(players); return; }
+        if (!want()) return;
         if (now - lastFind > 15000) { lastFind = now; find(); }
         java.util.ArrayList<Long> ps = players;
         if (ps.isEmpty()) return;
@@ -80,7 +113,8 @@ final class Crew {
             }
         } catch (Throwable t) { state = "全员：读出错 " + t.getMessage(); return; }
         players = out;
-        state = "全员：找到加入的玩家 " + out.size() + " 个（人物共 " + seen.size() + "）";
-        LogCap.note(state);
+        String ns = "全员：找到加入的玩家 " + out.size() + " 个（人物共 " + seen.size() + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
+        if (!ns.equals(state)) LogCap.note(ns);
+        state = ns;
     }
 }

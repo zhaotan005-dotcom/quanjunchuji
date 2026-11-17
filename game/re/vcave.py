@@ -1,3 +1,4 @@
+# v2.31 加 'T<人物>x<buf>'：K2_TeleportTo 实现 0x273d654(人物, x,y,z, [sp]pitch,yaw,roll)，位置 buf+40..48，朝向 +52..60，返回写 +4，标记 5b0d
 # v1.98 加 'I<人物>x<buf>' 给人机发物品
 # v1.91 加 'G<Type>x<buf>'：0x119d884(PC, Type, TSID, x, y, z, pitch, yaw, roll) = SpawnOnePickUp 实现，在地上生成拾取物
 # v1.88 加 'M<字节数>x<buf>'：FMemory::Malloc(字节数, 16)，结果写 buf+4（毒圈数组扩成 8 圈用，内存归游戏管，地图卸载时游戏自己释放）
@@ -25,6 +26,9 @@ SRC = r'''
     beq go
     mov r11, #6
     cmp r0, #73
+    beq go
+    mov r11, #7
+    cmp r0, #84
     beq go
     mov r11, #5
     cmp r0, #71
@@ -66,6 +70,8 @@ e2:
     beq gnd
     cmp r11, #6
     beq igive
+    cmp r11, #7
+    beq tele
     movw r0, #0x5b01
     str r0, [r8]
     str r4, [r8, #4]
@@ -341,6 +347,25 @@ igive:
     str r0, [r8, #144]
     movw r0, #0x5b0b
     b afin
+tele:
+    cmp r7, #0
+    movw r0, #0x5b06
+    beq afin
+    ldr r0, [r8, #52]
+    str r0, [sp]
+    ldr r0, [r8, #56]
+    str r0, [sp, #4]
+    ldr r0, [r8, #60]
+    str r0, [sp, #8]
+    mov r0, r7
+    ldr r1, [r8, #40]
+    ldr r2, [r8, #44]
+    ldr r3, [r8, #48]
+    ldr ip, [pc, #L:lit13]
+    .word 0xe12fff3c
+    str r0, [r8, #4]
+    movw r0, #0x5b0d
+    b afin
 fin:
     movw r0, #0x5b02
     str r0, [r8]
@@ -371,8 +396,10 @@ lit11:
     .word 0xbbbbbbbb
 lit12:
     .word 0xcccccccc
+lit13:
+    .word 0xdddddddd
 '''
-LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8', 'lit9', 'lit10', 'lit11', 'lit12')
+LITS = ('lit', 'lit2', 'lit3', 'lit4', 'lit5', 'lit6', 'lit7', 'lit8', 'lit9', 'lit10', 'lit11', 'lit12', 'lit13')
 # v1.98 加 'I<人物地址>x<buf>'：给指定人物（人机）发物品。buf+128 Type、+132 TSID、+136 数量；lit11 ADDCHECK 0xccecbc，lit12 GIVE 0xcd3bdc（和刷物品补丁同一段真代码）；+4 背包组件，+140 能放几个，+144 GIVE 返回；标记 5b0b 成功、5b0c 没背包、5b06 人物空
 # 字面量顺序（Java 在 cave 后面按这个顺序拼地址，都要 + 库基址）：
 # lit 刷车 0x1102ca4，lit2 ServerAddBotAt 0x1115620，lit3 GM AddBotAt 实现 0x1012318（校验 GameMode），

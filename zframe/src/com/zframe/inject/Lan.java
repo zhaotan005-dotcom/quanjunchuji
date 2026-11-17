@@ -148,6 +148,7 @@ final class Lan {
 
     /** 日志行过滤：网络相关的都收下 */
     static void line(String l) {
+        if (role == 1 && l.contains("Join succeeded")) Crew.joined();   // v2.31：有人进来 → 房主找人、拉到身边
         if (l.contains("LogNet") || l.contains("NetDriver") || l.contains("Listen") || l.contains("NMT_") || l.contains("PendingNet")
                 || l.contains("NetConnection") || l.contains("Welcomed") || l.contains("TravelFailure") || l.contains("NetworkFailure")
                 || l.contains("PreLogin") || l.contains("Login") && l.contains("NZ") || l.contains("Beacon") || l.contains("NetMode")) {

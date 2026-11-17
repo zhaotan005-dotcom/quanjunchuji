@@ -156,4 +156,25 @@ print('G', hex(r(BUF)), [hex(x) for x in g])
 assert r(BUF) == 0x5b0a and g == [PCO, 2010100, 2, 0x401, 0x402, 0x403, 0x404, 0x405, 0x406]
 assert mu.reg_read(UC_ARM_REG_SP) == SP + 0x44 + 36 and mu.reg_read(UC_ARM_REG_R4) == 0x104
 print('G OK')
+# ---- v2.31 'T'：K2_TeleportTo 0x273d654(人物, x, y, z, [sp] p yaw r) ----
+TPF = 0x50000
+mu.mem_map(0x50000, 0x1000)
+mu.mem_write(TPF, bytes.fromhex('20c09fe5' '0f008ce8' '00009de5' '10008ce5' '04009de5' '14008ce5' '08009de5' '18008ce5' '0100a0e3' '1eff2fe1') + struct.pack('<I', 0x33e00))
+mu.mem_write(lab['lit13'], struct.pack('<I', TPF))
+mu.mem_write(BUF, b'\0' * 128)
+for k, v in zip(range(40, 64, 4), (0x501, 0x502, 0x503, 0x504, 0x505, 0x506)): W(BUF + k, v)
+s = 'T%dx%d' % (0x32000, BUF)
+mu.mem_write(STR, b''.join(struct.pack('<I', ord(c)) for c in s) + b'\0' * 4)
+mu.reg_write(UC_ARM_REG_SP, SP); mu.reg_write(UC_ARM_REG_R4, PCO); mu.reg_write(UC_ARM_REG_R5, STR); mu.reg_write(UC_ARM_REG_R6, len(s) + 1); mu.reg_write(UC_ARM_REG_R0, ord('T'))
+mu.mem_write(SP + 0x44, struct.pack('<9I', 0x104, 0x105, 0x106, 0x107, 0x108, 0x109, 0x10a, 0x10b, END))
+def hk(uc, a, sz, ud):
+    if False: print('pc', hex(a), [hex(uc.reg_read(x)) for x in (UC_ARM_REG_R0,UC_ARM_REG_R8,UC_ARM_REG_IP,UC_ARM_REG_SP)])
+hh = mu.hook_add(UC_HOOK_CODE, hk)
+mu.hook_add(UC_HOOK_MEM_WRITE_UNMAPPED, lambda uc,t,a,sz,v,ud: print('BAD', hex(a), hex(uc.reg_read(UC_ARM_REG_PC))))
+mu.emu_start(ORG, END)
+t = [r(0x33e00 + 4 * i) for i in range(7)]
+print('T', hex(r(BUF)), hex(r(BUF+4)), [hex(x) for x in t])
+assert r(BUF) == 0x5b0d and r(BUF+4) == 1 and t == [0x32000, 0x501, 0x502, 0x503, 0x504, 0x505, 0x506]
+assert mu.reg_read(UC_ARM_REG_SP) == SP + 0x44 + 36 and mu.reg_read(UC_ARM_REG_R4) == 0x104
+print('T OK')
 print('OK')

@@ -2,6 +2,7 @@
 
 先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
+- v2.31: host auto-teleports joined players next to itself (vcave T = K2_TeleportTo 0x273d654), button 把加入的人拉到我身边; speed/jump/gun toggles no longer reset on map load.
 - v2.30: client domain join resolves to IPv4 in background again (direct domain open failed).
 
 ## 当前版本
