@@ -285,6 +285,12 @@ public class Server {
             // v1.78：15001 = 开始匹配。单机游戏发完就直接进图，回成功的话回到大厅会以为还在匹配（自动匹配、取消不了）→ 回失败
             case 15001: push(15002, seq, key, new PB().u(1, 1).bytes()); what = "开始匹配（回失败，单机直接进图）"; break;
             case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
+            // v2.48：军需（自选抽奖 CustomLottery）51001 列表 / 51003 提交 / 51005 抽 / 51007 重置
+            case 51001: push(51002, seq, key, lotList()); what = "军需列表"; break;
+            case 51003: push(51004, seq, key, lotCommit(body)); what = "军需提交"; break;
+            case 51005: { byte[] r5 = lotRand(); push(51006, seq, key, r5); what = "军需抽奖 " + lotLast;
+                if (lotLastNew) { push(13002, 0, false, depositProps()); saveProps(); } break; }
+            case 51007: push(51008, seq, key, lotReset()); what = "军需重置"; break;
             default:
                 // v1.73：非关键消息也回空的成功包。之前 83001 不回，游戏一直等 83002，后面的穿/脱(13003/13005)全被卡住丢掉
                 push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "空的成功包";
@@ -883,6 +889,53 @@ public class Server {
         while (i < b.length) { long v = 0; int sh = 0; while (i < b.length) { int x = b[i++] & 0xff; v |= (long) (x & 0x7f) << sh; sh += 7; if (x < 0x80) break; } out.add(v); }
         return out;
     }
+    // ---------------- v2.48 军需抽奖（离线自建，奖品 = 游戏认得的服装）----------------
+    static long[] lotIds; static boolean[] lotGot; static int lotRound, lotState;   // lotState 0 选奖 1 抽奖
+    static String lotLast = ""; static boolean lotLastNew;
+    static void lotFill() {
+        java.util.ArrayList<Long> pool = new java.util.ArrayList<>();
+        for (long[] g : skinGift.length > 0 ? skinGift : GIFT) if (g.length == 1 || g[1] == 0) { boolean bad = false; for (long b : BAD) if (b == g[0]) bad = true; if (!bad && !pool.contains(g[0])) pool.add(g[0]); }
+        java.util.Collections.shuffle(pool);
+        int n = Math.min(8, pool.size());
+        lotIds = new long[n]; lotGot = new boolean[n];
+        for (int i = 0; i < n; i++) lotIds[i] = pool.get(i);
+    }
+    static PB lotProp(int i) {
+        int pool = i == 0 ? 1 : i < 3 ? 2 : i < 5 ? 3 : 4;   // 必中/高/中/低
+        return new PB().u(1, i).u(2, pool).m(3, new PB().u(1, lotIds[i]).u(4, 1)).u(4, lotGot[i] ? 1 : 0);
+    }
+    static synchronized byte[] lotList() {
+        if (lotIds == null) lotFill();
+        PB r = new PB().u(1, 0).u(2, lotState);
+        for (int i = 0; i < lotIds.length; i++) r.m(3, lotProp(i));
+        return r.u(4, lotRound).bytes();
+    }
+    static synchronized byte[] lotCommit(byte[] body) {
+        if (lotIds == null) lotFill();
+        lotState = 1;
+        PB r = new PB().u(1, 0);
+        for (int i = 0; i < lotIds.length; i++) r.m(2, lotProp(i));
+        return r.bytes();
+    }
+    static synchronized byte[] lotRand() {
+        if (lotIds == null) lotFill();
+        initProps(); lotLastNew = false;
+        java.util.ArrayList<Integer> left = new java.util.ArrayList<>();
+        for (int i = 0; i < lotIds.length; i++) if (!lotGot[i]) left.add(i);
+        if (left.isEmpty()) { lotLast = "全抽完"; return new PB().u(1, 51009).bytes(); }
+        int i = left.get(new java.util.Random().nextInt(left.size()));
+        lotGot[i] = true; lotRound++;
+        lotLastNew = addProp(new long[] { lotIds[i] }) != 0;
+        lotLast = lotIds[i] + (lotLastNew ? " 入库" : " 已有");
+        return new PB().u(1, 0).m(2, lotProp(i)).u(3, lotRound).bytes();
+    }
+    static synchronized byte[] lotReset() {
+        lotFill(); lotRound = 0; lotState = 0;
+        PB r = new PB().u(1, 0);
+        for (int i = 0; i < lotIds.length; i++) r.m(3, lotProp(i));
+        return r.bytes();
+    }
+
     /** 仓库里没有就加，返回 gid；已有返回 0 */
     static long addProp(long[] g) {
         for (long[] p : props.values()) if (p[0] == g[0]) return 0;
