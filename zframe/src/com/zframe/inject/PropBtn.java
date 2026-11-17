@@ -57,7 +57,7 @@ final class PropBtn {
                         case MotionEvent.ACTION_DOWN: sx = e.getRawX(); sy = e.getRawY(); ox = lp.x; oy = lp.y; moved = false; longDone = false; v.postDelayed(lng, 600); v.setAlpha(0.6f); return true;
                         case MotionEvent.ACTION_MOVE:
                             if (Math.abs(e.getRawX() - sx) + Math.abs(e.getRawY() - sy) > 12 * d) { moved = true; v.removeCallbacks(lng); }
-                            if (moved) { lp.x = ox + (int) (e.getRawX() - sx); lp.y = oy + (int) (e.getRawY() - sy); try { a.getWindowManager().updateViewLayout(v, lp); } catch (Throwable ignored) {} }
+                            if (moved) { lp.x = ox + (int) (e.getRawX() - sx); lp.y = oy + (int) (e.getRawY() - sy); try { a.getWindowManager().updateViewLayout(v, lp); place2(d); if (btn2 != null) a.getWindowManager().updateViewLayout(btn2, lp2); } catch (Throwable ignored) {} }
                             return true;
                         case MotionEvent.ACTION_UP: case MotionEvent.ACTION_CANCEL:
                             v.removeCallbacks(lng); v.setAlpha(1f);
@@ -70,6 +70,7 @@ final class PropBtn {
             });
             a.getWindowManager().addView(t, lp);
             btn = t;
+            attach2(a, d);
             final Runnable[] poll = new Runnable[1];
             poll[0] = () -> { if (btn != t || t.getParent() == null) return; refresh(); t.postDelayed(poll[0], 2000); };
             t.postDelayed(poll[0], 1500);
@@ -77,18 +78,58 @@ final class PropBtn {
     }
 
     static void detach() {
-        TextView t = btn; Activity a = act; btn = null;
+        TextView t = btn, t2 = btn2; Activity a = act; btn = null; btn2 = null;
         if (t != null && a != null) try { a.getWindowManager().removeViewImmediate(t); } catch (Throwable ignored) {}
+        if (t2 != null && a != null) try { a.getWindowManager().removeViewImmediate(t2); } catch (Throwable ignored) {}
     }
+    /** v2.59 用户：人偶没有模型 → 没有场景模型类（TargetProp 空）的不进道具键 */
+    static java.util.ArrayList<Prop.It> usable() {
+        java.util.ArrayList<Prop.It> o = new java.util.ArrayList<>();
+        for (Prop.It it : Prop.useList) if (it.target != null) o.add(it);
+        return o;
+    }
+    /** v2.60 用户：盾收不回、伪装石头取消不了 → 道具键下面的小键「收回 / 取消伪装」，有放下的东西才出现 */
+    static TextView btn2; static WindowManager.LayoutParams lp2;
+    static void attach2(final Activity a, float d) {
+        TextView t = new TextView(a);
+        t.setTextColor(0xffffffff); t.setTextSize(10.5f); t.setGravity(Gravity.CENTER);
+        GradientDrawable g = new GradientDrawable(); g.setCornerRadius(14 * d); g.setColor(0x99000000); g.setStroke((int) (1.2f * d), 0xccffffff);
+        t.setBackground(g);
+        lp2 = new WindowManager.LayoutParams((int) (64 * d), (int) (28 * d), WindowManager.LayoutParams.TYPE_APPLICATION,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+            PixelFormat.TRANSLUCENT);
+        lp2.gravity = Gravity.TOP | Gravity.START; lp2.setTitle("zframe_propbtn2");
+        place2(d);
+        t.setVisibility(View.GONE);
+        t.setOnClickListener(v -> {
+            if (busy) return; busy = true;
+            new Thread(() -> {
+                String msg = null;
+                try {
+                    Prop.Placed p = Prop.lastPlaced();
+                    if (p == null) msg = "附近没有放下的道具";
+                    else { String r = Prop.recycle(p); if (!"ok".equals(r)) msg = r; else if (!Prop.camo(p.cls)) msg = "收回中，站在旁边别走开"; }
+                } catch (Throwable e) { msg = "出错 " + e; }
+                finally {
+                    busy = false; final String m = msg;
+                    if (m != null) a.runOnUiThread(() -> GameOverlay.toast(a, m));
+                    try { Thread.sleep(600); } catch (Throwable ignored) {}
+                    refresh();
+                }
+            }, "zf-propbtn2").start();
+        });
+        try { a.getWindowManager().addView(t, lp2); btn2 = t; } catch (Throwable e) { LogCap.note("收回键：放不上 " + e); }
+    }
+    static void place2(float d) { if (lp2 != null && lp != null) { lp2.x = lp.x - (int) (3 * d); lp2.y = lp.y + (int) (62 * d); } }
 
     static volatile boolean busy;
     /** 只读查背包，决定显不显示、写什么字 */
     static void refresh() {
         final TextView t = btn; if (t == null || busy) return;
-        if (!Con.inMatch || Ed.ED == 2 || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); return; }
+        if (!Con.inMatch || Ed.ED == 2 || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); TextView b2 = btn2; if (b2 != null) b2.setVisibility(View.GONE); if (!Con.inMatch) synchronized (Prop.placed) { Prop.placed.clear(); } return; }
         new Thread(() -> {
             String r = Prop.scanUse(true);
-            java.util.ArrayList<Prop.It> l = Prop.useList;
+            java.util.ArrayList<Prop.It> l = usable();
             final boolean show = true;   // v2.56：对局里一直显示（认不出道具时点一下会把背包信息传给我）
             final boolean has = "ok".equals(r) && !l.isEmpty();
             String s = "道具";
@@ -98,7 +139,12 @@ final class PropBtn {
                 else { if (idx >= l.size()) idx = 0; s = cn(l.get(idx).cls) + (l.size() > 1 ? "\n" + (idx + 1) + "/" + l.size() : ""); }
             }
             final String txt = s;
-            t.post(() -> { t.setVisibility(show ? View.VISIBLE : View.GONE); t.setText(txt); t.setAlpha(has ? 1f : 0.45f); });
+            Prop.Placed pl = Prop.lastPlaced();
+            final String t2 = pl == null ? null : Prop.camo(pl.cls) ? "取消伪装" : "收回" + cn(pl.cls);
+            t.post(() -> {
+                t.setVisibility(show ? View.VISIBLE : View.GONE); t.setText(txt); t.setAlpha(has ? 1f : 0.45f);
+                TextView b2 = btn2; if (b2 != null) { b2.setVisibility(t2 != null ? View.VISIBLE : View.GONE); if (t2 != null) b2.setText(t2.length() > 5 ? t2.substring(0, 5) : t2); }
+            });
         }, "zf-propbtn").start();
     }
 
@@ -109,7 +155,8 @@ final class PropBtn {
             String msg = null;
             try {
                 Prop.scanUse(true);
-                java.util.ArrayList<Prop.It> l = Prop.useList;
+                java.util.ArrayList<Prop.It> l = usable();
+                if (l.isEmpty() && !Prop.useList.isEmpty()) { msg = "背包里的道具手机上没有模型，放不出来"; return; }
                 if (l.isEmpty()) {   // v2.56 用户：捡起来了但没有道具键 → 把道具槽/背包类名传上来查
                     Prop.useState = Prop.rawDump();
                     LogCap.note("道具键：" + Prop.useState);
@@ -132,6 +179,11 @@ final class PropBtn {
                     else if (l.get(idx).target == null) msg = cn(l.get(idx).cls) + "：手机上没有它的场景模型，可能放不出来";
                 } else {
                     Prop.lastUseLog = "";
+                    {   // v2.60：游戏自己的 UseItem 单机里只取消预览、从不生成（v2.58 日志）→ 先直接生成，不行再走老路
+                        String f = Prop.force();
+                        if ("ok".equals(f)) { Thread.sleep(300); Prop.unselect(); return; }
+                        LogCap.note("用道具：直接生成没成 " + f + "，走游戏的");
+                    }
                     String r = Prop.use();
                     if (!"ok".equals(r) && !"ok2".equals(r)) msg = r;
                     else {   // v2.54：用户说点了放不下 —— 1.5 秒后看还拿在手上没有；没放下就提示原因并自动导出+上传日志

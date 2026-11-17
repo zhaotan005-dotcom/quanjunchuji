@@ -218,26 +218,73 @@ public class Prop {
             return valid ? "ok" : "ok2";
         } catch (InterruptedException e) { return "中断"; }
     }
-    /** v2.59：背包 vt+0x484（UseItem）在单机里只走到 StopPreUsingItem、不生成。直接让道具自己生成：
-     *  role==3（本机就是服务器）→ 道具 vt+0x348 UseThisItem 0xf2e3c4（CanUse + SpawnScenePropItem）；否则直接 vt+0x3a4 SpawnScenePropItem 0xf300dc。调前核对虚表项。 */
+    /** v2.59/2.60：背包 vt+0x484（UseItem）在单机里只走到 StopPreUsingItem、不生成。直接让道具自己生成：
+     *  核对 vt+0x348 == UseThisItem 0xf2e3c4（所有功能道具共用），再调 vt+0x3a4 SpawnScenePropItem（伪装石头等子类自己覆盖），返回生成的场景道具 → 记下来给「收回/取消伪装」用 */
+    static final class Placed { long actor; String cls; long t; }
+    static final java.util.ArrayList<Placed> placed = new java.util.ArrayList<>();
     static String force() {
         long b = Mods.base(); if (b == 0) return "找不到游戏库";
-        long inv, sel; int role; long vt;
+        long inv, sel; long vt; String cls = null;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             inv = inv(m, b); if (inv <= 0) return "背包不对";
             sel = Server.rd(m, inv + 0x568);
             if (!isProp(m, b, sel)) return "手上没有道具";
-            byte[] x = new byte[1]; m.seek(sel + 0xe8); m.readFully(x); role = x[0] & 0xff;
             vt = Server.rd(m, sel);
-            int off = role == 3 ? 0x348 : 0x3a4; long want = b + (role == 3 ? 0xf2e3c4L : 0xf300dcL);
-            if (Server.rd(m, vt + off) != want) return "道具函数对不上（role " + role + "）";
-            m.seek(sel + 0x336); m.readFully(x);
+            if (Server.rd(m, vt + 0x348) != b + 0xf2e3c4L) return "道具函数对不上";
+            byte[] x = new byte[1]; m.seek(sel + 0x336); m.readFully(x);
             if (x[0] == 0) return "放置点无效，换个平地";
-            long[] r = Veh.ucall(sel, 0, off, 0, null);
-            LogCap.note("用道具：直接生成 role " + role + " vt+" + Integer.toHexString(off) + " 返回 " + Long.toHexString(r[0]) + "/" + r[1]);
-            if (r[0] != 0x5b0e) return "补丁没反应";
-            return (r[1] & 0xff) != 0 ? "ok" : "游戏没生成（role " + role + "）";
+            for (It it : useList) if (it.p == sel) cls = it.cls;
         } catch (Throwable e) { return "出错 " + e; }
+        try {
+            long[] r = Veh.ucall(sel, 0, 0x3a4, 0, null);
+            LogCap.note("用道具：直接生成 " + cls + " 返回 " + Long.toHexString(r[0]) + "/" + Long.toHexString(r[1]));
+            if (r[0] != 0x5b0e) return "补丁没反应";
+            if (r[1] < 0x10000) return "游戏没生成";
+            Placed p = new Placed(); p.actor = r[1]; p.cls = cls == null ? "" : cls; p.t = System.currentTimeMillis();
+            synchronized (placed) { placed.add(p); }
+            return "ok";
+        } catch (InterruptedException e) { return "中断"; }
+    }
+    /** UObject 还活着：GUObjectArray（*0x51250ac +0x10，每项 16 字节）[idx].Object == 自己，且没标 PendingKill（+4 的 1<<29） */
+    static boolean alive(RandomAccessFile m, long b, long o) {
+        if (o < 0x10000) return false;
+        long g = Server.rd(m, b + 0x51250acL); if (g < 0x10000) return false;
+        long objs = Server.rd(m, g + 0x10); long idx = Server.rd(m, o + 8);
+        if (objs < 0x10000 || idx > 0x200000) return false;
+        long e = objs + idx * 16;
+        return Server.rd(m, e) == o && (Server.rd(m, e + 4) & 0x20000000L) == 0;
+    }
+    static boolean camo(String c) { return c != null && (c.contains("Camou") || c.contains("Rock") || c.contains("Stone")); }
+    /** 最近放下、还在的场景道具（死掉的顺手删掉）；null = 没有 */
+    static Placed lastPlaced() {
+        long b = Mods.base(); if (b == 0) return null;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            synchronized (placed) {
+                for (int i = placed.size() - 1; i >= 0; i--) { if (alive(m, b, placed.get(i).actor)) return placed.get(i); placed.remove(i); }
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+    /** 收回：人物+0x1160 道具组件 StartRecycleItem 0x110d6a0(组件, 场景道具)（要求 场景道具+0x2ec 回收时长 > 0）；
+     *  伪装石头：人物 RequestCancelCamouflage 0x10e9434(人物, 0) */
+    static String recycle(Placed p) {
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        long pawn = Mods.myPawn(); if (pawn < 0x10000) return "找不到人物";
+        long comp; float dur;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            if (!alive(m, b, p.actor)) { synchronized (placed) { placed.remove(p); } return "已经没了"; }
+            comp = Server.rd(m, pawn + 0x1160); if (comp < 0x10000) return "人物没有道具组件";
+            dur = Float.intBitsToFloat((int) Server.rd(m, p.actor + 0x2ec));
+        } catch (Throwable e) { return "出错 " + e; }
+        try {
+            long[] r;
+            if (camo(p.cls)) r = Veh.ucall(pawn, 0, 0, 0, null, b + 0x10e9434L);
+            else { if (!(dur > 0)) return "这个道具游戏不让收回"; r = Veh.ucall(comp, p.actor, 0, 0, null, b + 0x110d6a0L); }
+            LogCap.note("用道具：" + (camo(p.cls) ? "取消伪装 " : "收回 ") + p.cls + " 回收时长 " + dur + " 返回 " + Long.toHexString(r[0]));
+            if (r[0] != 0x5b0e) return "补丁没反应";
+            if (camo(p.cls)) synchronized (placed) { placed.remove(p); }
+            return "ok";
+        } catch (InterruptedException e) { return "中断"; }
     }
     /** 收起手上的道具：背包 vt+0x4d4 0xfe96e4 */
     static void unselect() {
