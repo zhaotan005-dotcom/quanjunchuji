@@ -17,6 +17,7 @@ final class NetCore {
     };
     static volatile String status = "";
     static volatile int netVer;
+    static volatile int pct = -1;   // v2.56 下载进度 0~100，没在下 = -1
 
     static File f(Context c, String n) { return new File(c.getFilesDir(), n); }
     static String read(File f) { try { return new String(java.nio.file.Files.readAllBytes(f.toPath())).trim(); } catch (Throwable e) { return ""; } }
@@ -61,6 +62,20 @@ final class NetCore {
         } finally { c.disconnect(); }
     }
 
+    /** 带进度的下载（每 5% 报一次） */
+    static byte[] getP(String url, int max) throws IOException {
+        java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(url + "?t=" + System.currentTimeMillis() / 60000).openConnection();
+        c.setConnectTimeout(8000); c.setReadTimeout(15000); c.setUseCaches(false);
+        try {
+            if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
+            int len = c.getContentLength(); int lastP = -1;
+            ByteArrayOutputStream bo = new ByteArrayOutputStream();
+            try (InputStream in = c.getInputStream()) { byte[] b = new byte[1 << 15]; int r; while ((r = in.read(b)) > 0) { bo.write(b, 0, r); if (bo.size() > max) throw new IOException("太大");
+                if (len > 0) { int p = (int) (bo.size() * 100L / len); if (p / 5 != lastP / 5) { lastP = p; pct = p; say("正在下载 " + p + "%", false); } } } }
+            return bo.toByteArray();
+        } finally { c.disconnect(); }
+    }
+
     static volatile boolean started;
     static volatile int readyVer;   // 已下好、等重启的版本
     interface L { void on(String msg, boolean ready); }
@@ -73,6 +88,7 @@ final class NetCore {
         f(ctx, "zcore_net.try").delete();
         File j = f(ctx, "zcore_net.just");
         if (j.exists()) { j.delete(); GameOverlay.toastAny("已更新到 " + GameOverlay.VER + "（内核 " + ZInit.CORE_VER + "）"); }
+        if (readyVer > ZInit.CORE_VER) GameDlg.updatePrompt();
         check(ctx);
     }
 
@@ -91,9 +107,9 @@ final class NetCore {
                     String[] hv = read(f(ctx, "zcore_net.ver")).split(" ");
                     try { if (hv.length >= 2 && Integer.parseInt(hv[1]) == Ed.BUILD) have = Math.max(have, Integer.parseInt(hv[0])); } catch (Throwable ignored) {}
                     if (v <= ZInit.CORE_VER) { say("已是最新（" + GameOverlay.VER + "）", false); return; }
-                    if (v <= have) { readyVer = have; say("新版本已下好，重启游戏生效", true); return; }
-                    say("发现新版本，正在下载…", false);
-                    byte[] d = get(base + name + ".dex", 8 << 20);
+                    if (v <= have) { readyVer = have; say("新版本已下好，重启游戏生效", true); GameDlg.updatePrompt(); return; }
+                    pct = 0; say("发现新版本，正在下载…", false);
+                    byte[] d = getP(base + name + ".dex", 8 << 20);
                     if (d.length < 1000 || d[0] != 'd' || d[1] != 'e' || d[2] != 'x') throw new IOException("不是 dex");
                     File tmp = f(ctx, "zcore_net.tmp"), dex = f(ctx, "zcore_net.dex");
                     try (OutputStream o = new FileOutputStream(tmp)) { o.write(d); }
@@ -102,12 +118,12 @@ final class NetCore {
                     write(f(ctx, "zcore_net.ver"), v + " " + Ed.BUILD);
                     f(ctx, "zcore_net.try").delete();
                     readyVer = v;
-                    say("新版本已下好，重启游戏生效", true);
-                    GameOverlay.toastAny("新版本已下好，重启游戏生效（菜单里有「重启更新」）");
+                    pct = 100; say("新版本已下好，重启游戏生效", true);
+                    GameDlg.updatePrompt();
                     return;
                 } catch (Throwable t) { err += base.substring(8, 20) + "：" + t.getMessage() + "；"; }
             }
-            say("检查更新失败（网络）", false);
+            pct = -1; say("检查更新失败（网络）", false);
             LogCap.note("在线更新失败：" + err);
         }, "zframe-netcore").start();
     }

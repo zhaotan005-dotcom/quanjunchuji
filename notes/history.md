@@ -749,3 +749,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 03:37 用户（v2.54 实测）：道具键能拿出（升降台/伪装岩/人偶标靶蓝色预览出来了），但放不下；要自动回传日志；选模式时能选不刷人机。
 - v2.55 (vc156)：LogUp.java —— AvatarLog.save 导出的诊断自动 gzip 传到 ntfy.sh/zf-qj-k7r2p9m4x1（附件 3 小时有效，取：curl "https://ntfy.sh/zf-qj-k7r2p9m4x1/json?poll=1&since=12h" 拿 attachment.url）；道具键「放下」后 1.5 秒还拿在手上就提示游戏给的原因（CanUseThisItem/SpawnScenePropItem 日志）并自动导出+上传；KEYS 加 PropBase/evanlu/SpawnScenePropItem/CanUseThisItem/UseThisItem；诊断头加 Prop.useState。Bots.want（prefs zframe/bots_auto）：选单机/联机框里「单机自动刷人机：开/关」，人机页也有开关，回大厅 auto=want。
 - 03:39 用户问能不能卸载补丁更新 App：libMczi 已删、没有插件；卸了以后 ZInit 走「上次保存的内核 / 内置内核」，内置 v2.52 有 NetCore 会链式加载下载的在线内核 → 可以卸。以后只有要改游戏包本体时才需要它重新打包。游戏自带更新页连腾讯服务器（已停）+ 弹窗在 Lua/UMG 里，没法复用；我们的更新检查放在选模式框里。
+- 03:44 用户：游戏自带更新页早就去掉了，确认框也没有（点退出直接返回）→ 下一版把选模式/更新弹窗改成游戏风格（深色半透明底、黄色主按钮、白字），跟放下修复一起推。
+- 03:50 用户（v2.55 实测）：对局里道具键没出现；卸了补丁更新 App 后仓库衣服不显示（原因待查，日志未收到）；自动刷人机开关要在大厅；选模式位置是对的；更新弹窗参考游戏「提示」框（金色标题条、灰取消/金确认），并要游戏那种更新进度条。
+- v2.56 (vc157, 在线内核)：GameDlg.java 游戏风框（深色底、金标题条、取消/确认）；选模式框改成这个样式、去掉人机开关、下载时显示进度条（NetCore.getP 报 pct）；大厅单机版加「自动刷人机」开关；大厅里新版本下好弹「更新」提示框（取消/确认=重启）；每次启动进大厅 40 秒后自动导出+上传一份诊断（lobby-，查仓库空的原因）。

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.55";
+    static final String VER = "v2.56";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -313,6 +313,8 @@ public class GameOverlay {
     static void lobbyReady() {
         if (lobbySeen) { mapShown(); return; } lobbySeen = true;
         try { NetCore.lobby(Con.act); } catch (Throwable ignored) {}   // v2.52 在线内核
+        // v2.56：卸了补丁更新 App 后仓库空 → 本次启动进大厅 40 秒后自动传一份诊断（只传一次）
+        new Thread(() -> { try { Thread.sleep(40000); Activity x = Con.act; if (x != null) AvatarLog.export(x, "lobby-"); } catch (Throwable ignored) {} }, "zf-diag").start();
         mapShown();
     }
     /** v2.35 用户：进大厅、进对局菜单出来时，也要和五指打开一样的过渡动画。切图（Browse）时先收起，图加载好再弹出来 */
@@ -963,7 +965,9 @@ public class GameOverlay {
             // v2.17 用户：只要两个模式；「不刷毒对局」= 不上飞机（直接在出生岛开打）+ 不刷圈。去掉清空仓库、日志
             pick(a, u, fl, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
             pick(a, u, fl, "不刷毒对局", Mods.noPlane || Mods.noPoison, () -> result(a, Mods.setNoZone()));
-            note(a, u, root, "选好后点游戏里的「匹配赛」开始。单机自动刷人机。");
+            note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
+            // v2.56 用户：自动刷人机开关放大厅
+            switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
         }
         note(a, u, root, Server.state);
     }
@@ -1422,68 +1426,34 @@ public class GameOverlay {
     static void showChooser(final Activity a) {
         if (chooser != null) return;
         try {
-            final Ui u = new Ui(a);
-            FrameLayout bg = new FrameLayout(a);
-            bg.setBackgroundColor(0x99000000);
-            bg.setClickable(true);
-            LinearLayout box = new LinearLayout(a);
-            box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(u.dp(18), u.dp(14), u.dp(18), u.dp(14));
-            box.setBackground(boxLine(PANEL, 0x33000000, u.dp(10), Math.max(1, u.dp(1) / 2)));
-            TextView t = new TextView(a); t.setText("这次怎么玩？"); t.setTextColor(TXT); t.setTextSize(17); t.setGravity(Gravity.CENTER);
-            t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-            box.addView(t, new LinearLayout.LayoutParams(-1, -2));
+            // v2.56 用户：照游戏自己的「提示」框做；自动刷人机开关挪到大厅；下载新版本时显示进度条
+            View[] f = GameDlg.frame(a, "选择模式", null);
+            LinearLayout body = (LinearLayout) f[1];
             final int last = Ed.saved();
-            TextView sub = new TextView(a); sub.setText("15 秒内不选，按上次的（" + (last == 0 ? "单机" : "联机") + "）"); sub.setTextColor(SUBT); sub.setTextSize(11); sub.setGravity(Gravity.CENTER);
-            sub.setPadding(0, u.dp(4), 0, u.dp(10));
-            box.addView(sub, new LinearLayout.LayoutParams(-1, -2));
-            LinearLayout r = new LinearLayout(a); r.setOrientation(LinearLayout.HORIZONTAL);
-            String[] lb = { "单机", "联机（加入房间）" }; final int[] ed = { 0, 2 };
-            for (int i = 0; i < 2; i++) {
-                final int e = ed[i];
-                TextView b = new TextView(a); b.setText(lb[i]); b.setTextSize(15); b.setGravity(Gravity.CENTER);
-                boolean hi = e == last;
-                b.setTextColor(hi ? 0xFFFFFFFF : ACC);
-                b.setBackground(hi ? box(ACC, u.dp(8)) : boxLine(CARD2, ACC, u.dp(8), Math.max(1, u.dp(1))));
-                b.setPadding(u.dp(14), u.dp(12), u.dp(14), u.dp(12));
-                b.setOnClickListener(v -> { Ed.choose(e, "手动"); });
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.setMargins(u.dp(5), 0, u.dp(5), 0);
-                r.addView(b, lp);
-            }
-            box.addView(r, new LinearLayout.LayoutParams(u.dp(320), -2));
-            // v2.54 用户：这里选要不要自动刷人机
-            Bots.loadWant(a);
-            final TextView bt = new TextView(a); bt.setTextSize(13.5f); bt.setGravity(Gravity.CENTER);
-            bt.setPadding(u.dp(14), u.dp(9), u.dp(14), u.dp(9));
-            final Runnable paint = () -> { bt.setText(Bots.want ? "单机自动刷人机：开（点一下关）" : "单机自动刷人机：关（点一下开）"); bt.setTextColor(Bots.want ? ACC : SUBT); bt.setBackground(boxLine(CARD2, Bots.want ? ACC : SUBT, u.dp(8), Math.max(1, u.dp(1)))); };
-            paint.run();
-            bt.setOnClickListener(v -> { Bots.setWant(a, !Bots.want); paint.run(); });
-            LinearLayout.LayoutParams btl = new LinearLayout.LayoutParams(-1, -2); btl.setMargins(u.dp(5), u.dp(10), u.dp(5), 0);
-            box.addView(bt, btl);
-            // v2.54 用户：更新提示放到这里 —— 选单机/联机的时候就查 GitHub 有没有新版本，下好了可以直接重启
-            final TextView up = new TextView(a); up.setTextColor(SUBT); up.setTextSize(11.5f); up.setGravity(Gravity.CENTER);
-            up.setPadding(0, u.dp(10), 0, 0); up.setText("当前 " + VER + " · 正在检查更新…");
-            box.addView(up, new LinearLayout.LayoutParams(-1, -2));
-            final TextView rb = new TextView(a); rb.setText("重启更新"); rb.setTextSize(14); rb.setGravity(Gravity.CENTER); rb.setTextColor(0xFFFFFFFF);
-            rb.setBackground(box(ACC, u.dp(8))); rb.setPadding(u.dp(14), u.dp(9), u.dp(14), u.dp(9)); rb.setVisibility(View.GONE);
-            rb.setOnClickListener(v -> NetCore.restart(a));
-            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2); rlp.setMargins(u.dp(5), u.dp(8), u.dp(5), 0);
-            box.addView(rb, rlp);
+            GameDlg.text(a, body, "这次怎么玩？", 16, GameDlg.WHITE).setPadding(0, GameDlg.dp(a, 4), 0, 0);
+            final TextView sub = GameDlg.text(a, body, "15 秒内不选，按上次的（" + (last == 0 ? "单机" : "联机") + "）", 11.5f, GameDlg.SUB);
+            sub.setPadding(0, GameDlg.dp(a, 4), 0, 0);
+            LinearLayout r = GameDlg.row(a, body, 16);
+            GameDlg.add(a, r, GameDlg.button(a, "联机（加入房间）", last == 2, () -> Ed.choose(2, "手动")));
+            GameDlg.add(a, r, GameDlg.button(a, "单机", last == 0, () -> Ed.choose(0, "手动")));
+            final TextView up = GameDlg.text(a, body, "当前 " + VER + " · 正在检查更新…", 11.5f, GameDlg.SUB);
+            up.setPadding(0, GameDlg.dp(a, 14), 0, 0);
+            final View[] pb = GameDlg.progress(a, body);
+            pb[0].setVisibility(View.GONE);
+            final LinearLayout rr = GameDlg.row(a, body, 12);
+            GameDlg.add(a, rr, GameDlg.button(a, "重启更新", true, () -> NetCore.restart(a)));
+            rr.setVisibility(View.GONE);
             NetCore.listener = (msg, ready) -> a.runOnUiThread(() -> {
                 up.setText("当前 " + VER + " · " + msg);
-                rb.setVisibility(ready ? View.VISIBLE : View.GONE);
-                if (ready) sub.setText("有新版本：可以先点「重启更新」，或者选好模式进游戏，下次启动自动用新版");
+                int p = NetCore.pct;
+                pb[0].setVisibility(ready || p >= 0 ? View.VISIBLE : View.GONE);
+                GameDlg.setPct(pb, ready ? 100 : Math.max(p, 0));
+                rr.setVisibility(ready ? View.VISIBLE : View.GONE);
+                if (ready) sub.setText("新版本已下好：点「重启更新」，或选好模式进游戏，下次启动自动用新版");
             });
             NetCore.check(a);
-            FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(-2, -2); blp.gravity = Gravity.CENTER;
-            bg.addView(box, blp);
-            WindowManager.LayoutParams wl = new WindowManager.LayoutParams(-1, -1, WindowManager.LayoutParams.TYPE_APPLICATION,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    PixelFormat.TRANSLUCENT);
-            if (android.os.Build.VERSION.SDK_INT >= 28) wl.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-            wl.setTitle("zframe_mode");
-            a.getWindowManager().addView(bg, wl);
-            chooser = bg; chooserAct = a;
+            a.getWindowManager().addView(f[0], GameDlg.wl("zframe_mode"));
+            chooser = f[0]; chooserAct = a;
             LogCap.note("启动选择：已显示");
         } catch (Throwable t) { LogCap.note("启动选择：显示失败 " + t + "，按上次的"); Ed.choose(Ed.saved(), "显示失败"); }
     }
