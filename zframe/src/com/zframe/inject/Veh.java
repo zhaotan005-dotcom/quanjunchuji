@@ -298,9 +298,23 @@ public class Veh {
                 String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + g.label + "（编号 " + id + "）";
                 note(s); state = s;
                 if (!ok) GameOverlay.toastAny(s);
+                if (ok) carCheck();
             } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();
+    }
+
+    /** v2.40 用户：枪打刷出来的车不会爆。刷出 2 秒后：把车的 bCanBeDamaged 打开，并把车的血量/上限/伤害倍数/能否受伤写进游戏日志（诊断导出能看到）。
+     *  NZVehicle 反射：MaxHealth +0x2f8、DamageScale +0x2fc、Health +0x308。 */
+    static void carCheck() {
+        if (Ed.ED == 2) return;
+        try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+        Con.exec("EnableCheats");
+        Con.exec("set NZVehicle bCanBeDamaged 1");
+        Con.exec("getall NZVehicle bCanBeDamaged");
+        Con.exec("getall NZVehicle Health");
+        Con.exec("getall NZVehicle MaxHealth");
+        note("刷车：已打开车辆可受伤，血量写进日志");
     }
 
     // ---------------- v1.84/v1.85 刷人机 ----------------
