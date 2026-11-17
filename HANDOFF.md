@@ -2,6 +2,8 @@
 
 先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
+- v2.30: client domain join resolves to IPv4 in background again (direct domain open failed).
+
 ## 当前版本
 - **v2.26（vc127）**：标题区分服务端/客户端；客户端只粘贴+加入（域名直连）；房主刷人机回来；皮卡（试 31/32）；吉利服按钮；联机页回大厅按钮；房主加速/高跳/无限子弹同步给加入的玩家（Crew）。待查：客户端上车「座位有人」、配件不生效、客户端退出后重进失败。
 - **v2.25（vc126）**：加入房间支持穿透域名（粘贴 + 后台解析）。

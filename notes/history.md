@@ -635,3 +635,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v2.29（vc130，2026-11-17 18:00）— 菜单上滑动不再带动游戏
 - 用户：在菜单上滑，游戏也跟着操作。游戏在 Activity.dispatchTouchEvent 里就把触摸给引擎。Window.Callback 代理里：ACTION_DOWN 落在 zframe_panel 可见区域内 → 这一整串触摸走 w.superDispatchTouchEvent（只给界面），不调原 Activity.dispatchTouchEvent。
+
+## v2.30（vc131/core131，2026-11-17 18:12）— 域名加入改回后台解析
+- v2.29 客户端：粘贴 frp-put.com:47937 点加入，状态「已发 open frp-put.com:47937」但进不去（房主已在图里）。v2.26 把域名原样交给 open，游戏不自己解析域名。
+- 改回：Lan.join 遇到字母地址 → 后台线程 InetAddress 取 IPv4 → 主线程 openJoin(数字IP:端口)。界面和状态只显示域名，日志记「域名 → IP」。
+- 房主设置里「退出比赛」卡住：还在等房主 导出诊断（静态：OnConfirmExit 0x162f38c → 0x130475c → 0x12486a8）。

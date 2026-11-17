@@ -99,12 +99,37 @@ final class Lan {
         if (!ip.matches("[A-Za-z0-9.-]+(:\\d{1,5})?")) return "地址格式不对，要像 frp-put.com:47937 或 192.168.1.5";
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";
+        // v2.30：v2.26 把域名原样交给 open，实测连不上（游戏自己不解析域名）。
+        // 改回后台把域名解析成数字 IP 再 open，界面上照样只显示域名。
+        if (ip.matches(".*[A-Za-z].*")) {
+            final String dom = ip; final int c = dom.lastIndexOf(':');
+            final String host = dom.substring(0, c), port = dom.substring(c + 1);
+            note("解析域名 " + dom);
+            new Thread(() -> {
+                String num = null;
+                try { for (java.net.InetAddress x : java.net.InetAddress.getAllByName(host)) if (x instanceof java.net.Inet4Address) { num = x.getHostAddress(); break; } }
+                catch (Throwable t) { note("域名解析失败 " + t); }
+                final String r = num;
+                GameOverlay.MAIN.post(() -> {
+                    String msg;
+                    if (r == null) msg = "域名解析不出来，检查网络";
+                    else { note(dom + " → " + r); msg = openJoin(r + ":" + port, dom); }
+                    android.app.Activity a = Con.act; if (a != null) GameOverlay.toast(a, msg);
+                });
+            }, "zf-dns").start();
+            state = "加入：正在连 " + dom;
+            return "正在连 " + dom;
+        }
+        return openJoin(ip, ip);
+    }
+
+    private static String openJoin(String ip, String shown) {
         unlock();
         role = 2; Bots.auto = false; Server.quiet(); beat("加入加载");
         boolean ok = Con.exec("open " + ip);
-        state = ok ? "加入：已发 open " + ip : "加入：命令没发出去";
-        note(state);
-        return ok ? "正在连 " + ip : "命令没发出去";
+        state = ok ? "加入：已发 open " + shown : "加入：命令没发出去";
+        note(ok ? "加入：open " + ip : state);
+        return ok ? "正在连 " + shown : "命令没发出去";
     }
 
     /** v2.26：回大厅（房主 = 关房间；客户端 = 退出房间）。游戏设置里退出在联机版卡住，这里直接 open 大厅图 */
