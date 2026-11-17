@@ -674,3 +674,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 换弹仍循环：客户端 "Force set local front ammo count to server value. ClientAmmo=16, ServerAmmo=0" 每 ~4 秒。服务端崩了没留下 Crew 状态 → 改成 LogCap.note（崩后「上次运行最后几步」能看到）：动画原值、弹匣 0 事件。
   - 用户：服务端删刷人机 → 服务端分页去掉「人机」。
   - 吉利服 3 款确认正常。客户端穿 30309000003 时每帧 GetItemDataByID Failed（客户端物品表没有吉利服），只是刷日志。
+- v2.42 (vc143): 用户：拉人去掉（开加速自己过去；海岛都在出生岛）。用户以为拉人是手动的 —— v2.31 起有人加入/重连会自动拉（Lan "Join succeeded" → Crew.joined），这就是 v2.41 那次闪退的触发点。现在加入只 find()，不 teleport；联机页拉人按钮删了。
+  - 换弹：反射表 NZWeapon WeaponCarriedAmmoCount +0x60c（ServerWeaponAmmoCount +0x604 有 RepNotify OnReplicateAmmoCount，WeaponAmmoCount +0x608，ClipAmmoCount +0x52c）。没有单独的换弹 RPC，换弹状态走 ServerProceedWeapRepInfo；结束事件 EStateEvent_EndChangeClip，时间 WeaponChangeClipTime。新推测：服务端那边加入玩家背包没子弹（20:47:57 服务端 "GiveItem failed, Pick->GetInventoryType() is NULL"）→ 服务端换弹拿不到备弹 → 弹匣 0。诊断写 LogCap.note：加入玩家拿枪时 容量/服务端弹匣/备弹，弹匣 0 超 2.5 秒时备弹；AvatarLog 加 GiveItem/PickupInventory/ChangeClip/Carried。
+  - 地图：只有 海岛、海岛2、雨林 三张完整主图（训练场只有碎片）。libUE4 里有 ZombieSpawnManager/ZombieClass 代码，但没看到僵尸/圣诞地图。

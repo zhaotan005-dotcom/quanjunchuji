@@ -19,7 +19,7 @@ final class Crew {
     static boolean want() { return Lan.role == 1 && Con.inMatch && (Mods.speed != 1f || Mods.jump != 1f || Mods.infAmmo); }
     /** v2.31：新加入的玩家拉到房主身边（每人每局一次）；按钮 pull() 再拉一次 */
     static final java.util.HashSet<Long> pulled = new java.util.HashSet<>();
-    static volatile String pullState = "拉人：还没有人加入";
+    static volatile String pullState = "拉人：已去掉（v2.42 用户：开加速自己过去）";
     static volatile boolean pullAll;
     static void pull() { pullAll = true; lastFind = 0; }
     /** 日志里出现 Join succeeded：等 6 秒（人物生成）后找人并拉一次，12 秒后再补一次 */
@@ -64,7 +64,8 @@ final class Crew {
         boolean jt = false;
         if (ja != 0 && joinStage == 0 && now - ja > 6000) { joinStage = 1; jt = true; }
         else if (ja != 0 && joinStage == 1 && now - ja > 12000) { joinStage = 0; joinAt = 0; jt = true; }
-        if (pullAll || jt) { lastFind = now; find(); doPull(players); return; }
+        // v2.42 用户：拉人去掉（以前有人加入/重连会自动拉，用户以为是手动的）。有人加入只找人，不再传送
+        if (jt) { lastFind = now; find(); return; }
         boolean wn = want();
         if (!wn && !anyJoin) return;   // v2.32：有人加入后即使没开也继续同步（把 1 倍也告诉客户端）
         if (now - lastFind > 15000) { lastFind = now; find(); }
@@ -114,6 +115,7 @@ final class Crew {
     static final java.util.HashMap<Long, Long> emptySince = new java.util.HashMap<>();
     static volatile String ammoState = "换弹：没出现服务端弹匣 0";
     static int refills;
+    static final java.util.HashSet<Long> gunSeen = new java.util.HashSet<>();
     static void guard(RandomAccessFile m, long b, long p, long now) throws java.io.IOException {
         if (Con.allGod) {
             float hp = Mods.f(m, p + 0x5a0), mx = Mods.f(m, p + 0x5a4);
@@ -133,12 +135,13 @@ final class Crew {
         if (!Mods.isObj(m, b, w)) return;
         int clip = Mods.rd(m, w + 0x52c), srv = Mods.rd(m, w + 0x604);
         if (clip <= 0 || clip > 200) return;
+        if (gunSeen.add(w) && gunSeen.size() <= 6) LogCap.note("换弹：加入玩家拿枪（容量 " + clip + "，服务端弹匣 " + srv + "，备弹 " + Mods.rd(m, w + 0x60c) + "）");
         if (srv != 0) { emptySince.remove(w); return; }
         Long t0 = emptySince.get(w);
         if (t0 == null) { emptySince.put(w, now); return; }
         if (now - t0 < 2500) return;
         emptySince.remove(w); refills++;
-        if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，备用 0x608=" + Mods.rd(m, w + 0x608) + "，动画修正 " + animFix + " 次）");
+        if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，WeaponAmmoCount=" + Mods.rd(m, w + 0x608) + "，服务端备弹 WeaponCarriedAmmoCount=" + Mods.rd(m, w + 0x60c) + "，动画修正 " + animFix + " 次）");
         ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
     }
     static int animFix, animWas = -1;

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.41";
+    static final String VER = "v2.42";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -962,9 +962,7 @@ public class GameOverlay {
         note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要服务端那边开，客户端改了也不生效。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
         if (Ed.ED == 1) note(a, u, root, Loot.shortText());
-        if (Lan.role == 1) { note(a, u, root, Crew.state); note(a, u, root, Crew.pullState);
-            LinearLayout pr = row(a, root);
-            fillBtn(a, u, pr, "把加入的人拉到我身边", () -> { Crew.start(); Crew.pull(); toast(a, "拉人中…"); }); }
+        if (Lan.role == 1) { note(a, u, root, Crew.state); }
         // v2.26：联机版从游戏设置里退不出去 / 退了加入不进去 → 这里直接回大厅
         LinearLayout xr = row(a, root);
         fillBtn(a, u, xr, Lan.role == 1 ? "关房间，回大厅" : "退出房间，回大厅", () -> toast(a, Lan.leave()));
