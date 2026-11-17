@@ -595,3 +595,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 改动：房主版大厅开房页加「正常对局 / 不刷毒对局」（Mods.setNormal/setNoZone，跟单机一样），不刷毒 = 都不上飞机在出生岛开打。
 - 待确认：客户端点灰框能不能跳；不上飞机模式在联机下客户端是否也落在出生岛。
 - 16:29 更正：用户当时只有房主一个人，没人加入。三张图都是房主视角（SM-G9810 是游戏水印），灰框是空武器栏。真实问题：房主正常对局卡在飞机里、没有跳伞按钮。v2.22 的「不刷毒对局」（不上飞机）可以先绕开；正常对局的跳伞待查（等倒计时结束会不会自动弹出）。
+
+## v2.23（vc124/core124，2026-11-17 16:50）— 查「剩余 2」
+- 用户：只有房主一个人，HUD 剩余却是 2；要找原因，**不许强行把 2 改成 1**。（单机 v1.84 起就有这个"多一个"，之前叫 phantom slot，没查过。）
+- RE：0x101a6e8 = GameState 数活人：TActorIterator<ANZCharacter>（StaticClass 0xe3a608），跳过 PendingKill、跳过 ANZDollCharacter（0x11f3cd0），[+0x5a0]>=1 算活，0xcd4054（看 +0x2d0 控制器）判人机 → +0x774/+0x778。所以世界里还有第二个活着的 ANZCharacter（不是假人 Doll 类）。
+- 探针（只在按「查剩余人数」时装，2.5 秒后拆）：0x101a814 mov r0,r6 → b 0x171e7d0；cave 把 r6 记进 8 格环（Java 直接缓冲区），mov r0,r6，b 0x101a818。0x171e7d0..7fb 是 GM 面板废函数里 SL cave 后面的空地。
+- 输出（导出诊断里「剩余人数：」）：每个被算进去的人物 地址/（我）/类名/对象名/+5a0/控制器类/所在关卡包。

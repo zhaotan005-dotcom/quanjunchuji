@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.22";
+    static final String VER = "v2.23";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -821,6 +821,7 @@ public class GameOverlay {
         head(a, u, root, "日志");
         LinearLayout dg = row(a, root);
         btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
+        btn(a, u, dg, "查剩余人数", () -> new Thread(() -> toastAny(Alive.probe())).start());   // v2.23
         note(a, u, root, Server.state);
     }
     /** 对局里的「联机」页：房主 / 客户端都有 */
