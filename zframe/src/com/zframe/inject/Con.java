@@ -468,13 +468,14 @@ public class Con {
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
+                    Gfx.unlite();
                     Lan.role = 0; Bots.auto = true;
                     if (!Server.on && Ed.single()) new Thread(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;
                     if (Lan.role == 0) { Bots.matchLoaded(); Flow.matchLoaded(m); }
-                    else if (Lan.role == 1) { Flow.matchLoaded(m); Lan.note("进图完成（房主：航线/毒圈照单机改，不刷人机）"); }
+                    else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（房主：航线/毒圈照单机改；减负）"); }
                     else Lan.note("进图完成（客户端：航线/毒圈跟房主）");   // v1.93 不再自动读车表（车编号写死）
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();

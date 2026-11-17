@@ -623,3 +623,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 客户端去掉「无限子弹」（客户端写 0x608/0x604 和服务器对不上 → 推测是一直换弹的原因）。
 - 新 Crew.java（房主）：开着加速/高跳/无限子弹时，每 15 秒用 Alive 的计数钩子（环形缓冲 8→32 格，cave and #0x1f）装 1 秒找人物，控制器类名带 PlayerController 的（除房主自己）= 加入的玩家；每 100ms 给他们服务器侧人物写 JumpZ×倍数、CustomTimeDilation=加速倍数（空中 1）、当前枪子弹 999。客户端要拉同一个数。加速走 dilation 在服务器侧是否有效未验证（ServerMove 用客户端时间戳）。
 - 没动：车座位有人、配件不生效（都要房主日志：刷车/刷配件是谁刷的、房主那边是否也上不去）。
+
+## v2.27（vc128/core128，2026-11-17 17:45）— 房主减负
+- 用户：大家跟着房主开，房主（云手机）不用显示那么多，减负。Gfx.lite()：房主进图 4 秒后发 LITE 列表（sg.* 0、r.ScreenPercentage 30、foliage/grass.DensityScale 0、t.MaxFPS 30）；回大厅 unlite 恢复 ScreenPercentage 100 和 t.MaxFPS。诊断「画质」行显示减负状态。
+- 用户纠正：要修游戏自己的退出，不是加回大厅按钮（按钮暂留，修好后去掉）。客户端没开无限子弹也一直换弹 → 不是 infAmmo。
+- 换弹视频（1000080547.mp4）：客户端 M416 弹匣显示在 30/204 和 0/204 之间跳，换弹图标一直闪；推测客户端本地弹匣数和房主下发的对不上（0x604 ServerWeaponAmmoCount / 0x608），待房主诊断确认。视频里也看到「座位已有人」。
+- 等：房主设置退出卡住时的诊断；换弹时房主+客户端诊断（v2.26 起房主有诊断）。

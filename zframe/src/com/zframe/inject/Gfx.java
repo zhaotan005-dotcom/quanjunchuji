@@ -57,6 +57,26 @@ final class Gfx {
         LogCap.note("画质：" + state);
         GameOverlay.toastAny("画质已切到 " + CN[k]);
     }
+    /** v2.26b 房主减负：联机里大家跟着房主，房主（云手机）只当服务器用，画面压到最低、帧率锁 30（服务器每秒 30 次更新，够用） */
+    static final String[] LITE = {"sg.ShadowQuality 0", "sg.PostProcessQuality 0", "sg.EffectsQuality 0", "sg.FoliageQuality 0", "sg.TextureQuality 0",
+        "sg.AntiAliasingQuality 0", "sg.ViewDistanceQuality 0", "r.ShadowQuality 0", "r.BloomQuality 0", "r.MobileMSAA 1", "r.DetailMode 0",
+        "r.ScreenPercentage 30", "foliage.DensityScale 0", "grass.DensityScale 0", "t.MaxFPS 30"};
+    static volatile boolean liteOn;
+    static void lite() {
+        new Thread(() -> {
+            try { Thread.sleep(4000); } catch (InterruptedException e) { return; }
+            if (Lan.role != 1 || !Con.inMatch) return;
+            int n = 0; for (String c : LITE) if (Con.exec(c)) n++;
+            liteOn = true;
+            state = "房主减负：画面最低、30 帧（发了 " + n + " 条）";
+            LogCap.note(state);
+        }, "zf-lite").start();
+    }
+    static void unlite() {
+        if (!liteOn) return; liteOn = false;
+        Con.exec("r.ScreenPercentage 100"); Con.exec("t.MaxFPS " + Con.fps);
+        state = "房主减负：回大厅已恢复分辨率和帧率";
+    }
     static int idx(String v) { for (int k = 0; k < NAME.length; k++) if (NAME[k].equalsIgnoreCase(v)) return k; return -1; }
     static String cn(String v) { int k = idx(v); return k < 0 ? v : CN[k]; }
 }
