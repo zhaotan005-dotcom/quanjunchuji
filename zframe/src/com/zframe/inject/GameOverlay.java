@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.49";
+    static final String VER = "v2.50";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1221,6 +1221,10 @@ public class GameOverlay {
         }
         btn(a, u, pr, "重新读", () -> { items = null; loadItems(true); });
         note(a, u, root, itemState + "。编号是从游戏物品表里读出来的，名字表游戏里没有，刷出来看是什么。");
+        // v2.50：模型/特效文件不在手机上的道具，游戏日志里有加载失败的路径，这里直接列出来（单机没有导出）
+        String ps = Prop.on ? (Prop.fallbackUsed() ? "地上看不见的道具：已用替身模型显示" : "地上看不见的道具：替身已装，等第一个地上模型加载") : "地上替身：" + (Prop.state.isEmpty() ? "进对局后自动装" : Prop.state);
+        int mc = Prop.missCount();
+        note(a, u, root, ps + (mc == 0 ? "。还没发现缺的资源。" : "。游戏缺的资源（最近 " + Math.min(6, mc) + " 条，共 " + mc + " 条）：" + Prop.recent(6)));
     }
     static void giveItem(final Activity a, final long id) {
         if (giveSt == 1 || giveSt == 3) { toast(a, "先在补丁更新里点「更新补丁」"); return; }
@@ -1235,6 +1239,7 @@ public class GameOverlay {
             if (!ok) { itemBad.add(id); toast(a, "没刷出来（" + dbgReason() + "）"); refreshAny(); return; }
             String w = Con.lastWeapAt >= t0 ? Con.lastWeap : "";
             if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); refreshAny(); }
+            if (Prop.missAt >= t0) { toast(a, "缺资源：" + Prop.lastMiss); refreshAny(); }
         }, 1200);
     }
 

@@ -707,3 +707,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 大厅灯光 RE 起点：HallDefaultSkyLight/DirectLight utf32 0x43c9118/0x43c9064，引用函数 0x12056b4（ANZFrontEndSceneMgr InitLight）、0x121733c、0x1218xxx。还没看完怎么找带标签的 actor。
 - 00:29 用户：军需还是点不开（单机没日志），先不管；把能刷的全部加到单机里。
 - v2.49 (vc150)：装备页（单机/服务端）加「全部道具」：Server.scanItems 只读扫内存里所有 11 位物品编号（不含 301-309 服装，保留 30304/30305/30307 头甲包），按分类（ITEM_CAT）分页，每页 12 个，点一下刷（子弹 30、投掷/药 3）。结果缓存 filesDir/zf_items.txt，「重新读」重扫。刷不出的标「（没有）」，刷出的枪从日志取武器名。娱乐道具（ItemSubType_FunctionalProp）编号不知道，靠这个扫出来的「其他 xxxxx」分类找。未实测。
+- 01:23 用户（v2.49 实测）：战术模式道具全部能刷进背包，但丢到地上看不见；喷气背包能飞，少特效和别的；魔爪饮料也能刷。单机没日志，只有截图/视频。
+- RE：
+  - 地上物品 ANZPickupInventory 模型异步加载回调 0xce5fc0（NZPickupInventory.cpp）：ResolveObject(0x1be0d50) 得到 UStaticMesh 才 SetStaticMesh(组件 +0x2c4, vt+0x43c)，失败只打 Warning "asynchronous load mesh failed [%s]"。发起方 0xce6c38：+0x2b5 bShouldDisplayPickupMesh、+0x2f8 行指针（空就不加载），路径 FString 在行 +0x20。
+  - 手持模型 ANZInventory_ItemBase::ForceCreateItemMesh 0xcca500：+0x2c0 路径，失败 "Unable to load static mesh [%s]"。
+  - 喷气背包：UNZBRPlayerPropAnimComponent。0x110c004 从物品 +0x338/+0x350 拷 JetpackBagInfo(+0x170 特效 SoftObjectPath，+0x188 耐久模型路径)，非专用服务器直接 InitJetpackBag 0x110c424：特效用 TryLoad 0x1be0c88（同步加载+跟重定向）→ 是 UParticleSystem 才 SpawnEmitterAttached(0x29fa5b4) 存 +0x1d8 JetpackEffectPSC。所以没特效 = 特效文件加载不到（不在手机上或路径空），不是联网/OnRep 问题。
+  - GUObjectArray = base+0x529b660（Objects +0x10，16 字节一项，Flags +4，RootSet 0x40000000）。
+- v2.50 (vc151)：
+  - Prop.java：地上模型替身。0xce6068 → cave1(SLACK+0x300)：记本局第一个成功加载的地上模型（直接缓冲区存指针）并 AddToRoot；0xce62a0 → cave2(SLACK+0x344)：有替身就走成功分支，没有照原样。进对局图（Browse）时装，所有模式。pick_cave.py / emu_pick.py（unicorn）测过。+0x2f8 行为空的情况不会进回调，替身管不到。
+  - 缺资源记录：Con.line → Prop.line，抓 asynchronous load mesh failed / Unable to load static mesh / Failed to find object / Couldn't find file 等带路径的行，「全部道具」页底部列最近 6 条；刷完 1.2 秒内有新的就 toast。
+  - 喷气背包特效没改（文件不在就没法补），等页底部列出的路径。未实测。

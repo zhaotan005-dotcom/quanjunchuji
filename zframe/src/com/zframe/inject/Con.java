@@ -423,6 +423,7 @@ public class Con {
     static volatile String lastWeap = ""; static volatile long lastWeapAt;
     static final java.util.regex.Pattern WEAP = java.util.regex.Pattern.compile("BP_NZWeap_(\\w+?)_C|WeaponBase/W\\d+_(\\w+)/");
     static void line(String l) {
+        Prop.line(l);
         if (l.contains("BP_NZWeap_") || l.contains("WeaponBase/W")) {
             java.util.regex.Matcher m = WEAP.matcher(l);
             if (m.find()) { String w = m.group(1) != null ? m.group(1) : m.group(2); if (!"EmptyHand".equals(w)) { lastWeap = w; lastWeapAt = System.currentTimeMillis(); } }
@@ -503,7 +504,7 @@ public class Con {
         if (l.contains("CalcAirLineByRestrictedAreaInfo StartLoc:")) Flow.airLog(l);   // v1.94：航线原始坐标，按值去内存里找
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0) { Flow.natPrepare(l); Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
+        if (i >= 0) { Flow.natPrepare(l); if (l.contains("/Game/Maps/") && !l.contains("FrontEnd") && !l.contains("RoleHall")) Prop.matchLoad(); Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();
