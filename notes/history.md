@@ -668,3 +668,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.38 (vc139): 服务端日志 avatar-1117-205110 20:45:00–02 依次试 30309000001..06/00，04/05/06/00 报 NZPickupInventory Can't Find Item，01/02/03 无报错 → 吉利服只有 3 款。GHILLIE 改成 01-03，衣服页三个按钮 吉利服 1/2/3。以后判断编号真假看日志 Can't Find Item。
 - v2.39 (vc140): 用户不接受 v2.36 换弹补子弹（不扣备弹）。去掉直接补 +0x604/+0x608。新推测真因：听服模式下加入玩家人物不在房主画面里，USkinnedMeshComponent.MeshComponentUpdateFlag（+0x6c1，反射表 0x502e534）是 OnlyTickPoseWhenRendered → 换弹动画结束通知不触发 → 服务端弹匣停 0。Crew.guard 对加入玩家 mesh(+0x2f4) 写 +0x6c1=0（AlwaysTickPoseAndRefreshBones），清 bEnableUpdateRateOptimizations（+0x740 bit0，反射表 0x502e33c）。诊断「换弹：」记录弹匣 0 次数、动画修正次数、原值。未实测。
 - v2.40 (vc141): 用户：枪打刷出来的车不爆。NZVehicle 反射：MaxHealth +0x2f8、DamageScale +0x2fc、Health +0x308（NZWheeledVehicle 另有 Health +0x4b4 / DamageScale +0x49c / MaxHealth +0x498，Hover +0x3fc/+0x3f0/+0x3ec）。刷车成功 2 秒后（服务端/单机）：EnableCheats、set NZVehicle bCanBeDamaged 1、getall NZVehicle bCanBeDamaged/Health/MaxHealth 写进日志；诊断关键字加 NZVehicle/Explo/Burn。真因未确认，等日志。
+- v2.41 (vc142): 用户 21:43 日志（服务端 avatar-1117-213949、客户端 avatar-1117-213849）：
+  - 上车成功了（服务端 NZWheeledVehicle.cpp:4224 EnterVehicle、客户端 Attach to Vehicle）→ 0xdb00f0 补丁有效。
+  - 服务端开车闪退：客户端网络抖动重连（OnReconnected 21:38:27）→ Crew.joined → find()+doPull；玩家已上车，控制器+0x2c0 是 BP_Vehicle_Mirado_A_C_0 → 当人物 teleport + 写 CMC/血/骨骼网格（v2.39 +0x6c0/+0x740）进了车的内存 → 崩（最后一行 21:38:28 AddAvaItem V0x… 就是 find 的 Veh.info）。修：find 只收类名含 Character 的，车上的计 drivers；骨骼网格写之前核对类名含 SkeletalMesh。
+  - 换弹仍循环：客户端 "Force set local front ammo count to server value. ClientAmmo=16, ServerAmmo=0" 每 ~4 秒。服务端崩了没留下 Crew 状态 → 改成 LogCap.note（崩后「上次运行最后几步」能看到）：动画原值、弹匣 0 事件。
+  - 用户：服务端删刷人机 → 服务端分页去掉「人机」。
+  - 吉利服 3 款确认正常。客户端穿 30309000003 时每帧 GetItemDataByID Failed（客户端物品表没有吉利服），只是刷日志。

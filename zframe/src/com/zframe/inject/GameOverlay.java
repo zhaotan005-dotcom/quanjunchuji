@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.40";
+    static final String VER = "v2.41";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -97,8 +97,9 @@ public class GameOverlay {
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
             tabsRow.setPadding(u.dp(8), u.dp(4), u.dp(4), u.dp(10));
-            final String[] tabs = {"常用", "功能", "武器", "装备", "衣服", "刷车", "人机", "联机", "画面"};
-            final int[] map = {0, 8, 3, 4, 7, 1, 2, 6, 5};   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
+            // v2.41 用户：服务端把刷人机删了
+            final String[] tabs = Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "装备", "衣服", "刷车", "联机", "画面"} : new String[]{"常用", "功能", "武器", "装备", "衣服", "刷车", "人机", "联机", "画面"};
+            final int[] map = Ed.ED == 1 ? new int[]{0, 8, 3, 4, 7, 1, 6, 5} : new int[]{0, 8, 3, 4, 7, 1, 2, 6, 5};   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);

@@ -123,9 +123,9 @@ final class Crew {
         // 换弹动作的结束通知不触发 → 服务端弹匣一直 0 → 客户端反复换弹。改成一直跑动画：USkinnedMeshComponent +0x6c1 = 0（AlwaysTickPoseAndRefreshBones），
         // 关掉 bEnableUpdateRateOptimizations（+0x740 bit0）。不再直接补子弹。
         long mesh = Mods.rp(m, p + Mods.P_MESH);
-        if (Mods.isObj(m, b, mesh)) {
+        if (Mods.isObj(m, b, mesh) && meshOk(m, mesh)) {
             int f = Mods.rd(m, mesh + 0x6c0), fb = (f >>> 8) & 0xff;
-            if (fb != 0 && fb <= 3) { Mods.wi(m, mesh + 0x6c0, f & ~0xff00); animFix++; animWas = fb; }
+            if (fb != 0 && fb <= 3) { Mods.wi(m, mesh + 0x6c0, f & ~0xff00); animFix++; if (animWas != fb) { animWas = fb; LogCap.note("换弹：加入玩家骨骼动画原来 " + fb + "（2=看不见就不跑），已改成一直跑"); } }
             int o = Mods.rd(m, mesh + 0x740);
             if ((o & 1) != 0) Mods.wi(m, mesh + 0x740, o & ~1);
         }
@@ -138,18 +138,30 @@ final class Crew {
         if (t0 == null) { emptySince.put(w, now); return; }
         if (now - t0 < 2500) return;
         emptySince.remove(w); refills++;
+        if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，备用 0x608=" + Mods.rd(m, w + 0x608) + "，动画修正 " + animFix + " 次）");
         ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
     }
     static int animFix, animWas = -1;
+    static final java.util.HashMap<Long, Boolean> meshSeen = new java.util.HashMap<>();
+    static boolean meshOk(RandomAccessFile m, long mesh) {
+        Boolean ok = meshSeen.get(mesh);
+        if (ok == null) {
+            String cn = "?"; try { cn = Alive.clsName(m, Veh.Names.get(), mesh); } catch (Throwable t) {}
+            ok = cn.contains("SkeletalMesh"); meshSeen.put(mesh, ok);
+            if (!ok) LogCap.note("换弹：+0x2f4 不是骨骼网格（" + cn + "），不写");
+        }
+        return ok;
+    }
 
     /** v2.32b：v2.32 实测 Alive 计数钩子 1 秒里一次都没触发（找到 0 个）。改成走 GameState.PlayerArray（GS+0x2bc，TArray<PlayerState*>）：
      *  PS 的 Owner（AActor+0x60）是控制器，类名带 PlayerController 才算玩家；控制器+0x2c0 是人物。读不到再退回 Alive。 */
     static volatile int lastTotal;
+    static int drivers;
     static volatile java.util.ArrayList<Long> states = new java.util.ArrayList<>();
     static void find() {
         long me = Mods.myPawn();
         java.util.ArrayList<Long> out = new java.util.ArrayList<>(), sts = new java.util.ArrayList<>();
-        int total = 0; String how = "PlayerArray";
+        int total = 0; String how = "PlayerArray"; drivers = 0;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             Veh.Names nm = null; try { nm = Veh.Names.get(); } catch (Throwable t) {}
             long mps = me >= 0x10000 ? Server.rd(m, me + 0x2c4) : 0;
@@ -169,7 +181,8 @@ final class Crew {
                     long p = Server.rd(m, ctl + 0x2c0); if (p < 0x10000) p = Server.rd(m, ctl + 0x2b4);
                     if (p == me) continue;
                     sts.add(ps);
-                    if (p >= 0x10000) out.add(p);
+                    // v2.41 服务端开车闪退：玩家上车后控制器的 Pawn 是车（BP_Vehicle_…），以前当成人物去写移动组件/血/骨骼网格 → 写坏车的内存。只认人物
+                    if (p >= 0x10000) { String cn = Alive.clsName(m, nm, p); if (cn.contains("Character")) out.add(p); else drivers++; }
                 }
             } else {
                 how = "计数钩子";
@@ -186,7 +199,7 @@ final class Crew {
         } catch (Throwable t) { state = "全员：读出错 " + t.getMessage(); return; }
         players = out; states = sts;
         lastTotal = total;
-        String ns = "全员（" + how + "）：找到加入的玩家 " + out.size() + " 个（共 " + total + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
+        String ns = "全员（" + how + "）：找到加入的玩家 " + out.size() + " 个（共 " + total + "，在车上 " + drivers + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
         if (!ns.equals(state)) LogCap.note(ns);
         state = ns;
     }
