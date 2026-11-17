@@ -18,16 +18,18 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.64";
+    static final String VER = "v2.65";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
     // 配色（v1.49 简约：近黑半透明底 + 白/灰文字 + 一个低饱和蓝，只用细线分隔，不用渐变和彩色标签）
     // v2.05 用户：不要黑底，参考苹果风格 → 浅灰毛玻璃底 + 白色卡片 + 系统蓝，开关绿色
     // v2.64 用户：v2.63 太丑、GPT 那个也不要 → 简约：近黑半透明底、白字、没有边框和渐变，选中=白底黑字，开关绿色
-    static final int PANEL = 0xEB121214, CARD = 0x0DFFFFFF, CARD2 = 0x17FFFFFF, LINE = 0x14FFFFFF,
-            TXT = 0xFFF2F2F2, SUBT = 0x8CFFFFFF, ACC = 0xFFF2F2F2, ON_BG = 0xFFF2F2F2, ON_TXT = 0xFF111111,
-            ORANGE = 0xFFFF9F0A, CHIP = 0x12FFFFFF, GREEN = 0xFF30D158, TRACK = 0x33FFFFFF, PURPLE = 0xFFF2F2F2, STROKE = 0x00000000;
+    // v2.65 用户：喜欢白底黑字，要通透的模块，左边分页和右边按钮不能一个样 →
+    //   白色半透明底；左边分页是一条浅灰「轨道」、选中=黑底白字胶囊；右边内容放在半透明浅灰卡片里，按钮是白色描边块
+    static final int PANEL = 0xEBFAFAFB, CARD = 0x0A000000, CARD2 = 0xFFFFFFFF, LINE = 0x14000000,
+            TXT = 0xFF141414, SUBT = 0x8C000000, ACC = 0xFF141414, ON_BG = 0xFF141414, ON_TXT = 0xFFFFFFFF,
+            ORANGE = 0xFFFF9500, CHIP = 0x0D000000, GREEN = 0xFF34C759, TRACK = 0x24000000, PURPLE = 0xFF141414, STROKE = 0x1F000000, RAIL = 0x0F000000;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -69,7 +71,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, 0x1AFFFFFF, u.dp(12), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
+            panel.setBackground(boxLine(PANEL, 0x14000000, u.dp(14), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
@@ -106,7 +108,8 @@ public class GameOverlay {
             body.setOrientation(LinearLayout.HORIZONTAL);
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
-            tabsRow.setPadding(u.dp(6), u.dp(2), u.dp(4), u.dp(4));
+            tabsRow.setPadding(u.dp(4), u.dp(4), u.dp(4), u.dp(4));
+            tabsRow.setBackground(box(RAIL, u.dp(12)));
             // v2.41 用户：服务端把刷人机删了
             // v2.61 用户：刷武器、特殊武器、子弹单独分页；道具单独一页
             final String[] tabs = Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "联机", "画面"} : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "人机", "联机", "画面"};
@@ -133,7 +136,7 @@ public class GameOverlay {
             final ScrollView tsv = new ScrollView(a);
             tsv.setVerticalScrollBarEnabled(false);
             tsv.addView(tabsRow);
-            body.addView(tsv, new LinearLayout.LayoutParams(-2, ph - u.dp(56)));
+            { LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(-2, ph - u.dp(56)); tlp.setMargins(u.dp(8), 0, u.dp(2), u.dp(8)); body.addView(tsv, tlp); }
             final View hr = new View(a); hr.setBackgroundColor(0);
             body.addView(hr, new LinearLayout.LayoutParams(1, -1));
             body.addView(sv, new LinearLayout.LayoutParams(0, ph - u.dp(56), 1));
@@ -295,8 +298,8 @@ public class GameOverlay {
             boolean on = tv[j].getTag() instanceof Integer && (Integer) tv[j].getTag() == tab;
             tv[j].setTextColor(on ? ON_TXT : SUBT);
             tv[j].setTypeface(on ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
-            tv[j].setBackground(on ? box(CARD2, u.dp(7)) : null);   // v2.64 选中：浅灰块 + 白字
-            tv[j].setTextColor(on ? TXT : SUBT);   // v1.99 选中：白色圆角块
+            tv[j].setBackground(on ? box(ON_BG, u.dp(9)) : null);   // v2.65 选中：黑底白字胶囊
+            tv[j].setTextColor(on ? ON_TXT : SUBT);   // v1.99 选中：白色圆角块
         }
     }
 
@@ -698,8 +701,8 @@ public class GameOverlay {
     static LinearLayout card(Activity a, Ui u, ViewGroup p) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackground(box(CARD, u.dp(10)));
-        c.setPadding(u.dp(10), u.dp(2), u.dp(10), u.dp(2));
+        c.setBackground(box(CARD, u.dp(12)));
+        c.setPadding(u.dp(10), u.dp(4), u.dp(10), u.dp(4));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.bottomMargin = u.dp(4);
         p.addView(c, lp);
         return c;
@@ -711,7 +714,7 @@ public class GameOverlay {
         b.setGravity(Gravity.CENTER);
         b.setSingleLine(false); b.setMaxLines(2);
         b.setPadding(u.dp(3), u.dp(7), u.dp(3), u.dp(7));
-        b.setBackground(box(CARD2, u.dp(8)));
+        b.setBackground(boxLine(CARD2, STROKE, u.dp(8), Math.max(1, u.dp(1))));
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
@@ -736,7 +739,7 @@ public class GameOverlay {
         if (on) b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
         b.setPadding(u.dp(3), u.dp(6), u.dp(3), u.dp(6));
-        b.setBackground(on ? grad(u.dp(8)) : box(CARD2, u.dp(8)));
+        b.setBackground(on ? grad(u.dp(8)) : boxLine(CARD2, STROKE, u.dp(8), Math.max(1, u.dp(1))));
         if (!on) b.setTextColor(TXT);
         press(b);
         b.setOnClickListener(v -> r.run());
@@ -810,7 +813,7 @@ public class GameOverlay {
             p.setColor(TRACK); c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
             p.setColor(ACC); if (cx > x0) c.drawRoundRect(new RectF(x0, cy - th / 2, cx, cy + th / 2), th, th, p);
             float r = (drag ? 8 : 6.5f) * dens;
-            if (drag) { p.setColor(0x22FFFFFF); c.drawCircle(cx, cy, r + 6 * dens, p); }
+            if (drag) { p.setColor(0x14000000); c.drawCircle(cx, cy, r + 6 * dens, p); }
             p.setColor(0x33000000); c.drawCircle(cx, cy + dens, r + 0.5f * dens, p); p.setColor(0xFFFFFFFF); c.drawCircle(cx, cy, r, p);
             float ey = getHeight() - 2 * dens;                                   // 两端刻度：0 和 最大
             ep.setTextAlign(Paint.Align.LEFT); c.drawText(fmt(min), x0 - 2 * dens, ey, ep);
