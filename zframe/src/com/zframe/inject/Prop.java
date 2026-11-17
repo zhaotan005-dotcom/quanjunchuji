@@ -218,6 +218,35 @@ public class Prop {
             return valid ? "ok" : "ok2";
         } catch (InterruptedException e) { return "中断"; }
     }
+    /** v2.59：背包 vt+0x484（UseItem）在单机里只走到 StopPreUsingItem、不生成。直接让道具自己生成：
+     *  role==3（本机就是服务器）→ 道具 vt+0x348 UseThisItem 0xf2e3c4（CanUse + SpawnScenePropItem）；否则直接 vt+0x3a4 SpawnScenePropItem 0xf300dc。调前核对虚表项。 */
+    static String force() {
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        long inv, sel; int role; long vt;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            inv = inv(m, b); if (inv <= 0) return "背包不对";
+            sel = Server.rd(m, inv + 0x568);
+            if (!isProp(m, b, sel)) return "手上没有道具";
+            byte[] x = new byte[1]; m.seek(sel + 0xe8); m.readFully(x); role = x[0] & 0xff;
+            vt = Server.rd(m, sel);
+            int off = role == 3 ? 0x348 : 0x3a4; long want = b + (role == 3 ? 0xf2e3c4L : 0xf300dcL);
+            if (Server.rd(m, vt + off) != want) return "道具函数对不上（role " + role + "）";
+            m.seek(sel + 0x336); m.readFully(x);
+            if (x[0] == 0) return "放置点无效，换个平地";
+            long[] r = Veh.ucall(sel, 0, off, 0, null);
+            LogCap.note("用道具：直接生成 role " + role + " vt+" + Integer.toHexString(off) + " 返回 " + Long.toHexString(r[0]) + "/" + r[1]);
+            if (r[0] != 0x5b0e) return "补丁没反应";
+            return (r[1] & 0xff) != 0 ? "ok" : "游戏没生成（role " + role + "）";
+        } catch (Throwable e) { return "出错 " + e; }
+    }
+    /** 收起手上的道具：背包 vt+0x4d4 0xfe96e4 */
+    static void unselect() {
+        try {
+            long b = Mods.base(); if (b == 0) return; long inv;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { inv = inv(m, b); if (inv <= 0) return; if (Server.rd(m, Server.rd(m, inv) + 0x4d4) != b + 0xfe96e4L) return; }
+            Veh.ucall(inv, 0, 0x4d4, 0, null);
+        } catch (Throwable ignored) {}
+    }
     /** v2.54：刚刷进背包的东西，从背包物品列表里找类名带这个编号的，取中文名（找不到就用类名尾巴） */
     static String nameInBag(long id) {
         long b = Mods.base(); if (b == 0) return null;

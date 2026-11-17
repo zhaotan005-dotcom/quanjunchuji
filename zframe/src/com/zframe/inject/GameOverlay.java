@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.58";
+    static final String VER = "v2.59";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -51,7 +51,7 @@ public class GameOverlay {
             // v2.58 用户：别弹在腾讯 logo 页（闪屏 Activity）上，等游戏自己的加载页
             String an = a.getClass().getName(); LogCap.note("页面：" + an);
             boolean splash = an.toLowerCase().contains("splash") || an.toLowerCase().contains("logo");
-            if (Ed.canChoose() && !Ed.chosen && !splash) showChooser(a);   // v2.44
+            // v2.59：选择框改到游戏自己的加载页（StartupMap）才弹，见 Con
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
             { View old = panelRef; if (old != null && old.isAttachedToWindow() && panelAct == a) return; }
@@ -1439,13 +1439,13 @@ public class GameOverlay {
             // v2.56 用户：照游戏自己的「提示」框做；自动刷人机开关挪到大厅；下载新版本时显示进度条
             View[] f = GameDlg.frame(a, "选择模式", null);
             LinearLayout body = (LinearLayout) f[1];
-            final int last = Ed.saved();
+            final int last = Ed.ED;
             GameDlg.text(a, body, "这次怎么玩？", 16, GameDlg.WHITE).setPadding(0, GameDlg.dp(a, 4), 0, 0);
-            final TextView sub = GameDlg.text(a, body, "一会儿不选，按上次的（" + (last == 0 ? "单机" : "联机") + "）", 11.5f, GameDlg.SUB);
+            final TextView sub = GameDlg.text(a, body, "现在是" + (last == 0 ? "单机" : "联机") + "，不点就按这个进；换模式会自动重启一次", 11.5f, GameDlg.SUB);
             sub.setPadding(0, GameDlg.dp(a, 4), 0, 0);
             LinearLayout r = GameDlg.row(a, body, 16);
-            GameDlg.add(a, r, GameDlg.button(a, "联机（加入房间）", last == 2, () -> Ed.choose(2, "手动")));
-            GameDlg.add(a, r, GameDlg.button(a, "单机", last == 0, () -> Ed.choose(0, "手动")));
+            GameDlg.add(a, r, GameDlg.button(a, "联机（加入房间）", last == 2, () -> pickMode(a, 2, sub)));
+            GameDlg.add(a, r, GameDlg.button(a, "单机", last == 0, () -> pickMode(a, 0, sub)));
             final TextView up = GameDlg.text(a, body, "当前 " + VER + " · 正在检查更新…", 11.5f, GameDlg.SUB);
             up.setPadding(0, GameDlg.dp(a, 14), 0, 0);
             final View[] pb = GameDlg.progress(a, body);
@@ -1466,6 +1466,33 @@ public class GameOverlay {
             chooser = f[0]; chooserAct = a;
             LogCap.note("启动选择：已显示");
         } catch (Throwable t) { LogCap.note("启动选择：显示失败 " + t + "，按上次的"); Ed.choose(Ed.saved(), "显示失败"); }
+    }
+    /** v2.59：加载页选模式。和现在一样 → 关框；不一样 → 存下来重启游戏（钩子要在大厅代码跑之前装，只能重启） */
+    static volatile long chooserTouched;
+    static void pickMode(final Activity a, int m, TextView sub) {
+        chooserTouched = System.currentTimeMillis();
+        if (m == Ed.ED) { closeChooser(); return; }
+        Ed.save(m);
+        LogCap.note("启动选择：换成 " + (m == 0 ? "单机" : "联机") + "，重启");
+        sub.setText("换成" + (m == 0 ? "单机" : "联机") + "，正在重启…");
+        NetCore.restart(a);
+    }
+    static void closeChooser() {
+        final Activity a = chooserAct; final View c = chooser;
+        if (a == null || c == null) return;
+        a.runOnUiThread(() -> { try { a.getWindowManager().removeViewImmediate(c); } catch (Throwable ignored) {} chooser = null; chooserAct = null; });
+    }
+    /** Con 看到游戏进加载页（Browse StartupMap）时调：弹选择框，20 秒没点就按现在的模式关掉 */
+    static volatile boolean asked;
+    static void loadingPage() {
+        if (!Ed.canChoose() || asked) return;
+        final Activity a = Con.act; if (a == null) return;
+        asked = true;
+        a.runOnUiThread(() -> {
+            showChooser(a);
+            final View c = chooser;
+            if (c != null) c.postDelayed(() -> { if (chooser == c && System.currentTimeMillis() - chooserTouched > 20000 && NetCore.readyVer <= ZInit.CORE_VER) closeChooser(); }, 20000);
+        });
     }
     /** 选完（手动或超时）：关掉选择框，菜单标题跟着变 */
     static void chosen() {

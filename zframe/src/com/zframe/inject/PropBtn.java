@@ -138,6 +138,11 @@ final class PropBtn {
                         Thread.sleep(1500);
                         Prop.scanUse(true);
                         boolean still = false; for (Prop.It it : Prop.useList) if (it.sel) still = true;
+                        if (still) {   // v2.59：游戏的 UseItem 不生成 → 直接让道具生成
+                            String f = Prop.force();
+                            if ("ok".equals(f)) { Thread.sleep(300); Prop.unselect(); msg = null; return; }
+                            Prop.lastUseLog = Prop.lastUseLog.isEmpty() ? f : Prop.lastUseLog;
+                        }
                         if (still) {
                             String why = Prop.lastUseLog.isEmpty() ? "游戏没给原因" : Prop.lastUseLog.replaceAll("^.*\\]", "").trim();
                             msg = "没放下：" + (why.length() > 60 ? why.substring(0, 60) : why) + "（日志已自动上传）";

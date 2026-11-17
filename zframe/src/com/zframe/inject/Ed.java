@@ -25,6 +25,7 @@ final class Ed {
         Ed.class.notifyAll();
         GameOverlay.chosen();
     }
+    static void save(int e) { try { if (file != null) java.nio.file.Files.write(file.toPath(), String.valueOf(e).getBytes()); } catch (Throwable ignored) {} }
     /** 启动早装前调用：客户端包等人选，最多等 limitMs，超时就用上次的选择 */
     static void await(long limitMs) {
         if (chosen) return;

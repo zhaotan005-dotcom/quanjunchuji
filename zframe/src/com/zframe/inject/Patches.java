@@ -39,7 +39,7 @@ public class Patches {
             LogCap.note("补丁: libUE4 基址 0x" + Long.toHexString(base) + " 用时" + (System.currentTimeMillis() - t0) + "ms");
             ueBase = base; foundMs = System.currentTimeMillis() - t0;
             Mods.early = true;   // v1.72：启动早装固定开，不再给开关
-            if (Ed.canChoose()) { Ed.init(ctx); long w0 = System.currentTimeMillis(); Ed.await(25000); LogCap.note("启动选择用时 " + (System.currentTimeMillis() - w0) + "ms"); }   // v2.44
+            if (Ed.canChoose()) { Ed.init(ctx); Ed.choose(Ed.saved(), "启动按上次"); }   // v2.59：不在腾讯 logo 时等人选；先按上次的装，加载页再问，换模式就重启
             if (Mods.early) Mods.preinstall();               // v1.65：代码还没跑之前装钩子
             if (!MEM) {
                 LogCap.note("安全模式: 不写游戏内存（v1.19 只读一次 Wwise 标志）");
