@@ -18,15 +18,16 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.60";
+    static final String VER = "v2.61";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
     // 配色（v1.49 简约：近黑半透明底 + 白/灰文字 + 一个低饱和蓝，只用细线分隔，不用渐变和彩色标签）
     // v2.05 用户：不要黑底，参考苹果风格 → 浅灰毛玻璃底 + 白色卡片 + 系统蓝，开关绿色
-    static final int PANEL = 0xF5F2F2F7, CARD = 0xFFFFFFFF, CARD2 = 0xFFFFFFFF, LINE = 0x14000000,
-            TXT = 0xFF1C1C1E, SUBT = 0xFF8E8E93, ACC = 0xFF007AFF, ON_BG = 0xFF007AFF, ON_TXT = 0xFFFFFFFF,
-            ORANGE = 0xFFFF9500, CHIP = 0x0F000000, GREEN = 0xFF34C759;
+    // v2.61 用户：菜单全部改成更新弹窗（GameDlg）的风格 → 深色底 + 金色标题条 + 金色选中
+    static final int PANEL = 0xF21A1D24, CARD = 0xFF262A33, CARD2 = 0xFF2C313B, LINE = 0x22FFFFFF,
+            TXT = 0xFFE9ECF2, SUBT = 0xFFB7BCC6, ACC = 0xFFF2B33A, ON_BG = 0xFFF2B33A, ON_TXT = 0xFF3A2400,
+            ORANGE = 0xFFFF9500, CHIP = 0x14FFFFFF, GREEN = 0xFFF2B33A, TRACK = 0xFF3A3E48;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -37,7 +38,10 @@ public class GameOverlay {
         GradientDrawable g = box(color, r); g.setStroke(w, line); return g;
     }
     /** 选中态：白底（深色字） */
-    static GradientDrawable grad(float r) { return box(ON_BG, r); }
+    static GradientDrawable grad(float r) {
+        GradientDrawable g = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, new int[]{0xFFFFC85A, 0xFFE09A1E});
+        g.setCornerRadius(r); return g;
+    }
 
     static Runnable refresher;
     /** v1.50：界面重建一律排到下一帧。以前在主线程上会立刻重建，松开滑条的那一刻把滑条自己删掉 → 闪退 */
@@ -59,12 +63,12 @@ public class GameOverlay {
             android.util.DisplayMetrics dm = a.getResources().getDisplayMetrics();
             int sw = Math.max(dm.widthPixels, dm.heightPixels), sh = Math.min(dm.widthPixels, dm.heightPixels);
             // v1.49：窄一点（和最早的版本差不多宽），高度不超过屏幕的 82%
-            final int pw = Math.min((int) (sw * 0.46f), u.dp(400)), ph = Math.min((int) (sh * 0.82f), u.dp(340));   // v1.99 左边竖排分页，所以宽一点
+            final int pw = Math.min((int) (sw * 0.56f), u.dp(470)), ph = Math.min((int) (sh * 0.90f), u.dp(380));   // v2.61 用户：尽量不用滑 → 宽一点高一点，按钮一行 4 个   // v1.99 左边竖排分页，所以宽一点
 
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, 0x33000000, u.dp(8), Math.max(1, u.dp(1) / 2)));   // v2.08 ImGui 浅色风：小圆角 + 细边框
+            panel.setBackground(boxLine(PANEL, 0x55C9A34A, u.dp(4), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
@@ -73,14 +77,14 @@ public class GameOverlay {
             head.setOrientation(LinearLayout.HORIZONTAL);
             head.setGravity(Gravity.CENTER_VERTICAL);
             head.setPadding(u.dp(6), u.dp(4), u.dp(6), u.dp(4));
-            head.setBackground(box(0xFFDCDCE2, 0));   // v2.08 ImGui 风：单独一条灰色标题栏
+            head.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{0xFFC9A34A, 0xFF8A6A2A, 0xFF2A2620}));   // v2.08 ImGui 风：单独一条灰色标题栏
             // v2.07 用户：左边一个三角方块（点开展开菜单、再点折叠），标题居中，版本号不放标题栏
             final TextView fold = new TextView(a);
-            fold.setTextColor(ACC); fold.setTextSize(13); fold.setGravity(Gravity.CENTER);
-            fold.setBackground(box(0x1F007AFF, u.dp(4)));
+            fold.setTextColor(0xFF3A2A10); fold.setTextSize(13); fold.setGravity(Gravity.CENTER);
+            fold.setBackground(new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFFF7D774, 0xFFE09A1E}));
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             TextView title = new TextView(a);
-            titleRef = title; title.setText(titleText()); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            titleRef = title; title.setText(titleText()); title.setTextColor(0xFFFFFFFF); title.setTextSize(15); title.setTypeface(Typeface.DEFAULT_BOLD);
             title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
             head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
@@ -100,23 +104,24 @@ public class GameOverlay {
             body.setOrientation(LinearLayout.HORIZONTAL);
             final LinearLayout tabsRow = new LinearLayout(a);
             tabsRow.setOrientation(LinearLayout.VERTICAL);
-            tabsRow.setPadding(u.dp(8), u.dp(4), u.dp(4), u.dp(10));
+            tabsRow.setPadding(u.dp(6), u.dp(4), u.dp(4), u.dp(4));
             // v2.41 用户：服务端把刷人机删了
-            final String[] tabs = Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "装备", "衣服", "刷车", "联机", "画面"} : new String[]{"常用", "功能", "武器", "装备", "衣服", "刷车", "人机", "联机", "画面"};
-            final int[] map = Ed.ED == 1 ? new int[]{0, 8, 3, 4, 7, 1, 6, 5} : new int[]{0, 8, 3, 4, 7, 1, 2, 6, 5};   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
+            // v2.61 用户：刷武器、特殊武器、子弹单独分页；道具单独一页
+            final String[] tabs = Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "联机", "画面"} : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "人机", "联机", "画面"};
+            final int[] map = Ed.ED == 1 ? new int[]{0, 8, 3, 9, 10, 4, 11, 7, 1, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 7, 1, 2, 6, 5};   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
             final LinearLayout content = new LinearLayout(a);
             content.setOrientation(LinearLayout.VERTICAL);
-            content.setPadding(u.dp(10), u.dp(2), u.dp(14), u.dp(14));
+            content.setPadding(u.dp(8), u.dp(2), u.dp(10), u.dp(8));
             sv.addView(content);
             for (int k = 0; k < tabs.length; k++) {
                 final int idx = map[k];
                 TextView t = new TextView(a);
                 t.setText(tabs[k]); t.setTextSize(12.5f); t.setGravity(Gravity.CENTER);
                 t.setTag(idx);
-                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(58), u.dp(32)); tl.bottomMargin = u.dp(3);
+                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(54), u.dp(25)); tl.bottomMargin = u.dp(2);
                 tabsRow.addView(t, tl);
                 tv[k] = t;
                 t.setOnClickListener(v -> { tab = idx; paintTabs(tv, u); fill(a, u, content); sv.scrollTo(0, 0); });
@@ -273,7 +278,7 @@ public class GameOverlay {
     }
     static TextView iconBtn(Activity a, Ui u, String s) {
         TextView b = new TextView(a);
-        b.setText(s); b.setTextColor(SUBT); b.setTextSize(17);
+        b.setText(s); b.setTextColor(0xFFFFE08A); b.setTextSize(17);
         b.setGravity(Gravity.CENTER);
         return b;
     }
@@ -283,7 +288,7 @@ public class GameOverlay {
             boolean on = tv[j].getTag() instanceof Integer && (Integer) tv[j].getTag() == tab;
             tv[j].setTextColor(on ? ON_TXT : SUBT);
             tv[j].setTypeface(on ? Typeface.create("sans-serif-medium", Typeface.NORMAL) : Typeface.DEFAULT);
-            tv[j].setBackground(on ? box(ON_BG, u.dp(9)) : null);   // v1.99 选中：白色圆角块
+            tv[j].setBackground(on ? grad(u.dp(4)) : null);   // v1.99 选中：白色圆角块
         }
     }
 
@@ -679,13 +684,13 @@ public class GameOverlay {
         TextView t = label(a, p, s, 11f, false, SUBT);
         t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         t.setLetterSpacing(0.03f);
-        t.setPadding(u.dp(6), u.dp(14), 0, u.dp(6));
+        t.setPadding(u.dp(4), u.dp(8), 0, u.dp(3)); t.setTextColor(0xFFE0B860);
     }
     /** 卡片容器 */
     static LinearLayout card(Activity a, Ui u, ViewGroup p) {
         LinearLayout c = new LinearLayout(a);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setBackground(box(CARD, u.dp(12)));
+        c.setBackground(box(CARD, u.dp(6)));
         c.setPadding(u.dp(12), u.dp(4), u.dp(12), u.dp(4));
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.bottomMargin = u.dp(4);
         p.addView(c, lp);
@@ -698,12 +703,12 @@ public class GameOverlay {
         b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
         b.setSingleLine(false); b.setMaxLines(2);
-        b.setPadding(u.dp(4), u.dp(10), u.dp(4), u.dp(10));
-        b.setBackground(box(CARD2, u.dp(10)));
+        b.setPadding(u.dp(3), u.dp(7), u.dp(3), u.dp(7));
+        b.setBackground(boxLine(CARD2, 0x33C9A34A, u.dp(6), 1));
         press(b);
         b.setOnClickListener(v -> r.run());
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-        lp.setMargins(u.dp(3), u.dp(3), u.dp(3), u.dp(3));
+        lp.setMargins(u.dp(2), u.dp(2), u.dp(2), u.dp(2));
         row.addView(b, lp);
         return b;
     }
@@ -723,8 +728,8 @@ public class GameOverlay {
         b.setText(text); b.setTextColor(on ? ON_TXT : SUBT); b.setTextSize(12);
         if (on) b.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
         b.setGravity(Gravity.CENTER);
-        b.setPadding(u.dp(4), u.dp(8), u.dp(4), u.dp(8));
-        b.setBackground(on ? grad(u.dp(9)) : box(CARD2, u.dp(9)));
+        b.setPadding(u.dp(3), u.dp(6), u.dp(3), u.dp(6));
+        b.setBackground(on ? grad(u.dp(6)) : boxLine(CARD2, 0x33C9A34A, u.dp(6), 1));
         if (!on) b.setTextColor(TXT);
         press(b);
         b.setOnClickListener(v -> r.run());
@@ -746,7 +751,7 @@ public class GameOverlay {
         }
         @Override protected void onDraw(Canvas c) {
             float w = getWidth(), h = getHeight(), r = h / 2f;
-            p.setColor(0xFFE5E5EA); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p);
+            p.setColor(TRACK); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p);
             if (pos > 0) { p.setColor(GREEN); p.setAlpha((int) (255 * pos)); c.drawRoundRect(new RectF(0, 0, w, h), r, r, p); p.setAlpha(255); }
             float cx = r + (w - 2 * r) * pos;
             p.setColor(0x22000000); c.drawCircle(cx, r + 1f, r - 2f, p);
@@ -795,10 +800,10 @@ public class GameOverlay {
         @Override protected void onDraw(Canvas c) {
             float cy = getHeight() * 0.42f, th = 2.5f * dens, x0 = x0(), x1 = x1();
             float cx = x0 + (x1 - x0) * (val - min) / (max - min);
-            p.setColor(0xFFE5E5EA); c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
+            p.setColor(TRACK); c.drawRoundRect(new RectF(x0, cy - th / 2, x1, cy + th / 2), th, th, p);
             p.setColor(ACC); if (cx > x0) c.drawRoundRect(new RectF(x0, cy - th / 2, cx, cy + th / 2), th, th, p);
             float r = (drag ? 8 : 6.5f) * dens;
-            if (drag) { p.setColor(0x22007AFF); c.drawCircle(cx, cy, r + 6 * dens, p); }
+            if (drag) { p.setColor(0x33F2B33A); c.drawCircle(cx, cy, r + 6 * dens, p); }
             p.setColor(0x33000000); c.drawCircle(cx, cy + dens, r + 0.5f * dens, p); p.setColor(0xFFFFFFFF); c.drawCircle(cx, cy, r, p);
             float ey = getHeight() - 2 * dens;                                   // 两端刻度：0 和 最大
             ep.setTextAlign(Paint.Align.LEFT); c.drawText(fmt(min), x0 - 2 * dens, ey, ep);
@@ -862,7 +867,7 @@ public class GameOverlay {
         if (special) items.add(new String[]{"信号弹×5", "20600000009", "0"});
         LinearLayout r = null; int n = 0;
         for (final String[] it : items) {
-            if (n % 3 == 0) r = row(a, root);
+            if (n % 4 == 0) r = row(a, root);
             btn(a, u, r, it[0], () -> {
                 if ("flare".equals(it[1])) flare(a);
                 else if (it[1].startsWith("204")) give(a, it[1], 3, it[0]);
@@ -871,7 +876,7 @@ public class GameOverlay {
             });
             n++;
         }
-        while (n % 3 != 0) { r.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); n++; }
+        while (n % 4 != 0) { r.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); n++; }
     }
 
     // ================= 页面 =================
@@ -887,6 +892,9 @@ public class GameOverlay {
             case 6: lanPage(a, u, root); return;
             case 7: clothesPage(a, u, root); return;
             case 8: funcPage(a, u, root); return;
+            case 9: specialPage(a, u, root); return;
+            case 10: ammoPage(a, u, root); return;
+            case 11: propPage(a, u, root); return;
             default: mainPage(a, u, root);
         }
     }
@@ -1004,7 +1012,7 @@ public class GameOverlay {
         b.setText(text); b.setTextSize(12.5f); b.setGravity(Gravity.CENTER);
         b.setTextColor(TXT); b.setTypeface(Typeface.create(on ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
         b.setPadding(0, u.dp(7), 0, u.dp(7));
-        if (on) { b.setBackground(box(0xFFFFFFFF, u.dp(8))); b.setElevation(u.dp(1)); }
+        if (on) { b.setBackground(grad(u.dp(8))); b.setTextColor(ON_TXT); }
         b.setOnClickListener(v -> r.run());
         seg.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
     }
@@ -1016,7 +1024,7 @@ public class GameOverlay {
         return true;
     }
     static TextView fillBtn(Activity a, Ui u, LinearLayout row, String text, Runnable r) {
-        TextView b = btn(a, u, row, text, r); b.setBackground(box(ACC, u.dp(10))); b.setTextColor(0xFFFFFFFF); return b;
+        TextView b = btn(a, u, row, text, r); b.setBackground(grad(u.dp(8))); b.setTextColor(ON_TXT); return b;
     }
     /** 卡片里的一行：左名字，右灰字 */
     static void kv(Activity a, Ui u, LinearLayout card, String k, String v) {
@@ -1120,7 +1128,8 @@ public class GameOverlay {
     static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
         HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
         LinearLayout cr = new LinearLayout(a); cr.setOrientation(LinearLayout.HORIZONTAL);
-        for (int k = 0; k < CATS.length; k++) {
+        if (weapCat >= GUN_CATS) weapCat = 0;
+        for (int k = 0; k < GUN_CATS; k++) {
             final int idx = k;
             TextView t = new TextView(a);
             t.setText(CATS[k][0]); t.setTextSize(11.5f);
@@ -1133,9 +1142,35 @@ public class GameOverlay {
         }
         hs.addView(cr);
         root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        head(a, u, root, "点一下放进背包");
+        head(a, u, root, "点一下放进背包（带子弹和配件）");
         gunGrid(a, u, root, weapCat);
         giveHint(a, root);
+    }
+    static final int GUN_CATS = 7;   // CATS 前 7 类是枪
+    static int catIdx(String n) { for (int k = 0; k < CATS.length; k++) if (n.equals(CATS[k][0])) return k; return -1; }
+    /** v2.61 特殊武器 + 投掷物一页 */
+    static void specialPage(final Activity a, final Ui u, final LinearLayout root) {
+        giveHint(a, root);
+        head(a, u, root, "特殊武器 / 近战");
+        gunGrid(a, u, root, catIdx("特殊武器"));
+        head(a, u, root, "投掷物（每次 3 个）");
+        gunGrid(a, u, root, catIdx("投掷物"));
+    }
+    /** v2.61 子弹一页 */
+    static void ammoPage(final Activity a, final Ui u, final LinearLayout root) {
+        giveHint(a, root);
+        head(a, u, root, "子弹");
+        gunGrid(a, u, root, catIdx("子弹"));
+        if (Ed.ED != 2 && Lan.role != 2) {
+            LinearLayout gc = card(a, u, root);
+            switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
+        }
+    }
+    /** v2.61 道具页：全部道具（道具键在对局里右边） */
+    static void propPage(final Activity a, final Ui u, final LinearLayout root) {
+        if (Ed.ED == 2) { note(a, u, root, "客户端刷不了道具。"); return; }
+        giveHint(a, root);
+        allItems(a, u, root);
     }
 
     static void gearPage(final Activity a, final Ui u, final LinearLayout root) {
@@ -1159,7 +1194,7 @@ public class GameOverlay {
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
         btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
         btn(a, u, g3, "全套配件", () -> { int n = 0; for (String at : ATT) if (givenAtt.add(at)) { give(a, at, 1); n++; } if (n == 0) toast(a, "这局配件已经刷过了"); else after(a, "全套配件"); });
-        if (Ed.ED != 2) { useProps(a, u, root); allItems(a, u, root); }
+        if (Ed.ED != 2) note(a, u, root, "战术道具在「道具」页；拿出/放下用对局里的「道具」键。");
     }
 
     // ---------------- v2.51 用道具：草丛/盾/雷这类功能道具，经典模式界面没有道具栏选不中，这里替游戏「拿出」「放下」 ----------------
@@ -1199,6 +1234,10 @@ public class GameOverlay {
         for (String[] x : ITEM_CAT) if (x[0].length() == 3 && c.startsWith(x[0])) return x[1] + " " + c.substring(3);
         return "其他 " + c;
     }
+    static boolean useful(long cat) {
+        int c3 = (int) (cat / 100);
+        return (c3 >= 201 && c3 <= 206) || cat == 30304 || cat == 30305 || cat == 30307 || c3 == 401 || c3 == 402;
+    }
     static volatile java.util.TreeMap<Long, java.util.ArrayList<Long>> items;
     static volatile String itemState = "";
     static long itemCatSel = 0; static int itemPage = 0;
@@ -1228,6 +1267,8 @@ public class GameOverlay {
                     LogCap.note("全部道具：扫到 " + ids.size() + " 个，" + (System.currentTimeMillis() - t0) + " ms");
                 }
                 loadBad(); loadNames(); ids.removeAll(itemBad);
+                // v2.61 用户：整理掉没用的 → 只留武器/配件/子弹/头甲包/药品/道具，「其他」类（403 死亡盒子、货币、大厅物品等）都不显示
+                ids.removeIf(v -> !useful(v / 1000000));
                 java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
                 for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
                 items = m; if (itemCatSel == 0 || !m.containsKey(itemCatSel)) itemCatSel = m.isEmpty() ? 0 : m.firstKey(); itemPage = 0;
@@ -1257,12 +1298,12 @@ public class GameOverlay {
         if (l0 == null) return;
         // v2.53 用户：刷不出来的不要留着 → 刷失败的编号直接不显示（存 zf_items_bad.txt，「重新读」也不回来）
         java.util.ArrayList<Long> l = new java.util.ArrayList<>(); for (long v : l0) if (!itemBad.contains(v)) l.add(v);
-        final int per = 12, pages = (l.size() + per - 1) / per;
+        final int per = 16, pages = (l.size() + per - 1) / per;
         if (itemPage >= pages) itemPage = 0;
         LinearLayout ir = null;
         for (int k = itemPage * per, j = 0; k < Math.min(l.size(), (itemPage + 1) * per); k++, j++) {
             final long id = l.get(k);
-            if (j % 3 == 0) ir = row(a, root);
+            if (j % 4 == 0) ir = row(a, root);
             String nm = itemName.get(id);
             String lb = (nm != null ? nm : itemCat(itemCatSel) + " " + (k + 1)) + "\n" + id;
             btn(a, u, ir, lb, () -> giveItem(a, id));
@@ -1348,6 +1389,8 @@ public class GameOverlay {
                     LogCap.note("衣服列表：扫到 " + ids.size() + " 件，" + (System.currentTimeMillis() - t0) + " ms");
                 }
                 loadBad(); loadNames(); ids.removeAll(itemBad);
+                // v2.61 用户：整理掉没用的 → 只留武器/配件/子弹/头甲包/药品/道具，「其他」类（403 死亡盒子、货币、大厅物品等）都不显示
+                ids.removeIf(v -> !useful(v / 1000000));
                 java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
                 for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
                 clothes = m; if (clothCat == 0 || !m.containsKey(clothCat)) clothCat = m.isEmpty() ? 0 : m.firstKey(); clothPage = 0;

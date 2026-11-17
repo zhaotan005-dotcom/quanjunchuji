@@ -270,15 +270,18 @@ public class Prop {
     static String recycle(Placed p) {
         long b = Mods.base(); if (b == 0) return "找不到游戏库";
         long pawn = Mods.myPawn(); if (pawn < 0x10000) return "找不到人物";
-        long comp; float dur;
+        long comp, ctl; float dur;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             if (!alive(m, b, p.actor)) { synchronized (placed) { placed.remove(p); } return "已经没了"; }
-            comp = Server.rd(m, pawn + 0x1160); if (comp < 0x10000) return "人物没有道具组件";
+            // v2.61：0x10e9434 / 道具组件 +0x1160 在玩家控制器上（不是人物）：控制器 = PlayerState(人物+0x2c4).Owner(+0x60)
+            long ps = Server.rd(m, pawn + 0x2c4); ctl = ps < 0x10000 ? 0 : Server.rd(m, ps + 0x60);
+            if (ctl < 0x10000) return "找不到控制器";
+            comp = Server.rd(m, ctl + 0x1160); if (comp < 0x10000) return "控制器没有道具组件";
             dur = Float.intBitsToFloat((int) Server.rd(m, p.actor + 0x2ec));
         } catch (Throwable e) { return "出错 " + e; }
         try {
             long[] r;
-            if (camo(p.cls)) r = Veh.ucall(pawn, 0, 0, 0, null, b + 0x10e9434L);
+            if (camo(p.cls)) r = Veh.ucall(comp, p.actor, 0, 0, null, b + 0x110dc50L);   // 道具组件取消伪装(组件, 伪装物)，控制器的 RequestCancelCamouflage 0x10e9434 就是转到这里
             else { if (!(dur > 0)) return "这个道具游戏不让收回"; r = Veh.ucall(comp, p.actor, 0, 0, null, b + 0x110d6a0L); }
             LogCap.note("用道具：" + (camo(p.cls) ? "取消伪装 " : "收回 ") + p.cls + " 回收时长 " + dur + " 返回 " + Long.toHexString(r[0]));
             if (r[0] != 0x5b0e) return "补丁没反应";

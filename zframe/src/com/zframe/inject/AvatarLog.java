@@ -40,7 +40,7 @@ public class AvatarLog {
             }
             sb.append(resources(a, f));
             sb.append("\n共 ").append(n).append(" 行，日志 ").append(f.getName()).append(' ').append(len).append(" 字节\n");
-            return "已存到 下载/ZFrame/" + save(a, sb.toString(), prefix);
+            return "已上传 " + save(a, sb.toString(), prefix);
         } catch (Throwable t) { return "导出失败：" + t.getMessage(); }
     }
 
@@ -153,14 +153,9 @@ public class AvatarLog {
 
     static String save(Activity a, String text, String prefix) throws Exception {
         String name = prefix + new java.text.SimpleDateFormat("MMdd-HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".txt";
-        ContentValues v = new ContentValues();
-        v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-        v.put(MediaStore.MediaColumns.MIME_TYPE, "text/plain");
-        v.put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/ZFrame");
-        Uri u = a.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-        if (u == null) throw new Exception("无法在 下载/ZFrame 建文件");
-        try (OutputStream o = a.getContentResolver().openOutputStream(u, "wt")) { o.write(text.getBytes("UTF-8")); }
-        LogUp.send(name, text);   // v2.54 自动传一份
+        // v2.61 用户：能自动上传就别存到手机 → 只上传；传不出去先放游戏私有目录，下次传日志时补传
+        LogUp.dir = new File(a.getFilesDir(), "zf_logq");
+        LogUp.send(name, text);
         return name + "（已自动上传）";
     }
 
