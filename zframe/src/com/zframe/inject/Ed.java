@@ -5,5 +5,5 @@ package com.zframe.inject;
 final class Ed {
     static final int ED = 0;
     static boolean single() { return ED == 0; }
-    static String name() { return ED == 1 ? "房主版" : ED == 2 ? "客户端版" : "单机版"; }
+    static String name() { return ED == 1 ? "服务端" : ED == 2 ? "客户端" : "单机版"; }
 }

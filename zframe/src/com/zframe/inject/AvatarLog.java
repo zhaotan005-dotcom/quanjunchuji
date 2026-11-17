@@ -9,7 +9,7 @@ import java.io.*;
 /** v1.56 灰色人物诊断：按一下，把游戏日志里和人物/衣服有关的行存到 下载/ZFrame/avatar-*.txt。平时什么都不做。 */
 public class AvatarLog {
     static final String[] KEYS = { "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
-            "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail" };
+            "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction" };
 
     static String export(Activity a) { return export(a, "avatar-"); }
     static String export(Activity a, String prefix) {
@@ -17,11 +17,11 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v2.35 " + Ed.name() + " 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame v2.36 " + Ed.name() + " 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
-              .append("\n  人机日志：\n  ").append(Con.botLog()).append("\n  ").append(Flow.state).append("\n  ").append(Flow.air).append("\n  上一局：").append(Flow.last).append("\n  ").append(Bots.countText()).append("\n  ").append(Bots.outfitState).append("\n  航线/毒圈日志：\n  ").append(Con.flowLog()).append("\n  画质：").append(Gfx.state).append("\n  联机：").append(Lan.roleText()).append("，").append(Lan.pre).append("，").append(Lan.state).append("，本机 ").append(Lan.ip()).append("\n  地图物资/门：").append(Loot.text()).append("\n  ").append(Alive.state).append("\n  ").append(Crew.state).append("\n  ").append(Crew.pullState).append("\n  跟房主：").append(Mods.syncState).append("\n  联机日志：\n  ").append(Lan.text()).append("\n");
+              .append("\n  人机日志：\n  ").append(Con.botLog()).append("\n  ").append(Flow.state).append("\n  ").append(Flow.air).append("\n  上一局：").append(Flow.last).append("\n  ").append(Bots.countText()).append("\n  ").append(Bots.outfitState).append("\n  航线/毒圈日志：\n  ").append(Con.flowLog()).append("\n  画质：").append(Gfx.state).append("\n  联机：").append(Lan.roleText()).append("，").append(Lan.pre).append("，").append(Lan.state).append("，本机 ").append(Lan.ip()).append("\n  地图物资/门：").append(Loot.text()).append("\n  ").append(Alive.state).append("\n  ").append(Crew.state).append("\n  ").append(Crew.pullState).append("\n  ").append(Crew.ammoState).append("\n  跟服务端：").append(Mods.syncState).append("\n  联机日志：\n  ").append(Lan.text()).append("\n");
             long b = Mods.base();
             sb.append("libUE4=").append(Long.toHexString(b)).append('\n');
             sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 1877bfc=").append(peek(b, 0x1877bfcL, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("\n").append(Mods.storeInfo()).append("\n").append(Mods.wearState).append("\n").append("  cave 171e610=").append(peek(b, 0x171e610L, 32))

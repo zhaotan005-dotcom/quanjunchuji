@@ -46,13 +46,19 @@ final class Lan {
     static final long NQ = 0x25cb8e8L, NQ_CAVE = 0x171e700L;
     static final String NQ_O = "07ba90ed", NQ_N = "844bc5ea";
     static final String NQ_CAVE_O = "0300009a010189e0011048e00111a0e18f39c6eb0000a0e3", NQ_CAVE_N = "000050e30100000a07ba90ed76b43aea0201a0e32ab53aea";
+    /** v2.36：客户端上不了车（ClientUseVehicleFailed / 提示座位有人）。服务器判能不能上车（VehicleInterface CanUse 0xdafe1c）：
+     *  联机下要求人物+0xb84 ClosedVehicle == 这辆车，但 ClosedVehicle 只在「本机第一个玩家」的每帧检查（0xdd7c2c → 0xd1a06c）里写，
+     *  房主机器上加入玩家的人物永远是空 → 永远失败。把「ClosedVehicle 为空就失败」的 beq 0xdb0430 改成 beq 0xdb0400（跳过距离/视线检查，
+     *  只查车还在、有空座），和 ClosedVehicle 是别的车时游戏自己走的路一样。所有车（四轮/摩托/船）共用这个函数。 */
+    static final long CAR = 0xdb00f0L; static final String CAR_O = "ce00000a", CAR_N = "c200000a";
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
         String d = Mods.write(NAV, NAV_O, NAV_N, true), e = Mods.write(QUIT, QUIT_O, QUIT_N, true);
         String g = Mods.write(NQ_CAVE, NQ_CAVE_O, NQ_CAVE_N, true);
+        String car = Mods.write(CAR, CAR_O, CAR_N, true);
         if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
-        pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e;
+        pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e + "，加入的人上车 " + car;
         LogCap.note("联机补丁（启动时）：" + pre);
         Loot.preinstall();   // v2.20 房主版：地图物资/门（ServerOnly 层）
     }
@@ -139,7 +145,7 @@ final class Lan {
         note(ok ? "回大厅：已发 open 大厅" : "回大厅：命令没发出去");
         return ok ? "正在回大厅" : "命令没发出去";
     }
-    static String roleText() { return role == 1 ? "房主（服务器）" : role == 2 ? "已加入别人的房间" : "单机"; }
+    static String roleText() { return role == 1 ? "服务端（服务器）" : role == 2 ? "已加入别人的房间" : "单机"; }
     static void note(String s) {
         LogCap.note("联机 " + s); Server.mark("联机 " + s);
         add(new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date()) + " " + s);

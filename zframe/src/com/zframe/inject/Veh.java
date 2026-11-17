@@ -399,9 +399,9 @@ public class Veh {
                 double[] p = info();
                 if (p == null) { GameOverlay.toastAny(botState = "刷人机：还没有人物（进对局、出生后再按）"); return; }
                 double r = Math.toRadians(p[3]);
-                int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, 1 | 4);
+                int c = addBot(Bots.diff, p[0] + 800 * Math.cos(r), p[1] + 800 * Math.sin(r), p[2] + 50, p[3] + 180, Bots.armed(fixed) ? 1 | 4 : 4);
                 if (c == 0x5b08 || c == 0x5b07) Bots.manual(lastCtrl(), fixed);
-                botState = "刷" + (fixed ? "固定" : "自由") + "人机：" + codeText(c);
+                botState = "刷" + (fixed ? "固定" : "自由") + "人机（" + (Bots.armed(fixed) ? "带枪" : "不带枪") + "）：" + codeText(c);
                 note(botState + "；" + botInfo);
                 GameOverlay.toastAny(botState);
             } catch (Throwable e) { GameOverlay.toastAny(botState = "刷人机：出错 " + e); note(botState); }

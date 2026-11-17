@@ -10,14 +10,14 @@ sed -i "s/VER = \"v[0-9.]*\"/VER = \"v$N\"/" src/com/zframe/inject/GameOverlay.j
 sed -i "s/ZFrame v[0-9.]* \" + Ed.name()/ZFrame v$N \" + Ed.name()/" src/com/zframe/inject/AvatarLog.java
 sed -i "s/CORE_VER = [0-9]*;/CORE_VER = $NC;/" src/com/zframe/inject/ZInit.java
 for e in 1 2 0; do
- n=$([ $e = 0 ] && echo 单机 || ([ $e = 1 ] && echo 房主 || echo 客户端))
+ n=$([ $e = 0 ] && echo 单机 || ([ $e = 1 ] && echo 服务端 || echo 客户端))
  sed -i "s/static final int ED = [0-9];/static final int ED = $e;/" src/com/zframe/inject/Ed.java
  rm -rf build/classes build/dex build/inject; mkdir -p build/classes build/dex build/inject
  javac --release 8 -encoding UTF-8 -nowarn -classpath $AJ:$APKSIG -d build/classes $(find src -name '*.java') 2>&1 | grep -v -E "^Note|warning: \[options\]|^[0-9]+ warnings?" || true
  $D8 --output build/inject $(find build/classes/com/zframe/inject -name '*.class') build/classes/com/zframe/ui/Ui*.class
  cp build/inject/classes.dex assets/inject.dex
  $D8 --output build/dex $(find build/classes -name '*.class') $APKSIG
- python3 rel.py "$BASE" build/unsigned.apk $O $N $OC $NC >/dev/null
+ python3 rel.py "$BASE" build/unsigned.apk $O $N $OC $NC $n >/dev/null
  java -jar $APKSIG sign --ks zframe.jks --ks-pass pass:zframe123 --min-sdk-version 26 --out "../releases/ZFrame-v$N-$n.apk" build/unsigned.apk
  echo "built $n"
 done

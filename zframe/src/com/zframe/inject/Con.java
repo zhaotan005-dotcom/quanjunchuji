@@ -345,7 +345,7 @@ public class Con {
 
     // ===== v1.31 无敌状态（自己记：每局开局都是关的）+ 传送到地图中心 =====
     static volatile boolean godOn = false;
-    static boolean godToggled() { godOn = !godOn; return godOn; }
+    static boolean godToggled() { godOn = !godOn; if (godOn) Mods.startMover(); return godOn; }
     static volatile long tpGen = 0;
     /** 地图中心 = 世界原点(0,0)（出生点 387615,-388622 在海岛角上，海岛 ±4080 米）。
      *  地面高度没法直接读，所以落点放在离地不高的地方（120 米，地面一般 5~50 米），并自动开无敌，落地后再关回去。 */
@@ -475,8 +475,8 @@ public class Con {
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;
                     if (Lan.role == 0) { Bots.matchLoaded(); Flow.matchLoaded(m); }
-                    else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（房主：航线/毒圈照单机改；减负）"); }
-                    else Lan.note("进图完成（客户端：航线/毒圈跟房主）");   // v1.93 不再自动读车表（车编号写死）
+                    else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（服务端：航线/毒圈照单机改；减负）"); }
+                    else Lan.note("进图完成（客户端：航线/毒圈跟服务端）");   // v1.93 不再自动读车表（车编号写死）
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
                     else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
                 }

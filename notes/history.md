@@ -653,3 +653,14 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.34 (vc135/core135): 根因——客户端没有刷物品补丁，askPawn 永远拿不到人物地址 → Mods 的加速/高跳/跟房主从来没跑。新增 Mods.myPawn()：pawnAddr 为 0 时用刷车 cave Veh.info()[6]（buf+8 本机人物），2 秒一问，出图清零。tickMove、syncFromHost、Crew.find 都用它（房主不再把自己当加入的人）。跟房主诊断写明卡在哪（找不到人物/没有 PS/Score=…）。菜单 clamp：拖动、松手、宽度变化、decor 尺寸变化都把面板夹回屏幕（标题栏完整在内）。
 - 上车失败未修：只有客户端日志（ClientUseVehicleFailed→CancelPreEnterVehicle），要房主同时刻诊断。游戏有自己的 NZStreamingLevelsTilesCollection（日志 UpdateActorPosTriggerLoadLevels ... PlayerNum），猜测与服务端位置不同步/房主那边地形没加载有关，未证实。
 - v2.35 (vc136/core136): 用户要求进大厅/进对局菜单出现时用五指打开同款动画。GameOverlay.mapLeaving()（Con Browse 时淡出收起，40 秒没进图兜底弹回）+ mapShown()/enterAnim()（每次地图加载完 lobbyReady 时弹出，0.85→1 缩放+下滑+Overshoot 260ms）。用户手动 ✕ 关掉的（hidden）不弹。
+
+## v2.36 (vc137/core137, 2026-11-17 21:05) — 上车、滑动穿透、拉回、换弹、无敌、人机带枪、改名
+- 上车：服务端判定 VehicleInterface CanUse(0xdafe1c，所有车共用，接口副表 vt+0xc；TryUse vt+0x254=0xda7200，失败时 PC vt+0xb9c 弹提示 9=座位有人)。联机走 0xdb00e8 分支：要求 pawn+0xb84 ClosedVehicle == 车，但 ClosedVehicle 只由 0xdd7c2c（每辆车 Tick，只看本机第一个 PC）→ 0xd1a06c 写，服务端上加入玩家永远为空 → 必失败。补丁 0xdb00f0 beq 0xdb0430 → beq 0xdb0400（ce00000a→c200000a），跳过距离/视线，只查车在、有空座。Lan.preinstall 装。ServerUseVehicle_Impl = 0xd75f2c（PC vt+0x898）。
+- 菜单滑动穿透：游戏 NativeActivity，触摸在 ViewRootImpl NativePostImeInputStage 先给引擎再给界面，Window.Callback 拦不住。菜单改放独立 TYPE_APPLICATION 窗口（WRAP_CONTENT，NOT_FOCUSABLE|NOT_TOUCH_MODAL|LAYOUT_IN_SCREEN|NO_LIMITS，刘海 SHORT_EDGES），位置=窗口 x/y（getX/getY/setXY），失败退回 decor。按编号穿输入框点时临时可聚焦。
+- 高跳/加速拉回：服务端给加入玩家 CMC 置 bIgnoreClientMovementErrorChecksAndCorrection（+0x354 bit0，反射 SetBit 0x2ea9874）；加入玩家空中不再切回 1 倍（服务端 Crew 和客户端 Mods 都是），客户端不再起跳加水平速度。Crew 50ms 一轮。
+- 换弹循环：OnReplicateAmmoCount(0xedbc68) 服务端弹匣(+0x604)与本地差≥2就覆盖。服务端那边加入玩家的枪 +0x604 停在 0 超 2.5 秒 → 按 ClipAmmoCount(+0x52c) 补满 +0x604/+0x608（Crew.guard，诊断「换弹：」）。WeaponSkinTable 报错只是皮肤，不相关。
+- 无敌：God 只关 bCanBeDamaged，人机仍能打死。服务端/单机开无敌时 Mods.godTick 每 40ms 把 Health(+0x5a0) 补到 HealthMax(+0x5a4)；全员无敌对加入玩家同样补。
+- 人机：固定/自由各一个「带枪」开关（Bots.gunFixed/gunFree）；不带枪 = addBot 标志去掉 1（不给全套装备）、不 regive、不发枪弹。
+- 改名：界面「房主」全改「服务端」；APK 文件名 ZFrame-v2.36-服务端/客户端/单机；rel.py 重建 manifest 字符串池：label「全军出击服务端 v2.36」、versionName「2.36-服务端」（androguard 验证）。build3.sh 传第 7 参数。
+- 诊断导出关键字加 VehicleInterface/UseVehicle/EnterVehicle/Ammo/Reload/Discrepancy/Correction。
+- 未测。用户 21:06 说「编号和吉利服的编号弄好了」、衣服只刷风衣和吉利服 —— 待问编号后做。

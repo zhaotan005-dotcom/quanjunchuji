@@ -221,12 +221,14 @@ public class Bots {
         {"20104000006", "20600000001"}, {"20102000001", "20600000001"}, {"20201000001", "20600000003"}, {"20201000002", "20600000004"} };
     static final String[] HELM = {"30304000001", "30304000002", "30304000003"}, VEST = {"30305000001", "30305000002", "30305000003"};
     public static volatile String gunState = "人机配枪：还没试";
-    static void loadout(int g, long ctrl, long pawn, int idx) {
+    static void loadout(int g, long ctrl, long pawn, int idx) { loadout(g, ctrl, pawn, idx, true); }
+    static void loadout(int g, long ctrl, long pawn, int idx, boolean arm) {
         try {
             Thread.sleep(1500);
             if (g != gen || !Con.inMatch) return;
             if (pawn < 0x10000) { try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { pawn = Server.rd(m, ctrl + 0x2c0); } }
             fixUin(ctrl, pawn, idx);
+            if (!arm) { dress(pawn); name(ctrl, pawn); gunState = "人机配枪：第 " + idx + " 个 不带枪；" + uinState; return; }
             String[] gun = GUN[rnd.nextInt(GUN.length)];
             int c1 = Veh.giveTo(pawn, Long.parseLong(gun[0]), 1);
             int cap = Veh.buf.getInt(140), ret = Veh.buf.getInt(144);
@@ -358,14 +360,18 @@ public class Bots {
         }, "zf-bot-hold").start();
     }
     /** v2.19 手动刷：和自动刷的人机一样配枪/衣服/名字；fixed = 固定人机 */
+    /** v2.36 用户：固定人机、自由人机各一个「带枪」开关（默认带）。不带枪：不给全套装备（标志去掉 1）、不补装备、不发枪和子弹 */
+    static volatile boolean gunFixed = true, gunFree = true;
+    static boolean armed(boolean fixed) { return fixed ? gunFixed : gunFree; }
     static void manual(long ctrl, boolean fixed) {
         final int g = gen; spawned++; track(ctrl);
+        final boolean arm = armed(fixed);
         long pawn = 0;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { pawn = Server.rd(m, ctrl + 0x2c0); } catch (Throwable ignored) {}
         if (pawn < 0x10000) pawn = Veh.buf.getInt(96) & 0xffffffffL;
         final long pw = pawn; final int idx = spawned;
-        new Thread(() -> regive(g, ctrl), "zf-bot-eq").start();
-        new Thread(() -> loadout(g, ctrl, pw, idx), "zf-bot-gun").start();
+        if (arm) new Thread(() -> regive(g, ctrl), "zf-bot-eq").start();
+        new Thread(() -> loadout(g, ctrl, pw, idx, arm), "zf-bot-gun").start();
         if (fixed && pw >= 0x10000) hold(g, pw);
     }
 

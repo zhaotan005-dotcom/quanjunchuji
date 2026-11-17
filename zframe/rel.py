@@ -3,17 +3,34 @@ import zipfile, sys, struct
 prev, out, oldv, newv, oldc, newc = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], int(sys.argv[5]), int(sys.argv[6])
 zin = zipfile.ZipFile(prev)
 m = bytearray(zin.read('AndroidManifest.xml'))
-# versionName in string pool (utf-16 or utf-8)
-for enc in ('utf-16le', 'utf-8'):
-    a = oldv.encode(enc); b = newv.encode(enc)
-    assert len(a) == len(b)
-    i = m.find(a)
-    if i >= 0: m[i:i+len(a)] = b; print('name', enc, i); break
-else: raise SystemExit('versionName not found')
-# LABEL: app name ZFrame -> 艾挽补丁更新 (same utf-16 length 6)
-a='ZFrame'.encode('utf-16le'); b='艾挽补丁更新'.encode('utf-16le'); assert len(a)==len(b)
-i=m.find(b'\x06\x00'+a)
-if i>=0: m[i+2:i+2+len(a)]=b; print('label', i)
+# v2.36 用户：安装后的名字和版本号都带上 服务端/客户端/单机。重建字符串池（按下标改内容，引用不变）
+import re
+ed = sys.argv[7] if len(sys.argv) > 7 else ''
+def rebuild_pool(m, fn):
+    t, hs, sz = struct.unpack_from('<HHI', m, 8); assert t == 1
+    sc, stc, fl, ss, sts = struct.unpack_from('<IIIII', m, 16)
+    assert stc == 0 and not (fl & 0x100), 'pool must be utf16 without styles'
+    offs = struct.unpack_from('<%dI' % sc, m, 36); base = 8 + ss
+    strs = []
+    for o in offs:
+        n = struct.unpack_from('<H', m, base + o)[0]; strs.append(m[base+o+2:base+o+2+2*n].decode('utf-16le'))
+    strs = [fn(x) for x in strs]
+    data = bytearray(); no = []
+    for x in strs:
+        no.append(len(data)); e = x.encode('utf-16le'); data += struct.pack('<H', len(e)//2) + e + b'\0\0'
+    while len(data) % 4: data += b'\0'
+    nss = 28 + 4 * sc; nsz = nss + len(data)
+    chunk = struct.pack('<HHIIIIII', 1, 28, nsz, sc, 0, fl, nss, 0) + struct.pack('<%dI' % sc, *no) + bytes(data)
+    out = bytearray(m[:8]) + chunk + m[8+sz:]
+    struct.pack_into('<I', out, 4, len(out))
+    return out, strs
+label = ('全军出击' + ed + ' v' + newv) if ed else '艾挽补丁更新'
+def fix(x):
+    if re.fullmatch(r'\d+\.\d+(-.*)?', x): return newv + ('-' + ed if ed else '')
+    if x in ('ZFrame', '艾挽补丁更新') or x.startswith('全军出击'): return label
+    return x
+m, strs = rebuild_pool(m, fix)
+print('pool', [x for x in strs if x.startswith('全军') or x.startswith(newv)])
 # versionCode attr: res id 0x0101021b; attribute = ns,name,rawValue,(size,0,type,data)
 # find attr entries whose typed data is int-dec 0x10 with value oldc
 pat = struct.pack('<HBBI', 8, 0, 0x10, oldc)

@@ -68,14 +68,14 @@ final class Gfx {
             if (Lan.role != 1 || !Con.inMatch) return;
             int n = 0; for (String c : LITE) if (Con.exec(c)) n++;
             liteOn = true;
-            state = "房主减负：画面最低、30 帧（发了 " + n + " 条）";
+            state = "服务端减负：画面最低、30 帧（发了 " + n + " 条）";
             LogCap.note(state);
         }, "zf-lite").start();
     }
     static void unlite() {
         if (!liteOn) return; liteOn = false;
         Con.exec("r.ScreenPercentage 100"); Con.exec("t.MaxFPS " + Con.fps);
-        state = "房主减负：回大厅已恢复分辨率和帧率";
+        state = "服务端减负：回大厅已恢复分辨率和帧率";
     }
     static int idx(String v) { for (int k = 0; k < NAME.length; k++) if (NAME[k].equalsIgnoreCase(v)) return k; return -1; }
     static String cn(String v) { int k = idx(v); return k < 0 ? v : CN[k]; }

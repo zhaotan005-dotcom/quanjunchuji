@@ -31,7 +31,7 @@ final class Crew {
         boolean all = pullAll; pullAll = false;
         double[] me;
         try { me = Veh.info(); } catch (Throwable t) { me = null; }
-        if (me == null) { pullState = "拉人：读不到房主位置"; return; }
+        if (me == null) { pullState = "拉人：读不到服务端位置"; return; }
         int i = 0, ok = 0, n = 0;
         for (long p : ps) {
             i++;
@@ -42,7 +42,7 @@ final class Crew {
             try { r = Veh.teleport(p, me[0] + 200 * Math.cos(a), me[1] + 200 * Math.sin(a), me[2] + 30, me[3]); } catch (Throwable t) { r = false; }
             if (r) { ok++; pulled.add(p); }
         }
-        if (n > 0) { pullState = "拉人：拉到房主身边 " + ok + "/" + n; LogCap.note(pullState); GameOverlay.refreshAny(); }
+        if (n > 0) { pullState = "拉人：拉到服务端身边 " + ok + "/" + n; LogCap.note(pullState); GameOverlay.refreshAny(); }
     }
 
     static synchronized void start() {
@@ -50,14 +50,14 @@ final class Crew {
         th = new Thread(() -> {
             while (true) {
                 try { tick(); } catch (Throwable t) { state = "全员：出错 " + t; }
-                try { Thread.sleep(100); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(50); } catch (InterruptedException e) { return; }
             }
         }, "zf-crew");
         th.setDaemon(true); th.start();
     }
 
     static void tick() throws Exception {
-        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); states = new java.util.ArrayList<>(); baseJump.clear(); pulled.clear(); lastFind = 0; anyJoin = false; } return; }
+        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); states = new java.util.ArrayList<>(); baseJump.clear(); emptySince.clear(); pulled.clear(); lastFind = 0; anyJoin = false; } return; }
         long now = System.currentTimeMillis();
         // v2.31：有人加入（日志）或点了按钮才找人、拉到房主身边；开着加速/高跳/子弹时照旧每 15 秒找一次
         long ja = joinAt;
@@ -75,9 +75,15 @@ final class Crew {
             for (long st : states) if (Mods.isObj(m, b, st) && Mods.f(m, st + Mods.PS_SCORE) != code) Mods.wf(m, st + Mods.PS_SCORE, code);
             for (long p : ps) {
                 if (!Mods.isObj(m, b, p)) continue;
+                long c = Mods.rp(m, p + Mods.P_CMC);
+                if (Mods.isObj(m, b, c)) {
+                    // v2.36：高跳/加速有概率被拉回 → 服务器这边不再纠正加入玩家的位置（CMC bIgnoreClientMovementErrorChecksAndCorrection：+0x354 bit0）
+                    int fl = Mods.rd(m, c + 0x354);
+                    if ((fl & 1) == 0) Mods.wi(m, c + 0x354, fl | 1);
+                }
+                guard(m, b, p, now);
                 // v2.32：把房主的 加速/高跳 写进这个玩家的 PlayerState.Score，客户端读到自动跟
                 if (!wn) continue;
-                long c = Mods.rp(m, p + Mods.P_CMC);
                 if (!Mods.isObj(m, b, c)) continue;
                 // 高跳
                 float jz = Mods.f(m, c + Mods.C_JUMP);
@@ -86,8 +92,8 @@ final class Crew {
                 float wj = bj * Mods.jump;
                 if (Math.abs(jz - wj) > 0.01f) Mods.wf(m, c + Mods.C_JUMP, wj);
                 // 加速（空中恢复 1）
-                boolean air = (Mods.rd(m, c + Mods.C_MODE) & 0xff) == Mods.MOVE_FALLING;
-                float wd = Mods.speed == 1f || air ? 1f : Mods.speed;
+                // v2.36：加入的玩家空中也不切回 1 倍（两边切换时机对不上就会被拉回），客户端那边同样一直是这个倍数
+                float wd = Mods.speed;
                 float td = Mods.f(m, p + Mods.P_DIL);
                 if (td > 0.05f && td < 20f && Math.abs(td - wd) > 0.001f) Mods.wf(m, p + Mods.P_DIL, wd);
                 // 无限子弹（服务器这边改，会同步给客户端）
@@ -100,6 +106,30 @@ final class Crew {
                 }
             }
         }
+    }
+
+    /** v2.36 客户端一直换弹：服务器这边这把枪的 ServerWeaponAmmoCount(+0x604) 一直是 0，同步下去客户端弹匣变 0 → 自动换弹 → 服务器没补上 → 又是 0。
+     *  服务器那边弹匣停在 0 超过 2.5 秒，就直接按弹匣容量 ClipAmmoCount(+0x52c) 补满（+0x604/+0x608）。
+     *  全员无敌开着：血 Health(+0x5a0) 低于上限 HealthMax(+0x5a4) 就补满。 */
+    static final java.util.HashMap<Long, Long> emptySince = new java.util.HashMap<>();
+    static volatile String ammoState = "换弹：没补过";
+    static int refills;
+    static void guard(RandomAccessFile m, long b, long p, long now) throws java.io.IOException {
+        if (Con.allGod) {
+            float hp = Mods.f(m, p + 0x5a0), mx = Mods.f(m, p + 0x5a4);
+            if (mx > 1f && mx < 1000f && hp > 0f && hp < mx) Mods.wf(m, p + 0x5a0, mx);
+        }
+        long w = Mods.rp(m, p + 0x890);
+        if (!Mods.isObj(m, b, w)) return;
+        int clip = Mods.rd(m, w + 0x52c), srv = Mods.rd(m, w + 0x604);
+        if (clip <= 0 || clip > 200) return;
+        if (srv != 0) { emptySince.remove(w); return; }
+        Long t0 = emptySince.get(w);
+        if (t0 == null) { emptySince.put(w, now); return; }
+        if (now - t0 < 2500) return;
+        Mods.wi(m, w + 0x604, clip); Mods.wi(m, w + 0x608, clip);
+        emptySince.remove(w); refills++;
+        ammoState = "换弹：服务端补满弹匣 " + refills + " 次（容量 " + clip + "）";
     }
 
     /** v2.32b：v2.32 实测 Alive 计数钩子 1 秒里一次都没触发（找到 0 个）。改成走 GameState.PlayerArray（GS+0x2bc，TArray<PlayerState*>）：

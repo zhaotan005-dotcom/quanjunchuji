@@ -347,7 +347,7 @@ public class Mods {
      *  7700000 + 加速×2×100 + 高跳×2（滑条 0~10 步长 0.5）。客户端读自己 PlayerState（pawn+0x2c4）的 Score 解出来。 */
     static final int PS_SCORE = 0x2b0, SYNC_BASE = 7700000;
     static float encode(float s, float j) { return SYNC_BASE + Math.round(s * 2) * 100 + Math.round(j * 2); }
-    static volatile String syncState = "还没收到房主的数";
+    static volatile String syncState = "还没收到服务端的数";
     static float lastCode = Float.NaN;
     static long lastSyncAsk;
     static volatile float syncRaw;
@@ -370,24 +370,24 @@ public class Mods {
         try {
             long b = base(); if (b == 0) return;
             long pawn = myPawn();
-            if (pawn == 0) { syncState = "还没收到房主的数（找不到自己的人物）"; return; }
+            if (pawn == 0) { syncState = "还没收到服务端的数（找不到自己的人物）"; return; }
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
                 if (!isObj(m, b, pawn)) { vehPawn = 0; return; }
                 long ps = rp(m, pawn + 0x2c4);
-                if (!isObj(m, b, ps)) { syncState = "还没收到房主的数（人物 " + Long.toHexString(pawn) + " 没有 PlayerState）"; return; }
+                if (!isObj(m, b, ps)) { syncState = "还没收到服务端的数（人物 " + Long.toHexString(pawn) + " 没有 PlayerState）"; return; }
                 float sc = f(m, ps + PS_SCORE);
                 syncRaw = sc;
                 if (sc == lastCode) return;
                 lastCode = sc;
                 int c = Math.round(sc) - SYNC_BASE;
-                if (c < 0 || c > 2120 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到房主的数（Score=" + sc + "）"; return; }
+                if (c < 0 || c > 2120 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到服务端的数（Score=" + sc + "）"; return; }
                 float s = Math.max(1f, (c / 100) / 2f), j = Math.max(1f, (c % 100) / 2f);
                 speed = s; jump = j;
                 syncState = "加速 " + s + " 高跳 " + j;
-                LogCap.note("跟房主：" + syncState);
+                LogCap.note("跟服务端：" + syncState);
                 GameOverlay.refreshAny();
             }
-        } catch (Throwable t) { syncState = "读房主的数出错 " + t.getMessage(); }
+        } catch (Throwable t) { syncState = "读服务端的数出错 " + t.getMessage(); }
     }
     static boolean active() { return speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }
 
@@ -397,7 +397,7 @@ public class Mods {
             while (true) {
                 try { tickMove(); } catch (Throwable t) { LogCap.note("移动线程出错 " + t); }
                 // 开加速时要及时发现「起跳」，40ms 查一次；其他时候 200ms
-                try { Thread.sleep(speed != 1f ? 40 : 200); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(speed != 1f || Con.godOn ? 40 : 200); } catch (InterruptedException e) { return; }
             }
         }, "zframe-move");
         mover.setDaemon(true);
@@ -409,6 +409,7 @@ public class Mods {
     static void tickMove() throws Exception {
         if (!Con.inMatch) { vehPawn = 0; if (cmc != 0) { cmc = 0; GameOverlay.forgetPawn(); vehPawn = 0; } moveState = "进图后生效"; return; }
         if (Ed.ED == 2) syncFromHost();
+        if (Con.godOn && Ed.ED != 2) godTick();
         if (!active()) return;
         long b = base(); if (b == 0) return;
         long pawn = myPawn();
@@ -427,6 +428,16 @@ public class Mods {
             dilation(m, b, pawn, c);
             moveState = "已生效";
         }
+    }
+
+    /** v2.36 无敌：刷人机后 God（只关 bCanBeDamaged）挡不住人机打死。房主/单机是服务器，直接把自己的血 Health(+0x5a0) 补到 HealthMax(+0x5a4) */
+    static void godTick() {
+        long b = base(), pawn = myPawn(); if (b == 0 || pawn == 0) return;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            if (!isObj(m, b, pawn)) return;
+            float hp = f(m, pawn + 0x5a0), mx = f(m, pawn + 0x5a4);
+            if (mx > 1f && mx < 1000f && hp > 0f && hp < mx) wf(m, pawn + 0x5a0, mx);
+        } catch (Throwable ignored) {}
     }
 
     /** 高跳：JumpZVelocity = 原值 × 倍数。只在读到的是原值或我们上次写的值时才写（对象换了就不写） */
@@ -448,7 +459,8 @@ public class Mods {
     static boolean wasAir;
     static void dilation(RandomAccessFile m, long b, long pawn, long c) throws java.io.IOException {
         int mode = rd(m, c + C_MODE) & 0xff;
-        boolean air = mode == MOVE_FALLING;
+        // v2.36 客户端：位置由服务端说了算，空中切回 1 倍、起跳加水平速度服务端都对不上 → 拉回。客户端一直保持同一个倍数（和服务端一致）
+        boolean air = Ed.ED != 2 && mode == MOVE_FALLING;
         if (air && !wasAir && speed > 1f) {
             float vx = f(m, c + C_VEL), vy = f(m, c + C_VEL + 4);
             if (Math.abs(vx) < 3000f && Math.abs(vy) < 3000f && vx * vx + vy * vy > 100f) {

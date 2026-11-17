@@ -23,7 +23,7 @@ final class Loot {
     static final long PK = 0x10c0ba4L;
     static final String PK_O = "01008003010050031200001a", PK_N = "1400001a030050e31200000a";
 
-    static volatile String pre = "地图物资/门补丁：" + (Ed.ED == 1 ? "没装" : "只在房主版装");
+    static volatile String pre = "地图物资/门补丁：" + (Ed.ED == 1 ? "没装" : "只在服务端装");
 
     /** 启动早装（Lan.preinstall 里调）。代码在进图前就要改好（运行中改已经跑过的代码不生效） */
     /** v2.21：云手机房主进图一会儿闪退，怀疑是这块。改成大厅开关，默认关；开了才装，关掉就还原。 */
@@ -33,7 +33,7 @@ final class Loot {
         pre = "地图物资/门：关（大厅开房页可打开）";
     }
     static String set(boolean want) {
-        if (Ed.ED != 1) return "只在房主版有";
+        if (Ed.ED != 1) return "只在服务端有";
         String c, h, p;
         if (want) {
             c = Mods.write(SL_CAVE, SL_CAVE_O, SL_CAVE_N, true);

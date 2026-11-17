@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.35";
+    static final String VER = "v2.36";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -50,6 +50,7 @@ public class GameOverlay {
             Con.loadGfx();
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
+            { View old = panelRef; if (old != null && old.isAttachedToWindow() && panelAct == a) return; }
             final Ui u = new Ui(a);
             android.util.DisplayMetrics dm = a.getResources().getDisplayMetrics();
             int sw = Math.max(dm.widthPixels, dm.heightPixels), sh = Math.min(dm.widthPixels, dm.heightPixels);
@@ -161,17 +162,46 @@ public class GameOverlay {
                 fold.setText(collapsed ? "▶" : "▼");
                 ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
                 int nw = collapsed ? u.dp(210) : pw;
-                if (lp0 != null) { int ow = lp0.width > 0 ? lp0.width : nw; lp0.width = nw; panel.setLayoutParams(lp0); if (ow != nw) { panel.setX(panel.getX() + (ow - nw) / 2f); px = panel.getX(); } }
+                if (lp0 != null) {
+                    int ow = lp0.width > 0 ? lp0.width : nw; lp0.width = nw;
+                    if (lp0 instanceof WindowManager.LayoutParams) { try { pwm.updateViewLayout(panel, lp0); } catch (Throwable ignored) {} }
+                    else panel.setLayoutParams(lp0);
+                    if (ow != nw) { setXY(panel, getX(panel) + (ow - nw) / 2f, getY(panel)); px = getX(panel); }
+                }
                 panel.post(() -> clamp(panel, decor, u));
             };
             fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
             hookKeys(a, panel, u);
-            FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(pw, -2);
-            flp.gravity = Gravity.TOP | Gravity.START;
-            decor.addView(panel, flp);
             if (px < 0) { px = (sw - (collapsed ? u.dp(210) : pw)) / 2f; py = u.dp(4); }   // v2.19 用户：默认放中上（以前偏左，容易点到电竞页）
-            panel.setX(px); panel.setY(py);
+            // v2.36 用户：菜单上滑动游戏还是跟着动（v2.29 的拦截没用）。游戏是 NativeActivity，触摸先进引擎的输入队列、再给界面，
+            // 同一个窗口里拦不住。所以菜单放进自己的小窗口（只有菜单那么大），按在菜单上的触摸根本不会到游戏窗口。
+            plp = null; pwm = null;
+            try {
+                WindowManager wm = a.getWindowManager();
+                WindowManager.LayoutParams wl = new WindowManager.LayoutParams(pw, WindowManager.LayoutParams.WRAP_CONTENT,
+                        WindowManager.LayoutParams.TYPE_APPLICATION,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
+                                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        PixelFormat.TRANSLUCENT);
+                wl.gravity = Gravity.TOP | Gravity.START;
+                wl.x = (int) px; wl.y = (int) py;
+                if (android.os.Build.VERSION.SDK_INT >= 28) wl.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                wl.setTitle("zframe_menu");
+                panel.setSystemUiVisibility(decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+                pwm = wm; plp = wl;
+                wm.addView(panel, wl);
+                LogCap.note("菜单：独立窗口");
+            } catch (Throwable t) {
+                plp = null; pwm = null;
+                if (panel.getParent() != null) { try { ((ViewGroup) panel.getParent()).removeView(panel); } catch (Throwable ignored) {} }
+                LogCap.note("菜单：独立窗口失败，放回游戏窗口 " + t);
+                FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(pw, -2);
+                flp.gravity = Gravity.TOP | Gravity.START;
+                decor.addView(panel, flp);
+                panel.setX(px); panel.setY(py);
+            }
+            panelAct = a;
             // v2.34：屏幕大小变了（云手机转屏/分辨率）或菜单变大变小，都重新夹回屏幕里
             panel.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> clamp(panel, decor, u));
             decor.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (r - l != or - ol || bt - t != ob - ot) panel.post(() -> clamp(panel, decor, u)); });
@@ -183,11 +213,11 @@ public class GameOverlay {
                 float dx, dy, sx, sy; boolean moved;
                 public boolean onTouch(View v, MotionEvent e) {
                     switch (e.getActionMasked()) {
-                        case MotionEvent.ACTION_DOWN: dx = e.getRawX(); dy = e.getRawY(); sx = panel.getX(); sy = panel.getY(); moved = false; return true;
+                        case MotionEvent.ACTION_DOWN: dx = e.getRawX(); dy = e.getRawY(); sx = getX(panel); sy = getY(panel); moved = false; return true;
                         case MotionEvent.ACTION_MOVE:
                             float mx = e.getRawX() - dx, my = e.getRawY() - dy;
                             if (Math.abs(mx) + Math.abs(my) > u.dp(6)) moved = true;
-                            if (moved) { panel.setX(sx + mx); panel.setY(sy + my); clamp(panel, decor, u); }
+                            if (moved) { setXY(panel, sx + mx, sy + my); clamp(panel, decor, u); }
                             return true;
                         case MotionEvent.ACTION_CANCEL: clamp(panel, decor, u); return true;
                         case MotionEvent.ACTION_UP:
@@ -208,11 +238,32 @@ public class GameOverlay {
         int W = decor.getWidth(), H = decor.getHeight();
         if (W <= 0 || H <= 0) return;
         int w = panel.getWidth() > 0 ? panel.getWidth() : u.dp(210);
-        float x = panel.getX(), y = panel.getY();
+        float x = getX(panel), y = getY(panel);
         float nx = w <= W ? Math.max(0, Math.min(x, W - w)) : Math.max(W - w, Math.min(x, 0));
         float ny = Math.max(0, Math.min(y, H - u.dp(40)));
-        if (nx != x || ny != y) { panel.setX(nx); panel.setY(ny); }
+        if (nx != x || ny != y) setXY(panel, nx, ny);
         px = nx; py = ny;
+    }
+    /** v2.36：菜单在自己的窗口里时，位置是窗口的 x/y；放回游戏窗口时是 View 的 x/y */
+    static volatile WindowManager pwm; static volatile WindowManager.LayoutParams plp; static volatile Activity panelAct;
+    static float getX(View v) { WindowManager.LayoutParams l = plp; return l != null && v.getLayoutParams() == l ? l.x : v.getX(); }
+    static float getY(View v) { WindowManager.LayoutParams l = plp; return l != null && v.getLayoutParams() == l ? l.y : v.getY(); }
+    static void setXY(View v, float x, float y) {
+        WindowManager.LayoutParams l = plp;
+        if (l != null && v.getLayoutParams() == l) {
+            if (l.x == (int) x && l.y == (int) y) return;
+            l.x = (int) x; l.y = (int) y;
+            try { if (v.isAttachedToWindow()) pwm.updateViewLayout(v, l); } catch (Throwable ignored) {}
+        } else { v.setX(x); v.setY(y); }
+    }
+    /** v2.36：独立窗口不抢焦点（不然游戏会以为切到后台）；只有点「按编号穿」的输入框时临时可聚焦，弹键盘 */
+    static void focusable(View v, boolean on) {
+        WindowManager.LayoutParams l = plp; View p = panelRef;
+        if (l == null || p == null || p.getLayoutParams() != l) return;
+        int f = on ? l.flags & ~WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE : l.flags | WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        if (f == l.flags) return;
+        l.flags = f;
+        try { pwm.updateViewLayout(p, l); } catch (Throwable ignored) {}
     }
     static TextView iconBtn(Activity a, Ui u, String s) {
         TextView b = new TextView(a);
@@ -281,7 +332,7 @@ public class GameOverlay {
         pv.animate().cancel();
         float d = pv.getResources().getDisplayMetrics().density;
         pv.setVisibility(View.VISIBLE);
-        pv.setAlpha(0f); pv.setScaleX(0.85f); pv.setScaleY(0.85f); pv.setTranslationY(-30 * d);
+        pv.setAlpha(0f); pv.setScaleX(0.85f); pv.setScaleY(0.85f); pv.setTranslationY(plp != null && pv.getLayoutParams() == plp ? 0 : -30 * d);
         pv.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0).setDuration(260)
                 .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();
     }
@@ -297,14 +348,14 @@ public class GameOverlay {
                 if ("dispatchTouchEvent".equals(n) && args != null && args[0] instanceof MotionEvent) {
                     MotionEvent e = (MotionEvent) args[0];
                     if (e.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN && e.getPointerCount() >= 5 && hidden) {
-                        View pv = ((ViewGroup) w.getDecorView()).findViewWithTag("zframe_panel");
+                        View pv = panelRef;
                         if (pv != null) a.runOnUiThread(() -> showPanel(pv, true, u));
                     }
                     // v2.28b 用户：在菜单上滑动，游戏也跟着转视角/走路。游戏在 Activity.dispatchTouchEvent 里就把触摸交给引擎了，
                     // 所以按下点在菜单上的这一整串触摸，直接交给界面（w.superDispatchTouchEvent），不经过游戏。
                     int am = e.getActionMasked();
                     if (am == MotionEvent.ACTION_DOWN) {
-                        View pv = ((ViewGroup) w.getDecorView()).findViewWithTag("zframe_panel");
+                        View pv = ((ViewGroup) w.getDecorView()).findViewWithTag("zframe_panel");   // 只有菜单放回游戏窗口时才找得到
                         onPanel = false;
                         if (pv != null && pv.getVisibility() == View.VISIBLE && pv.getAlpha() > 0.1f) {
                             android.graphics.Rect r = new android.graphics.Rect();
@@ -331,12 +382,12 @@ public class GameOverlay {
         if (show) {
             if (pv.getVisibility() == View.VISIBLE && pv.getAlpha() == 1f) return;
             pv.setVisibility(View.VISIBLE);
-            pv.setAlpha(0f); pv.setScaleX(0.85f); pv.setScaleY(0.85f); pv.setTranslationY(-u.dp(30));
+            pv.setAlpha(0f); pv.setScaleX(0.85f); pv.setScaleY(0.85f); pv.setTranslationY(plp != null && pv.getLayoutParams() == plp ? 0 : -u.dp(30));
             pv.animate().alpha(1f).scaleX(1f).scaleY(1f).translationY(0).setDuration(260)
                     .setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();
         } else {
             if (pv.getVisibility() != View.VISIBLE) return;
-            pv.animate().alpha(0f).scaleX(0.85f).scaleY(0.85f).translationY(-u.dp(30)).setDuration(200)
+            pv.animate().alpha(0f).scaleX(0.85f).scaleY(0.85f).translationY(plp != null && pv.getLayoutParams() == plp ? 0 : -u.dp(30)).setDuration(200)
                     .setInterpolator(new android.view.animation.AccelerateInterpolator())
                     .withEndAction(() -> { if (hidden) pv.setVisibility(View.GONE); }).start();
         }
@@ -344,6 +395,11 @@ public class GameOverlay {
 
     static void detach(Activity a) {
         try {
+            View pr = panelRef;
+            if (pr != null && plp != null && pr.getLayoutParams() == plp && panelAct == a) {
+                try { pwm.removeViewImmediate(pr); } catch (Throwable ignored) {}
+                panelRef = null; panelAct = null;
+            }
             ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             View b = decor.findViewWithTag("zframe_panel");
             if (b != null) decor.removeView(b);
@@ -853,7 +909,7 @@ public class GameOverlay {
             LinearLayout lr = row(a, root);
             pick(a, u, lr, "地图物资/门 关", !Loot.on, () -> { toast(a, Loot.set(false)); refreshAny(); });
             pick(a, u, lr, "地图物资/门 开", Loot.on, () -> { toast(a, Loot.set(true)); refreshAny(); });
-            note(a, u, root, "点地图直接进图当房主。外网玩家用内网穿透连你的 UDP 7777。物资/门默认关，先关着测进图稳不稳。");
+            note(a, u, root, "点地图直接进图当服务端。外网玩家用内网穿透连你的 UDP 7777。物资/门默认关，先关着测进图稳不稳。");
           } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
@@ -861,7 +917,7 @@ public class GameOverlay {
             if (ipBuf == null) ipBuf = Lan.lastIp != null ? Lan.lastIp : "";
             final TextView ipShow = label(a, jc, "", 18f, true, TXT);
             ipShow.setGravity(Gravity.CENTER); ipShow.setPadding(0, u.dp(12), 0, u.dp(10));
-            final Runnable show = () -> { ipShow.setText(ipBuf.isEmpty() ? "先复制房主的地址，再点粘贴" : ipBuf); ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT); };
+            final Runnable show = () -> { ipShow.setText(ipBuf.isEmpty() ? "先复制服务端的地址，再点粘贴" : ipBuf); ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT); };
             show.run();
             LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(8));
             btn(a, u, er, "粘贴", () -> {
@@ -874,7 +930,7 @@ public class GameOverlay {
                 } catch (Throwable ex) { toast(a, "读不到剪贴板"); }
             });
             fillBtn(a, u, er, "加入", () -> toast(a, Lan.join(ipBuf)));
-            note(a, u, root, "房主先进图，再点加入。");
+            note(a, u, root, "服务端先进图，再点加入。");
           }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         } else {
@@ -901,8 +957,8 @@ public class GameOverlay {
         LinearLayout c = card(a, u, root);
         kv(a, u, c, "身份", Lan.roleText());
         kv(a, u, c, "本机 IP", Lan.ip());
-        if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "房主", Lan.lastIp);
-        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要房主那边开，客户端改了也不生效。" : "你是房主：别人连你的 IP（UDP 7777）。房主这边的刷物资、刷车照常能用。");
+        if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "服务端", Lan.lastIp);
+        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要服务端那边开，客户端改了也不生效。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
         if (Ed.ED == 1) note(a, u, root, Loot.shortText());
         if (Lan.role == 1) { note(a, u, root, Crew.state); note(a, u, root, Crew.pullState);
@@ -965,10 +1021,10 @@ public class GameOverlay {
         head(a, u, root, "保命");
         LinearLayout oc = card(a, u, root);
         switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
-        if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（房主这边算伤害）", Con.allGod, v -> Con.setAllGod(v));
+        if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（服务端这边算伤害）", Con.allGod, v -> Con.setAllGod(v));
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
-        if (Ed.ED == 1) { onGround = true; note(a, u, root, "房主版：刷的东西都放在脚下，自己捡。"); }
+        if (Ed.ED == 1) { onGround = true; note(a, u, root, "服务端：刷的东西都放在脚下，自己捡。"); }
         else {
         head(a, u, root, "刷物资放在");
         LinearLayout gr = row(a, root);
@@ -989,10 +1045,10 @@ public class GameOverlay {
         if (Ed.ED == 2) {
             // v2.32 客户端：不再自己拉，跟房主的数
             LinearLayout cc = card(a, u, root);
-            note(a, u, cc, "加速、高跳跟房主走，房主拉多少你就是多少。现在：" + Mods.hostSyncText());
+            note(a, u, cc, "加速、高跳跟服务端走，服务端拉多少你就是多少。现在：" + Mods.hostSyncText());
         } else {
-        slider(a, u, root, "加速", cl ? "要和房主拉到同一个数才不被拉回去" : Ed.ED == 1 ? "房主拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", cl ? "要和房主拉到同一个数" : Ed.ED == 1 ? "房主拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        slider(a, u, root, "加速", cl ? "要和服务端拉到同一个数才不被拉回去" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "高跳", cl ? "要和服务端拉到同一个数" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
         }
         LinearLayout fc = card(a, u, root);
         LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);
@@ -1025,7 +1081,9 @@ public class GameOverlay {
         LinearLayout br = row(a, root);
         btn(a, u, br, "固定人机", () -> Veh.spawnBot(true));
         btn(a, u, br, "自由人机", () -> Veh.spawnBot(false));
-        note(a, u, root, "手动刷的人机也会随机配枪、头甲、衣服和名字。");
+        switchRow(a, u, root, "固定人机带枪", "关掉就刷空手的固定人机", Bots.gunFixed, v -> { Bots.gunFixed = v; return "ok"; });
+        switchRow(a, u, root, "自由人机带枪", "关掉就刷空手的自由人机", Bots.gunFree, v -> { Bots.gunFree = v; return "ok"; });
+        note(a, u, root, "带枪的人机会随机配枪、头甲；都会随机衣服和名字。");
         note(a, u, root, Bots.state);
     }
 
@@ -1079,7 +1137,7 @@ public class GameOverlay {
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "防抖 / 聚点", "镜头不晃、子弹不散开", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
-        note(a, u, root, "无限子弹要房主开：房主开了，房间里所有人都有。客户端自己改会一直换弹。");
+        note(a, u, root, "无限子弹要服务端开：服务端开了，房间里所有人都有。客户端自己改会一直换弹。");
     }
 
     /** v2.15「衣服」页（房主/单机）：最上面绝地风衣单独一个按钮；下面是从游戏内存里读出来的全部服装编号（Server.scanSkins，只读），
@@ -1129,7 +1187,7 @@ public class GameOverlay {
         primary(a, u, fr, "刷绝地风衣", () -> give(a, Mods.COAT, 1, "绝地风衣"));
         LinearLayout ghr = row(a, root);
         primary(a, u, ghr, "刷吉利服", () -> ghillie(a));   // v2.26
-        if (Ed.ED == 1) note(a, u, root, "房主版：衣服刷在脚下，捡起来就穿上。");
+        if (Ed.ED == 1) note(a, u, root, "服务端：衣服刷在脚下，捡起来就穿上。");
         java.util.TreeMap<Long, java.util.ArrayList<Long>> m = clothes;
         if (m == null) { if (clothState.isEmpty()) loadClothes(false); note(a, u, root, "衣服列表：" + clothState); return; }
         head(a, u, root, "全部衣服（" + clothState + "）");
@@ -1187,9 +1245,12 @@ public class GameOverlay {
         et.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); et.setPadding(u.dp(10), u.dp(7), u.dp(10), u.dp(7));
         LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2); elp.setMargins(u.dp(3), u.dp(3), u.dp(3), u.dp(3));
         ir.addView(et, elp);
+        et.setOnTouchListener((v, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_DOWN) focusable(v, true); return false; });
+        et.setOnFocusChangeListener((v, f) -> { if (!f) focusable(v, false); });
         btn(a, u, ir, "穿上", () -> {
             String id = et.getText().toString().trim();
             if (!id.matches("\\d{11}")) { toast(a, "编号是 11 位数字"); return; }
+            focusable(et, false); et.clearFocus();
             giveTry(a, java.util.Collections.singletonList(id), 0, "编号 " + id);
             coatNow = id; if (coatLbl != null) coatLbl.setText("刚穿上：" + id);
         });
