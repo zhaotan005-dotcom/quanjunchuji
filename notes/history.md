@@ -739,3 +739,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.52 (vc153)：在线内核（免安装更新）。NetCore.java：进大厅后后台从 GitHub 拉 core/b<BUILD>.ver（raw.githubusercontent，失败再试 jsdelivr），比本地新就下 core/b<BUILD>.dex 存到游戏 files/zcore_net.dex(+.ver「版本 BUILD」)，toast「重开游戏生效」；下次启动 ZInit.boot 最前面 NetCore.chain 用 DexClassLoader 链式加载它（同 BUILD 且版本更高才用；主进程计数 zcore_net.try，连续 2 次没进大厅就不用）。启动阶段不联网（ZFrame App 没 INTERNET 权限，只在游戏进程下）。MainActivity.checkUpdate 不再因为「游戏里的框架」旧了提示更新补丁（内核本来就每次热加载），只有声音/刷物品文件补丁才要重新打包。build3.sh 每个包型同时输出 ../core/b<e>.dex/.ver，push 后用户重开游戏两次即更新（第一次下载，第二次生效）。未实测。
 - 03:13 用户：v2.52 显示生效；草丛/伪装岩/人偶标靶在背包里但用不了（没找到装备页的用道具）；「以前游戏里有使用道具的专用键，加上去」；全部道具页刷不出的没删、没名字；捡东西有两次拾取动作（待查是不是新问题）。
 - v2.53 (vc154)：PropBtn.java 对局画面上的圆形「道具」键（独立小窗口，可拖动、位置记住）：背包里有功能道具才出现（每 2 秒只读 scanUse(quiet)）；点一下 拿出(vt+0x4d0)/放下(vt+0x484)，长按换下一个。游戏自带道具键在 Lua/UMG 里改不了。全部道具：刷失败的编号自动删掉（zf_items_bad.txt），空分类不显示。名字表还没找（在 Lua 配置里）。未实测。
+- 03:24 用户（v2.53 实测）：道具键出现但显示类名「40201000005_Shrub」「…hara」，点了提示「用道具补丁没装（空位被占）」，地上替身也「空位被占」；全部道具还是很多、每次要重新读、没名字；不知道更新了没；要把更新提示放进游戏、放到选单机/联机那一页；捡东西两次动作还在。
+- v2.54 (vc155)：
+  - 根因：'U' cave 在 SLACK+0x224，服务端门 sendGate 在 SLACK+0x200 长 0x34（到 0x234）→ 重叠，ucave 从来没装上。挪到 SLACK+0x240（位置无关，ucave.py ORG 改了），vcave 的 bne 改 77ffff1a（vcave.py 重新生成一致，emu_vcave/emu_ucave 过）。U/Prop cave：代码相同只是末尾缓冲区地址不同也算自己的、重写；被占时把前 8 字节写进提示。Prop 0x300 为什么被占还不知道（看新提示里的字节）。
+  - 道具键/全部道具名字：类名关键词转中文（Shrub 草丛、Camou/Rock 伪装岩、Doll/Chara 人偶标靶、Shield 盾…）；刷成功后从背包物品类名（含编号）取名，存 zf_item_names.txt；40201 分类叫「战术道具」；有缓存文件就自动加载，不用再点读。
+  - 在线更新提示：选单机/联机框里查更新，下好了显示「重启更新」（AlarmManager 1.2 秒后重开 + 自杀）；大厅菜单顶上显示更新状态/重启按钮；换上新内核后第一次进大厅 toast「已更新到 vX」。
+  - 捡东西两次动作：未修。RE 起点：BeginPlayingPickupAnim 原生实现 0xd21bfc，C++ 调用方 0xf041e8（NZWeaponAppearanceComponent，0xf036b0 函数里，有 "Pickup Anim = %s" 日志），另一个是 UFunction thunk 0xe3ff20（Lua/蓝图）。猜测两边都调了。
+  - 注意 build3.sh javac 出错不会停，会把旧 dex 写进 core/ —— 构建后一定看有没有 error。

@@ -415,7 +415,7 @@ def build(org=0):
             l = l.split('#L:')[0] + '#0]'
         if t and not t.endswith(':'): k += 1
         out.append(l)
-    b, lab = asm('\n'.join(out), org, {'ucave': org - 0x400 + 0x224})   # v2.51：其他字母交给 SLACK+0x224 的 ucave（ucave.py），不认识的它自己收尾
+    b, lab = asm('\n'.join(out), org, {'ucave': org - 0x400 + 0x240})   # v2.51：其他字母交给 SLACK+0x224 的 ucave（ucave.py），不认识的它自己收尾
     # 字面量必须在代码末尾，顺序和 LITS 一致
     assert [lab[n] for n in LITS] == [org + len(b) - 4 * (len(LITS) - i) for i in range(len(LITS))], 'lit order'
     for i, name in refs:

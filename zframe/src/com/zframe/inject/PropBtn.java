@@ -17,12 +17,16 @@ import android.widget.TextView;
 final class PropBtn {
     static TextView btn; static Activity act; static WindowManager.LayoutParams lp; static int idx;
 
+    /** 类名 → 中文名（类名像 BP_40201000005_Shrub_C） */
+    static final String[][] CN = { {"Shrub", "草丛"}, {"Bush", "草丛"}, {"Grass", "草丛"}, {"Camou", "伪装岩"}, {"Rock", "伪装岩"}, {"Stone", "伪装岩"},
+        {"Doll", "人偶标靶"}, {"Dummy", "人偶标靶"}, {"Chara", "人偶标靶"}, {"Target", "人偶标靶"}, {"Shiled", "盾"}, {"Shield", "盾"},
+        {"LandMine", "地雷"}, {"Mine", "地雷"}, {"Trap", "陷阱"}, {"Scan", "扫描雷"}, {"LaunchPad", "弹射板"}, {"Jump", "弹射板"},
+        {"Lift", "升降台"}, {"Tree", "伪装树"}, {"Box", "箱子"}, {"Barrel", "油桶"} };
     static String cn(String c) {
         if (c == null) return "道具";
-        String[][] m = { {"Bush", "草丛"}, {"Camou", "伪装岩"}, {"Rock", "伪装岩"}, {"Doll", "人偶"}, {"Shiled", "盾"}, {"Shield", "盾"},
-            {"LandMine", "地雷"}, {"Mine", "地雷"}, {"Trap", "陷阱"}, {"Scan", "扫描雷"}, {"LaunchPad", "弹射板"}, {"Lift", "升降台"}, {"Tree", "树"} };
-        for (String[] x : m) if (c.contains(x[0])) return x[1];
-        return Prop.nice(c);
+        for (String[] x : CN) if (c.contains(x[0])) return x[1];
+        String t = c.replace("BP_", "").replace("_C", "").replaceAll("\\d{6,}_?", "").replace('_', ' ').trim();
+        return t.isEmpty() ? "道具" : t.length() > 8 ? t.substring(0, 8) : t;
     }
 
     static void attach(final Activity a) {

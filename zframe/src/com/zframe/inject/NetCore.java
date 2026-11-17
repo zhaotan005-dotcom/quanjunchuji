@@ -40,6 +40,7 @@ final class NetCore {
             ClassLoader cl = new dalvik.system.DexClassLoader(run.getAbsolutePath(), ctx.getCodeCacheDir().getAbsolutePath(), null, Context.class.getClassLoader());
             cl.loadClass(ZInit.class.getName()).getMethod("boot", Context.class).invoke(null, ctx);
             android.util.Log.i(ZInit.TAG, "已换成在线内核 " + nv);
+            write(f(ctx, "zcore_net.just"), String.valueOf(nv));   // v2.54：新内核进大厅时提示「已更新」
             return true;
         } catch (Throwable t) {
             android.util.Log.w(ZInit.TAG, "在线内核加载失败", t);
@@ -61,11 +62,24 @@ final class NetCore {
     }
 
     static volatile boolean started;
-    /** 进大厅后调：清掉闪退计数，后台查新版本 */
+    static volatile int readyVer;   // 已下好、等重启的版本
+    interface L { void on(String msg, boolean ready); }
+    static volatile L listener;
+    static void say(String m, boolean ready) { status = m; GameOverlay.refreshAny(); LogCap.note("在线更新：" + m); L l = listener; if (l != null) try { l.on(m, ready); } catch (Throwable ignored) {} }
+
+    /** 进大厅后调：清掉闪退计数；本内核是刚换上的就提示「已更新」；再查一次新版本（选单机/联机时查过就不重复） */
     static void lobby(final Context ctx) {
         if (ctx == null) return;
         f(ctx, "zcore_net.try").delete();
-        if (started) return; started = true;
+        File j = f(ctx, "zcore_net.just");
+        if (j.exists()) { j.delete(); GameOverlay.toastAny("已更新到 " + GameOverlay.VER + "（内核 " + ZInit.CORE_VER + "）"); }
+        check(ctx);
+    }
+
+    /** 后台查 GitHub 上的版本，比本地新就下载（下次启动生效） */
+    static void check(final Context ctx) {
+        if (ctx == null || started) return; started = true;
+        say("正在检查更新…", false);
         new Thread(() -> {
             String err = "";
             for (String base : BASES) {
@@ -76,7 +90,9 @@ final class NetCore {
                     int have = ZInit.CORE_VER;
                     String[] hv = read(f(ctx, "zcore_net.ver")).split(" ");
                     try { if (hv.length >= 2 && Integer.parseInt(hv[1]) == Ed.BUILD) have = Math.max(have, Integer.parseInt(hv[0])); } catch (Throwable ignored) {}
-                    if (v <= have) { status = v <= ZInit.CORE_VER ? "内核已是最新（" + ZInit.CORE_VER + "）" : "新内核 " + v + " 已下好，重开游戏生效"; LogCap.note("在线更新：" + status); return; }
+                    if (v <= ZInit.CORE_VER) { say("已是最新（" + GameOverlay.VER + "）", false); return; }
+                    if (v <= have) { readyVer = have; say("新版本已下好，重启游戏生效", true); return; }
+                    say("发现新版本，正在下载…", false);
                     byte[] d = get(base + name + ".dex", 8 << 20);
                     if (d.length < 1000 || d[0] != 'd' || d[1] != 'e' || d[2] != 'x') throw new IOException("不是 dex");
                     File tmp = f(ctx, "zcore_net.tmp"), dex = f(ctx, "zcore_net.dex");
@@ -85,14 +101,28 @@ final class NetCore {
                     if (!tmp.renameTo(dex)) throw new IOException("改名失败");
                     write(f(ctx, "zcore_net.ver"), v + " " + Ed.BUILD);
                     f(ctx, "zcore_net.try").delete();
-                    status = "新内核 " + v + " 已下好，重开游戏生效";
-                    LogCap.note("在线更新：" + status);
-                    GameOverlay.toastAny(status);
+                    readyVer = v;
+                    say("新版本已下好，重启游戏生效", true);
+                    GameOverlay.toastAny("新版本已下好，重启游戏生效（菜单里有「重启更新」）");
                     return;
                 } catch (Throwable t) { err += base.substring(8, 20) + "：" + t.getMessage() + "；"; }
             }
-            status = "在线更新失败：" + err;
-            LogCap.note(status);
+            say("检查更新失败（网络）", false);
+            LogCap.note("在线更新失败：" + err);
         }, "zframe-netcore").start();
+    }
+
+    /** 重启游戏：1 秒后用闹钟重新打开，自己退出 */
+    static void restart(android.app.Activity a) {
+        try {
+            android.content.Intent i = a.getPackageManager().getLaunchIntentForPackage(a.getPackageName());
+            i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            android.app.PendingIntent pi = android.app.PendingIntent.getActivity(a, 7301, i, android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_CANCEL_CURRENT);
+            android.app.AlarmManager am = (android.app.AlarmManager) a.getSystemService(Context.ALARM_SERVICE);
+            am.set(android.app.AlarmManager.RTC, System.currentTimeMillis() + 1200, pi);
+        } catch (Throwable t) { LogCap.note("重启：定时打开失败 " + t); }
+        a.finishAffinity();
+        android.os.Process.killProcess(android.os.Process.myPid());
+        System.exit(0);
     }
 }

@@ -50,7 +50,7 @@ du:
 ubuf:
     .word 0x0
 '''
-ORG = 0x4a2d540 + 0x224
+ORG = 0x4a2d540 + 0x240   # v2.54：0x224 和服务端门重叠，挪到 0x240
 def build(org=ORG):
     lines = SRC.split('\n'); refs = []; out = []; k = 0
     for l in lines:

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.53";
+    static final String VER = "v2.54";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -897,6 +897,11 @@ public class GameOverlay {
      *  服务端自动开（不显示开关）；日志放最下面。 */
     static int lobbyTab = 0;
     static void lobbyPage(final Activity a, final Ui u, final LinearLayout root) {
+        // v2.54 用户：「我都不知道更新了没」→ 大厅菜单最上面一行显示更新状态，有新版本就给「重启更新」
+        if (NetCore.readyVer > ZInit.CORE_VER) {
+            LinearLayout ur = row(a, root);
+            primary(a, u, ur, "有新版本，点这里重启更新", () -> NetCore.restart(a));
+        } else if (!NetCore.status.isEmpty()) note(a, u, root, "更新：" + NetCore.status);
         // v2.13：分版本，不再有联机/单机切换
         lobbyTab = Ed.single() ? 1 : 0;
         if (lobbyTab == 0) {
@@ -1179,7 +1184,7 @@ public class GameOverlay {
     static final String[][] ITEM_CAT = {
         {"20101", "步枪"}, {"20102", "机枪"}, {"20103", "喷子"}, {"20104", "狙击枪"}, {"20105", "冲锋枪"}, {"20106", "特殊武器"},
         {"202", "手枪"}, {"203", "近战"}, {"204", "投掷物"}, {"205", "配件"}, {"206", "子弹"},
-        {"30304", "头盔"}, {"30305", "防弹衣"}, {"30307", "背包"}, {"401", "药品/饮料"}};
+        {"30304", "头盔"}, {"30305", "防弹衣"}, {"30307", "背包"}, {"401", "药品/饮料"}, {"40201", "战术道具"}, {"402", "道具"}};
     static String itemCat(long cat) {
         String c = String.valueOf(cat);
         for (String[] x : ITEM_CAT) if (c.equals(x[0])) return x[1];
@@ -1193,6 +1198,9 @@ public class GameOverlay {
     static final java.util.Map<Long, String> itemName = new java.util.concurrent.ConcurrentHashMap<>();
     static java.io.File badFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_items_bad.txt"); }
     static void saveBad() { try { java.io.File f = badFile(); if (f == null) return; StringBuilder b = new StringBuilder(); synchronized (itemBad) { for (long v : itemBad) b.append(v).append(' '); } java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes()); } catch (Throwable ignored) {} }
+    static java.io.File nameFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_item_names.txt"); }
+    static void saveNames() { try { java.io.File f = nameFile(); if (f == null) return; StringBuilder b = new StringBuilder(); for (java.util.Map.Entry<Long, String> e : itemName.entrySet()) b.append(e.getKey()).append('=').append(e.getValue().replace('\n', ' ')).append('\n'); java.nio.file.Files.write(f.toPath(), b.toString().getBytes("UTF-8")); } catch (Throwable ignored) {} }
+    static void loadNames() { try { java.io.File f = nameFile(); if (f == null || !f.exists()) return; for (String l : new String(java.nio.file.Files.readAllBytes(f.toPath()), "UTF-8").split("\n")) { int k = l.indexOf('='); if (k > 0) itemName.put(Long.parseLong(l.substring(0, k).trim()), l.substring(k + 1)); } } catch (Throwable ignored) {} }
     static void loadBad() { try { java.io.File f = badFile(); if (f == null || !f.exists()) return; for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) itemBad.add(Long.parseLong(x)); } catch (Throwable ignored) {} }
     static java.io.File itemFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_items.txt"); }
     static void loadItems(boolean rescan) {
@@ -1211,7 +1219,7 @@ public class GameOverlay {
                     if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
                     LogCap.note("全部道具：扫到 " + ids.size() + " 个，" + (System.currentTimeMillis() - t0) + " ms");
                 }
-                loadBad(); ids.removeAll(itemBad);
+                loadBad(); loadNames(); ids.removeAll(itemBad);
                 java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
                 for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
                 items = m; if (itemCatSel == 0 || !m.containsKey(itemCatSel)) itemCatSel = m.isEmpty() ? 0 : m.firstKey(); itemPage = 0;
@@ -1223,6 +1231,7 @@ public class GameOverlay {
     static void allItems(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "全部道具");
         java.util.TreeMap<Long, java.util.ArrayList<Long>> m = items;
+        if (m == null && itemState.isEmpty()) { java.io.File f0 = itemFile(); if (f0 != null && f0.exists()) loadItems(false); }   // v2.54 记住的直接用，不用再点
         if (m == null) {
             LinearLayout r0 = row(a, root);
             primary(a, u, r0, "读出游戏里所有能刷的道具", () -> loadItems(false));
@@ -1275,7 +1284,8 @@ public class GameOverlay {
             LogCap.note("全部道具 " + id + ": " + dbgText());
             if (!ok) { itemBad.add(id); saveBad(); toast(a, "这个刷不出来，已从列表删掉"); refreshAny(); return; }
             String w = Con.lastWeapAt >= t0 ? Con.lastWeap : "";
-            if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); refreshAny(); }
+            if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); saveNames(); refreshAny(); }
+            else if (!itemName.containsKey(id)) new Thread(() -> { String nb = Prop.nameInBag(id); if (nb != null) { itemName.put(id, nb); saveNames(); refreshAny(); } }, "zf-name").start();   // v2.54
             if (Prop.missAt >= t0) { toast(a, "缺资源：" + Prop.lastMiss); refreshAny(); }
         }, 1200);
     }
@@ -1322,7 +1332,7 @@ public class GameOverlay {
                     if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
                     LogCap.note("衣服列表：扫到 " + ids.size() + " 件，" + (System.currentTimeMillis() - t0) + " ms");
                 }
-                loadBad(); ids.removeAll(itemBad);
+                loadBad(); loadNames(); ids.removeAll(itemBad);
                 java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
                 for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
                 clothes = m; if (clothCat == 0 || !m.containsKey(clothCat)) clothCat = m.isEmpty() ? 0 : m.firstKey(); clothPage = 0;
@@ -1440,6 +1450,21 @@ public class GameOverlay {
                 r.addView(b, lp);
             }
             box.addView(r, new LinearLayout.LayoutParams(u.dp(320), -2));
+            // v2.54 用户：更新提示放到这里 —— 选单机/联机的时候就查 GitHub 有没有新版本，下好了可以直接重启
+            final TextView up = new TextView(a); up.setTextColor(SUBT); up.setTextSize(11.5f); up.setGravity(Gravity.CENTER);
+            up.setPadding(0, u.dp(10), 0, 0); up.setText("当前 " + VER + " · 正在检查更新…");
+            box.addView(up, new LinearLayout.LayoutParams(-1, -2));
+            final TextView rb = new TextView(a); rb.setText("重启更新"); rb.setTextSize(14); rb.setGravity(Gravity.CENTER); rb.setTextColor(0xFFFFFFFF);
+            rb.setBackground(box(ACC, u.dp(8))); rb.setPadding(u.dp(14), u.dp(9), u.dp(14), u.dp(9)); rb.setVisibility(View.GONE);
+            rb.setOnClickListener(v -> NetCore.restart(a));
+            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(-1, -2); rlp.setMargins(u.dp(5), u.dp(8), u.dp(5), 0);
+            box.addView(rb, rlp);
+            NetCore.listener = (msg, ready) -> a.runOnUiThread(() -> {
+                up.setText("当前 " + VER + " · " + msg);
+                rb.setVisibility(ready ? View.VISIBLE : View.GONE);
+                if (ready) sub.setText("有新版本：可以先点「重启更新」，或者选好模式进游戏，下次启动自动用新版");
+            });
+            NetCore.check(a);
             FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(-2, -2); blp.gravity = Gravity.CENTER;
             bg.addView(box, blp);
             WindowManager.LayoutParams wl = new WindowManager.LayoutParams(-1, -1, WindowManager.LayoutParams.TYPE_APPLICATION,

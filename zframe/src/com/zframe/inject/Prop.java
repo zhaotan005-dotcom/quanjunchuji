@@ -35,8 +35,10 @@ public class Prop {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             byte[] cur = new byte[want.length]; m.seek(b + CAVE); m.readFully(cur);
             boolean zero = true; for (byte x : cur) if (x != 0) { zero = false; break; }
-            if (!zero && !java.util.Arrays.equals(cur, want)) return state = "空位被占";
-            if (zero) { m.seek(b + CAVE); m.write(want); }
+            int cl = CODE.length() / 2;
+            boolean ours = java.util.Arrays.equals(java.util.Arrays.copyOf(cur, cl), java.util.Arrays.copyOf(want, cl));
+            if (!zero && !ours) return state = "空位被占 " + Server.bytesAt(m, b + CAVE, 8);   // v2.54 带上字节好查
+            if (!java.util.Arrays.equals(cur, want)) { m.seek(b + CAVE); m.write(want); }
         } catch (Throwable e) { return state = "出错 " + e.getMessage(); }
         String r1 = Mods.write(H1, H1_O, "04f01fe5" + Server.w32((int) (b + CAVE)), true);
         if (!"ok".equals(r1)) return state = "钩子1 " + r1;
@@ -167,7 +169,7 @@ public class Prop {
         } catch (Throwable e) { return "出错 " + e; }
         try {
             long[] r = Veh.ucall(inv, it.p, 0x4d0, 0, null);
-            if (r[0] != 0x5b0e) return Veh.uOn ? "补丁没反应" : "用道具补丁没装（空位被占）";
+            if (r[0] != 0x5b0e) return Veh.uOn ? "补丁没反应" : "用道具补丁没装（" + (Veh.installed ? "空位被占 " + Veh.uBusy : "刷物品补丁还没装好，进对局再试") + "）";
             LogCap.note("用道具：拿出 " + it.cls + " 返回 " + (r[1] & 0xff));
             return (r[1] & 0xff) != 0 ? "ok" : "游戏不让拿出（在车上/正在用别的/已经拿着）";
         } catch (InterruptedException e) { return "中断"; }
@@ -190,9 +192,30 @@ public class Prop {
         } catch (Throwable e) { return "出错 " + e; }
         try {
             long[] r = Veh.ucall(inv, 0, 0x484, valid ? 0 : sel, pos);
-            if (r[0] != 0x5b0e) return Veh.uOn ? "补丁没反应" : "用道具补丁没装（空位被占）";
+            if (r[0] != 0x5b0e) return Veh.uOn ? "补丁没反应" : "用道具补丁没装（" + (Veh.installed ? "空位被占 " + Veh.uBusy : "刷物品补丁还没装好，进对局再试") + "）";
             LogCap.note("用道具：放下 " + Long.toHexString(sel) + (valid ? "（游戏算的放置点）" : "（面前 1.5 米）"));
             return valid ? "ok" : "ok2";
         } catch (InterruptedException e) { return "中断"; }
+    }
+    /** v2.54：刚刷进背包的东西，从背包物品列表里找类名带这个编号的，取中文名（找不到就用类名尾巴） */
+    static String nameInBag(long id) {
+        long b = Mods.base(); if (b == 0) return null;
+        String key = String.valueOf(id);
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long pawn = Mods.myPawn(); if (pawn < 0x10000) return null;
+            long inv = Server.rd(m, pawn + 0x838); if (inv < 0x10000) return null;
+            Veh.Names nm = Veh.Names.get();
+            java.util.ArrayList<Long> c = new java.util.ArrayList<>();
+            for (int k = 0; k < 3; k++) c.add(Server.rd(m, inv + 0x490 + 4 * k));
+            long data = Server.rd(m, inv + 0x4a8), num = Server.rd(m, inv + 0x4ac);
+            for (int k = 0; k < Math.min(num, 300); k++) c.add(Server.rd(m, data + 4 * k));
+            for (long o : c) {
+                if (o < 0x10000) continue;
+                String cls = Alive.clsName(m, nm, o);
+                if (cls == null || !cls.contains(key)) continue;
+                return PropBtn.cn(cls);
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 }
