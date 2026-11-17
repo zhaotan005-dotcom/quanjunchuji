@@ -647,3 +647,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - Crew：日志出现 Join succeeded → 6 秒、12 秒各找一次人（Alive.collect），把加入的玩家传到房主身边 2 米（每人每局一次）。联机页加「把加入的人拉到我身边」。诊断导出加 Crew.state / pullState。
 - 加速/高跳没生效：Con 进图 Browse 时 Mods.resetMatch() 把 speed/jump/枪开关清回 1 —— 大厅里拉好的数进图就没了。v2.31 不再清这些，只清内部状态；setMove 记日志。
 - v2.32 (vc133/core133): 客户端加速/高跳跟房主自动同步。房主 Crew 把 7700000+round(加速×2)×100+round(高跳×2) 写进每个加入玩家 PlayerState(pawn+0x2c4)+0x2b0 Score（反射表 APlayerState: Score 0x2b0 CPF_Net OnRep_Score，PlayerName 0x2b8，PlayerId 0x2d0）。有人加入后就一直写（没开也写 1 倍）。客户端 Mods.syncFromHost 读自己 PS 的 Score 解码设 speed/jump；客户端功能页滑条换成「跟房主」说明；诊断加「跟房主：」行。未实测：Score 可能被游戏别处显示/改写。
+- 19:31 v2.32 实测：房主「全员：找到加入的玩家 0 个（人物共 0）」——Alive 计数钩子 1 秒内没触发，所以既没拉人也没同步（客户端「还没收到房主的数」）。截图：客户端在飞机上（跟随跳伞），房主在地上，剩余 3。
+- v2.33 (vc134/core134): Crew.find 改走 GameState(GM+0x2e0).PlayerArray（+0x2bc data/+0x2c0 num；反射表 GameState PlayerArray 0x2bc），PS.Owner(AActor+0x60, OnRep_Owner) = 控制器，类名含 PlayerController 才算，人物 = ctl+0x2c0/0x2b4。Score 按 PS 列表写（不依赖人物）。有人加入后每 15 秒重找。读不到 PlayerArray 才退回 Alive 钩子。

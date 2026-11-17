@@ -25,7 +25,8 @@ final class Crew {
     /** 日志里出现 Join succeeded：等 6 秒（人物生成）后找人并拉一次，12 秒后再补一次 */
     static volatile long joinAt;
     static volatile int joinStage;
-    static void joined() { joinStage = 0; joinAt = System.currentTimeMillis(); start(); }
+    static volatile boolean anyJoin;
+    static void joined() { anyJoin = true; joinStage = 0; joinAt = System.currentTimeMillis(); start(); }
     static void doPull(java.util.ArrayList<Long> ps) {
         boolean all = pullAll; pullAll = false;
         double[] me;
@@ -56,7 +57,7 @@ final class Crew {
     }
 
     static void tick() throws Exception {
-        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); baseJump.clear(); pulled.clear(); lastFind = 0; } return; }
+        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); states = new java.util.ArrayList<>(); baseJump.clear(); pulled.clear(); lastFind = 0; anyJoin = false; } return; }
         long now = System.currentTimeMillis();
         // v2.31：有人加入（日志）或点了按钮才找人、拉到房主身边；开着加速/高跳/子弹时照旧每 15 秒找一次
         long ja = joinAt;
@@ -65,18 +66,16 @@ final class Crew {
         else if (ja != 0 && joinStage == 1 && now - ja > 12000) { joinStage = 0; joinAt = 0; jt = true; }
         if (pullAll || jt) { lastFind = now; find(); doPull(players); return; }
         boolean wn = want();
-        if (!wn && players.isEmpty()) return;   // v2.32：有人加入后即使没开也继续同步（把 1 倍也告诉客户端）
+        if (!wn && !anyJoin) return;   // v2.32：有人加入后即使没开也继续同步（把 1 倍也告诉客户端）
         if (now - lastFind > 15000) { lastFind = now; find(); }
         java.util.ArrayList<Long> ps = players;
-        if (ps.isEmpty()) return;
         float code = Mods.encode(Mods.speed, Mods.jump);
         long b = Mods.base(); if (b == 0) return;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            for (long st : states) if (Mods.isObj(m, b, st) && Mods.f(m, st + Mods.PS_SCORE) != code) Mods.wf(m, st + Mods.PS_SCORE, code);
             for (long p : ps) {
                 if (!Mods.isObj(m, b, p)) continue;
                 // v2.32：把房主的 加速/高跳 写进这个玩家的 PlayerState.Score，客户端读到自动跟
-                long st = Mods.rp(m, p + 0x2c4);
-                if (Mods.isObj(m, b, st) && Mods.f(m, st + Mods.PS_SCORE) != code) Mods.wf(m, st + Mods.PS_SCORE, code);
                 if (!wn) continue;
                 long c = Mods.rp(m, p + Mods.P_CMC);
                 if (!Mods.isObj(m, b, c)) continue;
@@ -103,23 +102,49 @@ final class Crew {
         }
     }
 
+    /** v2.32b：v2.32 实测 Alive 计数钩子 1 秒里一次都没触发（找到 0 个）。改成走 GameState.PlayerArray（GS+0x2bc，TArray<PlayerState*>）：
+     *  PS 的 Owner（AActor+0x60）是控制器，类名带 PlayerController 才算玩家；控制器+0x2c0 是人物。读不到再退回 Alive。 */
+    static volatile java.util.ArrayList<Long> states = new java.util.ArrayList<>();
     static void find() {
-        java.util.LinkedHashSet<Long> seen = Alive.collect(1000);
-        if (seen == null) { state = "全员：找人失败 " + Alive.err; return; }
         long me = GameOverlay.pawnAddr();
-        java.util.ArrayList<Long> out = new java.util.ArrayList<>();
+        java.util.ArrayList<Long> out = new java.util.ArrayList<>(), sts = new java.util.ArrayList<>();
+        int total = 0; String how = "PlayerArray";
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             Veh.Names nm = null; try { nm = Veh.Names.get(); } catch (Throwable t) {}
-            for (long p : seen) {
-                if (p == me) continue;   // 房主自己由 Mods 管
-                long ctl = Server.rd(m, p + 0x2d0);
-                if (ctl < 0x10000) continue;
-                String cn = Alive.clsName(m, nm, ctl);
-                if (cn.contains("PlayerController")) out.add(p);
+            long mps = me >= 0x10000 ? Server.rd(m, me + 0x2c4) : 0;
+            double[] q = null; try { q = Veh.info(); } catch (Throwable t) {}
+            long gm = q != null ? (long) q[4] : 0;
+            long gs = gm >= 0x10000 ? Server.rd(m, gm + 0x2e0) : 0;
+            long data = gs >= 0x10000 ? Server.rd(m, gs + 0x2bc) : 0;
+            int n = gs >= 0x10000 ? (int) Server.rd(m, gs + 0x2c0) : 0;
+            if (data >= 0x10000 && n > 0 && n <= 200) {
+                total = n;
+                for (int k = 0; k < n; k++) {
+                    long ps = Server.rd(m, data + 4L * k);
+                    if (ps < 0x10000 || ps == mps) continue;
+                    long ctl = Server.rd(m, ps + 0x60);
+                    if (ctl < 0x10000) continue;
+                    if (!Alive.clsName(m, nm, ctl).contains("PlayerController")) continue;
+                    long p = Server.rd(m, ctl + 0x2c0); if (p < 0x10000) p = Server.rd(m, ctl + 0x2b4);
+                    if (p == me) continue;
+                    sts.add(ps);
+                    if (p >= 0x10000) out.add(p);
+                }
+            } else {
+                how = "计数钩子";
+                java.util.LinkedHashSet<Long> seen = Alive.collect(1000);
+                if (seen == null) { state = "全员：找人失败（PlayerArray " + Long.toHexString(gs) + "/" + n + "）" + Alive.err; return; }
+                total = seen.size();
+                for (long p : seen) {
+                    if (p == me) continue;
+                    long ctl = Server.rd(m, p + 0x2d0);
+                    if (ctl < 0x10000) continue;
+                    if (Alive.clsName(m, nm, ctl).contains("PlayerController")) { out.add(p); long ps = Server.rd(m, p + 0x2c4); if (ps >= 0x10000) sts.add(ps); }
+                }
             }
         } catch (Throwable t) { state = "全员：读出错 " + t.getMessage(); return; }
-        players = out;
-        String ns = "全员：找到加入的玩家 " + out.size() + " 个（人物共 " + seen.size() + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
+        players = out; states = sts;
+        String ns = "全员（" + how + "）：找到加入的玩家 " + out.size() + " 个（共 " + total + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
         if (!ns.equals(state)) LogCap.note(ns);
         state = ns;
     }
