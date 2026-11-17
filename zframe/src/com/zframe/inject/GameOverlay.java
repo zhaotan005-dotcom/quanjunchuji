@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.28";
+    static final String VER = "v2.29";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -243,6 +243,7 @@ public class GameOverlay {
         if (lobbySeen) return; lobbySeen = true;
         MAIN.post(() -> { View p = panelRef; if (p != null && !hidden) p.setVisibility(View.VISIBLE); });
     }
+    static volatile boolean onPanel;
     static void hookKeys(final Activity a, final View panel, final Ui u) {
         try {
             final android.view.Window w = a.getWindow();
@@ -256,6 +257,22 @@ public class GameOverlay {
                     if (e.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN && e.getPointerCount() >= 5 && hidden) {
                         View pv = ((ViewGroup) w.getDecorView()).findViewWithTag("zframe_panel");
                         if (pv != null) a.runOnUiThread(() -> showPanel(pv, true, u));
+                    }
+                    // v2.28b 用户：在菜单上滑动，游戏也跟着转视角/走路。游戏在 Activity.dispatchTouchEvent 里就把触摸交给引擎了，
+                    // 所以按下点在菜单上的这一整串触摸，直接交给界面（w.superDispatchTouchEvent），不经过游戏。
+                    int am = e.getActionMasked();
+                    if (am == MotionEvent.ACTION_DOWN) {
+                        View pv = ((ViewGroup) w.getDecorView()).findViewWithTag("zframe_panel");
+                        onPanel = false;
+                        if (pv != null && pv.getVisibility() == View.VISIBLE && pv.getAlpha() > 0.1f) {
+                            android.graphics.Rect r = new android.graphics.Rect();
+                            if (pv.getGlobalVisibleRect(r)) onPanel = r.contains((int) e.getRawX(), (int) e.getRawY());
+                        }
+                    }
+                    if (onPanel) {
+                        boolean h = w.superDispatchTouchEvent(e);
+                        if (am == MotionEvent.ACTION_UP || am == MotionEvent.ACTION_CANCEL) onPanel = false;
+                        return h;
                     }
                 }
                 if ("equals".equals(n)) return p == args[0];

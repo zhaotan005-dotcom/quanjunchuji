@@ -632,3 +632,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v2.28（vc129，2026-11-17 17:55）— 房主分页看不全
 - 用户截图：房主左列只显示到「刷车」，人机/联机/画面被挤出去 → 看不到刷人机和日志（导出诊断在联机页）。左列分页包进 ScrollView（可上下滑），分页高 36→32dp。
+
+## v2.29（vc130，2026-11-17 18:00）— 菜单上滑动不再带动游戏
+- 用户：在菜单上滑，游戏也跟着操作。游戏在 Activity.dispatchTouchEvent 里就把触摸给引擎。Window.Callback 代理里：ACTION_DOWN 落在 zframe_panel 可见区域内 → 这一整串触摸走 w.superDispatchTouchEvent（只给界面），不调原 Activity.dispatchTouchEvent。
