@@ -664,3 +664,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 改名：界面「房主」全改「服务端」；APK 文件名 ZFrame-v2.36-服务端/客户端/单机；rel.py 重建 manifest 字符串池：label「全军出击服务端 v2.36」、versionName「2.36-服务端」（androguard 验证）。build3.sh 传第 7 参数。
 - 诊断导出关键字加 VehicleInterface/UseVehicle/EnterVehicle/Ammo/Reload/Discrepancy/Correction。
 - 未测。用户 21:06 说「编号和吉利服的编号弄好了」、衣服只刷风衣和吉利服 —— 待问编号后做。
+- v2.37 (vc138/core138): 用户：衣服页只要风衣和吉利服，排整齐。clothesPage 改成：风衣卡片（显示编号）、吉利服 7 个按钮（30309000001..06、30309000000，toast 显示编号）、按编号刷（输入框）。去掉全部衣服列表。

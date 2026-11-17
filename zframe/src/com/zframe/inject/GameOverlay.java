@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.36";
+    static final String VER = "v2.37";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1181,49 +1181,39 @@ public class GameOverlay {
             refreshAny();
         }, "zf-cloth").start();
     }
+    /** v2.37 用户：衣服页不用刷那么多皮肤，只要风衣和吉利服，排整齐。吉利服 7 个候选编号各一个按钮（刷在脚下看不出哪个成功，所以把编号写在按钮上）；保留按编号刷 */
     static void clothesPage(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "绝地求生风衣");
-        LinearLayout fr = row(a, root);
+        head(a, u, root, "绝地风衣");
+        LinearLayout fc = card(a, u, root);
+        LinearLayout fr = row(a, fc);
         primary(a, u, fr, "刷绝地风衣", () -> give(a, Mods.COAT, 1, "绝地风衣"));
-        LinearLayout ghr = row(a, root);
-        primary(a, u, ghr, "刷吉利服", () -> ghillie(a));   // v2.26
-        if (Ed.ED == 1) note(a, u, root, "服务端：衣服刷在脚下，捡起来就穿上。");
-        java.util.TreeMap<Long, java.util.ArrayList<Long>> m = clothes;
-        if (m == null) { if (clothState.isEmpty()) loadClothes(false); note(a, u, root, "衣服列表：" + clothState); return; }
-        head(a, u, root, "全部衣服（" + clothState + "）");
-        HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
-        LinearLayout cr = new LinearLayout(a); cr.setOrientation(LinearLayout.HORIZONTAL);
-        for (final long cat : m.keySet()) {
-            TextView t = new TextView(a);
-            t.setText(catName(cat) + " " + m.get(cat).size()); t.setTextSize(11.5f);
-            t.setTextColor(cat == clothCat ? ON_TXT : SUBT);
-            t.setBackground(cat == clothCat ? grad(u.dp(14)) : boxLine(0, LINE, u.dp(14), 1));
-            t.setPadding(u.dp(11), u.dp(5), u.dp(11), u.dp(5));
-            t.setOnClickListener(v -> { clothCat = cat; clothPage = 0; fill(a, u, root); });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
-            cr.addView(t, lp);
-        }
-        hs.addView(cr);
-        root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        java.util.ArrayList<Long> l = m.get(clothCat);
-        if (l == null) return;
-        final int per = 30, pages = (l.size() + per - 1) / per;
-        if (clothPage >= pages) clothPage = 0;
-        String cn = catName(clothCat); int k = cn.indexOf('（'); if (k > 0) cn = cn.substring(0, k);
+        label(a, fc, "编号 " + Mods.COAT, 11, false, SUBT).setPadding(u.dp(3), u.dp(2), 0, u.dp(4));
+        head(a, u, root, "吉利服");
+        LinearLayout gc = card(a, u, root);
         LinearLayout gr = null;
-        for (int i = clothPage * per, j = 0; i < Math.min(l.size(), (clothPage + 1) * per); i++, j++) {
-            if (j % 3 == 0) gr = row(a, root);
-            final String id = String.valueOf(l.get(i)); final String lb = cn + " " + (i + 1);
-            btn(a, u, gr, lb, () -> { give(a, id, 1); toast(a, lb + "（" + id + "）"); });
+        for (int i = 0; i < GHILLIE.length; i++) {
+            if (i % 3 == 0) gr = row(a, gc);
+            final String id = GHILLIE[i]; final String lb = "吉利服 " + (i + 1);
+            btn(a, u, gr, lb, () -> { give(a, id, 1); okId.put("吉利服", id); toast(a, lb + "（编号 " + id + "）"); });
         }
-        if (pages > 1) {
-            LinearLayout pr = row(a, root);
-            btn(a, u, pr, "上一页", () -> { clothPage = (clothPage + pages - 1) % pages; fill(a, u, root); });
-            label(a, pr, (clothPage + 1) + " / " + pages, 11, false, SUBT);
-            btn(a, u, pr, "下一页", () -> { clothPage = (clothPage + 1) % pages; fill(a, u, root); });
-        }
-        LinearLayout rr = row(a, root);
-        btn(a, u, rr, "重新读取列表", () -> { clothes = null; loadClothes(true); });
+        label(a, gc, "按钮依次对应 " + GHILLIE[0] + " 到 " + GHILLIE[GHILLIE.length - 1] + "，刷出来是哪款就记下它的编号。", 11, false, SUBT).setPadding(u.dp(3), u.dp(4), 0, u.dp(4));
+        if (Ed.ED == 1) note(a, u, root, "服务端：衣服刷在脚下，捡起来就穿上。");
+        head(a, u, root, "按编号刷");
+        LinearLayout ir = row(a, root);
+        final EditText et = new EditText(a);
+        et.setHint("11 位编号"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
+        et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); et.setSingleLine(true);
+        et.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); et.setPadding(u.dp(10), u.dp(7), u.dp(10), u.dp(7));
+        LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2); elp.setMargins(u.dp(3), u.dp(3), u.dp(3), u.dp(3));
+        ir.addView(et, elp);
+        et.setOnTouchListener((v, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_DOWN) focusable(v, true); return false; });
+        et.setOnFocusChangeListener((v, f) -> { if (!f) focusable(v, false); });
+        btn(a, u, ir, "刷出", () -> {
+            String id = et.getText().toString().trim();
+            if (!id.matches("\\d{11}")) { toast(a, "编号是 11 位数字"); return; }
+            focusable(et, false); et.clearFocus();
+            give(a, id, 1); toast(a, "已刷 编号 " + id);
+        });
     }
 
     static void coatPage(final Activity a, final Ui u, final LinearLayout root) {
