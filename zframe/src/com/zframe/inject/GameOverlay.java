@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.43";
+    static final String VER = "v2.44";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -48,6 +48,7 @@ public class GameOverlay {
         try {
             Con.setActivity(a);
             Con.loadGfx();
+            if (Ed.canChoose() && !Ed.chosen) showChooser(a);   // v2.44
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
             { View old = panelRef; if (old != null && old.isAttachedToWindow() && panelAct == a) return; }
@@ -76,7 +77,7 @@ public class GameOverlay {
             fold.setBackground(box(0x1F007AFF, u.dp(4)));
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             TextView title = new TextView(a);
-            title.setText(Ed.single() ? "全军出击单机版" : Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            titleRef = title; title.setText(titleText()); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
             head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
@@ -396,6 +397,7 @@ public class GameOverlay {
 
     static void detach(Activity a) {
         try {
+            if (chooser != null && chooserAct == a) { try { a.getWindowManager().removeViewImmediate(chooser); } catch (Throwable ignored) {} chooser = null; chooserAct = null; }
             View pr = panelRef;
             if (pr != null && plp != null && pr.getLayoutParams() == plp && panelAct == a) {
                 try { pwm.removeViewImmediate(pr); } catch (Throwable ignored) {}
@@ -916,10 +918,22 @@ public class GameOverlay {
             LinearLayout jc = card(a, u, root);
             // v2.26 用户：只要「粘贴」和「加入」。地址原样连（域名也直接交给游戏），不自己解析
             if (ipBuf == null) ipBuf = Lan.lastIp != null ? Lan.lastIp : "";
-            final TextView ipShow = label(a, jc, "", 18f, true, TXT);
-            ipShow.setGravity(Gravity.CENTER); ipShow.setPadding(0, u.dp(12), 0, u.dp(10));
-            final Runnable show = () -> { ipShow.setText(ipBuf.isEmpty() ? "先复制服务端的地址，再点粘贴" : ipBuf); ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT); };
-            show.run();
+            // v2.44 用户：地址能自己输入、能删。输入框 + 粘贴 / 清空 / 加入
+            final EditText ipEt = new EditText(a);
+            ipEt.setText(ipBuf); ipEt.setHint("输入或粘贴服务端地址"); ipEt.setTextColor(TXT); ipEt.setHintTextColor(SUBT); ipEt.setTextSize(15);
+            ipEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI); ipEt.setSingleLine(true);
+            ipEt.setGravity(Gravity.CENTER);
+            ipEt.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); ipEt.setPadding(u.dp(10), u.dp(8), u.dp(10), u.dp(8));
+            LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(-1, -2); ilp.setMargins(0, u.dp(8), 0, u.dp(8));
+            jc.addView(ipEt, ilp);
+            ipEt.setOnTouchListener((v, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_DOWN) focusable(v, true); return false; });
+            ipEt.setOnFocusChangeListener((v, f) -> { if (!f) focusable(v, false); });
+            ipEt.addTextChangedListener(new android.text.TextWatcher() {
+                public void beforeTextChanged(CharSequence x, int st, int c, int af) {}
+                public void onTextChanged(CharSequence x, int st, int b, int c) {}
+                public void afterTextChanged(android.text.Editable e) { ipBuf = e.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", ""); }
+            });
+            ipEt.setOnEditorActionListener((v, act, ev) -> { focusable(ipEt, false); ipEt.clearFocus(); return false; });
             LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(8));
             btn(a, u, er, "粘贴", () -> {
                 try {
@@ -927,10 +941,11 @@ public class GameOverlay {
                     CharSequence t = cm.hasPrimaryClip() ? cm.getPrimaryClip().getItemAt(0).coerceToText(a) : null;
                     String v = t == null ? "" : t.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", "");
                     if (v.isEmpty()) { toast(a, "剪贴板是空的"); return; }
-                    ipBuf = v.length() > 80 ? v.substring(0, 80) : v; show.run();
+                    ipEt.setText(v.length() > 80 ? v.substring(0, 80) : v); ipEt.setSelection(ipEt.length());
                 } catch (Throwable ex) { toast(a, "读不到剪贴板"); }
             });
-            fillBtn(a, u, er, "加入", () -> toast(a, Lan.join(ipBuf)));
+            btn(a, u, er, "清空", () -> { ipEt.setText(""); });
+            fillBtn(a, u, er, "加入", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填服务端地址"); return; } toast(a, Lan.join(ipBuf)); });
             note(a, u, root, "服务端先进图，再点加入。");
           }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
@@ -1251,5 +1266,67 @@ public class GameOverlay {
         LinearLayout fv = row(a, root);
         for (final int f : new int[]{0, 90, 100, 110}) pick(a, u, fv, f == 0 ? "默认" : String.valueOf(f), fov == f, () -> { setFov(a, f); fill(a, u, root); });
         label(a, root, VER + " " + Ed.name(), 10, false, SUBT).setPadding(u.dp(3), u.dp(14), 0, 0);
+    }
+
+    // ---------------- v2.44 客户端包：加载页选「单机 / 联机」 ----------------
+    static volatile TextView titleRef;
+    static volatile View chooser; static volatile Activity chooserAct;
+    static String titleText() { return Ed.single() ? "全军出击单机版" : Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端"; }
+    static void showChooser(final Activity a) {
+        if (chooser != null) return;
+        try {
+            final Ui u = new Ui(a);
+            FrameLayout bg = new FrameLayout(a);
+            bg.setBackgroundColor(0x99000000);
+            bg.setClickable(true);
+            LinearLayout box = new LinearLayout(a);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding(u.dp(18), u.dp(14), u.dp(18), u.dp(14));
+            box.setBackground(boxLine(PANEL, 0x33000000, u.dp(10), Math.max(1, u.dp(1) / 2)));
+            TextView t = new TextView(a); t.setText("这次怎么玩？"); t.setTextColor(TXT); t.setTextSize(17); t.setGravity(Gravity.CENTER);
+            t.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            box.addView(t, new LinearLayout.LayoutParams(-1, -2));
+            final int last = Ed.saved();
+            TextView sub = new TextView(a); sub.setText("15 秒内不选，按上次的（" + (last == 0 ? "单机" : "联机") + "）"); sub.setTextColor(SUBT); sub.setTextSize(11); sub.setGravity(Gravity.CENTER);
+            sub.setPadding(0, u.dp(4), 0, u.dp(10));
+            box.addView(sub, new LinearLayout.LayoutParams(-1, -2));
+            LinearLayout r = new LinearLayout(a); r.setOrientation(LinearLayout.HORIZONTAL);
+            String[] lb = { "单机", "联机（加入房间）" }; final int[] ed = { 0, 2 };
+            for (int i = 0; i < 2; i++) {
+                final int e = ed[i];
+                TextView b = new TextView(a); b.setText(lb[i]); b.setTextSize(15); b.setGravity(Gravity.CENTER);
+                boolean hi = e == last;
+                b.setTextColor(hi ? 0xFFFFFFFF : ACC);
+                b.setBackground(hi ? box(ACC, u.dp(8)) : boxLine(CARD2, ACC, u.dp(8), Math.max(1, u.dp(1))));
+                b.setPadding(u.dp(14), u.dp(12), u.dp(14), u.dp(12));
+                b.setOnClickListener(v -> { Ed.choose(e, "手动"); });
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.setMargins(u.dp(5), 0, u.dp(5), 0);
+                r.addView(b, lp);
+            }
+            box.addView(r, new LinearLayout.LayoutParams(u.dp(320), -2));
+            FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(-2, -2); blp.gravity = Gravity.CENTER;
+            bg.addView(box, blp);
+            WindowManager.LayoutParams wl = new WindowManager.LayoutParams(-1, -1, WindowManager.LayoutParams.TYPE_APPLICATION,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.TRANSLUCENT);
+            if (android.os.Build.VERSION.SDK_INT >= 28) wl.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            wl.setTitle("zframe_mode");
+            a.getWindowManager().addView(bg, wl);
+            chooser = bg; chooserAct = a;
+            LogCap.note("启动选择：已显示");
+        } catch (Throwable t) { LogCap.note("启动选择：显示失败 " + t + "，按上次的"); Ed.choose(Ed.saved(), "显示失败"); }
+    }
+    /** 选完（手动或超时）：关掉选择框，菜单标题跟着变 */
+    static void chosen() {
+        final Activity a = chooserAct; final View c = chooser;
+        final TextView tr = titleRef;
+        Activity any = a != null ? a : Con.act;
+        if (any == null) return;
+        any.runOnUiThread(() -> {
+            if (c != null && a != null) { try { a.getWindowManager().removeViewImmediate(c); } catch (Throwable ignored) {} }
+            chooser = null; chooserAct = null;
+            if (tr != null) tr.setText(titleText());
+            refreshAny();
+        });
     }
 }

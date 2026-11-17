@@ -3,6 +3,7 @@
 先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
 - v2.37–v2.42：衣服页只剩风衣+吉利服1-3；车可炸诊断；开车断线闪退修复（find 只认 Character）；去掉拉人；换弹诊断（背包子弹 +0x60c）。详见 notes/history.md
+- v2.44：客户端包加载时选单机/联机（选单机=完整单机版）；加入地址改成可输入可删的输入框（粘贴/清空/加入）。
 - v2.43：诊断导出加「资源清单」（全部 pak 挂载目录、关键词、游戏目录大文件），日志关键词加空投/信号枪/道具/军团。
 - v2.36：上车补丁 0xdb00f0、菜单独立窗口、拉回/换弹/无敌/人机带枪、改名服务端（未测）
 - v2.31: host auto-teleports joined players next to itself (vcave T = K2_TeleportTo 0x273d654), button 把加入的人拉到我身边; speed/jump/gun toggles no longer reset on map load.

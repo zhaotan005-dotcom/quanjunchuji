@@ -684,3 +684,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
     - AirSupplyManager props: BoxClass +0x32c, SP +0x330, FlareGunNormal +0x334, FlareGunVehicle +0x338, CurFlareUsedNum +0x354.
     - PC TestSpawnAirSupplyBox impl is stripped.
   - Functional props are ItemSubType_FunctionalProp (enum Bush, Doll, LandMine, LaunchPad, LiftTable, Shiled, Trap, Tree, ScanGrenade). Item IDs are unknown.
+- v2.44 (vc145): The user asked for a mode chooser in the client APK.
+  - Ed.ED is now a runtime volatile; build3.sh seds `static final int BUILD`.
+  - In the client APK (BUILD=2), GameOverlay.attach shows a full-screen TYPE_APPLICATION chooser 「单机 / 联机（加入房间）」 on the first resume.
+  - Patches waits for the choice (Ed.await, at most 15 s after libUE4 is found, then falls back to the saved choice in filesDir/zf_mode.txt) before Mods.preinstall. 单机 sets ED=0, so everything follows the single build: self-hosted lobby server, wardrobe, bots, single lobby page.
+  - Client join box: EditText (input, delete, focusable toggle) with 粘贴 / 清空 / 加入, replacing the paste-only label.
