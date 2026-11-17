@@ -158,6 +158,27 @@ public class Prop {
         useState = sb.toString(); if (!quiet) LogCap.note("用道具：" + useState);
         return "ok";
     }
+    /** v2.56：道具键认不出道具时，把道具槽和背包里每个东西的类名都记下来（只读），随日志上传 */
+    static String rawDump() {
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        StringBuilder sb = new StringBuilder("背包原始：");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long pawn = Mods.myPawn(); sb.append("pawn=").append(Long.toHexString(pawn));
+            if (pawn < 0x10000) return sb.toString();
+            long inv = Server.rd(m, pawn + 0x838); sb.append(" inv=").append(Long.toHexString(inv));
+            if (inv < 0x10000) return sb.toString();
+            long vt = Server.rd(m, inv);
+            sb.append(" vt4d0=").append(Long.toHexString(Server.rd(m, vt + 0x4d0) - b)).append(" vt484=").append(Long.toHexString(Server.rd(m, vt + 0x484) - b));
+            Veh.Names nm = null; try { nm = Veh.Names.get(); } catch (Throwable t) {}
+            for (int k = 0; k < 3; k++) { long p = Server.rd(m, inv + 0x490 + 4 * k); sb.append("\n槽").append(k + 1).append(' ').append(Long.toHexString(p));
+                if (p >= 0x10000) sb.append(' ').append(Alive.clsName(m, nm, p)).append(" +394=").append(Long.toHexString(Server.rd(m, Server.rd(m, p) + 0x394) - b)); }
+            long data = Server.rd(m, inv + 0x4a8), num = Server.rd(m, inv + 0x4ac);
+            sb.append("\n列表 ").append(num).append(" 个");
+            for (int k = 0; k < Math.min(num, 60); k++) { long p = Server.rd(m, data + 4 * k); if (p < 0x10000) continue;
+                sb.append("\n· ").append(Alive.clsName(m, nm, p)).append(" +394=").append(Long.toHexString(Server.rd(m, Server.rd(m, p) + 0x394) - b)); }
+        } catch (Throwable e) { sb.append(" 出错 ").append(e); }
+        return sb.toString();
+    }
     static String nice(String c) { if (c == null) return "?"; String s = c.replace("BP_", "").replace("_C", ""); return s.length() > 26 ? s.substring(0, 26) : s; }
     /** 拿出（选中）：背包 vt+0x4d0(道具)，和人机放盾同一个函数 */
     static String select(It it) {

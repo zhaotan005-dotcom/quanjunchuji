@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.56";
+    static final String VER = "v2.57";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1291,7 +1291,14 @@ public class GameOverlay {
             String w = Con.lastWeapAt >= t0 ? Con.lastWeap : "";
             if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); saveNames(); refreshAny(); }
             else if (!itemName.containsKey(id)) new Thread(() -> { String nb = Prop.nameInBag(id); if (nb != null) { itemName.put(id, nb); saveNames(); refreshAny(); } }, "zf-name").start();   // v2.54
-            if (Prop.missAt >= t0) { toast(a, "缺资源：" + Prop.lastMiss); refreshAny(); }
+            // v2.56 用户：用不了的还在 → 刷出来但缺模型/资源的也删掉（地上只能显示替身箱子的那种）
+            if (Prop.missAt >= t0) { itemBad.add(id); saveBad(); toast(a, "这个缺资源用不了，已从列表删掉"); refreshAny(); return; }
+            if (id / 100000000L == 402) new Thread(() -> {
+                try { Thread.sleep(800); } catch (InterruptedException ignored) {}
+                Prop.scanUse(true);
+                for (Prop.It it : Prop.useList) if (it.target == null && it.cls != null && it.cls.contains(String.valueOf(id))) {
+                    itemBad.add(id); saveBad(); toastAny("这个道具手机上没有模型，用不了，已从列表删掉"); refreshAny(); return; }
+            }, "zf-chk").start();
         }, 1200);
     }
 

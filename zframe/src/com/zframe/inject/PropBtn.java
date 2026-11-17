@@ -89,15 +89,16 @@ final class PropBtn {
         new Thread(() -> {
             String r = Prop.scanUse(true);
             java.util.ArrayList<Prop.It> l = Prop.useList;
-            final boolean show = "ok".equals(r) && !l.isEmpty();
+            final boolean show = true;   // v2.56：对局里一直显示（认不出道具时点一下会把背包信息传给我）
+            final boolean has = "ok".equals(r) && !l.isEmpty();
             String s = "道具";
-            if (show) {
+            if (has) {
                 Prop.It sel = null; for (Prop.It it : l) if (it.sel) sel = it;
                 if (sel != null) s = "放下\n" + cn(sel.cls);
                 else { if (idx >= l.size()) idx = 0; s = cn(l.get(idx).cls) + (l.size() > 1 ? "\n" + (idx + 1) + "/" + l.size() : ""); }
             }
             final String txt = s;
-            t.post(() -> { t.setVisibility(show ? View.VISIBLE : View.GONE); t.setText(txt); });
+            t.post(() -> { t.setVisibility(show ? View.VISIBLE : View.GONE); t.setText(txt); t.setAlpha(has ? 1f : 0.45f); });
         }, "zf-propbtn").start();
     }
 
@@ -109,7 +110,12 @@ final class PropBtn {
             try {
                 Prop.scanUse(true);
                 java.util.ArrayList<Prop.It> l = Prop.useList;
-                if (l.isEmpty()) { msg = "背包里没有道具"; return; }
+                if (l.isEmpty()) {   // v2.56 用户：捡起来了但没有道具键 → 把道具槽/背包类名传上来查
+                    Prop.useState = Prop.rawDump();
+                    LogCap.note("道具键：" + Prop.useState);
+                    if (a != null) AvatarLog.export(a, "prop-");
+                    msg = "没认出道具，背包信息已自动上传"; return;
+                }
                 Prop.It sel = null; for (Prop.It it : l) if (it.sel) sel = it;
                 if (next) {   // 长按：换下一个（已拿出的话直接拿出下一个）
                     if (l.size() < 2) { msg = "只有一个道具"; return; }
