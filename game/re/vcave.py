@@ -1,3 +1,4 @@
+# v2.51 'G' 之后的 bne done 改成 bne ucave（SLACK+0x224，见 ucave.py：'U' 调背包组件虚函数用道具），cave 长度不变
 # v2.31 加 'T<人物>x<buf>'：K2_TeleportTo 实现 0x273d654(人物, x,y,z, [sp]pitch,yaw,roll)，位置 buf+40..48，朝向 +52..60，返回写 +4，标记 5b0d
 # v1.98 加 'I<人物>x<buf>' 给人机发物品
 # v1.91 加 'G<Type>x<buf>'：0x119d884(PC, Type, TSID, x, y, z, pitch, yaw, roll) = SpawnOnePickUp 实现，在地上生成拾取物
@@ -32,7 +33,7 @@ SRC = r'''
     beq go
     mov r11, #5
     cmp r0, #71
-    bne done
+    bne ucave
 go:
     mov r9, #1
     mov r7, #0
@@ -414,7 +415,7 @@ def build(org=0):
             l = l.split('#L:')[0] + '#0]'
         if t and not t.endswith(':'): k += 1
         out.append(l)
-    b, lab = asm('\n'.join(out), org)
+    b, lab = asm('\n'.join(out), org, {'ucave': org - 0x400 + 0x224})   # v2.51：其他字母交给 SLACK+0x224 的 ucave（ucave.py），不认识的它自己收尾
     # 字面量必须在代码末尾，顺序和 LITS 一致
     assert [lab[n] for n in LITS] == [org + len(b) - 4 * (len(LITS) - i) for i in range(len(LITS))], 'lit order'
     for i, name in refs:

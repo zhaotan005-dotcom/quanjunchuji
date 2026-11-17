@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.50";
+    static final String VER = "v2.51";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1143,7 +1143,33 @@ public class GameOverlay {
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
         btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
         btn(a, u, g3, "全套配件", () -> { int n = 0; for (String at : ATT) if (givenAtt.add(at)) { give(a, at, 1); n++; } if (n == 0) toast(a, "这局配件已经刷过了"); else after(a, "全套配件"); });
-        if (Ed.ED != 2) allItems(a, u, root);
+        if (Ed.ED != 2) { useProps(a, u, root); allItems(a, u, root); }
+    }
+
+    // ---------------- v2.51 用道具：草丛/盾/雷这类功能道具，经典模式界面没有道具栏选不中，这里替游戏「拿出」「放下」 ----------------
+    static void useProps(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "用道具（草丛/盾/雷）");
+        LinearLayout r0 = row(a, root);
+        btn(a, u, r0, "查背包里的道具", () -> new Thread(() -> { String r = Prop.scanUse(); if (!"ok".equals(r)) a.runOnUiThread(() -> toast(a, r)); refreshAny(); }, "zf-use").start());
+        btn(a, u, r0, "放下 / 使用", () -> new Thread(() -> {
+            final String r = Prop.use();
+            a.runOnUiThread(() -> toast(a, "ok".equals(r) ? "已放下（游戏算的位置）" : "ok2".equals(r) ? "已放下（面前 1.5 米）" : r));
+            try { Thread.sleep(1500); } catch (Throwable t) {}
+            Prop.scanUse(); refreshAny();
+        }, "zf-use").start());
+        java.util.ArrayList<Prop.It> l = Prop.useList;
+        LinearLayout ir = null; int j = 0;
+        for (final Prop.It it : l) {
+            if (j++ % 2 == 0) ir = row(a, root);
+            btn(a, u, ir, "拿出 " + Prop.nice(it.cls) + (it.sel ? "（已拿出）" : ""), () -> new Thread(() -> {
+                final String r = Prop.select(it);
+                a.runOnUiThread(() -> toast(a, "ok".equals(r) ? "已拿出，对好位置再点「放下 / 使用」" : r));
+                try { Thread.sleep(500); } catch (Throwable t) {}
+                Prop.scanUse(); refreshAny();
+            }, "zf-use").start());
+        }
+        note(a, u, root, (Prop.useState.isEmpty() ? "先点「查背包里的道具」。" : Prop.useState)
+            + (Prop.lastUseLog.isEmpty() ? "" : "\n最近游戏日志：" + (Prop.lastUseLog.length() > 120 ? Prop.lastUseLog.substring(Prop.lastUseLog.length() - 120) : Prop.lastUseLog)));
     }
 
     // ---------------- v2.49 全部道具：游戏物品表里所有能刷的（不含衣服），按分类，点一下刷一个 ----------------

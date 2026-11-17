@@ -9,6 +9,7 @@ SPAWN=0x10000; code=code[:lit]+struct.pack('<I',SPAWN)+code[lit+4:]
 lit2=lab['lit2']-ORG; BOT=0x10400; code=code[:lit2]+struct.pack('<I',BOT)+code[lit2+4:]
 mu=Uc(UC_ARCH_ARM,UC_MODE_ARM)
 mu.mem_map(0x4a2d000,0x2000); mu.mem_write(ORG,code)
+import ucave; _ub,_ul=ucave.build(); mu.mem_write(ucave.ORG,_ub)   # v2.51：不认识的字母经 ucave 收尾
 mu.mem_map(0x10000,0x1000)
 # spawn stub: str r1,[0x10800]; str r2..; ldr r0 from r2 -> store floats; bx lr
 def W(a,v): mu.mem_write(a,struct.pack('<I',v))

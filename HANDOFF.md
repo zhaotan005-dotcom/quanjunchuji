@@ -55,4 +55,6 @@
 2. 大厅灯光：ANZFrontEndSceneMgr InitLight 0x12056b4，标签 HallDefaultSkyLight/HallDefaultDirectLight（utf32 0x43c9118/0x43c9064）。
 3. 军需（51001-51007 已接，用户说点不开，暂停）。
 4. 未回的问题见 notes/history.md 末尾和项目文档：客户端换弹循环、配件不生效、出生在飞机上、服务端设置退出卡死。
-- SLACK 空位：0x224–0x2ff 还空；0x300–0x3c0 是 Prop cave。
+- SLACK 空位：0x224–0x2b7 是 v2.51 'U' cave（ucave.py）；0x2b8–0x2ff 还空；0x300–0x3c0 是 Prop cave；0x400–0x98f vcave；0x990–0xaa7 毒圈 cave。
+- v2.51 (vc152, 2026-11-18 02:40, 未实测)：装备页「用道具（草丛/盾/雷）」——经典界面没有道具栏，功能道具选不中所以用不了；照抄人机放盾：背包 vt+0x4d0 拿出、vt+0x484 放下（'U' cave SLACK+0x224，vcave 0x5c 处 bne done→bne ucave）。页上会显示每个道具的场景模型类（TargetProp +0x3f0），空 = 蓝图不在手机上、放不出来。服务端地图：核对挂载表后只有现有三张完整（训练场主关卡不存在、沙漠是按需下载的包），没加新图。三个包 releases/ZFrame-v2.51-*.apk（基于 v2.49-单机.apk 重打，v2.50 单机包没进库）。
+  - 要用户测：刷草丛 → 装备页「查背包里的道具」→ 截图那几行（槽/数量/放出来是什么）→「拿出」→ 看游戏界面有没有放置预览、开火键能不能放 →「放下 / 使用」→ 地上有没有草丛；不行就截图页底「最近游戏日志」。

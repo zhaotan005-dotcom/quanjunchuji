@@ -717,3 +717,22 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - Prop.java：地上模型替身。0xce6068 → cave1(SLACK+0x300)：记本局第一个成功加载的地上模型（直接缓冲区存指针）并 AddToRoot；0xce62a0 → cave2(SLACK+0x344)：有替身就走成功分支，没有照原样。进对局图（Browse）时装，所有模式。pick_cave.py / emu_pick.py（unicorn）测过。+0x2f8 行为空的情况不会进回调，替身管不到。
   - 缺资源记录：Con.line → Prop.line，抓 asynchronous load mesh failed / Unable to load static mesh / Failed to find object / Couldn't find file 等带路径的行，「全部道具」页底部列最近 6 条；刷完 1.2 秒内有新的就 toast。
   - 喷气背包特效没改（文件不在就没法补），等页底部列出的路径。未实测。
+
+## v2.51（vc152/core152，2026-11-18 02:40）— 道具能用（草丛等）+ 服务端地图核对
+用户 02:18：「还要能使用啊，查查为什么使用不了比如那个草丛，然后再给服务端加上能开的所有的地图」。
+### 1. 功能道具用不了（草丛/盾/雷/陷阱/扫描雷…）
+- RE：功能道具都是 ANZItem_PropBase 子类（StaticClass 0xf34f54，虚表 0x4c6c800；草丛 ANZBRItem_Bush 构造 0x11d7384 直接继承 PropBase，虚表 0x4ccf8ac；伪装 ANZItem_Camouflage 虚表 0x4ca84b4）。识别：道具虚表 +0x394 == 0xf2e750（OnSelected）。
+  - 道具属性：bSelected +0x334、放置点有效 +0x336、放置点 +0x338(FVector)/+0x344(FRotator)、CheckPlaceBoxComponent +0x360、AdditionOverlapBoxComponent +0x364、PropType +0x3ec、TargetProp(TSubclassOf 场景道具) +0x3f0、PreviewProp +0x3f4、ItemUseType +0x310（2=Passive → NotInitiativeUsable）。
+  - 背包组件 = 人物+0x838（0xcc8274）。3 个道具槽 +0x490/+0x494/+0x498（拾取 PropPickUp 0xfe2074 → 0xfdef7c 放槽），SelectedPropInventory +0x568、LastSelected +0x56c。背包虚表 0x4c830a4：+0x410 0xfe915c（投掷物/道具栏选择：不是投掷物就转 +0x4d0），+0x480 UseItem 0xcdcdfc，+0x484 用选中道具 0xfe98b0，+0x48c 取选中，+0x4d0 DoSelectedFunctionalProp 0xfe9570→0xfe9574，+0x4d4 取消选中 0xfe96e4，+0x4fc(i) 取道具槽。
+  - 流程：选中（0xfe9574：人物有效、0xd15070/0xcdb0ac 为 0、是 PropBase → 取消旧的、道具 vt+0x394 置 bSelected、写 +0x568；Role==2 才发 RPC）→ 道具 Tick 0xf2e124（vt+0x204）每帧用 vt+0x3b4 0xf2fb30 算放置点并写 +0x336（检测盒 +0x360 无效时直接返回 false、不写位置）→ 用 0xfe98b0：选中且 +0x336≠0（或专用服 / vt+0x324）才 UseItem，否则给玩家弹「调整放置位置」提示 → UseThisItem 0xf2e3c4（vt+0x348，CanUseThisItem 0xf2e1f8）→ SpawnScenePropItem 0xf300dc（vt+0x3a4，TargetProp 空就什么都不做，生成失败打 "[evanlu]ANZItem_PropBase::SpawnScenePropItem failed!"）。
+  - 游戏自己的人机放盾 0xfc8f5c 就是：背包 vt+0x4d0(道具) 再 vt+0x484()。
+  - 结论（静态，未实测）：选中只由游戏界面（Lua 的道具栏 / 投掷物栏 → vt+0x410/0x4d0）触发，经典模式界面没有道具栏 → 选不中 → 怎么点都用不了。喷气背包是背包类、魔爪饮料是普通消耗品，不走这条，所以能用。
+- 改：新 'U' cave（SLACK+0x224..0x2b7，game/re/ucave.py，emu_ucave.py unicorn 过：选中、拷位置+置有效、obj 空、其他字母原样收尾、r4-r11/sp 恢复）。vcave 'G' 判断后的 `bne done` 改成 `bne ucave`（CAVE 偏移 0x5c：3c01001a → 70ffff1a，长度不变；emu_vcave 仍全过）。Veh.install 启动时先放 ucave（空位要全 0），放不上就把那个字改回原样。
+  - 'U'：buf+12 obj、+16 arg、+20 虚表偏移 → 游戏线程调 obj->vt[off](obj,arg)，返回 +24，标记 5b0e/5b0f；buf+28 非 0 时先把 buf+40..63 拷到 道具+0x338..0x34c 并置 +0x336=1。Java 只调背包 vt+0x4d0/vt+0x484，调前核对虚表项 == 0xfe9570/0xfe98b0。
+  - 装备页（单机/服务端）新「用道具（草丛/盾/雷）」：查背包里的道具（槽 + 物品列表里 vt+0x394==0xf2e750 的，显示类名、槽、数量、是否拿出、放置点是否有效、TargetProp 类名；TargetProp 空 = 场景蓝图没加载 → 放不出来）、每个道具「拿出」（vt+0x4d0）、「放下 / 使用」（vt+0x484；游戏算的放置点无效就用面前 1.5 米、脚下高度）。日志里 SpawnScenePropItem/CanUseThisItem 行记进 LogCap 并显示在页底。
+  - 如果「放出来是…」那一项显示「场景模型类没加载」→ 草丛的场景蓝图（ANZBRSceneItem_Bush 的 BP）不在手机的 pak 里，那就没法修（Items/Prop 两个 pak 已挂载，但内容在 IFS 里不能读）。
+### 2. 服务端能开的地图
+- 依据：游戏日志的 pak 挂载表（game/logs/PUBGM.log-e92460374c78.txt.log）+ libUE4 字符串。Content/Maps 下挂载的：ErangelMobile_Runtime（老海岛 BR-Erangel_Mobile_Main）、ErangeMobileRenew_Runtime（新海岛 BR-ErangelRenew_Mobile_Main）、SavageMobile_4x4_Runtime（雨林 BR-Savage_Mobile_Main）、TrainingIsland_Runtime、ErangeMobileRenew（新海岛共用资源，无主关卡）、Maps/ 根 pak（大厅 Erangle_RoleHall/FrontEndMap_NEW）。
+- 训练场：libUE4 里主关卡名 BR-Training_Mobile_Main（0x464aac4，只在 NavMesh 特判 0x2797928 用）；v1.12 设备上 open 报 "does not exist"（UEngine::HandleOpenCommand → MakeSureMapNameIsValid，会按短名搜所有已挂载包）→ 手机上只有碎片，不加。
+- 沙漠：大厅有 OnDesertBtnClick，但没有任何 Desert/Miramar pak 挂载；地图包是按需下载的（MapPakDownloadConfig / "MountMap no pak exist for map %s"），离线下载不了 → 不加。ShowcaseMap/OpeningAnimation 只是开场动画相机，FrontEndMap 是大厅 → 不是对战图。
+- 结论：能开的就是现有三张，服务端开房页不变（单机选图也不变）。
