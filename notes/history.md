@@ -677,3 +677,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.42 (vc143): 用户：拉人去掉（开加速自己过去；海岛都在出生岛）。用户以为拉人是手动的 —— v2.31 起有人加入/重连会自动拉（Lan "Join succeeded" → Crew.joined），这就是 v2.41 那次闪退的触发点。现在加入只 find()，不 teleport；联机页拉人按钮删了。
   - 换弹：反射表 NZWeapon WeaponCarriedAmmoCount +0x60c（ServerWeaponAmmoCount +0x604 有 RepNotify OnReplicateAmmoCount，WeaponAmmoCount +0x608，ClipAmmoCount +0x52c）。没有单独的换弹 RPC，换弹状态走 ServerProceedWeapRepInfo；结束事件 EStateEvent_EndChangeClip，时间 WeaponChangeClipTime。新推测：服务端那边加入玩家背包没子弹（20:47:57 服务端 "GiveItem failed, Pick->GetInventoryType() is NULL"）→ 服务端换弹拿不到备弹 → 弹匣 0。诊断写 LogCap.note：加入玩家拿枪时 容量/服务端弹匣/备弹，弹匣 0 超 2.5 秒时备弹；AvatarLog 加 GiveItem/PickupInventory/ChangeClip/Carried。
   - 地图：只有 海岛、海岛2、雨林 三张完整主图（训练场只有碎片）。libUE4 里有 ZombieSpawnManager/ZombieClass 代码，但没看到僵尸/圣诞地图。
+- v2.43 (vc144): The user's base is already the final 1.0.17.1.0. The 五军/战术大师 (landmine, trap, prop items) and desert resources are probably on-demand downloads.
+  - The diagnostic export gets a 「资源清单」 section: every "mount pak" MountPoint in the game log (Avatar folded per category), keyword hits (Desert/Legion/Prop/Mine/Trap/Flare/AirSupply/Training…), files >1MB under Android/data, obb and data/files, and the APK size.
+  - Log KEYS add AirSupply/AirBox/Flare/FunctionalProp/Legion/FiveArmy.
+  - RE: the flare path is ANZProjectile_FlareBullet / UNZFireMode_FlareGun / ANZBRAirSupplyPlaneForFlareGun.
+    - AirSupplyManager props: BoxClass +0x32c, SP +0x330, FlareGunNormal +0x334, FlareGunVehicle +0x338, CurFlareUsedNum +0x354.
+    - PC TestSpawnAirSupplyBox impl is stripped.
+  - Functional props are ItemSubType_FunctionalProp (enum Bush, Doll, LandMine, LaunchPad, LiftTable, Shiled, Trap, Tree, ScanGrenade). Item IDs are unknown.

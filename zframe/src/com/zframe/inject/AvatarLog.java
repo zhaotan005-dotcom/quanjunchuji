@@ -9,7 +9,7 @@ import java.io.*;
 /** v1.56 灰色人物诊断：按一下，把游戏日志里和人物/衣服有关的行存到 下载/ZFrame/avatar-*.txt。平时什么都不做。 */
 public class AvatarLog {
     static final String[] KEYS = { "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
-            "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried" };
+            "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried", "AirSupply", "AirBox", "Flare", "FunctionalProp", "Legion", "FiveArmy" };
 
     static String export(Activity a) { return export(a, "avatar-"); }
     static String export(Activity a, String prefix) {
@@ -17,7 +17,7 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v2.42 " + Ed.name() + " 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame v2.43 " + Ed.name() + " 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
@@ -38,6 +38,7 @@ public class AvatarLog {
                     if (sb.length() > 3_000_000) break;
                 }
             }
+            sb.append(resources(a, f));
             sb.append("\n共 ").append(n).append(" 行，日志 ").append(f.getName()).append(' ').append(len).append(" 字节\n");
             return "已存到 下载/ZFrame/" + save(a, sb.toString(), prefix);
         } catch (Throwable t) { return "导出失败：" + t.getMessage(); }
@@ -160,5 +161,54 @@ public class AvatarLog {
         if (u == null) throw new Exception("无法在 下载/ZFrame 建文件");
         try (OutputStream o = a.getContentResolver().openOutputStream(u, "wt")) { o.write(text.getBytes("UTF-8")); }
         return name;
+    }
+
+    /** v2.43 资源清单：游戏日志里全部 pak 的挂载目录（看包里到底有没有沙漠、五军、战术大师道具等资源），加上游戏目录里的大文件。只读。 */
+    static final String[] WANT = { "Desert", "Miramar", "Legion", "FiveArmy", "ThreeArmy", "Prop", "Mine", "Trap", "Doll", "Shield", "Lift", "Bush", "Tree", "Rock", "Jet", "Flare", "AirSupply", "AirBox", "Training", "Tactic", "Zombie", "Monster", "Maps", "Snow", "Sanhok", "Savage" };
+    static String resources(Activity a, File log) {
+        StringBuilder sb = new StringBuilder("\n== 资源清单（v2.43）==\n");
+        try {
+            java.util.TreeMap<String, Integer> mp = new java.util.TreeMap<>();
+            int paks = 0;
+            for (File x : new File[] { log }) {
+                BufferedReader br = new BufferedReader(new StringReader(readText(x, 30_000_000)));
+                String l;
+                while ((l = br.readLine()) != null) {
+                    int i = l.indexOf("MountPoint");
+                    if (i < 0 || !l.contains("mount pak")) continue;
+                    paks++;
+                    String m = l.substring(i + 10).replace("\"", "").replace("../../../PUBGM/Content/", "").trim();
+                    if (m.endsWith(".")) m = m.substring(0, m.length() - 1);
+                    if (m.startsWith("Avatar/")) { String[] q = m.split("/"); m = q.length > 2 ? "Avatar/" + q[1] + "/" + q[2] + "/*" : m; }
+                    mp.merge(m, 1, Integer::sum);
+                }
+            }
+            sb.append("挂载 pak ").append(paks).append(" 个，目录 ").append(mp.size()).append(" 种\n");
+            StringBuilder hit = new StringBuilder();
+            for (java.util.Map.Entry<String, Integer> e : mp.entrySet()) {
+                sb.append(e.getKey()).append(" ×").append(e.getValue()).append('\n');
+                for (String w : WANT) if (e.getKey().toLowerCase().contains(w.toLowerCase())) { hit.append(e.getKey()).append("  "); break; }
+            }
+            sb.append("关键词命中：").append(hit.length() == 0 ? "无" : hit.toString()).append('\n');
+        } catch (Throwable t) { sb.append("读日志失败：").append(t).append('\n'); }
+        sb.append("-- 游戏目录大文件 --\n");
+        try {
+            String pkg = "com.tencent.tmgp.pubgm";
+            java.util.List<File> big = new java.util.ArrayList<>();
+            for (File r : new File[] { new File("/storage/emulated/0/Android/data/" + pkg + "/files"), new File("/storage/emulated/0/Android/obb/" + pkg), new File("/data/data/" + pkg + "/files") })
+                listBig(r, 0, big);
+            long tot = 0;
+            for (File x : big) { tot += x.length(); if (big.indexOf(x) < 80) sb.append(x.getPath()).append(' ').append(x.length() >> 20).append("MB\n"); }
+            sb.append("合计 ").append(big.size()).append(" 个，").append(tot >> 20).append("MB\n");
+        } catch (Throwable t) { sb.append("读不到：").append(t).append('\n'); }
+        try { sb.append("安装包 ").append(new File(a.getApplicationInfo().sourceDir).length() >> 20).append("MB\n"); } catch (Throwable ignored) {}
+        return sb.toString();
+    }
+    static void listBig(File d, int depth, java.util.List<File> out) {
+        File[] fs = d.listFiles(); if (fs == null || depth > 8 || out.size() > 400) return;
+        for (File f : fs) {
+            if (f.isDirectory()) listBig(f, depth + 1, out);
+            else if (f.length() > (1 << 20)) out.add(f);
+        }
     }
 }
