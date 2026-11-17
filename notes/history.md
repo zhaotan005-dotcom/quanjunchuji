@@ -601,3 +601,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE：0x101a6e8 = GameState 数活人：TActorIterator<ANZCharacter>（StaticClass 0xe3a608），跳过 PendingKill、跳过 ANZDollCharacter（0x11f3cd0），[+0x5a0]>=1 算活，0xcd4054（看 +0x2d0 控制器）判人机 → +0x774/+0x778。所以世界里还有第二个活着的 ANZCharacter（不是假人 Doll 类）。
 - 探针（只在按「查剩余人数」时装，2.5 秒后拆）：0x101a814 mov r0,r6 → b 0x171e7d0；cave 把 r6 记进 8 格环（Java 直接缓冲区），mov r0,r6，b 0x101a818。0x171e7d0..7fb 是 GM 面板废函数里 SL cave 后面的空地。
 - 输出（导出诊断里「剩余人数：」）：每个被算进去的人物 地址/（我）/类名/对象名/+5a0/控制器类/所在关卡包。
+
+## v2.24（vc125/core125，2026-11-17 16:40）— 客户端 IP 输入能填不能删
+- 用户：加入房间的 IP 框能打字但删不掉。悬浮窗里的 EditText 删除键（KEYCODE_DEL 按键事件）被游戏吃掉，提交文字走 InputConnection 所以能打。
+- 改：去掉 EditText，换成自带键盘（0-9 . : 退格 清空 加入），上面显示 ___.___.___.___ 格式和是否合法（每段 ≤255，端口可省，默认 7777）。不弹系统键盘。
+- 衣服「按编号穿」的数字框没改，可能同样删不了。

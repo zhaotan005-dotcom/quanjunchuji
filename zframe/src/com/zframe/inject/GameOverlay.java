@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.23";
+    static final String VER = "v2.24";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -794,15 +794,27 @@ public class GameOverlay {
           } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
-            LinearLayout ir = row(a, jc); ir.setPadding(0, u.dp(6), 0, u.dp(6));
-            final EditText et = new EditText(a);
-            et.setHint("房主 IP，如 192.168.1.5 或 穿透地址:端口"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
-            et.setInputType(android.text.InputType.TYPE_CLASS_TEXT); et.setSingleLine(true);
-            if (Lan.lastIp != null) et.setText(Lan.lastIp);
-            et.setBackground(box(0xFFF2F2F7, u.dp(9))); et.setPadding(u.dp(10), u.dp(8), u.dp(10), u.dp(8));
-            LinearLayout.LayoutParams elp = new LinearLayout.LayoutParams(0, -2, 2.4f); elp.setMargins(0, u.dp(3), u.dp(6), u.dp(3));
-            ir.addView(et, elp);
-            fillBtn(a, u, ir, "加入", () -> toast(a, Lan.join(et.getText().toString())));
+            // v2.24 用户：输入框能填不能删（游戏吃掉了删除键）→ 改成自带数字键盘，不用系统键盘
+            if (ipBuf == null) ipBuf = Lan.lastIp != null ? Lan.lastIp : "";
+            final TextView ipShow = label(a, jc, "", 20f, true, TXT);
+            ipShow.setGravity(Gravity.CENTER); ipShow.setPadding(0, u.dp(10), 0, u.dp(2));
+            final TextView ipFmt = label(a, jc, "", 11f, false, SUBT);
+            ipFmt.setGravity(Gravity.CENTER); ipFmt.setPadding(0, 0, 0, u.dp(6));
+            final Runnable show = () -> {
+                ipShow.setText(ipBuf.isEmpty() ? "___.___.___.___" : ipBuf);
+                ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT);
+                ipFmt.setText(ipOk(ipBuf) ? "格式对了" + (ipBuf.indexOf(':') < 0 ? "（端口默认 7777）" : "") : "格式：192.168.1.5 或 1.2.3.4:端口");
+            };
+            show.run();
+            String[][] keys = {{"1", "2", "3", "4"}, {"5", "6", "7", "8"}, {"9", "0", ".", ":"}};
+            for (String[] kr : keys) {
+                LinearLayout r = row(a, jc);
+                for (final String k : kr) btn(a, u, r, k, () -> { if (ipBuf.length() < 21) ipBuf += k; show.run(); });
+            }
+            LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(6));
+            btn(a, u, er, "退格", () -> { if (!ipBuf.isEmpty()) ipBuf = ipBuf.substring(0, ipBuf.length() - 1); show.run(); });
+            btn(a, u, er, "清空", () -> { ipBuf = ""; show.run(); });
+            fillBtn(a, u, er, "加入", () -> toast(a, Lan.join(ipBuf)));
             note(a, u, root, "房主先进图，再点加入。");
           }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
@@ -847,6 +859,12 @@ public class GameOverlay {
         seg.addView(b, new LinearLayout.LayoutParams(0, -2, 1));
     }
     /** 实心蓝按钮 */
+    static String ipBuf;
+    static boolean ipOk(String ip) {
+        if (!ip.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d{1,5})?")) return false;
+        for (String o : ip.split(":")[0].split("\\.")) if (Integer.parseInt(o) > 255) return false;
+        return true;
+    }
     static TextView fillBtn(Activity a, Ui u, LinearLayout row, String text, Runnable r) {
         TextView b = btn(a, u, row, text, r); b.setBackground(box(ACC, u.dp(10))); b.setTextColor(0xFFFFFFFF); return b;
     }
