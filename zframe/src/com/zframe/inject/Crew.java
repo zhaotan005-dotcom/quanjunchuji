@@ -64,14 +64,20 @@ final class Crew {
         if (ja != 0 && joinStage == 0 && now - ja > 6000) { joinStage = 1; jt = true; }
         else if (ja != 0 && joinStage == 1 && now - ja > 12000) { joinStage = 0; joinAt = 0; jt = true; }
         if (pullAll || jt) { lastFind = now; find(); doPull(players); return; }
-        if (!want()) return;
+        boolean wn = want();
+        if (!wn && players.isEmpty()) return;   // v2.32：有人加入后即使没开也继续同步（把 1 倍也告诉客户端）
         if (now - lastFind > 15000) { lastFind = now; find(); }
         java.util.ArrayList<Long> ps = players;
         if (ps.isEmpty()) return;
+        float code = Mods.encode(Mods.speed, Mods.jump);
         long b = Mods.base(); if (b == 0) return;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             for (long p : ps) {
                 if (!Mods.isObj(m, b, p)) continue;
+                // v2.32：把房主的 加速/高跳 写进这个玩家的 PlayerState.Score，客户端读到自动跟
+                long st = Mods.rp(m, p + 0x2c4);
+                if (Mods.isObj(m, b, st) && Mods.f(m, st + Mods.PS_SCORE) != code) Mods.wf(m, st + Mods.PS_SCORE, code);
+                if (!wn) continue;
                 long c = Mods.rp(m, p + Mods.P_CMC);
                 if (!Mods.isObj(m, b, c)) continue;
                 // 高跳

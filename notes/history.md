@@ -646,3 +646,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 新 vcave 指令 'T<人物>x<buf>'：0x273d654 = K2_TeleportTo 的实现（内部走 vt+0x250 TeleportTo(loc, rot, false, false)），位置 buf+40..48，朝向 +52..60，返回 +4，标记 5b0d。emu_vcave.py 加 T 测试，通过。cave 1424 字节，到 0x4a2ded0（< 0x4a2e000）。
 - Crew：日志出现 Join succeeded → 6 秒、12 秒各找一次人（Alive.collect），把加入的玩家传到房主身边 2 米（每人每局一次）。联机页加「把加入的人拉到我身边」。诊断导出加 Crew.state / pullState。
 - 加速/高跳没生效：Con 进图 Browse 时 Mods.resetMatch() 把 speed/jump/枪开关清回 1 —— 大厅里拉好的数进图就没了。v2.31 不再清这些，只清内部状态；setMove 记日志。
+- v2.32 (vc133/core133): 客户端加速/高跳跟房主自动同步。房主 Crew 把 7700000+round(加速×2)×100+round(高跳×2) 写进每个加入玩家 PlayerState(pawn+0x2c4)+0x2b0 Score（反射表 APlayerState: Score 0x2b0 CPF_Net OnRep_Score，PlayerName 0x2b8，PlayerId 0x2d0）。有人加入后就一直写（没开也写 1 倍）。客户端 Mods.syncFromHost 读自己 PS 的 Score 解码设 speed/jump；客户端功能页滑条换成「跟房主」说明；诊断加「跟房主：」行。未实测：Score 可能被游戏别处显示/改写。

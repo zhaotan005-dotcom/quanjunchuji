@@ -125,7 +125,7 @@ final class Lan {
 
     private static String openJoin(String ip, String shown) {
         unlock();
-        role = 2; Bots.auto = false; Server.quiet(); beat("加入加载");
+        role = 2; Mods.startMover(); Bots.auto = false; Server.quiet(); beat("加入加载");
         boolean ok = Con.exec("open " + ip);
         state = ok ? "加入：已发 open " + shown : "加入：命令没发出去";
         note(ok ? "加入：open " + ip : state);

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.31";
+    static final String VER = "v2.32";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -944,8 +944,14 @@ public class GameOverlay {
     static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
         boolean cl = Lan.role == 2 || Ed.ED == 2;
         head(a, u, root, "跑跳");
-        slider(a, u, root, "加速", cl ? "要和房主拉到同一个数才不被拉回去" : Ed.ED == 1 ? "房主拉的数也加给加入的玩家，客户端要拉同一个数" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", cl ? "要和房主拉到同一个数" : Ed.ED == 1 ? "房主拉的数也加给加入的玩家，客户端要拉同一个数" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        if (Ed.ED == 2) {
+            // v2.32 客户端：不再自己拉，跟房主的数
+            LinearLayout cc = card(a, u, root);
+            note(a, u, cc, "加速、高跳跟房主走，房主拉多少你就是多少。现在：" + Mods.hostSyncText());
+        } else {
+        slider(a, u, root, "加速", cl ? "要和房主拉到同一个数才不被拉回去" : Ed.ED == 1 ? "房主拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "高跳", cl ? "要和房主拉到同一个数" : Ed.ED == 1 ? "房主拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        }
         LinearLayout fc = card(a, u, root);
         LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);
         TextView fn = new TextView(a); fn.setText("动作放慢"); fn.setTextColor(TXT); fn.setTextSize(13);

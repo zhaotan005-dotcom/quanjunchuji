@@ -343,6 +343,36 @@ public class Mods {
         startMover();
         if (Ed.ED == 1) Crew.start();   // v2.26 房主：加给加入的玩家
     }
+    /** v2.32 房主把 加速/高跳 编码进加入玩家的 PlayerState.Score（APlayerState+0x2b0，会同步给客户端）：
+     *  7700000 + 加速×2×100 + 高跳×2（滑条 0~10 步长 0.5）。客户端读自己 PlayerState（pawn+0x2c4）的 Score 解出来。 */
+    static final int PS_SCORE = 0x2b0, SYNC_BASE = 7700000;
+    static float encode(float s, float j) { return SYNC_BASE + Math.round(s * 2) * 100 + Math.round(j * 2); }
+    static volatile String syncState = "还没收到房主的数";
+    static float lastCode = Float.NaN;
+    static long lastSyncAsk;
+    static String hostSyncText() { return syncState; }
+    static void syncFromHost() {
+        try {
+            long b = base(); if (b == 0) return;
+            long pawn = GameOverlay.pawnAddr();
+            if (pawn == 0) { long now = System.currentTimeMillis(); if (now - lastSyncAsk > 4000) { lastSyncAsk = now; GameOverlay.askPawn(); } return; }
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                if (!isObj(m, b, pawn)) return;
+                long ps = rp(m, pawn + 0x2c4);
+                if (!isObj(m, b, ps)) return;
+                float sc = f(m, ps + PS_SCORE);
+                if (sc == lastCode) return;
+                lastCode = sc;
+                int c = Math.round(sc) - SYNC_BASE;
+                if (c < 0 || c > 2120 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到房主的数"; return; }
+                float s = Math.max(1f, (c / 100) / 2f), j = Math.max(1f, (c % 100) / 2f);
+                speed = s; jump = j;
+                syncState = "加速 " + s + " 高跳 " + j;
+                LogCap.note("跟房主：" + syncState);
+                GameOverlay.refreshAny();
+            }
+        } catch (Throwable t) { syncState = "读房主的数出错 " + t.getMessage(); }
+    }
     static boolean active() { return speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }
 
     static synchronized void startMover() {
@@ -362,6 +392,7 @@ public class Mods {
     /** v1.49：只在对局里动人物（大厅里的人物模型不是对局里的角色，写了会闪退） */
     static void tickMove() throws Exception {
         if (!Con.inMatch) { if (cmc != 0) { cmc = 0; GameOverlay.forgetPawn(); } moveState = "进图后生效"; return; }
+        if (Ed.ED == 2) syncFromHost();
         if (!active()) return;
         long b = base(); if (b == 0) return;
         long pawn = GameOverlay.pawnAddr();
