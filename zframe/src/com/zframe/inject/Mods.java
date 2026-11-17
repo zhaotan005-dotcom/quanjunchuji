@@ -20,6 +20,9 @@ public class Mods {
      *  圈心就跟着跑到地图边/地图外。bge → b，所有圈都走「在上一圈中心 ± CenterPointOffsetMax 里随机」（Flow 把这个值写成 0 = 用我们算好的中心）。 */
     static final long POOL = 0xd97d68L; static final String POOL_O = "040000aa", POOL_N = "040000ea";
     static final long WAIT = 0x1019774L; static final String WAIT_O = "380096e5", WAIT_N = "fe05a0e3";
+    /** v2.45 单机开局读秒 45→20 秒：0x101977c ldr r0,[r6,#0x3c]（StartMatchCountDownTime → GS+0x740）→ movt r0,#0x41a0。
+     *  r0 这时是上一句读的等人时间（60.0 或 WAIT 补丁后的 1.0），低 16 位都是 0 → r0 = 20.0f。游戏读表那一下就是 20 秒，不事后改。 */
+    static final long START = 0x101977cL; static final String START_O = "3c0096e5", START_N = "a00144e3";
     // v1.41~1.43 的开火不扣子弹代码补丁(0xefd104)会让游戏启动几秒就闪退（扣子弹代码有校验），已删除，别再改这里
     static final long AMMO = 0xefd104L; static final String AMMO_O = "065045e0", AMMO_N = "0550a0e1";
     static final String MALE_O = "00560ae30210a0e3f75f45e3", MALE_N = "00550ce30210a0e3015a45e3";
