@@ -70,7 +70,7 @@ public class ZInit extends ContentProvider {
         return true;
     }
 
-    public static final int CORE_VER = 162;
+    public static final int CORE_VER = 163;
 
     public static void boot(Context ctx) {
         try {

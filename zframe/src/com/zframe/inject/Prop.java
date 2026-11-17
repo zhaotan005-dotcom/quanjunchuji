@@ -273,10 +273,21 @@ public class Prop {
         long comp, ctl; float dur;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             if (!alive(m, b, p.actor)) { synchronized (placed) { placed.remove(p); } return "已经没了"; }
-            // v2.61：0x10e9434 / 道具组件 +0x1160 在玩家控制器上（不是人物）：控制器 = PlayerState(人物+0x2c4).Owner(+0x60)
+            // v2.62：v2.61 直接读 控制器+0x1160 用错了对象 → 闪退。改成按类名找：人物/控制器里类名带 PlayerPropComponent 的那个指针
             long ps = Server.rd(m, pawn + 0x2c4); ctl = ps < 0x10000 ? 0 : Server.rd(m, ps + 0x60);
-            if (ctl < 0x10000) return "找不到控制器";
-            comp = Server.rd(m, ctl + 0x1160); if (comp < 0x10000) return "控制器没有道具组件";
+            comp = 0; String where = "";
+            Veh.Names nm = Veh.Names.get();
+            for (long o : new long[]{pawn, ctl}) {
+                if (o < 0x10000 || comp != 0) continue;
+                for (int off = 0x200; off < 0x1800; off += 4) {
+                    long q = Server.rd(m, o + off);
+                    if (q < 0x10000 || q >= 0xffff0000L) continue;
+                    String cn = Alive.clsName(m, nm, q);
+                    if (cn != null && cn.contains("PlayerPropComponent")) { comp = q; where = (o == pawn ? "人物+" : "控制器+") + Integer.toHexString(off) + " " + cn; break; }
+                }
+            }
+            LogCap.note("用道具：道具组件 " + (comp == 0 ? "没找到" : where));
+            if (comp == 0) return "找不到道具组件（已记日志）";
             dur = Float.intBitsToFloat((int) Server.rd(m, p.actor + 0x2ec));
         } catch (Throwable e) { return "出错 " + e; }
         try {
