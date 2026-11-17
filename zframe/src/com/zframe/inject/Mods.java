@@ -332,6 +332,7 @@ public class Mods {
 
     public static void setGun(boolean r, boolean s, boolean ia) {
         noRecoil = r; noShake = s; infAmmo = ia;
+        if (Ed.ED == 1) Crew.start();
         LogCap.note("无后座=" + r + " 聚点=" + s + " 无限子弹=" + ia);
         startMover();
     }
@@ -339,6 +340,7 @@ public class Mods {
     public static void setMove(float s, float j) {
         speed = Math.max(1f, s); jump = Math.max(1f, j);
         startMover();
+        if (Ed.ED == 1) Crew.start();   // v2.26 房主：加给加入的玩家
     }
     static boolean active() { return speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }
 

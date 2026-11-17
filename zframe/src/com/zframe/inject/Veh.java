@@ -205,7 +205,8 @@ public class Veh {
     static ArrayList<Group> fixed() {
         Object[][] t = { {"吉普", new long[]{1, 17, 20, 28}}, {"敞篷吉普", new long[]{4, 11, 21}}, {"篷布吉普", new long[]{5, 12, 22}},
             {"轿车", new long[]{2, 23}}, {"蹦蹦", new long[]{6, 14, 24}}, {"面包车", new long[]{10}}, {"跑车", new long[]{29, 30}},
-            {"摩托", new long[]{9, 15, 25}}, {"三轮摩托", new long[]{8, 16, 26}}, {"快艇", new long[]{13, 18, 19}}, {"大船", new long[]{3, 27}} };
+            {"摩托", new long[]{9, 15, 25}}, {"三轮摩托", new long[]{8, 16, 26}}, {"快艇", new long[]{13, 18, 19}}, {"大船", new long[]{3, 27}},
+            {"皮卡（试）", new long[]{31, 32}} };   // v2.26：车表 31=car_007、32=car_008 两款没认过，按一次换一款，看哪个是皮卡
         ArrayList<Group> out = new ArrayList<>();
         for (Object[] r : t) { Group g = new Group(); g.label = (String) r[0]; for (long id : (long[]) r[1]) g.ids.add(id); out.add(g); }
         return out;

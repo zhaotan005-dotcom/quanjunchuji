@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.25";
+    static final String VER = "v2.26";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -75,7 +75,7 @@ public class GameOverlay {
             fold.setBackground(box(0x1F007AFF, u.dp(4)));
             head.addView(fold, new LinearLayout.LayoutParams(u.dp(26), u.dp(26)));
             TextView title = new TextView(a);
-            title.setText(Ed.single() ? "全军出击单机版" : "全军出击联机版"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
+            title.setText(Ed.single() ? "全军出击单机版" : Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端"); title.setTextColor(TXT); title.setTextSize(15); title.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
             title.setLetterSpacing(0.04f); title.setGravity(Gravity.CENTER); title.setSingleLine(true);
             head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
             final TextView close = iconBtn(a, u, "×");
@@ -134,11 +134,11 @@ public class GameOverlay {
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? id != 2 : (id == 6 || id == 5 || id == 0 || id == 8);
+                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8);
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
-                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? tab != 2 : (tab == 6 || tab == 5 || tab == 0 || tab == 8);
+                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? true : (tab == 6 || tab == 5 || tab == 0 || tab == 8);
                     if (!ok) { tab = r == 2 ? 6 : 0; paintTabs(tv, u); }
                 }
             };
@@ -214,7 +214,7 @@ public class GameOverlay {
         StringBuilder b = new StringBuilder();
         if (!Mods.noPlane && !Mods.noPoison) b.append("正常对局");
         else { if (Mods.noPlane || Mods.noPoison) b.append("不刷毒对局"); }
-        if (!Con.inMatch) { st.setText(dot(b.toString() + " · " + VER + " " + Ed.name())); return; }   // v1.73：不显示男女和大厅
+        if (!Con.inMatch) { st.setText(dot((Ed.ED == 2 ? "" : b.toString() + " · ") + VER + " " + Ed.name())); return; }   // v2.26 客户端大厅不显示对局模式   // v1.73：不显示男女和大厅
         if (Mods.speed != 1f) b.append(" · 加速 ").append(fmt(Mods.speed));
         if (Mods.jump != 1f) b.append(" · 高跳 ").append(fmt(Mods.jump));
         if (Mods.noRecoil) b.append(" · 无后座");
@@ -794,34 +794,21 @@ public class GameOverlay {
           } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
-            // v2.24 用户：输入框能填不能删（游戏吃掉了删除键）→ 改成自带数字键盘，不用系统键盘
+            // v2.26 用户：只要「粘贴」和「加入」。地址原样连（域名也直接交给游戏），不自己解析
             if (ipBuf == null) ipBuf = Lan.lastIp != null ? Lan.lastIp : "";
-            final TextView ipShow = label(a, jc, "", 20f, true, TXT);
-            ipShow.setGravity(Gravity.CENTER); ipShow.setPadding(0, u.dp(10), 0, u.dp(2));
-            final TextView ipFmt = label(a, jc, "", 11f, false, SUBT);
-            ipFmt.setGravity(Gravity.CENTER); ipFmt.setPadding(0, 0, 0, u.dp(6));
-            final Runnable show = () -> {
-                ipShow.setText(ipBuf.isEmpty() ? "___.___.___.___" : ipBuf);
-                ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT);
-                ipFmt.setText(ipOk(ipBuf) ? "格式对了" + (ipBuf.indexOf(':') < 0 ? "（端口默认 7777）" : "") : ipBuf.matches(".*[A-Za-z].*") ? "域名，加入时自动解析" : "格式：192.168.1.5 或 1.2.3.4:端口；穿透域名复制后点粘贴");
-            };
+            final TextView ipShow = label(a, jc, "", 18f, true, TXT);
+            ipShow.setGravity(Gravity.CENTER); ipShow.setPadding(0, u.dp(12), 0, u.dp(10));
+            final Runnable show = () -> { ipShow.setText(ipBuf.isEmpty() ? "先复制房主的地址，再点粘贴" : ipBuf); ipShow.setTextColor(ipBuf.isEmpty() ? SUBT : TXT); };
             show.run();
-            String[][] keys = {{"1", "2", "3", "4"}, {"5", "6", "7", "8"}, {"9", "0", ".", ":"}};
-            for (String[] kr : keys) {
-                LinearLayout r = row(a, jc);
-                for (final String k : kr) btn(a, u, r, k, () -> { if (ipBuf.length() < 21) ipBuf += k; show.run(); });
-            }
-            LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(6));
-            btn(a, u, er, "退格", () -> { if (!ipBuf.isEmpty()) ipBuf = ipBuf.substring(0, ipBuf.length() - 1); show.run(); });
-            btn(a, u, er, "清空", () -> { ipBuf = ""; show.run(); });
+            LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(8));
             btn(a, u, er, "粘贴", () -> {
                 try {
                     android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
                     CharSequence t = cm.hasPrimaryClip() ? cm.getPrimaryClip().getItemAt(0).coerceToText(a) : null;
                     String v = t == null ? "" : t.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", "");
                     if (v.isEmpty()) { toast(a, "剪贴板是空的"); return; }
-                    ipBuf = v.length() > 60 ? v.substring(0, 60) : v; show.run();
-                } catch (Throwable e) { toast(a, "读不到剪贴板"); }
+                    ipBuf = v.length() > 80 ? v.substring(0, 80) : v; show.run();
+                } catch (Throwable ex) { toast(a, "读不到剪贴板"); }
             });
             fillBtn(a, u, er, "加入", () -> toast(a, Lan.join(ipBuf)));
             note(a, u, root, "房主先进图，再点加入。");
@@ -855,6 +842,10 @@ public class GameOverlay {
         note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要房主那边开，客户端改了也不生效。" : "你是房主：别人连你的 IP（UDP 7777）。房主这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
         if (Ed.ED == 1) note(a, u, root, Loot.shortText());
+        if (Lan.role == 1) note(a, u, root, Crew.state);
+        // v2.26：联机版从游戏设置里退不出去 / 退了加入不进去 → 这里直接回大厅
+        LinearLayout xr = row(a, root);
+        fillBtn(a, u, xr, Lan.role == 1 ? "关房间，回大厅" : "退出房间，回大厅", () -> toast(a, Lan.leave()));
         logRow(a, u, root);
     }
     /** iOS 分段控件里的一个按钮 */
@@ -930,8 +921,8 @@ public class GameOverlay {
     static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
         boolean cl = Lan.role == 2 || Ed.ED == 2;
         head(a, u, root, "跑跳");
-        slider(a, u, root, "加速", cl ? "跑得更快，拖到最左边是关；太快会被服务器拉回去" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        slider(a, u, root, "加速", cl ? "要和房主拉到同一个数才不被拉回去" : Ed.ED == 1 ? "房主拉的数也加给加入的玩家，客户端要拉同一个数" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "高跳", cl ? "要和房主拉到同一个数" : Ed.ED == 1 ? "房主拉的数也加给加入的玩家，客户端要拉同一个数" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
         LinearLayout fc = card(a, u, root);
         LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);
         TextView fn = new TextView(a); fn.setText("动作放慢"); fn.setTextColor(TXT); fn.setTextSize(13);
@@ -1017,7 +1008,7 @@ public class GameOverlay {
         LinearLayout gc = card(a, u, root);
         switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "防抖 / 聚点", "镜头不晃、子弹不散开", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "无限子弹", "客户端改的，房主那边可能不认", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
+        note(a, u, root, "无限子弹要房主开：房主开了，房间里所有人都有。客户端自己改会一直换弹。");
     }
 
     /** v2.15「衣服」页（房主/单机）：最上面绝地风衣单独一个按钮；下面是从游戏内存里读出来的全部服装编号（Server.scanSkins，只读），
@@ -1065,6 +1056,8 @@ public class GameOverlay {
         head(a, u, root, "绝地求生风衣");
         LinearLayout fr = row(a, root);
         primary(a, u, fr, "刷绝地风衣", () -> give(a, Mods.COAT, 1, "绝地风衣"));
+        LinearLayout ghr = row(a, root);
+        primary(a, u, ghr, "刷吉利服", () -> ghillie(a));   // v2.26
         if (Ed.ED == 1) note(a, u, root, "房主版：衣服刷在脚下，捡起来就穿上。");
         java.util.TreeMap<Long, java.util.ArrayList<Long>> m = clothes;
         if (m == null) { if (clothState.isEmpty()) loadClothes(false); note(a, u, root, "衣服列表：" + clothState); return; }

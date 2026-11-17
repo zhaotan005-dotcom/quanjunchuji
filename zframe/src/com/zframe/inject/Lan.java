@@ -95,25 +95,8 @@ final class Lan {
     static String join(String ip) {
         ip = ip == null ? "" : ip.trim();
         int k = ip.indexOf('（'); if (k > 0) ip = ip.substring(0, k);
-        // v2.25：穿透给的是域名（frp-put.com:47937），先在后台解析成数字 IP 再连
-        if (ip.matches("[A-Za-z0-9.-]*[A-Za-z][A-Za-z0-9.-]*(:\\d{1,5})?")) {
-            final String dom = ip; final int c = dom.indexOf(':');
-            final String host = c < 0 ? dom : dom.substring(0, c), port = c < 0 ? "7777" : dom.substring(c + 1);
-            note("解析域名 " + dom);
-            new Thread(() -> {
-                String num = null;
-                try { for (java.net.InetAddress x : java.net.InetAddress.getAllByName(host)) if (x instanceof java.net.Inet4Address) { num = x.getHostAddress(); break; } }
-                catch (Throwable t) { note("域名解析失败 " + t); }
-                final String r = num;
-                GameOverlay.MAIN.post(() -> {
-                    String msg = r == null ? "域名解析不出来，检查网络或地址" : join(r + ":" + port);
-                    if (r != null) { lastIp = dom; note(dom + " → " + r); }
-                    android.app.Activity a = Con.act; if (a != null) GameOverlay.toast(a, msg);
-                });
-            }, "zf-dns").start();
-            return "正在解析 " + host;
-        }
-        if (!ip.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d{1,5})?")) return "IP 格式不对";
+        // v2.26 用户：域名不自己解析，原样交给游戏（open 域名:端口）
+        if (!ip.matches("[A-Za-z0-9.-]+(:\\d{1,5})?")) return "地址格式不对，要像 frp-put.com:47937 或 192.168.1.5";
         lastIp = ip;
         if (ip.indexOf(':') < 0) ip += ":7777";
         unlock();
@@ -124,6 +107,13 @@ final class Lan {
         return ok ? "正在连 " + ip : "命令没发出去";
     }
 
+    /** v2.26：回大厅（房主 = 关房间；客户端 = 退出房间）。游戏设置里退出在联机版卡住，这里直接 open 大厅图 */
+    static String leave() {
+        if (!Con.inMatch) return "已经在大厅";
+        boolean ok = Con.exec("open " + Con.LOBBY);
+        note(ok ? "回大厅：已发 open 大厅" : "回大厅：命令没发出去");
+        return ok ? "正在回大厅" : "命令没发出去";
+    }
     static String roleText() { return role == 1 ? "房主（服务器）" : role == 2 ? "已加入别人的房间" : "单机"; }
     static void note(String s) {
         LogCap.note("联机 " + s); Server.mark("联机 " + s);
