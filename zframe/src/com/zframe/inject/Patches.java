@@ -24,6 +24,11 @@ public class Patches {
     static volatile long foundMs = -1;
     public static void start(final Context ctx) {
         if (!PUBGM.equals(ctx.getPackageName())) return;
+        try {   // v2.47：v1.19 声音诊断 AkDiag 留下的明文 Engine.ini（游戏报 invalid config file，原包没有这个文件）→ 只删带 [Core.Log] 的明文版
+            java.io.File ini = new java.io.File(ctx.getExternalFilesDir(null), "UE4Game/PUBGM/PUBGM/Saved/Config/Android/Engine.ini");
+            if (ini.isFile() && ini.length() < 4096) { byte[] b = new byte[(int) ini.length()]; try (java.io.FileInputStream in = new java.io.FileInputStream(ini)) { in.read(b); }
+                String s = new String(b, "UTF-8"); if (s.contains("[Core.Log]") || s.trim().isEmpty()) LogCap.note("清理旧 Engine.ini：" + ini.delete()); }
+        } catch (Throwable ignored) {}
         Thread t = new Thread(new Runnable() { public void run() {
             long base = 0, t0 = System.currentTimeMillis();
             while (base == 0 && System.currentTimeMillis() - t0 < 180000) {

@@ -694,3 +694,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.45 (vc146)：毒圈改在底层。0xd977ec（ldr r5,[r4,#0x34c]; str r0,[sp,#0x60]）→ cave A（SLACK+0x9b0）：把 +0x33c/+0x340/+0x344 换成我们的表（每项 +0x20..+0x54 照抄游戏原表第 0 项/最后一项），存原值到 SLACK+0x998..；0xd97b6c（函数出口）→ cave B（SLACK+0xa70）换回原数组，表永远不归游戏释放。表在 LogNet Browse 进对局图时写（Flow.natPrepare，客户端不写），direct ByteBuffer；表 = 整图(等 240/4x4 180 秒) + 整图(第一圈时间) + 正式服 8 圈 + 0.1 米；圈心全交给游戏算，+0 偏移 = 第一圈 边长/2-半径，之后 上一圈半径-本圈半径。底层装上时不再打 POOL 补丁（换圈恢复游戏自己的按玩家定圈心），Flow.circle 看到已是正式服表就只记录。zone_cave.py 生成、unicorn 测过（拷尾巴、不重复换、出口还原）。未实测。
 - 23:28 用户：单机版不用等人，进游戏 20 秒就上飞机。
 - v2.46 (vc147)：单机（Lan.role==0）大厅加载 6 秒后和 WAIT 补丁一起打 START 补丁 0x101977c：ldr r0,[r6,#0x3c]（StartMatchCountDownTime 表值 45 → GS+0x740）→ movt r0,#0x41a0（r0 低 16 位来自上一句 60.0/1.0，都是 0 → 20.0）。等人 1 秒（WAIT）+ 读秒 20 秒 → 上飞机。联机服务端不改（给客户端留进房时间）。表加载顺序见 0x1019774..0x10197d8（+0x38→0x72c 等人，+0x3c→0x740 开局读秒，+0x40→0x73c Reset，+0x44→0x734，+0x48→0x738，…）。未实测。
+- 23:31 用户：检查别人改坏的东西。审计结果：
+  - libUE4 末尾追加段 + DT_INIT 桩（字符串 libmono.so / "[%s] time:%ld ms"）= 腾讯加固壳的初始化，不是玩法改动。整段代码启发式扫描（bx lr 后残留函数体、手工 nop）：26 处都是正常编译结果（在 physx/编解码库里），没发现被挖空的游戏函数。
+  - 游戏会读 Saved/Config/*.csv 覆盖数据表（ModeItemTable/ItemTable/GameFeatureConfig/AirTransporterSystemConfig/AirSupplySystemConfig/GameStateCommonConfig 等），日志全是 Read File Failed → 没有人放覆盖表。
+  - Saved/Config/Android/Engine.ini：我们 v1.19 AkDiag 留下的明文文件，游戏报 invalid config file 直接不用；v1.19 之前的日志没有这行。v2.47 启动时删掉（只删带 [Core.Log] 或空的）。
+  - 已知被改的数据（都在 pak/蓝图里，不碰 pak）：雨林毒圈只有 2 项（→ v2.45 底层表）、航线短（→ v1.94 Flow 改）、飞机高度 200 米（→ v2.00）、人数 2（→ v1.99）、开局读秒（→ v2.46）。
+  - 原作者 libMczi（Dobby 钩子 + CodePatch）早已换成空壳；libfucktp 是去 TP 的（Substrate 钩子），按规则不碰。
+  - 大厅：ANZFrontEndSceneMgr InitLight 找不到 HallDefaultSkyLight/HallDefaultDirectLight 标签 → 大厅灯光缺（可能和灰色大厅人物有关），没改。
+- v2.47 (vc148)：只加 Engine.ini 清理。含 v2.46。
