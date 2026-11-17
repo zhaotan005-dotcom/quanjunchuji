@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.27";
+    static final String VER = "v2.28";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -110,13 +110,17 @@ public class GameOverlay {
                 TextView t = new TextView(a);
                 t.setText(tabs[k]); t.setTextSize(12.5f); t.setGravity(Gravity.CENTER);
                 t.setTag(idx);
-                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(58), u.dp(36)); tl.bottomMargin = u.dp(4);
+                LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(58), u.dp(32)); tl.bottomMargin = u.dp(3);
                 tabsRow.addView(t, tl);
                 tv[k] = t;
                 t.setOnClickListener(v -> { tab = idx; paintTabs(tv, u); fill(a, u, content); sv.scrollTo(0, 0); });
             }
             paintTabs(tv, u);
-            body.addView(tabsRow, new LinearLayout.LayoutParams(-2, -1));
+            // v2.27b：房主 9 个分页，竖着放不下（人机/联机/画面被挤出去，看不到日志）→ 左列能上下滑
+            final ScrollView tsv = new ScrollView(a);
+            tsv.setVerticalScrollBarEnabled(false);
+            tsv.addView(tabsRow);
+            body.addView(tsv, new LinearLayout.LayoutParams(-2, ph - u.dp(56)));
             final View hr = new View(a); hr.setBackgroundColor(LINE);
             body.addView(hr, new LinearLayout.LayoutParams(1, -1));
             body.addView(sv, new LinearLayout.LayoutParams(0, ph - u.dp(56), 1));
@@ -126,7 +130,7 @@ public class GameOverlay {
             final View tabsLine = hr;
             // v2.05：对局里的分页按身份不同 —— 单机：常用/武器/装备/刷车/人机/画面；房主：人机换成联机；加入的客户端：只有联机/画面
             final Runnable mode = () -> {
-                int v = Con.inMatch ? View.VISIBLE : View.GONE; tabsRow.setVisibility(v); tabsLine.setVisibility(v);
+                int v = Con.inMatch ? View.VISIBLE : View.GONE; tsv.setVisibility(v); tabsLine.setVisibility(v);
                 // v2.19 用户：大厅菜单下面一大片空白 → 大厅里内容多高就多高
                 LinearLayout.LayoutParams sl = (LinearLayout.LayoutParams) sv.getLayoutParams();
                 int want = Con.inMatch ? svH : -2;
