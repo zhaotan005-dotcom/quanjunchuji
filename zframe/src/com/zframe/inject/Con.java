@@ -150,7 +150,9 @@ public class Con {
                     long now = System.currentTimeMillis();
                     // 只有新日志里出现 “LogLoad: Took” 才算引擎真正就绪
                     tickTweaks(now);
-                    if (autoOn && lastAddAt > 0 && now - lastAddAt > 3000 && sentAt < lastAddAt) { passes = 1; loadServerLevels("自动"); }
+                    // v2.20：联机时不用控制台 StreamLevelIn（房主的 ServerOnly 层由游戏自己加载，见 Loot）
+                    if (Lan.role != 0) { /* 不发命令 */ }
+                    else if (autoOn && lastAddAt > 0 && now - lastAddAt > 3000 && sentAt < lastAddAt) { passes = 1; loadServerLevels("自动"); }
                     else if (autoOn && passes == 1 && sentAt > lastAddAt && now - sentAt > 15000) { passes = 2; loadServerLevels("自动(第2遍)"); }
                 } catch (Throwable e) { LogCap.note("日志监视出错 " + e); }
                 try { Thread.sleep(1000); } catch (InterruptedException e) { return; }
@@ -496,10 +498,11 @@ public class Con {
         if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
             synchronized (botLog) { if (botLog.size() >= 30) botLog.remove(0); botLog.add(l.trim().length() > 220 ? l.trim().substring(0, 220) : l.trim()); }
         }
+        Loot.line(l);   // v2.20 房主：服务器物资层/门/空投
         if (l.contains("CalcAirLineByRestrictedAreaInfo StartLoc:")) Flow.airLog(l);   // v1.94：航线原始坐标，按值去内存里找
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0) { Bots.newMatch(); Flow.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
+        if (i >= 0) { Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();

@@ -1,8 +1,11 @@
-# 交接给下一个智能体（2026-11-17 11:35，v2.19）
+# 交接给下一个智能体（2026-11-17 12:40，v2.20）
 
 先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
 ## 当前版本
+- **v2.20（vc121/core121）联机版**：releases/ZFrame-v2.20-房主/客户端/单机.apk，**未实测**。只改房主版：地图物资/门（ServerOnly 流式层进 CurrentLayers，cave 0x171e720；物资点 NetMode 门槛放开房主，0x10c0ba4）+ 空投空箱兜底（日志触发，在箱子位置用 cave 'G' 放一套）。客户端版、单机版行为不变（Loot 只在 Ed.ED==1 装，cave 里还判断 NetMode==2）。详见 history.md v2.20。
+  - 要用户测：房主开房（新海岛/老海岛/雨林）→ 能否进图不闪退、房主身边房子里有没有物资和门、客户端加入后看不看得到同样的物资/门、空投落地后箱子旁边有没有 AWM 一套；测完点「导出诊断」看「地图物资/门」那行（服务器层关卡行数、物资生成日志行数、门日志行数、空箱次数）。
+  - 如果「服务器层关卡 0 行」：客户端包可能根本没有 ServerOnly 关卡，下一步就只能按位置撒物资（cave 'G'）。
 - v2.19（vc120/core120，commit 94c08e8），releases/ZFrame-v2.19-单机/房主/客户端.apk，**未实测**，只发了单机版给用户。
 - v2.18：丢枪闪退修复（Recast queryPolygons 空 m_nav，0x25cb8e8 → cave 0x171e700 返回失败）。未实测。
 - 一体包（游戏+框架一个 APK）在沙盒 /workspace/work/full/，太大不进库；装了 ZFrame 单机 APK 就会覆盖一体包内置核心 → **以后只发小的 ZFrame-v*-单机.apk**（用户明确要求）。
@@ -19,7 +22,7 @@
 5. 单机版看到开始加载大厅就开自建服务端（仓库衣服不用等）。
 
 ## 待做（用户 11:07 提的，按顺序）
-1. **空投落地是空的、地图不刷物资、门不显示**（单机）。老问题：ServerOnly 流式关卡层（Door/Pickups/车点）单机不加载，见 history「StreamingServerLayer」「ANZSceneDoorManager」。地上刷物品可用 cave 'G'（SpawnOnePickUp 0x119d884）；可考虑自己按建筑位置撒物资。空投箱内容要找空投 actor 的生成物品逻辑。
+1. **空投落地是空的、地图不刷物资、门不显示**：v2.20 先做了联机房主版（待实测）；单机版还没做（单机 NetMode 0，同样的 SL cave 把条件改成 0/2 就能试）。原记录：（单机）。老问题：ServerOnly 流式关卡层（Door/Pickups/车点）单机不加载，见 history「StreamingServerLayer」「ANZSceneDoorManager」。地上刷物品可用 cave 'G'（SpawnOnePickUp 0x119d884）；可考虑自己按建筑位置撒物资。空投箱内容要找空投 actor 的生成物品逻辑。
 2. **双排/四排可选 + 人机队友填充**：选图界面单机下双排四排不可选；队友名字从 Bots.NAMES 随机（用户给的名单，不要「幼儿园小朋友」这类）。需要：解锁组队模式选择、刷出的人机设成玩家同队（PlayerState 队伍字段 +0x340 附近、IsTeammate 判定在 NZBRTeamInfo 0x102281c 附近）并让队友 AI 不打玩家。
 3. **军需页面抽奖**：大厅协议走自建服务端（Server.java，CSPkg protobuf，协议定义在 libUE4 里，导出在 game/proto）。要找军需/抽奖的请求号并回包。
 4. **电竞页面按钮**：用户要大厅的电竞入口（两个，左上角附近）点了有反应但不跳转。已向用户要大厅截图标位置，还没收到。

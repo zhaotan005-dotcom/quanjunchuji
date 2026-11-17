@@ -54,6 +54,7 @@ final class Lan {
         if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
         pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e;
         LogCap.note("联机补丁（启动时）：" + pre);
+        Loot.preinstall();   // v2.20 房主版：地图物资/门（ServerOnly 层）
     }
     static String unlock() {
         String r = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true);

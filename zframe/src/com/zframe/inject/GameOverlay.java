@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.19";
+    static final String VER = "v2.20";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -825,6 +825,7 @@ public class GameOverlay {
         if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "房主", Lan.lastIp);
         note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要房主那边开，客户端改了也不生效。" : "你是房主：别人连你的 IP（UDP 7777）。房主这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
+        if (Ed.ED == 1) note(a, u, root, Loot.shortText());
         logRow(a, u, root);
     }
     /** iOS 分段控件里的一个按钮 */

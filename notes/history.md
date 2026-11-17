@@ -567,3 +567,19 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE：UCharacterMovementComponent MaxWalkSpeed 0x164、MaxWalkSpeedCrouched 0x168、MaxSwimSpeed 0x16c、MaxAcceleration 0x178（反射表：ansi 名字指针后第 7 个字是偏移）。PlayerName 属性候选偏移 0x210/0x260/0x2f0（未确认哪个是 APlayerState）。
 - v2.19（vc120/core120）：新页「功能」(id 8，常用下面，客户端也有)：加速/高跳 + 「动作放慢」默认折叠；常用/客户端常用去掉跑跳。大厅里内容区高度自适应（不留白）；菜单在第一次进大厅/进图前隐藏（GameOverlay.lobbyReady）；默认位置中上，展开/收起保持居中。人机页：去难度，按钮 固定人机/自由人机（Veh.spawnBot(fixed) → Bots.manual：配枪 loadout、补装备、固定的每秒把移动组件速度/加速度/跳写 0）。所有人机：dress() 从仓库存档/zf_clothes.txt（没有就后台 scanSkins 一次）按部位随机穿 301/303 款；name() 动画名随机，写 PS 候选 FString（原空间放得下才写）。单机：看到大厅开始 LoadMap 就开服务端（不等加载完+2.5s），兜底 300ms。诊断：人机衣服/名字状态。
 - 未做：空投/地图物资/门（ServerOnly 层，老问题）、双排四排+人机队友、军需抽奖、电竞页拦截（要截图）。
+- 12:10 用户改单：v2.20 做联机版（不是单机）：房主版在服务器那边生成物资/门/空投，同步给客户端；客户端版不自己刷。
+- RE（v2.20，ServerOnly 层）：
+  - 层工厂注册 0x1156fc0（按路径前缀：Heightmap/、Runtime/Buildings/…、ServerOnly/、ServerOnly/MeshTiles/）。ServerOnly 层类 vtable 0x4caee2c：+0x14 0x117bb14 收关卡，+0xc 0x117bb7c「StreamingServerLayer Add %s」（按 WorldMeshes/VehicleSpawn/Door/Glass/Fence/Navigtion/Navigation/Pickups 分进 [this+0x1c] 的 TilesCollection，其余「Add other」）。
+  - 流式管理器 ANZStreamingLevelsManagerActor：BeginPlay 0x115beb4。0x115c004 GetNetMode(world)==1（专用服）或全局字节 0x5212a62 → 服务器路径（CurrentLayers +0x2f4/+0x2f8/+0x2fc 里放 Landscape/AlwaysLoad/Ocean + +0x2cc + ServerOnly 层 +0x2d4/+0x2d8）；否则客户端路径 0x115c3fc 只拷 +0x2dc 的显示层（+0x2e0 个），末尾 0x115c498 b 0x115c744。+0x2cc/+0x2d4 在 0x115a78c 里按层名 0x5173288/0x5173280 从工厂表取。
+  - FillLayersWithCacheData 0x1161068 只遍历 CurrentLayers：建 ULevelStreaming、layer vt+0x14 收关卡、再调 vt+0xc。Default 策略 Update 0x11671bc 每帧轮一个 CurrentLayer 按视野进出。所以单机/房主（NetMode 0/2）ServerOnly 关卡从来不建 = 没物资点、没门、没车点。
+  - UWorld::GetNetMode 0x2e65f00：[w+0x24] DemoNetDriver → 3；[w+0x74] NetDriver → 0x2b49740（服务器：GIsClient? 2 listen : 1 dedicated；否则 3）。
+  - UNZBRPickupConfigComponent::BeginPlay 0x10c0b5c 门槛：世界类型 Game/PIE 且 (NetMode|1)==1 → 房主(2)被挡。
+  - 空投箱 ANZBRAirSupplyBox：初始化 0xfd3274（DropAirSupplyBox 0x118a820 调）从 AirSupplyItem 表填 +0x3d8 组 → 0xfd3ac0 填 PickupItemIDList(+0x3f8/+0x3fc)；OnBeginOverlap 0xfd6294 权威端先打「OnBeginOverlap!!!!LockServer--Pos: %f, %f, %f」（Log 5，箱子 +0x370..378），列表空时打「PickupItemIDList.Num() = 0」（Warning 3）；OnHit 0xfd67a8 同样的 Warning。BeginPlay 0xfd3f3c 的 NetMode==1 只管特效组件，不管物品。
+- v2.20（vc121/core121，未实测）：
+  - 新 Loot.java（只在房主版 Ed.ED==1 装，Lan.preinstall 启动早装里调）：
+    1. SL：0x115c498 a90000ea → b 0x171e720（a00817ea）；cave 172 字节到 0x171e7cc（废 GM 函数 0x171e4b0 里，NQ cave 后面）：world=[sp+0xc]，GetNetMode==2 时把 ServerOnly 层（+0x2d4，引用计数 +1）追加到 CurrentLayers（已在就不加，满了用游戏扩容 0xbc5580），然后 b 0x115c744。NetMode 0/1/3 不变。源码 game/re/lootcave.py，原字节从 libUE4 取、写前校验。
+    2. PK：0x10c0ba4 01008003 01005003 1200001a → 1400001a 030050e3 1200000a（世界类型不对就退；NetMode==3 才退）。
+    3. 空投兜底：日志「PickupItemIDList.Num() = 0」且 5 秒内有「LockServer--Pos」→ 在箱子位置用 cave 'G'（Veh.dropAt，服务器上生成）放 AWM + .300×2 + 3 级头 + 3 级甲，同一箱子（±5 米）只放一次。
+  - Con：联机时不发 StreamLevelIn（以前收到「StreamingServerLayer Add」会自动发）；每行日志给 Loot.line 计数（服务器层关卡 / [Pickup] SPAWN / 门 / 空箱），只在「导出诊断」里显示；房主联机页多一行状态。
+  - 测试：javac 过；game/re/emu_loot.py 在真 libUE4 代码上跑 unicorn：SL 7 种情况（房主加入、满了扩容、已存在不重复、无控制块、单机/专用服/客户端不变、world 空、层空，寄存器/栈恢复），PK 5 种世界类型 × 4 种网络模式（只多放开 NetMode 2）。
+  - 没验证：客户端包里到底有没有 ServerOnly 关卡文件（缓存里没有就什么都不会加载）；房主加载 WorldMeshes 的内存；只按房主视野加载（离房主远的客户端身边可能没物资/门）；门/物资同步到客户端（GridMap 在 listen server 上是否建）；「LockServer--Pos」那行在设备日志里是否打印。
