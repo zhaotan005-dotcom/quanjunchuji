@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.48";
+    static final String VER = "v2.49";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1143,6 +1143,99 @@ public class GameOverlay {
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
         btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
         btn(a, u, g3, "全套配件", () -> { int n = 0; for (String at : ATT) if (givenAtt.add(at)) { give(a, at, 1); n++; } if (n == 0) toast(a, "这局配件已经刷过了"); else after(a, "全套配件"); });
+        if (Ed.ED != 2) allItems(a, u, root);
+    }
+
+    // ---------------- v2.49 全部道具：游戏物品表里所有能刷的（不含衣服），按分类，点一下刷一个 ----------------
+    static final String[][] ITEM_CAT = {
+        {"20101", "步枪"}, {"20102", "机枪"}, {"20103", "喷子"}, {"20104", "狙击枪"}, {"20105", "冲锋枪"}, {"20106", "特殊武器"},
+        {"202", "手枪"}, {"203", "近战"}, {"204", "投掷物"}, {"205", "配件"}, {"206", "子弹"},
+        {"30304", "头盔"}, {"30305", "防弹衣"}, {"30307", "背包"}, {"401", "药品/饮料"}};
+    static String itemCat(long cat) {
+        String c = String.valueOf(cat);
+        for (String[] x : ITEM_CAT) if (c.equals(x[0])) return x[1];
+        for (String[] x : ITEM_CAT) if (x[0].length() == 3 && c.startsWith(x[0])) return x[1] + " " + c.substring(3);
+        return "其他 " + c;
+    }
+    static volatile java.util.TreeMap<Long, java.util.ArrayList<Long>> items;
+    static volatile String itemState = "";
+    static long itemCatSel = 0; static int itemPage = 0;
+    static final java.util.Set<Long> itemBad = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+    static final java.util.Map<Long, String> itemName = new java.util.concurrent.ConcurrentHashMap<>();
+    static java.io.File itemFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_items.txt"); }
+    static void loadItems(boolean rescan) {
+        if ("正在读…".equals(itemState)) return;
+        itemState = "正在读…"; refreshAny();
+        new Thread(() -> {
+            try {
+                java.util.TreeSet<Long> ids = new java.util.TreeSet<>();
+                java.io.File f = itemFile();
+                if (!rescan && f != null && f.exists())
+                    for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) ids.add(Long.parseLong(x));
+                if (ids.isEmpty()) {
+                    long t0 = System.currentTimeMillis();
+                    ids.addAll(Server.scanItems());
+                    StringBuilder b = new StringBuilder(); for (long v : ids) b.append(v).append(' ');
+                    if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
+                    LogCap.note("全部道具：扫到 " + ids.size() + " 个，" + (System.currentTimeMillis() - t0) + " ms");
+                }
+                java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
+                for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
+                items = m; if (itemCatSel == 0 || !m.containsKey(itemCatSel)) itemCatSel = m.isEmpty() ? 0 : m.firstKey(); itemPage = 0;
+                itemState = ids.isEmpty() ? "没读到道具编号（进对局后再读）" : "共 " + ids.size() + " 个";
+            } catch (Throwable e) { itemState = "读道具出错 " + e; }
+            refreshAny();
+        }, "zf-items").start();
+    }
+    static void allItems(final Activity a, final Ui u, final LinearLayout root) {
+        head(a, u, root, "全部道具");
+        java.util.TreeMap<Long, java.util.ArrayList<Long>> m = items;
+        if (m == null) {
+            LinearLayout r0 = row(a, root);
+            primary(a, u, r0, "读出游戏里所有能刷的道具", () -> loadItems(false));
+            if (!itemState.isEmpty()) note(a, u, root, itemState);
+            return;
+        }
+        LinearLayout cr = null; int i = 0;
+        for (final long c : m.keySet()) {
+            if (i++ % 4 == 0) cr = row(a, root);
+            pick(a, u, cr, itemCat(c) + "（" + m.get(c).size() + "）", c == itemCatSel, () -> { itemCatSel = c; itemPage = 0; refreshAny(); });
+        }
+        java.util.ArrayList<Long> l = m.get(itemCatSel);
+        if (l == null) return;
+        final int per = 12, pages = (l.size() + per - 1) / per;
+        if (itemPage >= pages) itemPage = 0;
+        LinearLayout ir = null;
+        for (int k = itemPage * per, j = 0; k < Math.min(l.size(), (itemPage + 1) * per); k++, j++) {
+            final long id = l.get(k);
+            if (j % 3 == 0) ir = row(a, root);
+            String nm = itemName.get(id);
+            String lb = (nm != null ? nm : itemCat(itemCatSel) + " " + (k + 1)) + (itemBad.contains(id) ? "（没有）" : "") + "\n" + id;
+            btn(a, u, ir, lb, () -> giveItem(a, id));
+        }
+        LinearLayout pr = row(a, root);
+        if (pages > 1) {
+            btn(a, u, pr, "上一页", () -> { itemPage = (itemPage + pages - 1) % pages; refreshAny(); });
+            btn(a, u, pr, (itemPage + 1) + " / " + pages, () -> {});
+            btn(a, u, pr, "下一页", () -> { itemPage = (itemPage + 1) % pages; refreshAny(); });
+        }
+        btn(a, u, pr, "重新读", () -> { items = null; loadItems(true); });
+        note(a, u, root, itemState + "。编号是从游戏物品表里读出来的，名字表游戏里没有，刷出来看是什么。");
+    }
+    static void giveItem(final Activity a, final long id) {
+        if (giveSt == 1 || giveSt == 3) { toast(a, "先在补丁更新里点「更新补丁」"); return; }
+        int cat3 = (int) (id / 100000000L);
+        int n = cat3 == 206 ? 30 : cat3 == 204 || cat3 == 401 ? 3 : 1;
+        final long t0 = System.currentTimeMillis();
+        give(a, String.valueOf(id), n);
+        if (onGround) return;
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            boolean ok = dbg != null && dbg.getInt(0) == 0x5a02 && dbg.getInt(28) != 0;
+            LogCap.note("全部道具 " + id + ": " + dbgText());
+            if (!ok) { itemBad.add(id); toast(a, "没刷出来（" + dbgReason() + "）"); refreshAny(); return; }
+            String w = Con.lastWeapAt >= t0 ? Con.lastWeap : "";
+            if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); refreshAny(); }
+        }, 1200);
     }
 
     /** v2.15 客户端版「常用」：只放本机生效的 —— 枪（无后座/聚点/无限子弹）和跑跳。刷东西、无敌、传送都是服务器说了算，客户端不放。 */

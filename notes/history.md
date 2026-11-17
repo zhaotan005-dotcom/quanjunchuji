@@ -705,3 +705,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 23:40 用户：剩余 2 可能是单机一个人开不了局所以放了个假人；大厅灯光可以修；现在可以做大厅军需抽奖。
 - v2.48 (vc149)：Server 处理军需自选抽奖 CustomLottery（cmd.proto：51001/02 列表，51003/04 提交，51005/06 抽，51007/08 重置；cs_lottery.proto 字段见 game/proto/fds.pkl，protoext.py 导出）。奖池 8 件 = skinGift（扫到的全部皮肤）或 GIFT，去掉 BAD；pool_type 1 必中/2 高/3 中/4 低；抽中入仓库并推 13002。没有 consume_prop（不扣券）。未实测；以前日志里从没出现 51xxx 请求，若军需页走的是 31001/31003（宝箱）或 38003（卡片抽奖），要看服务端日志里的请求号再接。
 - 大厅灯光 RE 起点：HallDefaultSkyLight/DirectLight utf32 0x43c9118/0x43c9064，引用函数 0x12056b4（ANZFrontEndSceneMgr InitLight）、0x121733c、0x1218xxx。还没看完怎么找带标签的 actor。
+- 00:29 用户：军需还是点不开（单机没日志），先不管；把能刷的全部加到单机里。
+- v2.49 (vc150)：装备页（单机/服务端）加「全部道具」：Server.scanItems 只读扫内存里所有 11 位物品编号（不含 301-309 服装，保留 30304/30305/30307 头甲包），按分类（ITEM_CAT）分页，每页 12 个，点一下刷（子弹 30、投掷/药 3）。结果缓存 filesDir/zf_items.txt，「重新读」重扫。刷不出的标「（没有）」，刷出的枪从日志取武器名。娱乐道具（ItemSubType_FunctionalProp）编号不知道，靠这个扫出来的「其他 xxxxx」分类找。未实测。

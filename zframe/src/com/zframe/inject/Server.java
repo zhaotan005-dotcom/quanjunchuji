@@ -767,6 +767,45 @@ public class Server {
         for (long b : BAD) hit.remove(b);
         return hit;
     }
+    /** v2.49：游戏内存里所有不是服装的 11 位物品编号（枪、配件、投掷、子弹、药、头甲包、娱乐道具等），只读，用于「全部道具」页 */
+    static java.util.TreeSet<Long> scanItems() throws java.io.IOException {
+        java.util.TreeSet<Long> hit = new java.util.TreeSet<>();
+        java.util.ArrayList<long[]> rs = new java.util.ArrayList<>();
+        try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/proc/self/maps"))) {
+            String l;
+            while ((l = r.readLine()) != null) {
+                String[] p = l.trim().split("\\s+");
+                if (!p[1].startsWith("rw")) continue;
+                String name = p.length > 5 ? p[5] : "";
+                if (!(name.isEmpty() || name.startsWith("[anon:") || name.equals("[heap]")) || name.contains("stack")) continue;
+                String[] ab = p[0].split("-");
+                rs.add(new long[] { Long.parseLong(ab[0], 16), Long.parseLong(ab[1], 16) });
+            }
+        }
+        byte[] buf = new byte[1 << 20]; long[] w = new long[buf.length / 8];
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            for (long[] g : rs) for (long a = g[0]; a < g[1]; a += buf.length) {
+                int n = (int) Math.min(buf.length, g[1] - a);
+                try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
+                int k = n / 8;
+                ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(w, 0, k);
+                for (int i = 0; i < k; i++) {
+                    long v = w[i];
+                    if (v < 20000000000L || v >= 100000000000L) continue;
+                    long cat = v / 1000000, sub = v % 1000000;
+                    if (sub == 0 || sub >= 1000 || cat % 100 > 40) continue;
+                    int c3 = (int) (cat / 100);
+                    if (c3 % 100 == 0 || c3 % 100 > 40) continue;
+                    if (c3 >= 301 && c3 <= 309 && !(cat == 30304 || cat == 30305 || cat == 30307)) continue;   // 服装另有页
+                    if (c3 >= 310 && c3 < 400) continue;
+                    hit.add(v);
+                    if (hit.size() > 3000) return hit;
+                }
+            }
+        }
+        for (long b : BAD) hit.remove(b);
+        return hit;
+    }
     // ---------------- v1.79 按名字找口罩 ----------------
     // 物品名字在内存里（UTF-16 或 UTF-8）。找「口罩」「面罩」，看名字前后 512 字节里的服装编号（8 字节整数或十进制文字），
     // 离名字最近的当作这个物品的编号。诊断里列出每处名字和附近编号，找到的编号存 filesDir/zf_mask.txt，以后每次开服务端直接放进仓库。
