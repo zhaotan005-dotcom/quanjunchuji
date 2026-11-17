@@ -665,3 +665,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 诊断导出关键字加 VehicleInterface/UseVehicle/EnterVehicle/Ammo/Reload/Discrepancy/Correction。
 - 未测。用户 21:06 说「编号和吉利服的编号弄好了」、衣服只刷风衣和吉利服 —— 待问编号后做。
 - v2.37 (vc138/core138): 用户：衣服页只要风衣和吉利服，排整齐。clothesPage 改成：风衣卡片（显示编号）、吉利服 7 个按钮（30309000001..06、30309000000，toast 显示编号）、按编号刷（输入框）。去掉全部衣服列表。
+- v2.38 (vc139): 服务端日志 avatar-1117-205110 20:45:00–02 依次试 30309000001..06/00，04/05/06/00 报 NZPickupInventory Can't Find Item，01/02/03 无报错 → 吉利服只有 3 款。GHILLIE 改成 01-03，衣服页三个按钮 吉利服 1/2/3。以后判断编号真假看日志 Can't Find Item。

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.37";
+    static final String VER = "v2.38";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -497,7 +497,7 @@ public class GameOverlay {
     }
     /** v2.13 吉利服：EAvaItemSlot 顺序 Trousers/Shirt/Shoes/Helmet/Armor/Gloves/Bagpack/Facing/Ghillie… 对上 30301 裤 … 30304 头、30305 甲、
      *  30306 手套、30307 包 → Ghillie = 30309（仓库扫到 12 件）。具体编号没表，按顺序试。刷身上能判断成没成；刷地上判断不了，每点一次换下一个编号。 */
-    static final String[] GHILLIE = {"30309000001", "30309000002", "30309000003", "30309000004", "30309000005", "30309000006", "30309000000"};
+    static final String[] GHILLIE = {"30309000001", "30309000002", "30309000003"};   // v2.38：服务端日志 20:45 证实 04/05/06/00 报 Can't Find Item，只有 01-03 是真的
     static int ghAt = 0;
     static void ghillie(Activity a) {
         String k = okId.get("吉利服");
@@ -1033,170 +1033,13 @@ public class GameOverlay {
         }
         head(a, u, root, "枪");
         LinearLayout gc = card(a, u, root);
-        switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "聚点", "子弹不散开，打得更准", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
-    }
-    /** v2.19「功能」页：加速、高跳；「动作放慢」默认折叠，点标题展开 */
-    static boolean slowOpen;
-    static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
-        boolean cl = Lan.role == 2 || Ed.ED == 2;
-        head(a, u, root, "跑跳");
-        if (Ed.ED == 2) {
-            // v2.32 客户端：不再自己拉，跟房主的数
-            LinearLayout cc = card(a, u, root);
-            note(a, u, cc, "加速、高跳跟服务端走，服务端拉多少你就是多少。现在：" + Mods.hostSyncText());
-        } else {
-        slider(a, u, root, "加速", cl ? "要和服务端拉到同一个数才不被拉回去" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", cl ? "要和服务端拉到同一个数" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
-        }
-        LinearLayout fc = card(a, u, root);
-        LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);
-        TextView fn = new TextView(a); fn.setText("动作放慢"); fn.setTextColor(TXT); fn.setTextSize(13);
-        fr.addView(fn, new LinearLayout.LayoutParams(-2, -2));
-        TextView fs = new TextView(a); fs.setText("  加速时人物动作 " + fmt(Mods.slowMo)); fs.setTextColor(SUBT); fs.setTextSize(10);
-        fr.addView(fs, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView fa = new TextView(a); fa.setText(slowOpen ? "收起 ▲" : "展开 ▼"); fa.setTextColor(ACC); fa.setTextSize(12);
-        fr.addView(fa, new LinearLayout.LayoutParams(-2, -2));
-        fr.setOnClickListener(v -> { slowOpen = !slowOpen; refreshAny(); });
-        if (slowOpen) slider(a, u, root, "加速时的动作", "越小动作越慢，1 是正常", 0.3f, 1f, 0.05f, Mods.slowMo, false, v -> Mods.slowMo = v);
-    }
-
-    /** v1.93 刷车页：车按钮直接显示（编号写死，不用读车表），点了刷在面前 */
-    static void vehPage(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "载具");
-        java.util.ArrayList<Veh.Group> vg = Veh.groups;
-        LinearLayout vr = null;
-        for (int i = 0; i < vg.size(); i++) {
-            if (i % 3 == 0) vr = row(a, root);
-            final int gi = i;
-            btn(a, u, vr, vg.get(i).label, () -> Veh.spawnGroup(gi));
-        }
-        if (Veh.state.contains("没反应") || Veh.state.contains("出错") || Veh.state.contains("没有")) note(a, u, root, Veh.state);
-    }
-    /** v1.93 人机页 */
-    static void botPage(final Activity a, final Ui u, final LinearLayout root) {
-        // v2.19 用户：去掉难度；刷人机分两种 —— 固定人机（站着不动当靶子）、自由人机（会跑会打）
-        head(a, u, root, "刷人机（面前 8 米）");
-        LinearLayout br = row(a, root);
-        btn(a, u, br, "固定人机", () -> Veh.spawnBot(true));
-        btn(a, u, br, "自由人机", () -> Veh.spawnBot(false));
-        switchRow(a, u, root, "固定人机带枪", "关掉就刷空手的固定人机", Bots.gunFixed, v -> { Bots.gunFixed = v; return "ok"; });
-        switchRow(a, u, root, "自由人机带枪", "关掉就刷空手的自由人机", Bots.gunFree, v -> { Bots.gunFree = v; return "ok"; });
-        note(a, u, root, "带枪的人机会随机配枪、头甲；都会随机衣服和名字。");
-        note(a, u, root, Bots.state);
-    }
-
-    static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
-        HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
-        LinearLayout cr = new LinearLayout(a); cr.setOrientation(LinearLayout.HORIZONTAL);
-        for (int k = 0; k < CATS.length; k++) {
-            final int idx = k;
-            TextView t = new TextView(a);
-            t.setText(CATS[k][0]); t.setTextSize(11.5f);
-            t.setTextColor(k == weapCat ? ON_TXT : SUBT);
-            t.setBackground(k == weapCat ? grad(u.dp(14)) : boxLine(0, LINE, u.dp(14), 1));
-            t.setPadding(u.dp(11), u.dp(5), u.dp(11), u.dp(5));
-            t.setOnClickListener(v -> { weapCat = idx; fill(a, u, root); });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
-            cr.addView(t, lp);
-        }
-        hs.addView(cr);
-        root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        head(a, u, root, "点一下放进背包");
-        gunGrid(a, u, root, weapCat);
-        giveHint(a, root);
-    }
-
-    static void gearPage(final Activity a, final Ui u, final LinearLayout root) {
-        giveHint(a, root);
-        head(a, u, root, "一键");
-        LinearLayout g0 = row(a, root);
-        primary(a, u, g0, "一键三件套（3级头 + 3级甲 + 3级包）", () -> {
-            boolean h = gearOnce(a, "头"), r = gearOnce(a, "甲"), b = gearOnce(a, "包");
-            if (h) give(a, helmet3(), 1); if (r) give(a, armor3(), 1); if (b) give(a, "30307000006", 1);
-            if (h || r || b) after(a, "三件套");
-        });
-        head(a, u, root, "单件");
-        LinearLayout g4 = row(a, root);
-        btn(a, u, g4, "3级头", () -> { if (gearOnce(a, "头")) giveTry(a, helmetIds(), 0, "3级头"); });
-        btn(a, u, g4, "3级甲", () -> { if (gearOnce(a, "甲")) giveTry(a, armorIds(), 0, "3级甲"); });
-        btn(a, u, g4, "3级包", () -> { if (gearOnce(a, "包")) give(a, "30307000006", 1, "背包"); });
-        LinearLayout g5 = row(a, root);
-        btn(a, u, g5, "吉利服", () -> ghillie(a));
-        head(a, u, root, "其他");
-        LinearLayout g3 = row(a, root);
-        btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
-        btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
-        btn(a, u, g3, "全套配件", () -> { int n = 0; for (String at : ATT) if (givenAtt.add(at)) { give(a, at, 1); n++; } if (n == 0) toast(a, "这局配件已经刷过了"); else after(a, "全套配件"); });
-    }
-
-    /** v2.15 客户端版「常用」：只放本机生效的 —— 枪（无后座/聚点/无限子弹）和跑跳。刷东西、无敌、传送都是服务器说了算，客户端不放。 */
-    static void clientMain(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "枪");
-        LinearLayout gc = card(a, u, root);
-        switchRow(a, u, gc, "无后座", "开枪时枪口不往上跳", Mods.noRecoil, v -> { Mods.setGun(v, Mods.noShake, Mods.infAmmo); return "ok"; });
-        switchRow(a, u, gc, "防抖 / 聚点", "镜头不晃、子弹不散开", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
-        note(a, u, root, "无限子弹要服务端开：服务端开了，房间里所有人都有。客户端自己改会一直换弹。");
-    }
-
-    /** v2.15「衣服」页（房主/单机）：最上面绝地风衣单独一个按钮；下面是从游戏内存里读出来的全部服装编号（Server.scanSkins，只读），
-     *  按分类分组，名字用「分类 + 序号」（物品的中文名没有表可查）。读一次存 filesDir/zf_clothes.txt，下次直接用。 */
-    static final String[][] CLOTH_CAT = {
-        {"01", "裤子"}, {"02", "上衣"}, {"03", "鞋子"}, {"06", "手套"}, {"07", "背包外观"}, {"08", "面部/眼镜"}, {"09", "吉利服"},
-        {"10", "短裤"}, {"11", "短袖"}, {"12", "帽子"}, {"13", "头饰"}, {"14", "外套"}, {"15", "外套"}, {"16", "长外套"}, {"17", "套装"},
-        {"18", "风衣"}, {"19", "连衣/套装"}, {"20", "其他"}, {"21", "面罩"}, {"23", "饰品"}, {"24", "饰品"}, {"26", "其他"}, {"28", "其他"}};
-    static String catName(long cat) {
-        int big = (int) (cat / 100) % 1000, yy = (int) (cat % 100);
-        String y = String.format(java.util.Locale.US, "%02d", yy), n = "分类 " + y;
-        for (String[] c : CLOTH_CAT) if (c[0].equals(y)) { n = c[1]; break; }
-        return n + (big == 301 ? "（男）" : big == 302 ? "（女）" : "");
-    }
-    static volatile java.util.TreeMap<Long, java.util.ArrayList<Long>> clothes;
-    static volatile String clothState = "";
-    static long clothCat = 0; static int clothPage = 0;
-    static java.io.File clothFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_clothes.txt"); }
-    static void loadClothes(boolean rescan) {
-        if ("正在读…".equals(clothState)) return;
-        clothState = "正在读…"; refreshAny();
-        new Thread(() -> {
-            try {
-                java.util.TreeSet<Long> ids = new java.util.TreeSet<>();
-                java.io.File f = clothFile();
-                if (!rescan && f != null && f.exists())
-                    for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) ids.add(Long.parseLong(x));
-                if (ids.isEmpty()) {
-                    long t0 = System.currentTimeMillis();
-                    ids.addAll(Server.scanSkins().keySet());
-                    ids.remove(Long.parseLong(Mods.COAT));
-                    StringBuilder b = new StringBuilder(); for (long v : ids) b.append(v).append(' ');
-                    if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
-                    LogCap.note("衣服列表：扫到 " + ids.size() + " 件，" + (System.currentTimeMillis() - t0) + " ms");
-                }
-                java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
-                for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
-                clothes = m; if (clothCat == 0 || !m.containsKey(clothCat)) clothCat = m.isEmpty() ? 0 : m.firstKey(); clothPage = 0;
-                clothState = ids.isEmpty() ? "没读到衣服编号" : "共 " + ids.size() + " 件";
-            } catch (Throwable e) { clothState = "读衣服出错 " + e; }
-            refreshAny();
-        }, "zf-cloth").start();
-    }
-    /** v2.37 用户：衣服页不用刷那么多皮肤，只要风衣和吉利服，排整齐。吉利服 7 个候选编号各一个按钮（刷在脚下看不出哪个成功，所以把编号写在按钮上）；保留按编号刷 */
-    static void clothesPage(final Activity a, final Ui u, final LinearLayout root) {
-        head(a, u, root, "绝地风衣");
-        LinearLayout fc = card(a, u, root);
-        LinearLayout fr = row(a, fc);
-        primary(a, u, fr, "刷绝地风衣", () -> give(a, Mods.COAT, 1, "绝地风衣"));
-        label(a, fc, "编号 " + Mods.COAT, 11, false, SUBT).setPadding(u.dp(3), u.dp(2), 0, u.dp(4));
-        head(a, u, root, "吉利服");
-        LinearLayout gc = card(a, u, root);
-        LinearLayout gr = null;
+        LinearLayout gr = row(a, gc);
+        final String[] gn = {"吉利服 1", "吉利服 2", "吉利服 3"};
         for (int i = 0; i < GHILLIE.length; i++) {
-            if (i % 3 == 0) gr = row(a, gc);
-            final String id = GHILLIE[i]; final String lb = "吉利服 " + (i + 1);
-            btn(a, u, gr, lb, () -> { give(a, id, 1); okId.put("吉利服", id); toast(a, lb + "（编号 " + id + "）"); });
+            final String id = GHILLIE[i]; final String lb = gn[i];
+            if (i == 0) primary(a, u, gr, lb, () -> { give(a, id, 1); toast(a, lb); });
+            else btn(a, u, gr, lb, () -> { give(a, id, 1); toast(a, lb); });
         }
-        label(a, gc, "按钮依次对应 " + GHILLIE[0] + " 到 " + GHILLIE[GHILLIE.length - 1] + "，刷出来是哪款就记下它的编号。", 11, false, SUBT).setPadding(u.dp(3), u.dp(4), 0, u.dp(4));
         if (Ed.ED == 1) note(a, u, root, "服务端：衣服刷在脚下，捡起来就穿上。");
         head(a, u, root, "按编号刷");
         LinearLayout ir = row(a, root);
