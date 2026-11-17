@@ -16,6 +16,7 @@ for e in 1 2 0; do
  javac --release 8 -encoding UTF-8 -nowarn -classpath $AJ:$APKSIG -d build/classes $(find src -name '*.java') 2>&1 | grep -v -E "^Note|warning: \[options\]|^[0-9]+ warnings?" || true
  $D8 --output build/inject $(find build/classes/com/zframe/inject -name '*.class') build/classes/com/zframe/ui/Ui*.class
  cp build/inject/classes.dex assets/inject.dex
+ mkdir -p ../core && cp build/inject/classes.dex ../core/b$e.dex && echo $NC > ../core/b$e.ver   # v2.52 在线内核
  $D8 --output build/dex $(find build/classes -name '*.class') $APKSIG
  python3 rel.py "$BASE" build/unsigned.apk $O $N $OC $NC $n >/dev/null
  java -jar $APKSIG sign --ks zframe.jks --ks-pass pass:zframe123 --min-sdk-version 26 --out "../releases/ZFrame-v$N-$n.apk" build/unsigned.apk

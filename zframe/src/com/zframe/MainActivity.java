@@ -216,7 +216,8 @@ public class MainActivity extends Activity {
                     found = true; same = java.util.Arrays.equals(d, mine); break;
                 }
             }
-            if (found && !same) sb.append("游戏里的框架 ");
+            // v2.52：游戏每次启动都从 ZFrame/GitHub 热加载内核，游戏里自带的框架旧了不用重新打包
+            if (false && found && !same) sb.append("游戏里的框架 ");
         } catch (Throwable ignored) {}
         return sb.toString().trim();
     }

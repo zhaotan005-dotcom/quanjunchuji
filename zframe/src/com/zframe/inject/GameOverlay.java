@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.51";
+    static final String VER = "v2.52";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -311,6 +311,7 @@ public class GameOverlay {
     /** v2.19：第一次进大厅（或进图）后才把菜单显示出来 */
     static void lobbyReady() {
         if (lobbySeen) { mapShown(); return; } lobbySeen = true;
+        try { NetCore.lobby(Con.act); } catch (Throwable ignored) {}   // v2.52 在线内核
         mapShown();
     }
     /** v2.35 用户：进大厅、进对局菜单出来时，也要和五指打开一样的过渡动画。切图（Browse）时先收起，图加载好再弹出来 */

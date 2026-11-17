@@ -70,13 +70,14 @@ public class ZInit extends ContentProvider {
         return true;
     }
 
-    public static final int CORE_VER = 152;
+    public static final int CORE_VER = 153;
 
     public static void boot(Context ctx) {
         try {
             Application app = (Application) ctx.getApplicationContext();
             String proc = android.os.Build.VERSION.SDK_INT >= 28 ? Application.getProcessName() : ctx.getPackageName();
             boolean main = ctx.getPackageName().equals(proc);
+            if (NetCore.chain(ctx, main)) return;   // v2.52：有从 GitHub 下好的更新内核就交给它
             if (main) { Qcc.fix(ctx); Con.startWatcher(app);
                 Patches.start(ctx); }
             loadPlugins(ctx);
