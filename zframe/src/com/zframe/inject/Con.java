@@ -470,7 +470,7 @@ public class Con {
                 if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Gfx.unlite();
-                    Lan.role = 0; Bots.auto = true;
+                    Lan.role = 0; Bots.auto = Bots.want;
                     if (!Server.on && Ed.single()) new Thread(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {

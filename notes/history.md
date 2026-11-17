@@ -746,3 +746,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 在线更新提示：选单机/联机框里查更新，下好了显示「重启更新」（AlarmManager 1.2 秒后重开 + 自杀）；大厅菜单顶上显示更新状态/重启按钮；换上新内核后第一次进大厅 toast「已更新到 vX」。
   - 捡东西两次动作：未修。RE 起点：BeginPlayingPickupAnim 原生实现 0xd21bfc，C++ 调用方 0xf041e8（NZWeaponAppearanceComponent，0xf036b0 函数里，有 "Pickup Anim = %s" 日志），另一个是 UFunction thunk 0xe3ff20（Lua/蓝图）。猜测两边都调了。
   - 注意 build3.sh javac 出错不会停，会把旧 dex 写进 core/ —— 构建后一定看有没有 error。
+- 03:37 用户（v2.54 实测）：道具键能拿出（升降台/伪装岩/人偶标靶蓝色预览出来了），但放不下；要自动回传日志；选模式时能选不刷人机。
+- v2.55 (vc156)：LogUp.java —— AvatarLog.save 导出的诊断自动 gzip 传到 ntfy.sh/zf-qj-k7r2p9m4x1（附件 3 小时有效，取：curl "https://ntfy.sh/zf-qj-k7r2p9m4x1/json?poll=1&since=12h" 拿 attachment.url）；道具键「放下」后 1.5 秒还拿在手上就提示游戏给的原因（CanUseThisItem/SpawnScenePropItem 日志）并自动导出+上传；KEYS 加 PropBase/evanlu/SpawnScenePropItem/CanUseThisItem/UseThisItem；诊断头加 Prop.useState。Bots.want（prefs zframe/bots_auto）：选单机/联机框里「单机自动刷人机：开/关」，人机页也有开关，回大厅 auto=want。
+- 03:39 用户问能不能卸载补丁更新 App：libMczi 已删、没有插件；卸了以后 ZInit 走「上次保存的内核 / 内置内核」，内置 v2.52 有 NetCore 会链式加载下载的在线内核 → 可以卸。以后只有要改游戏包本体时才需要它重新打包。游戏自带更新页连腾讯服务器（已停）+ 弹窗在 Lua/UMG 里，没法复用；我们的更新检查放在选模式框里。

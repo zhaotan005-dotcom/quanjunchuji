@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.54";
+    static final String VER = "v2.55";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1099,6 +1099,7 @@ public class GameOverlay {
     /** v1.93 人机页 */
     static void botPage(final Activity a, final Ui u, final LinearLayout root) {
         // v2.19 用户：去掉难度；刷人机分两种 —— 固定人机（站着不动当靶子）、自由人机（会跑会打）
+        switchRow(a, u, root, "自动刷人机", "关掉后整局不会自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); if (!v) Bots.state = "人机：自动刷新已关"; return "ok"; });
         head(a, u, root, "刷人机（面前 8 米）");
         LinearLayout br = row(a, root);
         btn(a, u, br, "固定人机", () -> Veh.spawnBot(true));
@@ -1450,6 +1451,15 @@ public class GameOverlay {
                 r.addView(b, lp);
             }
             box.addView(r, new LinearLayout.LayoutParams(u.dp(320), -2));
+            // v2.54 用户：这里选要不要自动刷人机
+            Bots.loadWant(a);
+            final TextView bt = new TextView(a); bt.setTextSize(13.5f); bt.setGravity(Gravity.CENTER);
+            bt.setPadding(u.dp(14), u.dp(9), u.dp(14), u.dp(9));
+            final Runnable paint = () -> { bt.setText(Bots.want ? "单机自动刷人机：开（点一下关）" : "单机自动刷人机：关（点一下开）"); bt.setTextColor(Bots.want ? ACC : SUBT); bt.setBackground(boxLine(CARD2, Bots.want ? ACC : SUBT, u.dp(8), Math.max(1, u.dp(1)))); };
+            paint.run();
+            bt.setOnClickListener(v -> { Bots.setWant(a, !Bots.want); paint.run(); });
+            LinearLayout.LayoutParams btl = new LinearLayout.LayoutParams(-1, -2); btl.setMargins(u.dp(5), u.dp(10), u.dp(5), 0);
+            box.addView(bt, btl);
             // v2.54 用户：更新提示放到这里 —— 选单机/联机的时候就查 GitHub 有没有新版本，下好了可以直接重启
             final TextView up = new TextView(a); up.setTextColor(SUBT); up.setTextSize(11.5f); up.setGravity(Gravity.CENTER);
             up.setPadding(0, u.dp(10), 0, 0); up.setText("当前 " + VER + " · 正在检查更新…");

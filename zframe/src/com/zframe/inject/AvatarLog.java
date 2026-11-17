@@ -8,7 +8,7 @@ import java.io.*;
 
 /** v1.56 灰色人物诊断：按一下，把游戏日志里和人物/衣服有关的行存到 下载/ZFrame/avatar-*.txt。平时什么都不做。 */
 public class AvatarLog {
-    static final String[] KEYS = { "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
+    static final String[] KEYS = { "PropBase", "evanlu", "SpawnScenePropItem", "CanUseThisItem", "UseThisItem", "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
             "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried", "AirSupply", "AirBox", "Flare", "FunctionalProp", "Legion", "FiveArmy" };
 
     static String export(Activity a) { return export(a, "avatar-"); }
@@ -17,7 +17,7 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame v2.54 " + Ed.name() + " 诊断\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
+            sb.append("ZFrame " + GameOverlay.VER + " " + Ed.name() + " 诊断\n").append(Prop.useState).append("\n用道具日志：").append(Prop.lastUseLog).append("\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
@@ -160,7 +160,8 @@ public class AvatarLog {
         Uri u = a.getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
         if (u == null) throw new Exception("无法在 下载/ZFrame 建文件");
         try (OutputStream o = a.getContentResolver().openOutputStream(u, "wt")) { o.write(text.getBytes("UTF-8")); }
-        return name;
+        LogUp.send(name, text);   // v2.54 自动传一份
+        return name + "（已自动上传）";
     }
 
     /** v2.43 资源清单：游戏日志里全部 pak 的挂载目录（看包里到底有没有沙漠、五军、战术大师道具等资源），加上游戏目录里的大文件。只读。 */

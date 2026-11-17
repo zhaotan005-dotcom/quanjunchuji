@@ -17,6 +17,10 @@ import java.util.Random;
  */
 public class Bots {
     public static volatile boolean auto = true;
+    /** v2.54 用户：选模式时能选「不刷人机」。存 prefs zframe/bots_auto，回大厅时 auto = want */
+    public static volatile boolean want = true;
+    static void setWant(android.content.Context c, boolean v) { want = v; auto = v; try { c.getSharedPreferences("zframe", 0).edit().putBoolean("bots_auto", v).apply(); } catch (Throwable ignored) {} }
+    static void loadWant(android.content.Context c) { try { want = c.getSharedPreferences("zframe", 0).getBoolean("bots_auto", true); auto = want; } catch (Throwable ignored) {} }
     public static volatile int diff = 2;          // 1 简单 2 普通 3 困难（EBotDifficulty 1~3）
     public static volatile String state = "人机：等进对局";
     public static volatile String equipState = "";

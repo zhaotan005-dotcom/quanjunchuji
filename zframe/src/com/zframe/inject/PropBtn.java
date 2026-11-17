@@ -125,8 +125,19 @@ final class PropBtn {
                     if (!"ok".equals(r)) msg = r;
                     else if (l.get(idx).target == null) msg = cn(l.get(idx).cls) + "：手机上没有它的场景模型，可能放不出来";
                 } else {
+                    Prop.lastUseLog = "";
                     String r = Prop.use();
                     if (!"ok".equals(r) && !"ok2".equals(r)) msg = r;
+                    else {   // v2.54：用户说点了放不下 —— 1.5 秒后看还拿在手上没有；没放下就提示原因并自动导出+上传日志
+                        Thread.sleep(1500);
+                        Prop.scanUse(true);
+                        boolean still = false; for (Prop.It it : Prop.useList) if (it.sel) still = true;
+                        if (still) {
+                            String why = Prop.lastUseLog.isEmpty() ? "游戏没给原因" : Prop.lastUseLog.replaceAll("^.*\\]", "").trim();
+                            msg = "没放下：" + (why.length() > 60 ? why.substring(0, 60) : why) + "（日志已自动上传）";
+                            if (a != null) AvatarLog.export(a, "prop-");
+                        }
+                    }
                 }
             } catch (Throwable e) { msg = "出错 " + e; }
             finally {

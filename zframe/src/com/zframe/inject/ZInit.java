@@ -70,7 +70,7 @@ public class ZInit extends ContentProvider {
         return true;
     }
 
-    public static final int CORE_VER = 155;
+    public static final int CORE_VER = 156;
 
     public static void boot(Context ctx) {
         try {
@@ -78,6 +78,7 @@ public class ZInit extends ContentProvider {
             String proc = android.os.Build.VERSION.SDK_INT >= 28 ? Application.getProcessName() : ctx.getPackageName();
             boolean main = ctx.getPackageName().equals(proc);
             if (NetCore.chain(ctx, main)) return;   // v2.52：有从 GitHub 下好的更新内核就交给它
+            Bots.loadWant(ctx);   // v2.55 记住的「自动刷人机」开关
             if (main) { Qcc.fix(ctx); Con.startWatcher(app);
                 Patches.start(ctx); }
             loadPlugins(ctx);
