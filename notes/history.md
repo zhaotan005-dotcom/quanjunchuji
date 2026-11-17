@@ -666,3 +666,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 未测。用户 21:06 说「编号和吉利服的编号弄好了」、衣服只刷风衣和吉利服 —— 待问编号后做。
 - v2.37 (vc138/core138): 用户：衣服页只要风衣和吉利服，排整齐。clothesPage 改成：风衣卡片（显示编号）、吉利服 7 个按钮（30309000001..06、30309000000，toast 显示编号）、按编号刷（输入框）。去掉全部衣服列表。
 - v2.38 (vc139): 服务端日志 avatar-1117-205110 20:45:00–02 依次试 30309000001..06/00，04/05/06/00 报 NZPickupInventory Can't Find Item，01/02/03 无报错 → 吉利服只有 3 款。GHILLIE 改成 01-03，衣服页三个按钮 吉利服 1/2/3。以后判断编号真假看日志 Can't Find Item。
+- v2.39 (vc140): 用户不接受 v2.36 换弹补子弹（不扣备弹）。去掉直接补 +0x604/+0x608。新推测真因：听服模式下加入玩家人物不在房主画面里，USkinnedMeshComponent.MeshComponentUpdateFlag（+0x6c1，反射表 0x502e534）是 OnlyTickPoseWhenRendered → 换弹动画结束通知不触发 → 服务端弹匣停 0。Crew.guard 对加入玩家 mesh(+0x2f4) 写 +0x6c1=0（AlwaysTickPoseAndRefreshBones），清 bEnableUpdateRateOptimizations（+0x740 bit0，反射表 0x502e33c）。诊断「换弹：」记录弹匣 0 次数、动画修正次数、原值。未实测。

@@ -112,12 +112,22 @@ final class Crew {
      *  服务器那边弹匣停在 0 超过 2.5 秒，就直接按弹匣容量 ClipAmmoCount(+0x52c) 补满（+0x604/+0x608）。
      *  全员无敌开着：血 Health(+0x5a0) 低于上限 HealthMax(+0x5a4) 就补满。 */
     static final java.util.HashMap<Long, Long> emptySince = new java.util.HashMap<>();
-    static volatile String ammoState = "换弹：没补过";
+    static volatile String ammoState = "换弹：没出现服务端弹匣 0";
     static int refills;
     static void guard(RandomAccessFile m, long b, long p, long now) throws java.io.IOException {
         if (Con.allGod) {
             float hp = Mods.f(m, p + 0x5a0), mx = Mods.f(m, p + 0x5a4);
             if (mx > 1f && mx < 1000f && hp > 0f && hp < mx) Mods.wf(m, p + 0x5a0, mx);
+        }
+        // v2.39 换弹真因：服务端是听服模式，加入玩家的人物不在房主屏幕里时，骨骼动画不跑（MeshComponentUpdateFlag=OnlyTickPoseWhenRendered），
+        // 换弹动作的结束通知不触发 → 服务端弹匣一直 0 → 客户端反复换弹。改成一直跑动画：USkinnedMeshComponent +0x6c1 = 0（AlwaysTickPoseAndRefreshBones），
+        // 关掉 bEnableUpdateRateOptimizations（+0x740 bit0）。不再直接补子弹。
+        long mesh = Mods.rp(m, p + Mods.P_MESH);
+        if (Mods.isObj(m, b, mesh)) {
+            int f = Mods.rd(m, mesh + 0x6c0), fb = (f >>> 8) & 0xff;
+            if (fb != 0 && fb <= 3) { Mods.wi(m, mesh + 0x6c0, f & ~0xff00); animFix++; animWas = fb; }
+            int o = Mods.rd(m, mesh + 0x740);
+            if ((o & 1) != 0) Mods.wi(m, mesh + 0x740, o & ~1);
         }
         long w = Mods.rp(m, p + 0x890);
         if (!Mods.isObj(m, b, w)) return;
@@ -127,10 +137,10 @@ final class Crew {
         Long t0 = emptySince.get(w);
         if (t0 == null) { emptySince.put(w, now); return; }
         if (now - t0 < 2500) return;
-        Mods.wi(m, w + 0x604, clip); Mods.wi(m, w + 0x608, clip);
         emptySince.remove(w); refills++;
-        ammoState = "换弹：服务端补满弹匣 " + refills + " 次（容量 " + clip + "）";
+        ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
     }
+    static int animFix, animWas = -1;
 
     /** v2.32b：v2.32 实测 Alive 计数钩子 1 秒里一次都没触发（找到 0 个）。改成走 GameState.PlayerArray（GS+0x2bc，TArray<PlayerState*>）：
      *  PS 的 Owner（AActor+0x60）是控制器，类名带 PlayerController 才算玩家；控制器+0x2c0 是人物。读不到再退回 Alive。 */
