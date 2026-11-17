@@ -350,21 +350,37 @@ public class Mods {
     static volatile String syncState = "还没收到房主的数";
     static float lastCode = Float.NaN;
     static long lastSyncAsk;
+    static volatile float syncRaw;
+    /** v2.34：自己的人物。以前只靠刷物品补丁的 askPawn（客户端没这个补丁 → 永远 0，所以客户端加速/高跳从来没生效）。
+     *  拿不到就用刷车 cave 的 info()（buf+8 = 本机人物），最多 2 秒问一次 */
+    static volatile long vehPawn; static long vehAsk;
+    static long myPawn() {
+        long p = GameOverlay.pawnAddr();
+        if (p != 0) return p;
+        long now = System.currentTimeMillis();
+        if (vehPawn == 0 && now - vehAsk > 2000) {
+            vehAsk = now;
+            try { double[] q = Veh.info(); if (q != null) vehPawn = (long) q[6]; } catch (Throwable t) {}
+            if (vehPawn == 0 && now - lastPawnAsk > 4000) { lastPawnAsk = now; GameOverlay.askPawn(); }
+        }
+        return vehPawn;
+    }
     static String hostSyncText() { return syncState; }
     static void syncFromHost() {
         try {
             long b = base(); if (b == 0) return;
-            long pawn = GameOverlay.pawnAddr();
-            if (pawn == 0) { long now = System.currentTimeMillis(); if (now - lastSyncAsk > 4000) { lastSyncAsk = now; GameOverlay.askPawn(); } return; }
+            long pawn = myPawn();
+            if (pawn == 0) { syncState = "还没收到房主的数（找不到自己的人物）"; return; }
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-                if (!isObj(m, b, pawn)) return;
+                if (!isObj(m, b, pawn)) { vehPawn = 0; return; }
                 long ps = rp(m, pawn + 0x2c4);
-                if (!isObj(m, b, ps)) return;
+                if (!isObj(m, b, ps)) { syncState = "还没收到房主的数（人物 " + Long.toHexString(pawn) + " 没有 PlayerState）"; return; }
                 float sc = f(m, ps + PS_SCORE);
+                syncRaw = sc;
                 if (sc == lastCode) return;
                 lastCode = sc;
                 int c = Math.round(sc) - SYNC_BASE;
-                if (c < 0 || c > 2120 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到房主的数"; return; }
+                if (c < 0 || c > 2120 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到房主的数（Score=" + sc + "）"; return; }
                 float s = Math.max(1f, (c / 100) / 2f), j = Math.max(1f, (c % 100) / 2f);
                 speed = s; jump = j;
                 syncState = "加速 " + s + " 高跳 " + j;
@@ -391,18 +407,18 @@ public class Mods {
     static long lastPawnAsk, lastMesh;
     /** v1.49：只在对局里动人物（大厅里的人物模型不是对局里的角色，写了会闪退） */
     static void tickMove() throws Exception {
-        if (!Con.inMatch) { if (cmc != 0) { cmc = 0; GameOverlay.forgetPawn(); } moveState = "进图后生效"; return; }
+        if (!Con.inMatch) { vehPawn = 0; if (cmc != 0) { cmc = 0; GameOverlay.forgetPawn(); vehPawn = 0; } moveState = "进图后生效"; return; }
         if (Ed.ED == 2) syncFromHost();
         if (!active()) return;
         long b = base(); if (b == 0) return;
-        long pawn = GameOverlay.pawnAddr();
+        long pawn = myPawn();
         long now = System.currentTimeMillis();
         if (pawn == 0) {
             if (now - lastPawnAsk > 4000) { lastPawnAsk = now; GameOverlay.askPawn(); }
             moveState = "等人物"; return;
         }
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-            if (!isObj(m, b, pawn)) { GameOverlay.forgetPawn(); cmc = 0; moveState = "等人物"; return; }
+            if (!isObj(m, b, pawn)) { GameOverlay.forgetPawn(); vehPawn = 0; cmc = 0; moveState = "等人物"; return; }
             long c = rp(m, pawn + P_CMC);
             if (!isObj(m, b, c)) { cmc = 0; moveState = "等人物"; return; }
             if (c != cmc) { cmc = c; baseJump = f(m, c + C_JUMP); lastJump = Float.NaN; LogCap.note(String.format("移动组件 %x 跳=%.0f", c, baseJump)); }

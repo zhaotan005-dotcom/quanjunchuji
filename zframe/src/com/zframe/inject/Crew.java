@@ -104,9 +104,10 @@ final class Crew {
 
     /** v2.32b：v2.32 实测 Alive 计数钩子 1 秒里一次都没触发（找到 0 个）。改成走 GameState.PlayerArray（GS+0x2bc，TArray<PlayerState*>）：
      *  PS 的 Owner（AActor+0x60）是控制器，类名带 PlayerController 才算玩家；控制器+0x2c0 是人物。读不到再退回 Alive。 */
+    static volatile int lastTotal;
     static volatile java.util.ArrayList<Long> states = new java.util.ArrayList<>();
     static void find() {
-        long me = GameOverlay.pawnAddr();
+        long me = Mods.myPawn();
         java.util.ArrayList<Long> out = new java.util.ArrayList<>(), sts = new java.util.ArrayList<>();
         int total = 0; String how = "PlayerArray";
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
@@ -144,6 +145,7 @@ final class Crew {
             }
         } catch (Throwable t) { state = "全员：读出错 " + t.getMessage(); return; }
         players = out; states = sts;
+        lastTotal = total;
         String ns = "全员（" + how + "）：找到加入的玩家 " + out.size() + " 个（共 " + total + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
         if (!ns.equals(state)) LogCap.note(ns);
         state = ns;

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.33";
+    static final String VER = "v2.34";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -162,6 +162,7 @@ public class GameOverlay {
                 ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
                 int nw = collapsed ? u.dp(210) : pw;
                 if (lp0 != null) { int ow = lp0.width > 0 ? lp0.width : nw; lp0.width = nw; panel.setLayoutParams(lp0); if (ow != nw) { panel.setX(panel.getX() + (ow - nw) / 2f); px = panel.getX(); } }
+                panel.post(() -> clamp(panel, decor, u));
             };
             fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
 
@@ -171,6 +172,9 @@ public class GameOverlay {
             decor.addView(panel, flp);
             if (px < 0) { px = (sw - (collapsed ? u.dp(210) : pw)) / 2f; py = u.dp(4); }   // v2.19 用户：默认放中上（以前偏左，容易点到电竞页）
             panel.setX(px); panel.setY(py);
+            // v2.34：屏幕大小变了（云手机转屏/分辨率）或菜单变大变小，都重新夹回屏幕里
+            panel.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> clamp(panel, decor, u));
+            decor.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (r - l != or - ol || bt - t != ob - ot) panel.post(() -> clamp(panel, decor, u)); });
             if (hidden || !lobbySeen) panel.setVisibility(View.GONE);   // v2.19 用户：腾讯加载页不显示，到大厅才出来
             panelRef = panel;
             apply.run();
@@ -183,9 +187,11 @@ public class GameOverlay {
                         case MotionEvent.ACTION_MOVE:
                             float mx = e.getRawX() - dx, my = e.getRawY() - dy;
                             if (Math.abs(mx) + Math.abs(my) > u.dp(6)) moved = true;
-                            if (moved) { panel.setX(sx + mx); panel.setY(sy + my); px = panel.getX(); py = panel.getY(); }
+                            if (moved) { panel.setX(sx + mx); panel.setY(sy + my); clamp(panel, decor, u); }
                             return true;
+                        case MotionEvent.ACTION_CANCEL: clamp(panel, decor, u); return true;
                         case MotionEvent.ACTION_UP:
+                            clamp(panel, decor, u);
                             if (!moved) { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); }
                             return true;
                     }
@@ -197,6 +203,17 @@ public class GameOverlay {
         }
     }
 
+    /** v2.34 用户：服务端菜单被拖到屏幕外（标题栏出去了）就拉不回来、点不到。位置一直夹在屏幕里：整个标题栏必须在屏幕内 */
+    static void clamp(View panel, View decor, Ui u) {
+        int W = decor.getWidth(), H = decor.getHeight();
+        if (W <= 0 || H <= 0) return;
+        int w = panel.getWidth() > 0 ? panel.getWidth() : u.dp(210);
+        float x = panel.getX(), y = panel.getY();
+        float nx = w <= W ? Math.max(0, Math.min(x, W - w)) : Math.max(W - w, Math.min(x, 0));
+        float ny = Math.max(0, Math.min(y, H - u.dp(40)));
+        if (nx != x || ny != y) { panel.setX(nx); panel.setY(ny); }
+        px = nx; py = ny;
+    }
     static TextView iconBtn(Activity a, Ui u, String s) {
         TextView b = new TextView(a);
         b.setText(s); b.setTextColor(SUBT); b.setTextSize(17);
