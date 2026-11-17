@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.52";
+    static final String VER = "v2.53";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -204,6 +204,7 @@ public class GameOverlay {
                 panel.setX(px); panel.setY(py);
             }
             panelAct = a;
+            PropBtn.attach(a);   // v2.53 对局里的「道具」键
             // v2.34：屏幕大小变了（云手机转屏/分辨率）或菜单变大变小，都重新夹回屏幕里
             panel.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> clamp(panel, decor, u));
             decor.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (r - l != or - ol || bt - t != ob - ot) panel.post(() -> clamp(panel, decor, u)); });
@@ -398,6 +399,7 @@ public class GameOverlay {
 
     static void detach(Activity a) {
         try {
+            if (PropBtn.act == a) PropBtn.detach();
             if (chooser != null && chooserAct == a) { try { a.getWindowManager().removeViewImmediate(chooser); } catch (Throwable ignored) {} chooser = null; chooserAct = null; }
             View pr = panelRef;
             if (pr != null && plp != null && pr.getLayoutParams() == plp && panelAct == a) {
@@ -1189,6 +1191,9 @@ public class GameOverlay {
     static long itemCatSel = 0; static int itemPage = 0;
     static final java.util.Set<Long> itemBad = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     static final java.util.Map<Long, String> itemName = new java.util.concurrent.ConcurrentHashMap<>();
+    static java.io.File badFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_items_bad.txt"); }
+    static void saveBad() { try { java.io.File f = badFile(); if (f == null) return; StringBuilder b = new StringBuilder(); synchronized (itemBad) { for (long v : itemBad) b.append(v).append(' '); } java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes()); } catch (Throwable ignored) {} }
+    static void loadBad() { try { java.io.File f = badFile(); if (f == null || !f.exists()) return; for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) itemBad.add(Long.parseLong(x)); } catch (Throwable ignored) {} }
     static java.io.File itemFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_items.txt"); }
     static void loadItems(boolean rescan) {
         if ("正在读…".equals(itemState)) return;
@@ -1206,6 +1211,7 @@ public class GameOverlay {
                     if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
                     LogCap.note("全部道具：扫到 " + ids.size() + " 个，" + (System.currentTimeMillis() - t0) + " ms");
                 }
+                loadBad(); ids.removeAll(itemBad);
                 java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
                 for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
                 items = m; if (itemCatSel == 0 || !m.containsKey(itemCatSel)) itemCatSel = m.isEmpty() ? 0 : m.firstKey(); itemPage = 0;
@@ -1225,11 +1231,15 @@ public class GameOverlay {
         }
         LinearLayout cr = null; int i = 0;
         for (final long c : m.keySet()) {
+            int cn = 0; for (long v : m.get(c)) if (!itemBad.contains(v)) cn++;
+            if (cn == 0) continue;
             if (i++ % 4 == 0) cr = row(a, root);
-            pick(a, u, cr, itemCat(c) + "（" + m.get(c).size() + "）", c == itemCatSel, () -> { itemCatSel = c; itemPage = 0; refreshAny(); });
+            pick(a, u, cr, itemCat(c) + "（" + cn + "）", c == itemCatSel, () -> { itemCatSel = c; itemPage = 0; refreshAny(); });
         }
-        java.util.ArrayList<Long> l = m.get(itemCatSel);
-        if (l == null) return;
+        java.util.ArrayList<Long> l0 = m.get(itemCatSel);
+        if (l0 == null) return;
+        // v2.53 用户：刷不出来的不要留着 → 刷失败的编号直接不显示（存 zf_items_bad.txt，「重新读」也不回来）
+        java.util.ArrayList<Long> l = new java.util.ArrayList<>(); for (long v : l0) if (!itemBad.contains(v)) l.add(v);
         final int per = 12, pages = (l.size() + per - 1) / per;
         if (itemPage >= pages) itemPage = 0;
         LinearLayout ir = null;
@@ -1237,7 +1247,7 @@ public class GameOverlay {
             final long id = l.get(k);
             if (j % 3 == 0) ir = row(a, root);
             String nm = itemName.get(id);
-            String lb = (nm != null ? nm : itemCat(itemCatSel) + " " + (k + 1)) + (itemBad.contains(id) ? "（没有）" : "") + "\n" + id;
+            String lb = (nm != null ? nm : itemCat(itemCatSel) + " " + (k + 1)) + "\n" + id;
             btn(a, u, ir, lb, () -> giveItem(a, id));
         }
         LinearLayout pr = row(a, root);
@@ -1247,7 +1257,7 @@ public class GameOverlay {
             btn(a, u, pr, "下一页", () -> { itemPage = (itemPage + 1) % pages; refreshAny(); });
         }
         btn(a, u, pr, "重新读", () -> { items = null; loadItems(true); });
-        note(a, u, root, itemState + "。编号是从游戏物品表里读出来的，名字表游戏里没有，刷出来看是什么。");
+        note(a, u, root, itemState + "。刷不出来的会自动删掉。");
         // v2.50：模型/特效文件不在手机上的道具，游戏日志里有加载失败的路径，这里直接列出来（单机没有导出）
         String ps = Prop.on ? (Prop.fallbackUsed() ? "地上看不见的道具：已用替身模型显示" : "地上看不见的道具：替身已装，等第一个地上模型加载") : "地上替身：" + (Prop.state.isEmpty() ? "进对局后自动装" : Prop.state);
         int mc = Prop.missCount();
@@ -1263,7 +1273,7 @@ public class GameOverlay {
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
             boolean ok = dbg != null && dbg.getInt(0) == 0x5a02 && dbg.getInt(28) != 0;
             LogCap.note("全部道具 " + id + ": " + dbgText());
-            if (!ok) { itemBad.add(id); toast(a, "没刷出来（" + dbgReason() + "）"); refreshAny(); return; }
+            if (!ok) { itemBad.add(id); saveBad(); toast(a, "这个刷不出来，已从列表删掉"); refreshAny(); return; }
             String w = Con.lastWeapAt >= t0 ? Con.lastWeap : "";
             if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); refreshAny(); }
             if (Prop.missAt >= t0) { toast(a, "缺资源：" + Prop.lastMiss); refreshAny(); }
@@ -1312,6 +1322,7 @@ public class GameOverlay {
                     if (f != null && !ids.isEmpty()) java.nio.file.Files.write(f.toPath(), b.toString().trim().getBytes());
                     LogCap.note("衣服列表：扫到 " + ids.size() + " 件，" + (System.currentTimeMillis() - t0) + " ms");
                 }
+                loadBad(); ids.removeAll(itemBad);
                 java.util.TreeMap<Long, java.util.ArrayList<Long>> m = new java.util.TreeMap<>();
                 for (long v : ids) m.computeIfAbsent(v / 1000000, k -> new java.util.ArrayList<>()).add(v);
                 clothes = m; if (clothCat == 0 || !m.containsKey(clothCat)) clothCat = m.isEmpty() ? 0 : m.firstKey(); clothPage = 0;

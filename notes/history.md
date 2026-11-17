@@ -737,3 +737,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 沙漠：大厅有 OnDesertBtnClick，但没有任何 Desert/Miramar pak 挂载；地图包是按需下载的（MapPakDownloadConfig / "MountMap no pak exist for map %s"），离线下载不了 → 不加。ShowcaseMap/OpeningAnimation 只是开场动画相机，FrontEndMap 是大厅 → 不是对战图。
 - 结论：能开的就是现有三张，服务端开房页不变（单机选图也不变）。
 - v2.52 (vc153)：在线内核（免安装更新）。NetCore.java：进大厅后后台从 GitHub 拉 core/b<BUILD>.ver（raw.githubusercontent，失败再试 jsdelivr），比本地新就下 core/b<BUILD>.dex 存到游戏 files/zcore_net.dex(+.ver「版本 BUILD」)，toast「重开游戏生效」；下次启动 ZInit.boot 最前面 NetCore.chain 用 DexClassLoader 链式加载它（同 BUILD 且版本更高才用；主进程计数 zcore_net.try，连续 2 次没进大厅就不用）。启动阶段不联网（ZFrame App 没 INTERNET 权限，只在游戏进程下）。MainActivity.checkUpdate 不再因为「游戏里的框架」旧了提示更新补丁（内核本来就每次热加载），只有声音/刷物品文件补丁才要重新打包。build3.sh 每个包型同时输出 ../core/b<e>.dex/.ver，push 后用户重开游戏两次即更新（第一次下载，第二次生效）。未实测。
+- 03:13 用户：v2.52 显示生效；草丛/伪装岩/人偶标靶在背包里但用不了（没找到装备页的用道具）；「以前游戏里有使用道具的专用键，加上去」；全部道具页刷不出的没删、没名字；捡东西有两次拾取动作（待查是不是新问题）。
+- v2.53 (vc154)：PropBtn.java 对局画面上的圆形「道具」键（独立小窗口，可拖动、位置记住）：背包里有功能道具才出现（每 2 秒只读 scanUse(quiet)）；点一下 拿出(vt+0x4d0)/放下(vt+0x484)，长按换下一个。游戏自带道具键在 Lua/UMG 里改不了。全部道具：刷失败的编号自动删掉（zf_items_bad.txt），空分类不显示。名字表还没找（在 Lua 配置里）。未实测。

@@ -121,7 +121,8 @@ public class Prop {
     }
     static boolean isProp(RandomAccessFile m, long b, long o) { return o >= 0x10000 && Server.rd(m, Server.rd(m, o) + 0x394) == b + PROP_ONSEL; }
     /** 读背包里的功能道具（3 个道具槽 + 物品列表里的），只读 */
-    static String scanUse() {
+    static String scanUse() { return scanUse(false); }
+    static String scanUse(boolean quiet) {
         long b = Mods.base(); if (b == 0) return useState = "找不到游戏库";
         java.util.ArrayList<It> out = new java.util.ArrayList<>();
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
@@ -152,7 +153,7 @@ public class Prop {
         for (It it : out) sb.append("\n· ").append(nice(it.cls)).append(it.slot > 0 ? "（槽" + it.slot + "）" : "（不在道具槽）")
             .append(" 数量 ").append(it.cnt).append(it.sel ? " 已拿出" + (it.valid ? "，放置点有效" : "，放置点无效") : "")
             .append(it.target == null ? "，场景模型类没加载（蓝图不在手机上，放不出来）" : "，放出来是 " + nice(it.target));
-        useState = sb.toString(); LogCap.note("用道具：" + useState);
+        useState = sb.toString(); if (!quiet) LogCap.note("用道具：" + useState);
         return "ok";
     }
     static String nice(String c) { if (c == null) return "?"; String s = c.replace("BP_", "").replace("_C", ""); return s.length() > 26 ? s.substring(0, 26) : s; }
