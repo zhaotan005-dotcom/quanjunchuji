@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.57";
+    static final String VER = "v2.58";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -48,7 +48,10 @@ public class GameOverlay {
         try {
             Con.setActivity(a);
             Con.loadGfx();
-            if (Ed.canChoose() && !Ed.chosen) showChooser(a);   // v2.44
+            // v2.58 用户：别弹在腾讯 logo 页（闪屏 Activity）上，等游戏自己的加载页
+            String an = a.getClass().getName(); LogCap.note("页面：" + an);
+            boolean splash = an.toLowerCase().contains("splash") || an.toLowerCase().contains("logo");
+            if (Ed.canChoose() && !Ed.chosen && !splash) showChooser(a);   // v2.44
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
             { View old = panelRef; if (old != null && old.isAttachedToWindow() && panelAct == a) return; }
@@ -1438,7 +1441,7 @@ public class GameOverlay {
             LinearLayout body = (LinearLayout) f[1];
             final int last = Ed.saved();
             GameDlg.text(a, body, "这次怎么玩？", 16, GameDlg.WHITE).setPadding(0, GameDlg.dp(a, 4), 0, 0);
-            final TextView sub = GameDlg.text(a, body, "15 秒内不选，按上次的（" + (last == 0 ? "单机" : "联机") + "）", 11.5f, GameDlg.SUB);
+            final TextView sub = GameDlg.text(a, body, "一会儿不选，按上次的（" + (last == 0 ? "单机" : "联机") + "）", 11.5f, GameDlg.SUB);
             sub.setPadding(0, GameDlg.dp(a, 4), 0, 0);
             LinearLayout r = GameDlg.row(a, body, 16);
             GameDlg.add(a, r, GameDlg.button(a, "联机（加入房间）", last == 2, () -> Ed.choose(2, "手动")));

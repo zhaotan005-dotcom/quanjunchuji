@@ -754,3 +754,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.56 (vc157, 在线内核)：GameDlg.java 游戏风框（深色底、金标题条、取消/确认）；选模式框改成这个样式、去掉人机开关、下载时显示进度条（NetCore.getP 报 pct）；大厅单机版加「自动刷人机」开关；大厅里新版本下好弹「更新」提示框（取消/确认=重启）；每次启动进大厅 40 秒后自动导出+上传一份诊断（lobby-，查仓库空的原因）。
 - 03:56 用户：道具能捡起来但没有道具键；地上建模是错的（替身箱子）；全部道具里用不了的还在。
 - v2.57 (vc158, 在线)：道具键对局里一直显示（没认出道具时半透明，点一下 Prop.rawDump 把 3 个道具槽+背包列表的类名和 vt+0x394 记进诊断并自动上传）；全部道具刷出来但缺资源（Prop.missAt）或 402 道具没场景模型（target==null）也自动删掉。
+- 03:59 用户：v2.57 选模式框标题条撑满全屏（FrameLayout 高度 -2 + 竖条 MATCH_PARENT）；而且弹在腾讯 logo 页上，应该在游戏自己的加载页。
+- v2.58 (vc159, 在线)：GameDlg 标题条固定 42dp；Activity 类名含 splash/logo 时不弹选模式框（日志记「页面：类名」），Ed.await 15→25 秒。

@@ -32,15 +32,15 @@ final class GameDlg {
         FrameLayout.LayoutParams bl = new FrameLayout.LayoutParams(dp(a, 3), -1); bl.gravity = Gravity.START; bl.setMargins(dp(a, 8), dp(a, 7), 0, dp(a, 7));
         head.addView(bar, bl);
         TextView t = new TextView(a); t.setText(title); t.setTextColor(WHITE); t.setTextSize(16); t.setTypeface(Typeface.DEFAULT_BOLD);
-        t.setPadding(dp(a, 18), dp(a, 8), dp(a, 48), dp(a, 8));
-        head.addView(t, new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER_VERTICAL | Gravity.START));
+        t.setPadding(dp(a, 18), 0, dp(a, 48), 0); t.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(t, new FrameLayout.LayoutParams(-2, -1, Gravity.CENTER_VERTICAL | Gravity.START));
         if (onClose != null) {
             TextView x = new TextView(a); x.setText("✕"); x.setTextColor(0xFF3A2A10); x.setTextSize(18); x.setGravity(Gravity.CENTER);
             GradientDrawable xg = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{0xFFF7D774, GOLD2}); x.setBackground(xg);
             x.setOnClickListener(v -> onClose.run());
             head.addView(x, new FrameLayout.LayoutParams(dp(a, 40), -1, Gravity.END));
         }
-        box.addView(head, new LinearLayout.LayoutParams(-1, -2));
+        box.addView(head, new LinearLayout.LayoutParams(-1, dp(a, 42)));   // v2.58：固定高度（-2 时竖条 MATCH_PARENT 把标题条撑满全屏）
         LinearLayout body = new LinearLayout(a); body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(dp(a, 26), dp(a, 18), dp(a, 26), dp(a, 18));
         box.addView(body, new LinearLayout.LayoutParams(-1, -2));
