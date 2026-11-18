@@ -22,6 +22,11 @@ public class Mods {
     static final long WAIT = 0x1019774L; static final String WAIT_O = "380096e5", WAIT_N = "fe05a0e3";
     /** v2.45 单机开局读秒 45→20 秒：0x101977c ldr r0,[r6,#0x3c]（StartMatchCountDownTime → GS+0x740）→ movt r0,#0x41a0。
      *  r0 这时是上一句读的等人时间（60.0 或 WAIT 补丁后的 1.0），低 16 位都是 0 → r0 = 20.0f。游戏读表那一下就是 20 秒，不事后改。 */
+    /** v2.72：单机阶段 0 实测还是等 60 秒：第一个玩家 PostLogin（0x100bb88）用 GS+0x72c 设定时器到点才开读秒，
+     *  这时读表（WAIT 补丁那句）还没跑，读到的是 GameState 构造里的默认 60.0。三个 GameState 构造（0x1017ccc/0x101af80/0x101fc7c）
+     *  里 movt r0,#0x4270 → movt r0,#0x3f80（默认值 60.0 → 1.0）。 */
+    static final long[] WAIT_CTOR = { 0x1017d10L, 0x101afb4L, 0x101fcb0L }; static final String WAIT_CTOR_O = "700244e3", WAIT_CTOR_N = "800f43e3";
+    static String waitCtor() { StringBuilder r = new StringBuilder(); for (long a : WAIT_CTOR) { String x = write(a, WAIT_CTOR_O, WAIT_CTOR_N, true); r.append("ok".equals(x) ? "ok " : x + " "); } return r.toString().trim(); }
     static final long START = 0x101977cL; static final String START_O = "3c0096e5", START_N = "a00144e3";
     // v1.41~1.43 的开火不扣子弹代码补丁(0xefd104)会让游戏启动几秒就闪退（扣子弹代码有校验），已删除，别再改这里
     static final long AMMO = 0xefd104L; static final String AMMO_O = "065045e0", AMMO_N = "0550a0e1";
