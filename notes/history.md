@@ -1036,3 +1036,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 死亡：控制器+0x2c0 不是活人物/血 +0x5a0<=0 → 对面 +1；5 秒后每 2.5 秒调一次 GameMode 虚表 +0x39c(RestartPlayer，NZ 版 0x10127a4，BTT 0x1079fa8)；新人物出现 → 传回出生点、发装备、3 秒内补满血。20 头结束，不再复活。
   - RE：GameMode 虚表 0x3a0 RestartPlayerAtPlayerStart(0x29f6170)、0x3a4 RestartPlayerAtTransform(0x29f65e0)；NZ RestartPlayer 检查 PS(+0x2c4)+0x2bc>=2、vt+0x3ec==1、PS+0x2d4 bit2。BTT 模式蓝图存在（BTT 有原生复活 AIRespawn），没用。
   - 未知/待测：死后 RestartPlayer 是否被拒（PS 状态）；比赛是否因只剩 1 人结束（房主幽灵人物算一队，应不会）；选枪读背包能否读到枪（枪可能不在物品列表里）。看服务端日志「单挑：」行。
+
+## v3.17（vc218/core218，2026-11-19 02:xx，三包，未实测）— 单挑：不在出生岛、自定点、毒圈
+- 01:43 用户：不要设到出生岛；要有掩体、毒圈、位置选好；「你自己定，自己做」。
+- 每张图记两个单挑点（prefs duel_e 海岛 / duel_s 雨林，x,y,z×2）。没记过：这局上飞机（setPlane(false)+不刷毒），两人自己跳，落地静止 2.5 秒（阶段≥4）记成两个点；记过：不上飞机，进图传到两个点（Veh.teleport），再在点前摆枪。
+- 开房页「记录单挑点」「清除单挑点」；对局里服务端常用页「单挑」→「记录单挑点」（两个加入玩家现在的位置）。
+- 毒圈：圆心 = 两点中点，半径 = 两点距离/2 + 60 米（≥100 米），不缩；游戏毒圈关着，圈外每秒 -10 血（最低 1），看不见。
+- 无敌特效没做（没找到可靠的特效接口），只是 3 秒内补满血。

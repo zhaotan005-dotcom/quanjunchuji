@@ -11,7 +11,12 @@ import java.io.RandomAccessFile;
  *   - 发装备：HostMatch.giveTo（刷物品补丁，进背包）：同款枪补到 2 把、子弹 300、这把枪能装的全部配件、3 级头、3 级甲、喷气背包。
  *   - 死亡：控制器 +0x2c0 人物没了或血 +0x5a0 <= 0 → 对面 +1 头；5 秒后在游戏线程调 GameMode 虚表 +0x39c（RestartPlayer，
  *     NZ 版本 0x10127a4 / 0x1079fa8，游戏自己复活用的那条）→ 新人物传回他的出生点、重新发装备、3 秒内血掉了就补满。
- *   - 谁先 20 个头谁赢，之后不再复活。 */
+ *   - 谁先 20 个头谁赢，之后不再复活。
+ *  v3.17 用户：不要在出生岛、要有毒圈、位置我自己定：
+ *   - 每张图记两个单挑点（prefs duel_e / duel_s）。没记过：这局照常上飞机（不刷毒），两人自己跳到想打的地方，
+ *     落地站稳 2.5 秒就记成这张图的两个点；记过：不上飞机，进图直接传到两个点。开房页也能手动「记录单挑点」「清除」。
+ *   - 毒圈：以两个点中点为圆心、半径 = 两点距离一半 + 60 米（至少 100 米）的固定圈，不缩；圈外每秒掉 10 血（最低留 1）。
+ *     游戏自己的毒圈关着（不刷毒补丁），所以圈是看不见的，靠掉血提示。 */
 public class Duel {
     static volatile boolean on;
     static volatile String state = "单挑：没开";
@@ -20,25 +25,62 @@ public class Duel {
     static final String SAVAGE = "/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main";
 
     static class P {
-        long ctl, pawn; int kills; long gun; String gunName = "", ammo = "1";
-        float[] home; long rowAt, deadAt, protectUntil; boolean dead, kitted, picked;
+        long ctl, pawn; int kills, idx; long gun; String gunName = "", ammo = "1";
+        float[] home, last; long rowAt, deadAt, protectUntil, movedAt, hurtAt, tryAt; boolean dead, kitted, picked, placed;
     }
     static final java.util.LinkedHashMap<Long, P> ps = new java.util.LinkedHashMap<>();
     static volatile boolean over; static volatile String winner = "";
     static Thread th;
 
-    static String open(boolean savage) {
+    static volatile boolean savage;
+    static String key(boolean sv) { return sv ? "duel_s" : "duel_e"; }
+    static float[][] saved(boolean sv) {
+        try {
+            String v = Con.act.getSharedPreferences("zframe", 0).getString(key(sv), null); if (v == null) return null;
+            String[] t = v.split(","); if (t.length != 6) return null;
+            float[][] r = new float[2][3]; for (int i = 0; i < 6; i++) r[i / 3][i % 3] = Float.parseFloat(t[i]); return r;
+        } catch (Throwable e) { return null; }
+    }
+    static void save(boolean sv, float[] a, float[] c) {
+        try { Con.act.getSharedPreferences("zframe", 0).edit().putString(key(sv), a[0] + "," + a[1] + "," + a[2] + "," + c[0] + "," + c[1] + "," + c[2]).apply(); } catch (Throwable ignored) {}
+        LogCap.note("单挑：记下" + (sv ? "雨林" : "海岛") + "单挑点 " + java.util.Arrays.toString(a) + " / " + java.util.Arrays.toString(c));
+    }
+    static void clear(boolean sv) { try { Con.act.getSharedPreferences("zframe", 0).edit().remove(key(sv)).apply(); } catch (Throwable ignored) {} }
+    static String pts() {
+        return "单挑点：海岛" + (saved(false) == null ? "没记" : "已记") + "，雨林" + (saved(true) == null ? "没记（第一局上飞机自己跳，落地就记）" : "已记");
+    }
+    /** 开房页按钮：把现在两个加入玩家站的位置记成当前地图的单挑点 */
+    static String recordNow() {
+        if (!Con.inMatch) return "进对局后再按";
+        String mp = Con.brMap == null ? "" : Con.brMap; boolean sv = mp.contains("Savage") || mp.contains("4x4");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            Veh.Names nm = Veh.Names.get(); java.util.ArrayList<float[]> l = new java.util.ArrayList<>();
+            for (long[] e : players(m, nm)) { long p = Server.rd(m, e[0] + 0x2c0); if (live(m, nm, p)) { float[] q = pos(m, p); if (q != null) l.add(q); } }
+            if (l.size() < 2) return "要两个加入的玩家都活着站好（现在 " + l.size() + " 个）";
+            save(sv, l.get(0), l.get(1)); arena(l.get(0), l.get(1));
+            return "记好了" + (sv ? "雨林" : "海岛") + "的两个单挑点";
+        } catch (Throwable t) { return "出错 " + t; }
+    }
+    static volatile float[] center; static volatile float radius;
+    static void arena(float[] a, float[] c) {
+        float d = (float) Math.hypot(a[0] - c[0], a[1] - c[1]);
+        center = new float[] { (a[0] + c[0]) / 2, (a[1] + c[1]) / 2 };
+        radius = Math.max(10000f, d / 2 + 6000f);
+    }
+    static String open(boolean sv) {
         Training.off();
-        on = true; reset();
-        Mods.setNoZone();
+        on = true; reset(); savage = sv;
+        float[][] pt = saved(sv);
+        if (pt != null) { Mods.setNoZone(); arena(pt[0], pt[1]); }
+        else { Mods.setPlane(false); Mods.setPoison(true); }
         Box.on = false;
         state = "单挑：开" + (savage ? "雨林" : "海岛");
         start();
-        if (savage) return Lan.host(SAVAGE);
+        if (sv) return Lan.host(SAVAGE);
         return ModeProbe.host("Props", "单挑", RENEW);
     }
     static void off() { on = false; }
-    static void reset() { synchronized (ps) { ps.clear(); } over = false; winner = ""; }
+    static void reset() { synchronized (ps) { ps.clear(); } over = false; winner = ""; center = null; }
 
     static void start() {
         if (th != null && th.isAlive()) return;
@@ -118,16 +160,46 @@ public class Duel {
                 if (!p.picked) {
                     if (!alive) continue;
                     p.pawn = pawn;
-                    if (p.rowAt == 0) { final float[] at = pos(m, pawn); if (at == null) continue; p.rowAt = now; p.home = at; todo.add(() -> gunRow(at)); continue; }
+                    if (!p.placed) {
+                        synchronized (ps) { int i = 0; for (P o : ps.values()) { if (o == p) p.idx = i; i++; } }
+                        float[][] pt = saved(savage);
+                        float[] q = pos(m, pawn); if (q == null) continue;
+                        if (pt != null && p.idx < 2) {
+                            if (now - p.tryAt < 2000) continue; p.tryAt = now;
+                            final float[] h = pt[p.idx]; final long pw = pawn;
+                            p.home = h; p.placed = true; p.movedAt = now;
+                            todo.add(() -> { try { Veh.teleport(pw, h[0], h[1], h[2] + 50, 0); } catch (Throwable ignored) {} });
+                            continue;
+                        }
+                        // 没记过：等他上飞机跳下来、落地站稳 2.5 秒
+                        if (p.last == null || Math.abs(q[0] - p.last[0]) + Math.abs(q[1] - p.last[1]) + Math.abs(q[2] - p.last[2]) > 60f) { p.last = q; p.movedAt = now; continue; }
+                        if (Bots.readPhase(gm) < 4 || now - p.movedAt < 2500) continue;
+                        p.home = q; p.placed = true;
+                        LogCap.note("单挑：" + Long.toHexString(p.ctl) + " 落地 " + java.util.Arrays.toString(q));
+                        java.util.ArrayList<P> all = snapshot();
+                        if (all.size() >= 2 && all.get(0).placed && all.get(1).placed && saved(savage) == null) { save(savage, all.get(0).home, all.get(1).home); arena(all.get(0).home, all.get(1).home); }
+                        continue;
+                    }
+                    if (now - p.movedAt < 1500) continue;   // 传送完等一下再摆枪
+                    if (p.rowAt == 0) { final float[] at = p.home; p.rowAt = now; todo.add(() -> gunRow(at)); continue; }
                     long g = gunIn(m, pawn);
                     if (g == 0 && now - p.rowAt < 45000) continue;
                     p.gun = g != 0 ? g : 20101000001L;
                     String[] gi = gunInfo(p.gun); p.gunName = gi[0]; p.ammo = gi[2];
-                    p.picked = true; float[] h = pos(m, pawn); if (h != null) p.home = h;
+                    p.picked = true;
                     final boolean had = g != 0;
                     LogCap.note("单挑：" + Long.toHexString(p.ctl) + " 选了 " + p.gunName + (had ? "" : "（45 秒没捡，默认）"));
                     todo.add(() -> kit(b, p, had ? 1 : 2));
                     continue;
+                }
+                // 毒圈（看不见）：圈外每秒掉 10 血，最低留 1
+                float[] c = center;
+                if (alive && c != null && now >= p.protectUntil && now - p.hurtAt >= 1000) {
+                    float[] q = pos(m, pawn);
+                    if (q != null && Math.hypot(q[0] - c[0], q[1] - c[1]) > radius) {
+                        p.hurtAt = now; float hp = Mods.f(m, pawn + 0x5a0);
+                        if (hp > 1f) Mods.wf(m, pawn + 0x5a0, Math.max(1f, hp - 10f));
+                    }
                 }
                 if (alive && pawn != p.pawn && !p.dead) { p.pawn = pawn; }
                 if (!alive && !p.dead) {
@@ -141,8 +213,8 @@ public class Duel {
                         final float[] h = p.home;
                         todo.add(() -> { try { if (h != null) Veh.teleport(p.pawn, h[0], h[1], h[2] + 50, 0); } catch (Throwable ignored) {} kit(b, p, 2); p.protectUntil = System.currentTimeMillis() + 3000; });
                         LogCap.note("单挑：" + Long.toHexString(p.ctl) + " 复活 新人物 " + Long.toHexString(pawn));
-                    } else if (now - p.deadAt >= 5000 && (p.deadAt % 1 == 0) && now - p.rowAt > 2500) {
-                        p.rowAt = now;   // 2.5 秒试一次
+                    } else if (now - p.tryAt > 2500) {
+                        p.tryAt = now;   // 2.5 秒试一次
                         todo.add(() -> respawn(gm, p));
                     }
                 }
@@ -150,7 +222,7 @@ public class Duel {
         }
         for (Runnable r : todo) r.run();
         state = over ? "单挑：结束，赢家 " + winner + "，比分 " + score()
-                     : "单挑：" + pl.size() + " 人，比分 " + score() + "（" + WIN + " 个头赢）";
+                     : "单挑：" + pl.size() + " 人，比分 " + score() + "（" + WIN + " 个头赢）" + (center == null ? "，还没定单挑点" : "，圈半径 " + Math.round(radius / 100) + " 米");
     }
     static java.util.ArrayList<P> snapshot() { synchronized (ps) { return new java.util.ArrayList<>(ps.values()); } }
     static String score() {

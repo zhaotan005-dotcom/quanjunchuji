@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.16";
+    static final String VER = "v3.17";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1046,7 +1046,10 @@ public class GameOverlay {
             LinearLayout dr = row(a, hc); dr.setPadding(0, 0, 0, u.dp(6));
             fillBtn(a, u, dr, "单挑·海岛", () -> toast(a, Duel.open(false)));
             fillBtn(a, u, dr, "单挑·雨林", () -> toast(a, Duel.open(true)));
-            note(a, u, hc, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
+            LinearLayout dr2 = row(a, hc); dr2.setPadding(0, 0, 0, u.dp(6));
+            fillBtn(a, u, dr2, "记录单挑点", () -> toast(a, Duel.recordNow()));
+            fillBtn(a, u, dr2, "清除单挑点", () -> { Duel.clear(false); Duel.clear(true); toast(a, "两张图的单挑点都清了，下次单挑先上飞机自己跳"); });
+            note(a, u, hc, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState) + "。" + Duel.pts());
             // v3.15 用户：删掉训练营和决胜五军（Training/ModeProbe.BFA 代码留着，不再有入口）
             // v3.03 用户：再找找别的地图 → 服务端进大厅自动扫名字表里的 /Game/Maps/…_Main（ModeProbe.maps），除了上面三张，扫到的都列出来（战术模式开）
             java.util.List<String> extra = ModeProbe.maps;
@@ -1196,6 +1199,12 @@ public class GameOverlay {
         head(a, u, root, "保命");
         LinearLayout oc = card(a, u, root);
         switchRow(a, u, oc, "无敌", "不会掉血", Con.godOn, v -> { cmd(a, "EnableCheats"); cmd(a, "God"); Con.godToggled(); return "ok"; });
+        if (Ed.ED == 1 || Lan.role == 1) {
+            head(a, u, root, "单挑");
+            LinearLayout dq = row(a, root);
+            btn(a, u, dq, "记录单挑点", () -> toast(a, Duel.recordNow()));
+            note(a, u, root, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
+        }
         if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（服务端这边算伤害）", Con.allGod, v -> Con.setAllGod(v));
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
