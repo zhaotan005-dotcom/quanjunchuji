@@ -123,12 +123,12 @@ public class Flow {
             float r0 = f(m, d + 0x10), w0 = f(m, d + 0x14), s0 = f(m, d + 0x18);
             float cx = f(m, d + 4), cy = f(m, d + 8), cz = f(m, d + 12);
             if (!(r0 > 10000 && r0 < 2e6f && w0 >= 0 && w0 < 7200 && s0 >= 0 && s0 < 7200 && Math.abs(cx) < 2e6f && Math.abs(cy) < 2e6f)) continue;
-            if (n >= tb.length + 3 && Math.abs(r0 - side * WHOLE) < 1f) return "游戏自己按正式服表生成（" + rows(m, d, n) + "）";
+            if (n >= tb.length + 2 && Math.abs(r0 - side * WHOLE) < 1f && Math.abs(f(m, d + ES + 0x10) - tb[0][0]) < 1f) return "游戏自己按正式服表生成（" + rows(m, d, n) + "）";
             String before = rows(m, d, n);
             byte[] first = new byte[ES], last = new byte[ES];
             m.seek(d); m.readFully(first);
             m.seek(d + ES * (n - 1)); m.readFully(last);
-            int cnt = tb.length + 3;
+            int cnt = tb.length + 2;
             byte[] nb = build(first, last, tb, side, firstWait, cz, new Random());
             long mem = Veh.malloc(cnt * ES);
             if (mem < 0x10000) return "要内存失败，没改（原来 " + before + "）";
@@ -153,22 +153,22 @@ public class Flow {
         //   第 1 项 整图 等/缩 = 第一圈的时间（这时才显示第一圈白圈）
         //   第 i+2 项 = 第 i 圈，等/缩 = 第 i+1 圈的时间；最后一项半径 0.1。
         //   第一圈中心只在地图正中 ±(边长/2-半径)×0.3 内，不出岛。
-        int cnt = tb.length + 3;
+        // v2.70 服务端（同客户端 v2.74）：去掉中间那项整图：第 0 项整图 等 min(firstWait,60) 秒后用第一圈的缩圈时间直接缩到第一圈，白圈一开始就显示
+        int cnt = tb.length + 2;
         java.nio.ByteBuffer b = java.nio.ByteBuffer.allocate(cnt * ES).order(java.nio.ByteOrder.LITTLE_ENDIAN);
         float half = side / 2, pr = side * WHOLE, px = 0, py = 0;
         for (int i = 0; i < cnt; i++) {
             int o = i * ES;
             b.position(o); b.put(i < cnt - 1 ? first : last);
             float r, w, s, x, y; int dmg;
-            if (i == 0) { r = side * WHOLE; w = firstWait; s = 1; dmg = 1; x = 0; y = 0; }
-            else if (i == 1) { r = side * WHOLE; w = tb[0][1]; s = tb[0][2]; dmg = 1; x = 0; y = 0; }
+            if (i == 0) { r = side * WHOLE; w = Math.min(firstWait, 60f); s = tb[0][2]; dmg = 1; x = 0; y = 0; }
             else {
-                int k = i - 2;   // 第 k 圈（k == tb.length 是最后 0.1 米）
+                int k = i - 1;   // 第 k 圈（k == tb.length 是最后 0.1 米）
                 if (k < tb.length) { r = tb[k][0]; dmg = (int) tb[k][3]; } else { r = 0.1f; dmg = 11; }
                 if (k + 1 < tb.length) { w = tb[k + 1][1]; s = tb[k + 1][2]; } else if (k < tb.length) { w = 180; s = 15; } else { w = 9999; s = 1; }
-                double room = i == 2 ? Math.max(0, (half - r) * 0.3) : Math.max(0, pr - r);
+                double room = i == 1 ? Math.max(0, (half - r) * 0.3) : Math.max(0, pr - r);
                 double ang = rnd.nextDouble() * Math.PI * 2, dist = Math.sqrt(rnd.nextDouble()) * room;
-                x = (float) ((i == 2 ? 0 : px) + Math.cos(ang) * dist); y = (float) ((i == 2 ? 0 : py) + Math.sin(ang) * dist);
+                x = (float) ((i == 1 ? 0 : px) + Math.cos(ang) * dist); y = (float) ((i == 1 ? 0 : py) + Math.sin(ang) * dist);
             }
             b.putFloat(o, 0f);   // v2.01 CenterPointOffsetMax = 0：游戏换圈时不再随机挪圈心
             b.putFloat(o + 4, x); b.putFloat(o + 8, y); b.putFloat(o + 12, cz);
