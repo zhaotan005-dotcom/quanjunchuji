@@ -537,6 +537,14 @@ public class Veh {
             if (e1 < 0x10000 || !"ByteProperty".equals(ascii(m, e1 + 8, 16))) return null;
             long f1 = Server.rd(m, e1);
             if (f1 != 1 && f1 != 2) return null;
+            // v2.99：服务端进程里「方式0」命中过假块表（只有块 0 对，块 1 是乱的）→ 序号 ≥16384 的名字（BP_…_C 类名、/Game 路径）全读成 ?
+            // → 全员找人 0 个、加速请求没人、NetRate 找不到 NetDriver、模式蓝图查不到。现在要求块 1 第一个条目序号正好是 16384。
+            long c1 = Server.rd(m, chunks + 4);
+            if (c1 < 0x10000 || (c1 & 3) != 0) return null;
+            long e16 = Server.rd(m, c1);
+            if (e16 < 0x10000) return null;
+            long f16 = Server.rd(m, e16);
+            if ((f1 == 2 ? f16 >> 1 : f16) != 16384) return null;
             Names r = new Names(); r.chunks = chunks; r.shift = f1 == 2;
             return r;
         }

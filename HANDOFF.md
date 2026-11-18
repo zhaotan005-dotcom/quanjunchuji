@@ -116,3 +116,21 @@
 - 诊断：诊断头「道具诊断：」（Prop.diagText，AvatarLog 加了一句）；放下/收回每 0.5 秒记状态，失败/完成自动传 prop-*；进图扫一次 GNames 的 PropsBar 资源。
 - SLACK 现在：0x240–0x2df U cave；0x300–0x37f Prop 地上模型 cave；0x380–0x3cb MapMark（从 0x370 挪过来，原来盖了 Prop 的字面量）；0x3d0–0x3fb 放下修复；0x400–0x98f vcave；0x990– 毒圈。没空位了。
 - 等用户测：拿出 → 放下（看有没有读条、放下后数量减 1、地上有东西）→ 收回键（读条后回背包）。不行就看 ntfy prop-* 的「道具诊断」段。
+
+## v2.99（vc200/core200，2026-11-18 17:1x，三包，未实测）— 本轮交接（用户 17:07 额度不够，要求收尾）
+细节和偏移见 notes/history.md 末尾「v2.99」。日志：服务端 v2.97 game/logs/ntfy/net-1118-165423.txt（16:46~16:54 一局，客户端 127.0.0.1 经 FRP 加入）。
+### 用户 16:53 四项
+1. **配件不生效 — 已根修（未实测）**。根因：武器 AttachAdapter/DetachAdapter 只有 NetMode==1 才发可靠 RPC ClientAttachAdapter/ClientDetachAdapter，客户端实现要 NetMode==3 才在本地装 → 听服下客户端枪本地从没装配件。改 Lan.adpInstall（8 处，启动时装）。要看：诊断「听服配件同步 8/8 ok」；客户端装配件后后座/扩容/枪上模型是否生效。若仍有一把显示 30：查服务端那把枪 +0x52c。
+2. **加速不生效 — 找到根因并修（未实测）**。服务端 Veh.Names 用了假块表（「方式0」，块 1 是乱的），序号 ≥16384 的类名都读成 ?；Crew.find 靠类名认 PlayerController/NetConnection → 一直「找到 0 个（共 2）跳过： ?」→ 客户端的「S15.0_1.0」请求（ntfy 上 16:48:01 确实发出、服务端拉到了）setFor 找不到人 → 不写 PS.Score → 客户端「还没收到服务端的数」。改 Names.check 要求块 1 首条序号=16384。同一原因也让 NetRate「找不到 NetDriver」（v2.97 带宽修复其实没生效）、MapMark 服务端控制器名 ?。速度按人改仍是旧逻辑（CustomTimeDilation + CMC，按 控制器+0x2fc NetConnection 区分），没再改。要看：服务端诊断「全员（PlayerArray）：找到加入的玩家 1 个」「代刷：加速请求：玩家 …」「联机带宽」三行；客户端「跟服务端」行。代刷 ntfy 偶发 FileNotFoundException（since=消息 id），下一步可在出错时把 since 退回时间戳。
+3. **快扩刷不出 — 没做完**。没拿到设备上的 zf_items.txt / zf_items_bad.txt；怀疑是 v2.89 前客户端本地刷失败或 Prop.missAt 把它写进了 zf_items_bad（加入房间时客户端本地 give 失败会被记坏）。下一步：诊断里打印 205 类全部编号和 bad 里的 205 编号；加入房间(remote)时不要往 itemBad 写。
+4. **信号枪叫飞机 — 只追了一半，没改**。链路：FlareBullet Init(0xee6b9c) 仰角 > 枪+0x1b64(35°) 才置 +0x331；Tick(0xee6dfc) 权威端、下落时最高绝对 Z > 枪+0x1b60(10000) → 人物 vt+0x95c(0x10e8d20) → GameMode vt+0x5d0 的事件管理 +0x23c 广播事件 1。没发现「只有专用服」的分支（开火 0xee597c 只在 NetMode==1 时不生成本地弹）；监听者 AAirSupplySystem（配置 CSV 读失败后的默认值）没追完。下一步：加 flare 诊断（扫虚表 base+0x4c50f5c 的对象，记 Role/+0x331/+0x330/+0x32c/+0x334/位置，自动传 flare-*），实测时朝上 >35° 打；再追 AAirSupplySystem 对事件 1 的处理。
+### 用户 17:01 道具三项 — 都没做（时间不够）
+- A 捡起功能道具后没有道具键：没查。起点 PropBtn.java 显示条件 + Prop.scanUse（v2.98 改了 place/recycle）。
+- B 地上道具模型错：没改。v2.50 Prop 地上模型替身 cave（0xce6068/0xce62a0 → SLACK+0x300）就是显示替身箱子的来源；正确的地上模型资源若只在 pak 里则手机上没有，见下一条。
+- C 道具页去掉用不了的：没改（现有逻辑：刷失败/缺资源/402 无场景模型才删，见 GameOverlay.giveItem）。
+- D 加速：见上第 2 项（不是只凭 Score=0.0 下结论，证据是服务端「跳过： ?」和名字表方式0）。
+### 结论记录
+- 三军对垒/决胜五军：用户结论「手机上没有这两个模式的蓝图，不再试」。注意：v2.97 那次服务端名字表是假块表，只扫到块 0，证据偏弱；按用户要求不再试。
+- **用户 17:07 要求下一个智能体处理 pak**：三军对垒/决胜五军模式蓝图、训练营主关卡、道具地上模型，卡点都是资源只在 pak 里（手机现有名字表/挂载里找不到）。这里只记录要求和卡点。
+### 需要用户的日志
+- 加入房间后：装配件、开加速（拉条停 1 秒）、朝天 >35° 打信号枪各一次，然后让服务端和客户端都自动传 net-/matchend-（不用手点）。

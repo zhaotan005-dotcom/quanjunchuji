@@ -75,6 +75,21 @@ final class Lan {
         ammoPatch = "听服弹匣同步（+0x604 不再只给专用服写）：" + ok + "/" + AMMO_AT.length + (bad.length() > 0 ? "，失败" + bad : " ok");
         LogCap.note(ammoPatch);
     }
+    /** v2.99 配件根因：武器 AttachAdapter/DetachAdapter（0xed4540/0xed5434 装、0xed5628/0xed5a34 卸）里 ClientAttachAdapter/ClientDetachAdapter
+     *  这个可靠 RPC 只在 GetNetMode()==1（专用服）才发 → 听服下加入玩家的客户端武器从来不在本地装配件（只有背包图标），属性不生效。
+     *  改成「非客户端都发」（cmp #1/bne → cmp #3/beq）；后面的统计调用 0xed4f94（和前面专用服才调的 0xed45e0 成对）去掉。 */
+    static final String[][] ADP = {
+        {"ed45a4","010050e30900001a","030050e30900000a"},{"ed45d0","6f0200eb","00f020e3"},
+        {"ed549c","010050e30900001a","030050e30900000a"},{"ed54c8","b1feffeb","00f020e3"},
+        {"ed5688","010050e30700001a","030050e30700000a"},{"ed56ac","38feffeb","00f020e3"},
+        {"ed5a98","010050e30700001a","030050e30700000a"},{"ed5abc","34fdffeb","00f020e3"}};
+    static volatile String adpPatch = "听服配件同步：没装";
+    static void adpInstall() {
+        int ok = 0; StringBuilder bad = new StringBuilder();
+        for (String[] x : ADP) { String r = Mods.write(Long.parseLong(x[0], 16), x[1], x[2], true); if ("ok".equals(r)) ok++; else bad.append(" ").append(x[0]).append(":").append(r); }
+        adpPatch = "听服配件同步（ClientAttachAdapter 不再只给专用服发）：" + ok + "/" + ADP.length + (bad.length() > 0 ? "，失败" + bad : " ok");
+        LogCap.note(adpPatch);
+    }
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
@@ -89,6 +104,7 @@ final class Lan {
         if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
         pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e + "，加入的人上车 " + car;
         LogCap.note("联机补丁（启动时）：" + pre);
+        adpInstall();    // v2.99 配件根修
         ammoInstall();   // v2.97 换弹根修（启动时、代码还没进指令缓存）
         Loot.preinstall();   // v2.20 房主版：地图物资/门（ServerOnly 层）
     }
