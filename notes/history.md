@@ -788,3 +788,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 游泳：时间倍率保持 1（氧气正常），MaxSwimSpeed(+0x16c) = 原值×倍数。翻越等特殊模式仍 1 倍。
   - 飞天重写：不用弹射板组件，移动线程把 MovementMode 改 3、Velocity.Z = √(2·980·h)，下落最快 -7 米/秒。
   - 地图标点：RE 到 ServerAddNewMapSign（NZBRPlayerState，exec 0x11e528c，Validate vt+0x3f0 / 实现 vt+0x3f4，参数 8 字节 InNewLoc），标点存 NZBRTeamMemberInfo.MapSignLocation / bIsMapSignEnable；实现函数和失败原因还没找到。点标点传送未做。
+- v2.75 (vc176，客户端+单机)，未实测：用户要飞天一直飞、关了才落。Fly 改开关：MovementMode=5（Flying，无重力），前 h/20m·s⁻¹ 时间 Velocity.Z=2000，之后 0 悬停，每 40ms 重写；关时改 3，下落限速 -700。
