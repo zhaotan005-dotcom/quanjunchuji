@@ -31,11 +31,23 @@ final class HostMatch {
             long cur = Server.rd(m, gm + 0x998);
             if (one[0] != 1) { m.seek(gm + 0x8ed); m.write(new byte[]{1}); }
             if (cur != 0 && cur < 100) { m.seek(gm + 0x998); m.write(new byte[]{0, 0, 0, 0}); }
-            soloState = "单排：每队 1 人（原来每队 " + (one[0] & 0xff) + "），现有队伍 " + teams;
+            soloState = "单排：每队 1 人（原来每队 " + (one[0] & 0xff) + "），现有队伍 " + teams + "；" + noEnd(m, hideHost);
         } catch (Throwable t) { soloState = "单排：出错 " + t; }
     }
     /** v3.05 用户：服务端的人物实际还在（只是隐藏）→ 要删掉。直接销毁会让「活着的队」只剩加入的人，一个人加入时会立刻结算；
      *  所以做成「不存在」：隐藏 + 关碰撞（游戏自己的 SetActorEnableCollision 0x2740af0，打不到、挡不住人）+ 时间冻结（CustomTimeDilation +0x58 = 0，不会掉下去）+ 血一直满。 */
+    /** v3.05.1 用户：单排后死了不能重进。日志：OnPlayerKilled AliveTeamCount[1] → start to kick all players → 踢掉。
+     *  原因：房主人物（隐藏的）自己算一队，加入的人死了只剩这一队 → 查结束 0x100fbd4 里 vt+0x634（活着的队伍数）<= 1 就结算踢人。
+     *  去掉房主人物时：0x100fc60 cmp r0,#1 → cmp r0,#0（只在一个队都不剩时才结算），死了还能重进；关开关就改回。 */
+    static final long END_CMP = 0x100fc60L; static final int CMP1 = 0xe3500001, CMP0 = 0xe3500000;
+    static String noEnd(RandomAccessFile m, boolean on) throws java.io.IOException {
+        long b = Mods.base(); if (b == 0) return "不结算：没基址";
+        m.seek(b + END_CMP); int cur = Integer.reverseBytes(m.readInt());
+        if (cur != CMP1 && cur != CMP0) return "不结算：代码和预期不一样 " + Integer.toHexString(cur);
+        int want = on ? CMP0 : CMP1;
+        if (cur != want) { m.seek(b + END_CMP); m.writeInt(Integer.reverseBytes(want)); }
+        return on ? "只剩房主那队不结算（死了能重进）" : "结算照原样";
+    }
     static final long COLLISION = 0x2740af0L;
     static volatile long ghost;
     static void ghost() throws Exception {

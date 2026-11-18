@@ -48,7 +48,9 @@ public class Veh {
             if (uaddr > 0 && uaddr <= 0xffffffffL) {
                 byte[] want = Patches.hex(UCODE + Server.w32((int) uaddr)), cur = new byte[want.length];
                 m.seek(b + UCAVE); m.readFully(cur);
-                boolean zero = true; for (byte x : cur) if (x != 0) { zero = false; break; }
+                // v3.05.1：cave 变长（0xb0）后尾巴伸进这页自带的数据段副本（不是 0，但没人用，v2.83 记录）→ v3.05 装不上，「U」调用全失败（空投塞不进、开局发道具 0/13、关碰撞没生效）。
+                // 只要开头 0x98（旧 cave 长度）是 0 就算空位
+                boolean zero = true; for (int z = 0; z < Math.min(0x98, cur.length); z++) if (cur[z] != 0) { zero = false; break; }
                 // v2.54：代码一样只是末尾缓冲区地址不同（同一进程装过）也算我们的，重写
                 boolean ours = java.util.Arrays.equals(java.util.Arrays.copyOf(cur, want.length - 4), java.util.Arrays.copyOf(want, want.length - 4));
                 if (zero || ours) { m.seek(b + UCAVE); m.write(want); uok = true; }

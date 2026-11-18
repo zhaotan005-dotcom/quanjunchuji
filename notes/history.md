@@ -963,3 +963,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 打药没效果：这次日志没有用药记录，根因未查到。加自动上传 heal-*（游戏日志出现 PreUseItem/FinishUsing/CancelUsing/CastTime 且是药品时）。
 - 客户端菜单只留 功能/刷车/联机/画面；服务端/单机分页顺序改成 常用 功能 | 武器 特殊 子弹 装备 道具 | 刷车 衣服 (人机) | 联机 画面，组间加分隔线。
 - 喷气背包：v3.03 改动未变，日志「喷气背包：这局还没见到」，等用一次看「喷气背包 原值」。
+
+## v3.06（vc207/core207，2026-11-18 19:3x，未实测）— 修 v3.05：U cave 装不上、单排后死了不能重进
+- 19:32 用户：死了之后不能重进；喷气背包能飞了；好多刷不了，空投只有枪和头甲包。日志 box-1118-192454：特殊道具/子弹/投掷物/配件/药品「塞进 0 次」，开局发道具 0/13，刷车状态「用道具 cave 没装（空位被占 0000000000000000）」。
+- 原因 1：v3.05 ucave 变长 0xb0，尾巴伸进 SLACK 页自带数据段副本（非 0）→ 空位检查失败 → U cave 没装 → 所有 ucall（刷物品补丁、丢弃、关碰撞）返回 0。修：只查开头 0x98（旧长度）是不是 0（v2.83：这段数据没人用，可以写）。
+- 原因 2：net-1118-193226：OnPlayerKilled AliveTeamMembersCount[0] AliveTeamCount[1] → NZGameMode.cpp:1677 start to kick all players。单排后房主隐藏人物自己算一队，加入的人一死只剩它 → 结算踢人。修：去掉房主人物开着时 0x100fc60 cmp r0,#1 → cmp r0,#0（只有 0 队活着才结算），关掉改回；状态写在 avatar「单排」行。

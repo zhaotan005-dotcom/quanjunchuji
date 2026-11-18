@@ -161,3 +161,6 @@
 ## v3.05（vc206/core206）未实测
 - 单排（GM+0x8ed MaxPlayerCountPerTeam=1、+0x998 清 0）；房主人物 隐藏+关碰撞+冻结+满血；出生岛 9 堆空投（Box.java）；ucave 5 参数（Veh.ucall5）；heal-* 自动日志；客户端只留 功能/刷车/联机/画面；菜单分组。详见 history v3.05。
 - 下一步：看 box-* / avatar 日志里「空投」「单排」两行；打药看 heal-*；喷气背包看「喷气背包 原值」。
+
+## v3.06（vc207）未实测
+- 修 U cave 空位检查；0x100fc60 不结算补丁（HostMatch.noEnd）。看 avatar「单排」「空投」两行。
