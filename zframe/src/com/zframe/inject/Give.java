@@ -68,7 +68,6 @@ final class Give {
                         if (p.length < 5) continue;
                         float x0 = Float.parseFloat(p[2]), y0 = Float.parseFloat(p[3]), z0 = Float.parseFloat(p[4]);
                         if (p[0].startsWith("V")) { state = "代刷：车 " + Veh.spawnGroupAt(Integer.parseInt(p[0].substring(1)), x0, y0, z0); LogCap.note(state); continue; }
-                        if (p[0].equals("A")) { state = "代刷：" + Loot.flareKit(x0 + 800f, y0, z0); continue; }
                         if (p[0].startsWith("S")) { String[] sj = p[0].substring(1).split("_"); state = "代刷：" + Crew.setFor(x0, y0, z0, Float.parseFloat(sj[0]), Float.parseFloat(sj[1])); LogCap.note(state); continue; }
                         long item = Long.parseLong(p[0]); int n = Math.min(3, Math.max(1, Integer.parseInt(p[1])));
                         float x = Float.parseFloat(p[2]), y = Float.parseFloat(p[3]), z = Float.parseFloat(p[4]);

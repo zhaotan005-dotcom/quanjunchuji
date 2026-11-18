@@ -168,18 +168,42 @@ final class Crew {
         if (t0 == null) { emptySince.put(w, now); return; }
         if (now - t0 < 2500) return;
         emptySince.remove(w); refills++;
-        // v2.92 用户：还是一直换弹。服务端这边换弹结束事件不来 → 自己替游戏把这次换弹做完：从备弹（+0x60c）扣，装进弹匣（+0x604/+0x608），不白给
+        // v2.95 根上修：不再自己写弹匣。服务端这边游戏的「换弹结束」事件（EStateEvent 21）没跑到 → 直接调游戏自己的
+        // UNZWeaponAmmoComponent 换弹结束函数 0xefd13c(弹药组件)：它从服务端背包（组件+0x2c → 背包 vt+0x2f8）读备弹、装进弹匣、
+        // 权威端用背包 vt+0x2fc 真扣子弹，再写 +0x604/+0x608 同步给客户端。弹药组件 = 枪身上 [q+0x20]==枪 的那个对象。
+        // 信号枪同理：服务端弹匣是 0 → 服务端不认这一枪 → 不叫飞机。
+        long comp = ammoComp(m, b, w);
         int carried = Mods.rd(m, w + 0x60c);
-        if (carried > 0 && carried < 10000) {
-            int put = Math.min(clip, carried);
-            Mods.wi(m, w + 0x60c, carried - put); Mods.wi(m, w + 0x608, put); Mods.wi(m, w + 0x604, put);
-            if (refills <= 8) LogCap.note("换弹：服务端替加入玩家装弹 " + put + "（备弹 " + carried + " → " + (carried - put) + "）");
-        } else if (refills <= 8) LogCap.note("换弹：服务端备弹 " + carried + "，没装");
+        if (comp != 0 && clip > 0) {
+            final long fc = comp, fw = w; final int fcar = carried;
+            new Thread(() -> {
+                try {
+                    long[] r = Veh.ucall(fc, 0, 0, 0, null, Mods.base() + END_CLIP);
+                    int now604 = -1, now60c = -1;
+                    try (RandomAccessFile mm = new RandomAccessFile("/proc/self/mem", "r")) { now604 = Mods.rd(mm, fw + 0x604); now60c = Mods.rd(mm, fw + 0x60c); } catch (Throwable ignored) {}
+                    if (refills <= 8) LogCap.note("换弹：服务端调游戏换弹结束 " + Long.toHexString(r[0]) + "，弹匣 0 → " + now604 + "，备弹 " + fcar + " → " + now60c);
+                } catch (Throwable t) { LogCap.note("换弹：调换弹结束出错 " + t); }
+            }, "zf-clip").start();
+        } else if (refills <= 8) LogCap.note("换弹：没找到弹药组件（备弹 " + carried + "）");
         if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，WeaponAmmoCount=" + Mods.rd(m, w + 0x608) + "，服务端备弹 WeaponCarriedAmmoCount=" + Mods.rd(m, w + 0x60c) + "，动画修正 " + animFix + " 次）");
         ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
         Lan.autoUp("ammo");   // v2.88 自动传
     }
     static int animFix, animWas = -1;
+    static final long END_CLIP = 0xefd13cL;   // UNZWeaponAmmoComponent 换弹结束（打 "Current clip is full, do not need to change clip!" 那个）
+    static final java.util.HashMap<Long, Long> compOf = new java.util.HashMap<>();
+    /** 枪(+0x200..0x800) 里找 [q+0x20]==枪 且 [q+0x24]==容量 的弹药组件，按枪缓存 */
+    static long ammoComp(RandomAccessFile m, long b, long w) throws java.io.IOException {
+        Long c = compOf.get(w);
+        if (c != null) return c;
+        int clip = Mods.rd(m, w + 0x52c);
+        for (int o = 0x200; o < 0x800; o += 4) {
+            long q = Mods.rp(m, w + o);
+            if (q < 0x10000 || q == w || !Mods.isObj(m, b, q)) continue;
+            if (Mods.rp(m, q + 0x20) == w && Mods.rd(m, q + 0x24) == clip) { compOf.put(w, q); LogCap.note("换弹：弹药组件在枪 +0x" + Integer.toHexString(o)); return q; }
+        }
+        compOf.put(w, 0L); return 0;
+    }
     /** v2.92 用户：加入的玩家和房主成了队友。PlayerState+0x35c = NZBRTeamInfo（TeamInfo+0x2b0 TeamIndex，反射表）。
      *  两人 TeamInfo 不是同一个对象、但 TeamIndex 一样 → 把加入玩家的 TeamIndex 改成 房主+序号；是同一个对象 → 只记日志（不能乱拆，下一版处理）。 */
     static final java.util.HashSet<Long> teamDone = new java.util.HashSet<>();
