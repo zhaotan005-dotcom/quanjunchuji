@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.10";
+    static final String VER = "v3.11";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1035,17 +1035,31 @@ public class GameOverlay {
             LinearLayout hc = card(a, u, root);
             kv(a, u, hc, "本机 IP", Lan.ip());
             LinearLayout r = row(a, hc); r.setPadding(0, u.dp(4), 0, u.dp(6));
-            fillBtn(a, u, r, "老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
+            fillBtn(a, u, r, "老海岛", () -> { Training.off(); toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")); });
             // v3.03 用户：新海岛默认就是战术模式（v3.02 实测战术模式能用：原生道具栏、道具都能用）
-            fillBtn(a, u, r, "新海岛", () -> toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
-            fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
+            fillBtn(a, u, r, "新海岛", () -> { Training.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")); });
+            fillBtn(a, u, r, "雨林", () -> { Training.off(); toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")); });
+            // v3.11 用户：要训练营。自制版：新海岛出生岛 + 不上飞机不刷毒 + 物资箱 + 排车 + 一排固定靶子（打完自动补）；原图：pak 里读到的关卡（试）
+            Training.scan(a);
+            LinearLayout tr = row(a, hc); tr.setPadding(0, 0, 0, u.dp(6));
+            fillBtn(a, u, tr, "训练营", () -> toast(a, Training.open(Training.RENEW, "训练营")));
+            java.util.ArrayList<String> um; synchronized (Training.umaps) { um = new java.util.ArrayList<>(Training.umaps); }
+            int tn = 1;
+            for (final String mp : um) {
+                if (tn % 3 == 0) tr = row(a, hc);
+                final String lb = "训练营原图 " + mp.substring(mp.lastIndexOf('/') + 1);
+                fillBtn(a, u, tr, lb + "（试）", () -> toast(a, Training.open(mp, lb)));
+                tn++;
+            }
+            if (tr != null) while (tn % 3 != 0) { tr.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); tn++; }
+            note(a, u, hc, Training.pakState + "；" + Training.state);
             // v2.92 试娱乐模式开房；v2.96 根修：?game= 必须是模式的蓝图类（C++ 底层类没配控制器/对局状态，开了必闪退，见 ModeProbe）。
             // 名字（libUE4 本地化默认文本 NSCommon/MatchModeName_10/13）：Legion = 三军对垒（GroupCountMax 默认 3），BFA = 决胜五军（推断）
             final String RENEW = "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main";
             LinearLayout er = row(a, hc);
             // v3.01：v3.00 全量扫名字表 —— 三军对垒没有蓝图（只有 C++ 类）→ 按钮去掉；决胜五军有 BP_NZBRBFAGameMode（能进图，流程不全，见 history）；
             //  战术模式 /Game/Blueprints/BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode（道具栏 UNZBRPHUDWidget_PropsBar 是这个模式的 HUD）
-            fillBtn(a, u, er, "决胜五军（试）", () -> toast(a, ModeProbe.host(ModeProbe.BFA, "决胜五军", RENEW)));
+            fillBtn(a, u, er, "决胜五军（试）", () -> { Training.off(); toast(a, ModeProbe.host(ModeProbe.BFA, "决胜五军", RENEW)); });
             // v3.03 用户：再找找别的地图 → 服务端进大厅自动扫名字表里的 /Game/Maps/…_Main（ModeProbe.maps），除了上面三张，扫到的都列出来（战术模式开）
             java.util.List<String> extra = ModeProbe.maps;
             LinearLayout xr = null; int xn = 0;
@@ -1058,7 +1072,7 @@ public class GameOverlay {
             }
             if (xr != null) while (xn % 3 != 0) { xr.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); xn++; }
             switchRow(a, u, hc, "去掉房主人物", "开局把房主自己的人物隐藏、关碰撞、冻住（看不到、打不到、挡不住人，也不和任何人一队），房主只当服务器", HostMatch.hideHost, v -> { HostMatch.hideHost = v; return "ok"; });
-            switchRow(a, u, hc, "出生岛空投", "每局开局在房主出生的位置放 9 堆：枪械、特殊道具、子弹、投掷物、油桶、步枪配件、冲锋枪配件、药品、头甲包", Box.on, v -> { Box.on = v; return "ok"; });
+            switchRow(a, u, hc, "出生岛空投", "每局开局在加入玩家前面放物资方块（枪、战术道具、子弹、投掷物、配件、药品、头甲包），身后排好车", Box.on, v -> { Box.on = v; return "ok"; });
             note(a, u, hc, HostMatch.state);
             note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);

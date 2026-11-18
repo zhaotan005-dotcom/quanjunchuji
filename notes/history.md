@@ -1002,3 +1002,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 加入：大按钮「加入艾挽服务器」= frp-put.com:47937，右边输入框 +「加入这个地址」。
   - 服务端不再订阅 ntfy 代刷主题（客户端不再请求，少占 429 限流）。
 - 没做：换弹打断（ENZInnerWeaponEvent：16 BeginChangeClip … 21 EndChangeClip、22 SwitchToInactive；武器代码 0xec0000–0xf30000 里 GetNetMode 比较位点已列出，未定位打断路径）；训练营/单挑新地图（不能做新地图，pak 不解密、无编辑器）；打药（heal-1118-202310 未分析）。
+
+## v3.11（vc212/core212，2026-11-18 21:0x，未实测）— 训练营
+- 20:51 用户：「怎么可能做不了？给我做」「我只要训练营的」（单挑不要了）。
+- Training.java：
+  - 原图：大厅（服务端）找 pakchunk_c2afa52b…pak（外部 files / obb / files 递归），只读末尾明文索引（标记 0x5A6F12E1、版本、索引位置；FString 名字 + FPakEntry），列出 .umap → /Game/Maps/TrainingIsland_Runtime/… 每个一个「训练营原图 xxx（试）」按钮（战术模式开）。索引加密/不认 → 日志记末尾字节。日志自动上传 pak-*。不解密。
+  - 自制「训练营」按钮：新海岛 + 战术模式 + setNoZone（不上飞机不刷毒）+ 物资方块 + 排车 + 加入玩家前方 20 米一排 8 个固定靶子人机（不带枪，addBot 标志 4，Bots.manual 固定），每 15 秒看一次（Prop.alive + 血 +0x5a0>0），少了就补。其他开房按钮 Training.off()。
