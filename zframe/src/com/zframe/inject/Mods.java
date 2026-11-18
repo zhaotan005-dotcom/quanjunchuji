@@ -297,12 +297,28 @@ public class Mods {
     public static String setNormal() {
         String r = setPlane(false);
         String r2 = setPoison(false);
+        saveZone(false);
         return "ok".equals(r) ? r2 : r;
     }
+    /** v3.04：用户选了不刷毒对局，重开（更新内核）后变回正常对局 → 进了图上飞机。记住选择，大厅加载完自动重新打上 */
+    static volatile String zoneState = "游戏模式：还没设置";
+    static void saveZone(boolean on) {
+        try { android.app.Activity a = Con.act; if (a != null) a.getSharedPreferences("zframe", 0).edit().putBoolean("zone_off", on).apply(); } catch (Throwable ignored) {}
+    }
+    static void restoreZone() {
+        boolean on = false;
+        try { android.app.Activity a = Con.act; if (a != null) on = a.getSharedPreferences("zframe", 0).getBoolean("zone_off", false); } catch (Throwable ignored) {}
+        String r = on ? setNoZone() : "正常对局不用改";
+        zoneState = "游戏模式：启动时恢复「" + (on ? "不刷毒对局" : "正常对局") + "」→ " + r + "（不上飞机=" + noPlane + " 不刷圈=" + noPoison + "）";
+        LogCap.note(zoneState);
+    }
+    static String zoneNow() { return zoneState + "；现在 不上飞机=" + noPlane + " 不刷圈=" + noPoison; }
     /** v2.17：不刷毒对局 = 不上飞机 + 不刷圈 */
     public static String setNoZone() {
         String r = setPlane(true);
         String r2 = setPoison(true);
+        saveZone(true);
+        zoneState = "游戏模式：手动选「不刷毒对局」→ " + r + " / " + r2;
         return "ok".equals(r) ? r2 : r;
     }
     public static String setMale(boolean on) {

@@ -950,3 +950,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 重启：在线更新后的重开从 1.2 秒延到 3.5 秒（服务端 15:49、17:52 两次启动闪退都在 0x1a322f8 ← 0x1a2ea98（读 ini/命令行），推断是旧进程没退干净）。
 - 没做：换弹时切枪还会自动装弹（要那一刻的日志/RE）；「方块」（截图里灰色棋盘格方块，人偶站在上面）—— 是什么、要做成什么已问用户；pak 资源、训练营下一步。
 - 18:24 用户澄清「方块」：不是能站的方块，是装物资的箱子（像死亡盒），刷的装备放进箱子里。RE 线索：ANZPickupBox（NZPickupBox.cpp），背包组件 ServerSpawnPickupBox（thunk 0xe68298，校验 vt+0x368，实现 vt+0x36c），SpawnPickupBox exec 被桩成 bx lr；PickupBoxClass 属性 +0xf64（所属类未定）、AllPickupBoxList +0x674、bAutoDestroyPickupBox +0x8c8。背包组件虚表静态没定位，下次运行时从 人物+0x838 读。计划 v3.04 做「刷进箱子」+ 换弹切枪。
+- v3.04（vc205/core205）18:4x 用户（v3.03 实测）：新海岛战术模式选了「不刷毒对局」，进图后服务端和客户端都上了飞机，应该在出生岛。日志 avatar-1118-183906（服务端）：战术模式开房成功（BP_NZBattleRoyalePropsGameMode_C），阶段 0→1→2→3→4 走正常流程 + [SkyDiving] Add a passenger to plane；对比 15:54 海岛不刷毒那局是 0→4 直接跳。说明那局不上飞机补丁没打上。原因（推断）：Mods.noPlane/noPoison 只在本次进程里有效，没存；用户选完后为了更新内核重开了游戏 → 变回正常对局。修：setNoZone/setNormal 存 prefs zone_off，大厅加载完（coatAt 分支）Mods.restoreZone() 自动恢复；avatar 日志加「游戏模式」行。未实测。
+- 同局：开局发道具 13/13 种每种 999 成功（客户端截图「附近的物品」×999）；随后 18:38:01 UID=3 把 9 种各 999 Discard 到地上（谁触发未确认，可能是战术模式道具槽只有 3 个）。门/SceneItems 日志一直是 Add 0（正常对局也一样，不是判断依据）。
