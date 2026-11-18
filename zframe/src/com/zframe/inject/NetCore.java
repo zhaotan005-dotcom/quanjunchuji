@@ -80,7 +80,9 @@ final class NetCore {
     static volatile int readyVer;   // 已下好、等重启的版本
     interface L { void on(String msg, boolean ready); }
     static volatile L listener;
-    static void say(String m, boolean ready) { status = m; GameOverlay.refreshAny(); LogCap.note("在线更新：" + m); L l = listener; if (l != null) try { l.on(m, ready); } catch (Throwable ignored) {} }
+    /** v2.68：这次检查已经有结果（最新 / 下好了 / 失败）。加载页的选择框等它 */
+    static volatile boolean done;
+    static void say(String m, boolean ready) { status = m; if (ready || m.startsWith("已是最新") || m.startsWith("检查更新失败")) done = true; GameOverlay.refreshAny(); LogCap.note("在线更新：" + m); L l = listener; if (l != null) try { l.on(m, ready); } catch (Throwable ignored) {} }
 
     /** 进大厅后调：清掉闪退计数；本内核是刚换上的就提示「已更新」；再查一次新版本（选单机/联机时查过就不重复） */
     static void lobby(final Context ctx) {

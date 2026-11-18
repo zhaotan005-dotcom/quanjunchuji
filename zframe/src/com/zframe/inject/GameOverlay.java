@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.66";
+    static final String VER = "v2.68";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1513,11 +1513,17 @@ public class GameOverlay {
                 pb[0].setVisibility(ready || p >= 0 ? View.VISIBLE : View.GONE);
                 GameDlg.setPct(pb, ready ? 100 : Math.max(p, 0));
                 rr.setVisibility(ready ? View.VISIBLE : View.GONE);
-                if (ready) sub.setText("新版本已下好：点「重启更新」，或选好模式进游戏，下次启动自动用新版");
+                if (ready && !autoRestart) {   // v2.68 用户：别没查完就进大厅 → 下好了直接重启用新版
+                    autoRestart = true;
+                    sub.setText("新版本已下好，2 秒后自动重启更新…");
+                    a.getWindow().getDecorView().postDelayed(() -> NetCore.restart(a), 2000);
+                }
             });
             NetCore.check(a);
+            { NetCore.L l = NetCore.listener; String st = NetCore.status; if (l != null && !st.isEmpty()) l.on(st, NetCore.readyVer > ZInit.CORE_VER); }   // v2.68：腾讯页时已经查完/下好的，框一出来就显示（下好了就自动重启）
+            f[0].setBackgroundColor(0xF0000000);   // v2.68：盖住后面，查更新时停在这一页
             a.getWindowManager().addView(f[0], GameDlg.wl("zframe_mode"));
-            chooser = f[0]; chooserAct = a;
+            chooser = f[0]; chooserAct = a; chooserShown = System.currentTimeMillis();
             LogCap.note("启动选择：已显示");
         } catch (Throwable t) { LogCap.note("启动选择：显示失败 " + t + "，按上次的"); Ed.choose(Ed.saved(), "显示失败"); }
     }
@@ -1525,7 +1531,10 @@ public class GameOverlay {
     static volatile long chooserTouched;
     static void pickMode(final Activity a, int m, TextView sub) {
         chooserTouched = System.currentTimeMillis();
-        if (m == Ed.ED) { closeChooser(); return; }
+        if (m == Ed.ED) {
+            if (!NetCore.done && NetCore.readyVer <= ZInit.CORE_VER) { sub.setText("已选" + (m == 0 ? "单机" : "联机") + "，查完更新自动进入"); picked = true; return; }   // v2.68
+            closeChooser(); return;
+        }
         Ed.save(m);
         LogCap.note("启动选择：换成 " + (m == 0 ? "单机" : "联机") + "，重启");
         sub.setText("换成" + (m == 0 ? "单机" : "联机") + "，正在重启…");
@@ -1545,8 +1554,20 @@ public class GameOverlay {
         a.runOnUiThread(() -> {
             showChooser(a);
             final View c = chooser;
-            if (c != null) c.postDelayed(() -> { if (chooser == c && System.currentTimeMillis() - chooserTouched > 20000 && NetCore.readyVer <= ZInit.CORE_VER) closeChooser(); }, 20000);
+            if (c != null) holdTick(c);
         });
+    }
+    /** v2.68 用户：查更新的时候停在这一页，不要没查完就进大厅。以前 20 秒到点就关；
+     *  现在要「查更新有结果」且「显示满 20 秒、20 秒内没点过」才关；查到新版本就自动重启（见 listener），不关框。 */
+    static volatile boolean autoRestart, picked; static volatile long chooserShown;
+    static void holdTick(final View c) {
+        c.postDelayed(() -> {
+            if (chooser != c) return;
+            long now = System.currentTimeMillis();
+            boolean ready = NetCore.readyVer > ZInit.CORE_VER;
+            if (!ready && NetCore.done && (picked || (now - chooserShown > 20000 && now - chooserTouched > 20000))) { closeChooser(); return; }
+            holdTick(c);
+        }, 1000);
     }
     /** 选完（手动或超时）：关掉选择框，菜单标题跟着变 */
     static void chosen() {
