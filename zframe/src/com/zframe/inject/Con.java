@@ -427,6 +427,7 @@ public class Con {
     static final java.util.regex.Pattern WEAP = java.util.regex.Pattern.compile("BP_NZWeap_(\\w+?)_C|WeaponBase/W\\d+_(\\w+)/");
     static void line(String l) {
         Prop.line(l);
+        Flare.line(l);
         if (l.contains("BP_NZWeap_") || l.contains("WeaponBase/W")) {
             java.util.regex.Matcher m = WEAP.matcher(l);
             if (m.find()) { String w = m.group(1) != null ? m.group(1) : m.group(2); if (!"EmptyHand".equals(w)) { lastWeap = w; lastWeapAt = System.currentTimeMillis(); } }

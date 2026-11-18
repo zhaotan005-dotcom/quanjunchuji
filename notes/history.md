@@ -892,3 +892,24 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 信号枪（静态 RE，未修）：ANZProjectile_FlareBullet 虚表 0x4c50f5c；Init vt+0x304=0xee6b9c：+0x331 = 发射仰角 > 枪+0x1b64（默认 35°），+0x334 = 枪+0x1b60（默认 10000）；Tick vt+0x204=0xee6dfc：Role≥3 且 +0x331 时记最高 Z(+0x32c)，下落时最高 Z > +0x334 → +0x330=1 → 枪(+0x2d0)+0x2b0 人物 vt+0x95c=0x10e8d20（Role≥3 → world 是游戏世界 → AuthorityGameMode(+0x94) 是 ANZGameMode → GM vt+0x5d0 拿事件管理 → +0x23c 广播事件类型 1 (x,y)）。监听者（AAirSupplySystem，虚表 0x4caf198，ctor 0x11860d4；CurFlareUsedNum +0x354、AirSupplyBoxClassFlareGunNormal/Vehicle 等属性在 0x4cb49cc 附近）没追完。枪 ANZWeap_FlareGun 虚表 0x4c4d92c：ServerSetFireInfo 实现 0xec09ec 只存 +0x1b3c..0x1b50；客户端开火 0xec0b28 非专用服且 Role≤2 才发。FireMode_FlareGun 开火 = 0xee597c（PhysicSimulate）：投射物 CDO+0x2cc 非 0 时只有权威端生成，否则 NetMode==1 不生成 → 听服房主会生成。没找到「只有专用服」的断点。
 - 快扩：没查完（设备上 zf_items.txt / zf_items_bad.txt 看不到）。
 - 新工具：game/re/nm1.py（全库 GetNetMode()==N 位置+源文件，结果在 /tmp 重跑即可）、u32s.py（UTF-32 字符串）、callers.py、fstr.py（函数引用的字符串）、pcref3.py、vtof.py。
+
+## v3.00（vc201/core201，2026-11-18 17:2x，三包，未实测）— 快扩误删根修 + 信号弹诊断 + 空投系统 RE + 客户端道具键 + 模式蓝图全量扫
+接手时 ntfy 最新是 17:02 的 v2.98 服务端 net-1118-170233，没有 v2.99 实测日志；配件/加速/带宽仍未实测。
+### 快扩刷不出（静态，未拿到设备文件）
+- giveItem 以前两条路会把编号永久写进 zf_items_bad.txt：①1.2 秒后诊断缓冲区不是「走完 0x5a02 且结果≠0」——包括「补丁代码没被调用 / 走到一半」这种没反应；②这 1.2 秒内游戏日志出现**任何**缺资源（Prop.missAt），不管是不是这件东西的。配件常缺图标/特效 → 快扩这类被误删，allAtt 也读 itemBad，所以全套配件里也没有。
+- 改：只有补丁走完、游戏明确返回失败才删（记删的原因）；缺资源只对功能道具 402 算。loadBad 第一次运行把非 402 的删除记录全部清掉一次（标记文件 zf_items_bad.v300 记下清掉了哪些）。诊断新两行：「配件编号（205）：…（共 N）」和「坏编号：… 其中配件 …；v3.00 清掉过的误删：[…]」。
+### 信号枪 → 空投（静态 RE，新增诊断，没改游戏逻辑）
+- AAirSupplySystem BeginPlay = vt+0x178 0x1186134，把委托绑到事件管理（GameMode vt+0x5d0 返回的对象）各偏移：+0x10c OnMatchBegin、+0x230 OnAirSupplyMessage、**+0x23c OnQuickStartSingleAirSupply（信号弹 0x10e8d20 广播的就是这一格）**、+0x248 OnAirSupportJump、+0x2b4 OnTestSpawn、+0x254 OnDropItem、+0x38c OnRequestDropSupply。
+- OnQuickStartSingleAirSupply exec thunk 0x11b699c → 0x11867bc：事件 +0x1c 类型==1 才继续 → 0x118a60c(this, +0xc,+0x10,+0x14,+0x18)：
+  1. 0x1186a74：World(+0x94 AuthorityGameMode) 是 NZ 的 GameMode → GM+0x380 系统表里按 AAirSupplySystem::StaticClass(0x11b6238) 找系统对象，空 → 不叫；
+  2. this+0x2bc（圈对象，+0x2b8 = 当前圈序号）空 → 不叫；
+  3. **CurFlareUsedNum(+0x354) < LimitsNumAdd(+0x340, EditDefaultsOnly int) × (圈序号+1)** 才 +1 并叫飞机（0x118908c 生成 + 0x1188140）。LimitsNumAdd 为 0（蓝图默认值没来/配置没读到）就永远叫不来——这是目前最可疑的断点，等日志确认。
+  反射：+0x33c RandomRadius(float)、+0x340 LimitsNumAdd、+0x344 AirSupplyTimeConfigList、+0x350 AirSupplyDropItemPoolIndex、+0x354 CurFlareUsedNum；+0x334/+0x338 AirSupplyBoxClassFlareGunNormal/Vehicle。
+- 新 Flare.java：游戏日志出现含 Flare 的行（30 秒一次）→ 25 秒内每 0.25 秒扫 GUObjectArray 找虚表 0x4c50f5c 的信号弹，记 Role(+0xe8)/仰角够(+0x331)/已触发(+0x330)/最高Z(+0x32c)/门槛(+0x334)/位置；同时记空投系统对象（虚表 0x4caf198）的 Role、CurFlareUsedNum、LimitsNumAdd、圈对象/圈序号、RandomRadius；期间含 Flare/AirSupply/AirBox/AirDrop/AirPlane/SupplyBox/AirTransporter 的游戏日志也记；结束自动传 flare-*。诊断里「信号弹诊断」段。
+  看法：信号弹 已触发=1 而 CurFlareUsedNum 不变 → 卡在空投系统三个条件（看 LimitsNumAdd、圈对象）；已触发一直 0 → 看 仰角够/最高Z/门槛/Role（服务端那份 Role 要 3）。
+### 道具
+- A 捡起后没有道具键：客户端包（Ed.ED==2）PropBtn.attach 直接 return、refresh 也藏 → 加入别人房间时永远没有道具键。RE：拿出 DoSelectedFunctionalProp 0xfe9574 末尾人物 Role==2 时自己调 0xd11a88 通知服务器；放下(vt+0x484)、收回(StartRecycleItem 0x110d6a0，本地读条 + ServerStartRecycleSceneItem RPC) 都是游戏道具栏用的原生入口。改：客户端也显示道具键，收回在 NetMode 3 走 0x110d6a0（以前直接提示「由房主收回」）。单机/房主没改。若单机包里也没有键，要 prop- 日志（点一下没认出时会自动传背包原始信息）。
+- B 地上模型不对：没改。原因已知：v2.50 地上模型替身 cave 用「本局第一个加载成功的地上模型」顶替所有加载失败的 → 看到的是别的东西的模型。下一步想法（未做）：替身改成该道具自己 TargetProp 场景类里已加载的网格（场景道具类在手机上时）。
+- C 去掉用不了的：规则不变（功能道具刷出后没有场景模型类 / 缺资源 → 删），只是不再误删别的类。
+### 三军对垒/决胜五军
+- 新 ModeProbe.survey：服务端第一次进大厅 20 秒后自动全量扫一次名字表（v2.99 修好的多块表），关键字 三军 Legion|ThreeArmy|3Army|Camp（空投系统里有 CampVioletGetBoxTips/CampBlue/CampGreen，阵营模式可能叫 Camp）、五军 BFA|FiveArmy|5Army，再列所有含 GameMode 的名字和其中的 /Game/ 路径，写联机日志并传 mode-*，不开房。开房按钮也改用同样的多关键字。

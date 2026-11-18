@@ -12,7 +12,7 @@ import android.widget.TextView;
  *  - 背包里有功能道具（草丛/伪装岩/人偶/盾/雷…）才出现，每 2 秒查一次（只读）。
  *  - 点一下：没拿出 → 拿出（背包 vt+0x4d0，和游戏道具键同一个函数）；已拿出 → 放下（vt+0x484）。
  *  - 长按：换下一个道具。拖动可以挪位置（记住）。
- * 单机/服务端才有（客户端放道具要服务器做）。
+ * v3.00 起客户端也有（拿出/放下/收回都走游戏原生入口，客户端那边游戏自己发 RPC 给服务器）。
  */
 final class PropBtn {
     static TextView btn; static Activity act; static WindowManager.LayoutParams lp; static int idx;
@@ -30,7 +30,8 @@ final class PropBtn {
     }
 
     static void attach(final Activity a) {
-        if (Ed.ED == 2) return;
+        // v3.00 用户：捡起道具后没有道具键。客户端包（ED 2）以前直接不放键 → 加入别人房间时永远没有。
+        //  RE：拿出 DoSelectedFunctionalProp 0xfe9574 末尾 人物 Role==2（自主代理）时自己调 0xd11a88 发服务器；放下/收回也是游戏原生入口，客户端照用即可。
         try {
             detach();
             act = a;
@@ -126,7 +127,7 @@ final class PropBtn {
     /** 只读查背包，决定显不显示、写什么字 */
     static void refresh() {
         final TextView t = btn; if (t == null || busy) return;
-        if (!Con.inMatch || Ed.ED == 2 || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); TextView b2 = btn2; if (b2 != null) b2.setVisibility(View.GONE); if (!Con.inMatch) synchronized (Prop.placed) { Prop.placed.clear(); } return; }
+        if (!Con.inMatch || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); TextView b2 = btn2; if (b2 != null) b2.setVisibility(View.GONE); if (!Con.inMatch) synchronized (Prop.placed) { Prop.placed.clear(); } return; }
         new Thread(() -> {
             try { Jet.tick(); } catch (Throwable ignored) {}   // v2.66 喷气背包卡键位
             String r = Prop.scanUse(true);

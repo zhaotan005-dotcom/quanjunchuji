@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.99";
+    static final String VER = "v3.00";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -332,6 +332,7 @@ public class GameOverlay {
     static void lobbyReady() {
         if (lobbySeen) { mapShown(); return; } lobbySeen = true;
         try { NetCore.lobby(Con.act); } catch (Throwable ignored) {}   // v2.52 在线内核
+        ModeProbe.survey();   // v3.00 服务端：名字表修好后自动全量找一次三军对垒/决胜五军模式蓝图，传 mode-*
         // v2.56：卸了补丁更新 App 后仓库空 → 本次启动进大厅 40 秒后自动传一份诊断（只传一次）
         new Thread(() -> { try { Thread.sleep(40000); Activity x = Con.act; if (x != null) AvatarLog.export(x, "lobby-"); } catch (Throwable ignored) {} }, "zf-diag").start();
         mapShown();
@@ -980,8 +981,8 @@ public class GameOverlay {
             // 名字（libUE4 本地化默认文本 NSCommon/MatchModeName_10/13）：Legion = 三军对垒（GroupCountMax 默认 3），BFA = 决胜五军（推断）
             final String RENEW = "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main";
             LinearLayout er = row(a, hc);
-            fillBtn(a, u, er, "三军对垒（试）", () -> toast(a, ModeProbe.host("Legion", "三军对垒", RENEW)));
-            fillBtn(a, u, er, "决胜五军（试）", () -> toast(a, ModeProbe.host("BFA", "决胜五军", RENEW)));
+            fillBtn(a, u, er, "三军对垒（试）", () -> toast(a, ModeProbe.host(ModeProbe.LEGION, "三军对垒", RENEW)));
+            fillBtn(a, u, er, "决胜五军（试）", () -> toast(a, ModeProbe.host(ModeProbe.BFA, "决胜五军", RENEW)));
             note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);
             // v2.22：房主也能选模式。房主自己没网络连接，游戏不让他上飞机；「不刷毒对局」= 大家都不上飞机，一起在出生岛开打
@@ -1317,7 +1318,31 @@ public class GameOverlay {
     static java.io.File nameFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_item_names.txt"); }
     static void saveNames() { try { java.io.File f = nameFile(); if (f == null) return; StringBuilder b = new StringBuilder(); for (java.util.Map.Entry<Long, String> e : itemName.entrySet()) b.append(e.getKey()).append('=').append(e.getValue().replace('\n', ' ')).append('\n'); java.nio.file.Files.write(f.toPath(), b.toString().getBytes("UTF-8")); } catch (Throwable ignored) {} }
     static void loadNames() { try { java.io.File f = nameFile(); if (f == null || !f.exists()) return; for (String l : new String(java.nio.file.Files.readAllBytes(f.toPath()), "UTF-8").split("\n")) { int k = l.indexOf('='); if (k > 0) itemName.put(Long.parseLong(l.substring(0, k).trim()), l.substring(k + 1)); } } catch (Throwable ignored) {} }
-    static void loadBad() { try { java.io.File f = badFile(); if (f == null || !f.exists()) return; for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) itemBad.add(Long.parseLong(x)); } catch (Throwable ignored) {} }
+    /** v3.00：v2.99 及以前「没反应 / 缺任何资源」都会永久删，配件（快扩）等被误删。第一次读时把不是功能道具（402）的删除记录清掉一次，原样记进诊断。 */
+    static volatile String badState = "坏编号：没读";
+    static void loadBad() {
+        try {
+            java.io.File f = badFile(); if (f == null || !f.exists()) { badState = "坏编号：没有文件"; return; }
+            java.util.ArrayList<Long> all = new java.util.ArrayList<>();
+            for (String x : new String(java.nio.file.Files.readAllBytes(f.toPath())).trim().split("[,\\s]+")) if (!x.isEmpty()) all.add(Long.parseLong(x));
+            java.io.File mk = new java.io.File(f.getParentFile(), "zf_items_bad.v300");
+            java.util.ArrayList<Long> cleared = new java.util.ArrayList<>();
+            if (!mk.exists()) { for (long v : all) if (v / 100000000L != 402) cleared.add(v); all.removeAll(cleared); }
+            itemBad.addAll(all);
+            if (!mk.exists()) { saveBad(); java.nio.file.Files.write(mk.toPath(), cleared.toString().getBytes()); }
+            StringBuilder b205 = new StringBuilder(); for (long v : all) if (v / 100000000L == 205) b205.append(v).append(' ');
+            String old = mk.exists() ? new String(java.nio.file.Files.readAllBytes(mk.toPath())) : "";
+            badState = "坏编号：" + all.size() + " 个，其中配件 " + (b205.length() == 0 ? "0" : b205.toString().trim()) + "；v3.00 清掉过的误删：" + (cleared.isEmpty() ? old : cleared.toString());
+        } catch (Throwable e) { badState = "坏编号：读出错 " + e; }
+    }
+    /** 诊断：扫到的全部配件编号（205 类） */
+    static String attText() {
+        java.util.TreeMap<Long, java.util.ArrayList<Long>> m = items;
+        StringBuilder b = new StringBuilder("配件编号（205）：");
+        if (m == null) { b.append("还没读道具表（装备页「全部道具」读一次）"); }
+        else { int n = 0; for (java.util.Map.Entry<Long, java.util.ArrayList<Long>> e : m.entrySet()) if (e.getKey() / 100 == 205) for (long v : e.getValue()) { b.append(v).append(itemName.containsKey(v) ? "=" + itemName.get(v) : "").append(' '); n++; } b.append("（共 ").append(n).append("）"); }
+        return b.append("\n  ").append(badState).toString();
+    }
     static java.io.File itemFile() { Activity a = Con.act; return a == null ? null : new java.io.File(a.getFilesDir(), "zf_items.txt"); }
     static void loadItems(boolean rescan) {
         if ("正在读…".equals(itemState)) return;
@@ -1399,14 +1424,17 @@ public class GameOverlay {
         give(a, String.valueOf(id), n);
         if (onGround) return;
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
-            boolean ok = dbg != null && dbg.getInt(0) == 0x5a02 && dbg.getInt(28) != 0;
+            boolean done = dbg != null && dbg.getInt(0) == 0x5a02, ok = done && dbg.getInt(28) != 0;
             LogCap.note("全部道具 " + id + ": " + dbgText());
-            if (!ok) { itemBad.add(id); saveBad(); toast(a, "这个刷不出来，已从列表删掉"); refreshAny(); return; }
+            // v3.00：快扩刷不出的根因 —— 以前「补丁代码没被调用 / 走到一半」也当刷不出来永久删。现在只有补丁走完、游戏明确返回失败才删
+            if (!done) { toast(a, "这次没反应（" + dbgText() + "），没删，再点一次"); return; }
+            if (!ok) { itemBad.add(id); saveBad(); LogCap.note("删掉 " + id + "：" + dbgReason()); toast(a, "这个刷不出来（" + dbgReason() + "），已从列表删掉"); refreshAny(); return; }
             String w = Con.lastWeapAt >= t0 ? Con.lastWeap : "";
             if (!w.isEmpty()) { itemName.put(id, w.length() > 14 ? w.substring(0, 14) : w); saveNames(); refreshAny(); }
             else if (!itemName.containsKey(id)) new Thread(() -> { String nb = Prop.nameInBag(id); if (nb != null) { itemName.put(id, nb); saveNames(); refreshAny(); } }, "zf-name").start();   // v2.54
             // v2.56 用户：用不了的还在 → 刷出来但缺模型/资源的也删掉（地上只能显示替身箱子的那种）
-            if (Prop.missAt >= t0) { itemBad.add(id); saveBad(); toast(a, "这个缺资源用不了，已从列表删掉"); refreshAny(); return; }
+            // v3.00：缺资源只对功能道具（402）算数；配件等缺个图标/特效也能用，以前被误删（快扩就是这样没的）
+            if (id / 100000000L == 402 && Prop.missAt >= t0) { itemBad.add(id); saveBad(); LogCap.note("删掉 " + id + "：缺资源 " + Prop.lastMiss); toast(a, "这个缺资源用不了，已从列表删掉"); refreshAny(); return; }
             if (id / 100000000L == 402) new Thread(() -> {
                 try { Thread.sleep(800); } catch (InterruptedException ignored) {}
                 Prop.scanUse(true);

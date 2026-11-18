@@ -107,7 +107,7 @@ final class Loot {
         }, "zf-airdrop").start();
     }
 
-    static volatile String flareState = "信号枪：v2.97 听服弹匣同步修好后服务端才认这一枪（叫飞机未实测）";
+    static volatile String flareState = "信号枪：v3.00 开枪后自动记信号弹+空投系统（flare-*），见下一行";
     /** 联机页一行 */
     static String shortText() {
         if (Ed.ED != 1) return "";

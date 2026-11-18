@@ -384,12 +384,12 @@ public class Prop {
         } catch (Throwable e) { return "出错 " + e; }
         boolean cm = camo(p.cls);
         if (!cm && dur <= 0) { upload("收回：回收时长为 0"); return "这个道具游戏里不能回收（回收时长 0）"; }
-        if (nm == 3) return "加入别人的房间时由房主收回";
+        // v3.00：加入别人房间（NetMode 3）用客户端入口 StartRecycleItem 0x110d6a0：本地读条 + ServerStartRecycleSceneItem RPC，和游戏道具键一样
         long fn = cm ? CANCEL_CAMO : nm == 2 ? REC_SERVER : REC_CLIENT;
         watchUntil = System.currentTimeMillis() + 20000;
         long[] r;
         try { r = Veh.ucall(comp, p.actor, 0, 0, null, b + fn); } catch (InterruptedException e) { return "中断"; }
-        d((cm ? "取消伪装" : nm == 2 ? "收回：调服务端实现 0x110f334" : "收回：调 StartRecycleItem 0x110d6a0") + " 返回 " + Long.toHexString(r[0]));
+        d((cm ? "取消伪装" : nm == 2 ? "收回：调服务端实现 0x110f334" : "收回：调 StartRecycleItem 0x110d6a0（NetMode " + nm + "）") + " 返回 " + Long.toHexString(r[0]));
         if (r[0] != 0x5b0e) return "补丁没反应";
         if (cm) { synchronized (placed) { placed.remove(p); } return "ok"; }
         final long fp = pawn;

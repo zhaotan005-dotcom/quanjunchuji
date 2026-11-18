@@ -61,7 +61,7 @@ public class ModeProbe {
     static String find(String key, ArrayList<String> hits) throws Exception {
         Veh.Names n = Veh.Names.get();
         if (n == null) { hits.add("（名字表没找到）"); return null; }
-        String k = key.toLowerCase(java.util.Locale.US);
+        String[] ks = key.toLowerCase(java.util.Locale.US).split("\\|");   // v3.00：多个关键字（三军对垒的蓝图可能叫 Camp/ThreeArmy，不一定带 Legion）
         String best = null; int bestScore = -1;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             int nChunks = n.chunks < 0 ? 1 : 64;
@@ -85,12 +85,13 @@ public class ModeProbe {
                     int end = 8; while (end < got && eb[end] != 0) end++;
                     String s = new String(eb, 8, end - 8, "ISO-8859-1");
                     String low = s.toLowerCase(java.util.Locale.US);
-                    if (!low.contains(k)) continue;
-                    if (hits.size() < 200) hits.add(s);
+                    String k = null; for (String kk : ks) if (low.contains(kk)) { k = kk; break; }
+                    if (k == null) continue;
+                    if (hits.size() < 400) hits.add(s);
                     String cls = toClass(s);
                     if (cls == null) continue;
                     String base = cls.substring(cls.lastIndexOf('.') + 1).toLowerCase(java.util.Locale.US);
-                    if (!base.contains("gamemode") || !base.contains(k)) continue;
+                    if (!base.contains("gamemode")) continue;
                     int score = (s.startsWith("/Game/") ? 2 : 0) + (base.startsWith("bp_") ? 1 : 0);
                     if (score > bestScore) { bestScore = score; best = cls; }
                 }
@@ -98,6 +99,33 @@ public class ModeProbe {
         }
         return best;
     }
+
+    /** v3.00：服务端进大厅后自动扫一次名字表（v2.99 名字表修好后第一次全量扫），只读，不开房：
+     *  收集含模式关键字的名字和所有像 GameMode 蓝图的 /Game/ 路径，写联机日志并自动传 mode-*。 */
+    static volatile boolean surveyed;
+    static void survey() {
+        if (surveyed || Ed.ED != 1) return; surveyed = true;
+        new Thread(() -> {
+            try {
+                Thread.sleep(20000);
+                Veh.Names n = Veh.Names.get();
+                state = "娱乐模式：自动扫名字表…（名字表 " + (n == null ? "没找到" : n.chunks < 0 ? "单块" : "多块") + "）";
+                ArrayList<String> h1 = new ArrayList<>(), h2 = new ArrayList<>(), h3 = new ArrayList<>();
+                String c1 = find(LEGION, h1), c2 = find(BFA, h2), c3 = find("gamemode", h3);
+                ArrayList<String> gm = new ArrayList<>(); for (String x : h3) if (x.startsWith("/Game/")) gm.add(x);
+                Lan.note("名字表全量扫 三军对垒(" + LEGION + ") 命中 " + h1.size() + "，蓝图 " + c1 + "：" + join(h1, 60));
+                Lan.note("名字表全量扫 决胜五军(" + BFA + ") 命中 " + h2.size() + "，蓝图 " + c2 + "：" + join(h2, 60));
+                Lan.note("名字表全量扫 GameMode 命中 " + h3.size() + "，其中 /Game/ 路径 " + gm.size() + "：" + join(gm, 80));
+                Lan.note("GameMode 短名：" + join(h3, 120));
+                state = "娱乐模式：自动扫完 三军对垒蓝图 " + (c1 == null ? "没有" : c1) + "，决胜五军蓝图 " + (c2 == null ? "没有" : c2) + "，/Game/ 模式蓝图 " + gm.size() + " 个";
+                Lan.note(state);
+                Lan.autoUp("mode");
+            } catch (Throwable e) { state = "娱乐模式：自动扫出错 " + e; }
+            GameOverlay.refreshAny();
+        }, "zf-mode-survey").start();
+    }
+    static final String LEGION = "Legion|ThreeArmy|3Army|Camp", BFA = "BFA|FiveArmy|5Army";
+    static String join(ArrayList<String> l, int max) { StringBuilder b = new StringBuilder(); for (int i = 0; i < l.size() && i < max; i++) b.append(i == 0 ? "" : " | ").append(l.get(i)); return b.length() == 0 ? "无" : b.toString(); }
 
     /** /Game/a/B → /Game/a/B.B_C；/Game/a/B.B → /Game/a/B.B_C；/Game/a/B.B_C 原样；其它（短名）null */
     static String toClass(String s) {
