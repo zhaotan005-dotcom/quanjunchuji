@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.65";
+    static final String VER = "v2.66";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1071,6 +1071,7 @@ public class GameOverlay {
         if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（服务端这边算伤害）", Con.allGod, v -> Con.setAllGod(v));
         LinearLayout tr = row(a, root);
         btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
+        btn(a, u, tr, "恢复键位", () -> new Thread(() -> { String r = Jet.off(true); toastAny("ok".equals(r) ? "已恢复键位" : r); AvatarLog.export(a, "jet-"); }, "zf-jet").start());
         if (Ed.ED == 1) { onGround = true; note(a, u, root, "服务端：刷的东西都放在脚下，自己捡。"); }
         else {
         head(a, u, root, "刷物资放在");

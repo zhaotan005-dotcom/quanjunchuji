@@ -304,10 +304,32 @@ public class Prop {
         try {
             long[] r;
             if (camo(p.cls)) r = Veh.ucall(comp, p.actor, 0, 0, null, b + 0x110dc50L);   // 道具组件取消伪装(组件, 伪装物)，控制器的 RequestCancelCamouflage 0x10e9434 就是转到这里
-            else { if (!(dur > 0)) return "这个道具游戏不让收回"; r = Veh.ucall(comp, p.actor, 0, 0, null, b + 0x110d6a0L); }
+            else return destroyBack(p, b, pawn);   // v2.66 用户：还是收不回 → 不走游戏的回收读条，直接删掉场景道具，背包里没有就刷回一个
             LogCap.note("用道具：" + (camo(p.cls) ? "取消伪装 " : "收回 ") + p.cls + " 回收时长 " + dur + " 返回 " + Long.toHexString(r[0]));
             if (r[0] != 0x5b0e) return "补丁没反应";
             if (camo(p.cls)) synchronized (placed) { placed.remove(p); }
+            return "ok";
+        } catch (InterruptedException e) { return "中断"; }
+    }
+    /** v2.66 收回：K2_DestroyActor（AActor 虚表 +0x164，核对和人物的同一个函数）删掉，再看背包里还有没有同类，没有就按类名里的 11 位编号刷回 1 个 */
+    static String destroyBack(Placed p, long b, long pawn) {
+        boolean has = false;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long fa = Server.rd(m, Server.rd(m, p.actor) + 0x164), fp = Server.rd(m, Server.rd(m, pawn) + 0x164);
+            LogCap.note("用道具：收回 " + p.cls + " 删除函数 " + Long.toHexString(fa - b) + " 人物的 " + Long.toHexString(fp - b));
+            if (fa != fp || fa == b + 0xb63a30L) return "删除函数对不上（已记日志）";
+        } catch (Throwable e) { return "出错 " + e; }
+        try {
+            long[] r = Veh.ucall(p.actor, 0, 0x164, 0, null);
+            if (r[0] != 0x5b0e) return "补丁没反应";
+            Thread.sleep(400);
+            scanUse(true);
+            for (It it : useList) if (it.cls != null && it.cls.equals(p.cls)) has = true;
+            synchronized (placed) { placed.remove(p); }
+            java.util.regex.Matcher mm = java.util.regex.Pattern.compile("(\\d{11})").matcher(p.cls);
+            String back = has ? "背包里还有，不补" : mm.find() ? "刷回 " + mm.group(1) : "类名里没编号，没刷回";
+            if (!has && mm.find(0)) { final String id = mm.group(1); android.app.Activity a = Con.act; if (a != null) a.runOnUiThread(() -> GameOverlay.give(a, id, 1)); }
+            LogCap.note("用道具：已删除 " + p.cls + "，" + back);
             return "ok";
         } catch (InterruptedException e) { return "中断"; }
     }

@@ -108,7 +108,8 @@ final class PropBtn {
                 try {
                     Prop.Placed p = Prop.lastPlaced();
                     if (p == null) msg = "附近没有放下的道具";
-                    else { String r = Prop.recycle(p); if (!"ok".equals(r)) msg = r; else if (!Prop.camo(p.cls)) msg = "收回中，站在旁边别走开"; }
+                    else { String r = Prop.recycle(p); if (!"ok".equals(r)) msg = r; else if (!Prop.camo(p.cls)) msg = "已收回"; }
+                    if (a != null) AvatarLog.export(a, "prop-");   // v2.66 每次收回都传日志
                 } catch (Throwable e) { msg = "出错 " + e; }
                 finally {
                     busy = false; final String m = msg;
@@ -128,6 +129,7 @@ final class PropBtn {
         final TextView t = btn; if (t == null || busy) return;
         if (!Con.inMatch || Ed.ED == 2 || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); TextView b2 = btn2; if (b2 != null) b2.setVisibility(View.GONE); if (!Con.inMatch) synchronized (Prop.placed) { Prop.placed.clear(); } return; }
         new Thread(() -> {
+            try { Jet.tick(); } catch (Throwable ignored) {}   // v2.66 喷气背包卡键位
             String r = Prop.scanUse(true);
             java.util.ArrayList<Prop.It> l = usable();
             final boolean show = true;   // v2.56：对局里一直显示（认不出道具时点一下会把背包信息传给我）
