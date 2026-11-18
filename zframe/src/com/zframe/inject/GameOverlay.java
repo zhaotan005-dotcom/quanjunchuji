@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.86";
+    static final String VER = "v2.87";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -937,12 +937,11 @@ public class GameOverlay {
         if (NetCore.readyVer > ZInit.CORE_VER) {
             LinearLayout ur = row(a, root);
             primary(a, u, ur, "有新版本，点这里重启更新", () -> NetCore.restart(a));
-        } else if (!NetCore.status.isEmpty()) note(a, u, root, "更新：" + NetCore.status);
+        } else if (Ed.ED == 1 ? (NetCore.status.startsWith("检查更新失败") || NetCore.status.startsWith("发现新版本")) : !NetCore.status.isEmpty()) note(a, u, root, Ed.ED == 1 ? NetCore.status : "更新：" + NetCore.status);
         // v2.13：分版本，不再有联机/单机切换
         lobbyTab = Ed.single() ? 1 : 0;
         if (lobbyTab == 0) {
           if (Ed.ED == 1) {
-            head(a, u, root, "开房（我当服务器）");
             LinearLayout hc = card(a, u, root);
             kv(a, u, hc, "本机 IP", Lan.ip());
             LinearLayout r = row(a, hc); r.setPadding(0, u.dp(4), 0, u.dp(6));
@@ -956,7 +955,6 @@ public class GameOverlay {
             LinearLayout lr = row(a, root);
             pick(a, u, lr, "地图物资/门 关", !Loot.on, () -> { toast(a, Loot.set(false)); refreshAny(); });
             pick(a, u, lr, "地图物资/门 开", Loot.on, () -> { toast(a, Loot.set(true)); refreshAny(); });
-            note(a, u, root, "点地图直接进图当服务端。外网玩家用内网穿透连你的 UDP 7777。物资/门默认关，先关着测进图稳不稳。");
           } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
@@ -1003,7 +1001,7 @@ public class GameOverlay {
             // v2.56 用户：自动刷人机开关放大厅
             switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
         }
-        note(a, u, root, Server.state);
+        if (Ed.ED != 1) note(a, u, root, Server.state);
     }
     /** 最下面：日志 */
     static void logRow(final Activity a, final Ui u, final LinearLayout root) {
@@ -1588,6 +1586,58 @@ public class GameOverlay {
             if (!ready && NetCore.done && (picked || (now - chooserShown > 20000 && now - chooserTouched > 20000))) { closeChooser(); return; }
             holdTick(c);
         }, 1000);
+    }
+    /** v2.68 服务端（用户：更新一直显示获取更新、没在腾讯页面弹）：游戏自己的加载页（StartupMap）上盖一层，
+     *  查 GitHub 有没有新内核；最新/失败 → 1.5 秒后关；下好了 → 2 秒后自动重启用新版。最多停 40 秒。 */
+    static volatile View upd;
+    static final java.util.concurrent.atomic.AtomicBoolean updShown = new java.util.concurrent.atomic.AtomicBoolean();
+    static void srvUpdatePage() {
+        final Activity a = Con.act; if (a == null) return;
+        if (!updShown.compareAndSet(false, true)) return;   // v2.69：加载页日志会连着来几行，以前会叠两层，关掉一层另一层一直挂着
+        a.runOnUiThread(() -> {
+            try {
+                Ui u = new Ui(a);
+                FrameLayout bg = new FrameLayout(a); bg.setBackgroundColor(0xF0000000);
+                LinearLayout box = new LinearLayout(a); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER);
+                box.setPadding(u.dp(22), u.dp(18), u.dp(22), u.dp(18)); box.setBackground(box(CARD2, u.dp(14)));
+                TextView t = new TextView(a); t.setText("全军出击 服务端 " + VER); t.setTextColor(TXT); t.setTextSize(16); t.setGravity(Gravity.CENTER);
+                box.addView(t, new LinearLayout.LayoutParams(u.dp(300), -2));
+                final TextView st = new TextView(a); st.setText("正在检查更新…"); st.setTextColor(SUBT); st.setTextSize(13); st.setGravity(Gravity.CENTER);
+                st.setPadding(0, u.dp(10), 0, 0);
+                box.addView(st, new LinearLayout.LayoutParams(u.dp(300), -2));
+                FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(-2, -2); blp.gravity = Gravity.CENTER;
+                bg.addView(box, blp);
+                WindowManager.LayoutParams wl = new WindowManager.LayoutParams(-1, -1, WindowManager.LayoutParams.TYPE_APPLICATION,
+                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                        PixelFormat.TRANSLUCENT);
+                if (android.os.Build.VERSION.SDK_INT >= 28) wl.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                wl.setTitle("zframe_upd");
+                a.getWindowManager().addView(bg, wl);
+                upd = bg;
+                bg.setOnClickListener(v -> closeUpd(a, bg));   // v2.69：点一下就关
+                final long t0 = System.currentTimeMillis();
+                final boolean[] restarting = { false };
+                NetCore.listener = (msg, ready) -> a.runOnUiThread(() -> {
+                    st.setText(msg);
+                    if (ready && !restarting[0]) { restarting[0] = true; st.setText("新版本已下好，2 秒后自动重启更新…"); bg.postDelayed(() -> NetCore.restart(a), 2000); }
+                });
+                NetCore.check(a);
+                { String s0 = NetCore.status; if (!s0.isEmpty()) st.setText(s0); if (NetCore.readyVer > ZInit.CORE_VER && !restarting[0]) { restarting[0] = true; bg.postDelayed(() -> NetCore.restart(a), 2000); } }
+                final Runnable[] tick = new Runnable[1];
+                tick[0] = () -> {
+                    if (!bg.isAttachedToWindow() || restarting[0]) return;
+                    long el = System.currentTimeMillis() - t0;
+                    if ((NetCore.done && el > 1500) || el > 30000) { closeUpd(a, bg); return; }
+                    bg.postDelayed(tick[0], 500);
+                };
+                bg.postDelayed(tick[0], 500);
+                LogCap.note("加载页查更新：已显示");
+            } catch (Throwable e) { LogCap.note("加载页查更新：显示失败 " + e); }
+        });
+    }
+    static void closeUpd(Activity a, View v) {
+        if (upd == v) { upd = null; NetCore.listener = null; }
+        if (v != null) try { a.getWindowManager().removeViewImmediate(v); } catch (Throwable ignored) {}
     }
     /** 选完（手动或超时）：关掉选择框，菜单标题跟着变 */
     static void chosen() {

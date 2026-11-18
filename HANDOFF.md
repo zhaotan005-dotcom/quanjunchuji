@@ -66,6 +66,8 @@
 - 喷气背包卡键位：新 Jet.java。UNZBRPlayerPropAnimComponent(+0xa0=人物) +0x1d0 开关；0x110c28c(组件,0/1) 进/出人物状态 3（0xc904f4/0xc9065c）。道具键轮询里 Jet.tick：开着但背包里没有类名含 jetpack 的物品（连续 2 次）→ 调 0x110c28c(组件,0)。常用页「恢复键位」手动关并上传 jet- 日志。未实测：键位是否真由状态 3 控制。
 - 下一步（没做）：联机「邀请好友」。游戏自带邀请走腾讯组队服务器，做不了。替代方案：服务端(role 1)进图后每 45 秒往 ntfy 主题（如 zf-qj-room-k7r2p9m4x1）发 {房间id, 地图, 内网IP}；客户端在大厅每 10 秒轮询，新房间弹 GameDlg「好友开房了 · 加入」，地址用 Lan.lastIp（没有就用内网 IP）→ Lan.join。
 
+## v2.87（2026-11-18 14:30）起服务端重新用 main 源码打（build_all.sh 一次打三个包），server-2.55 分支停用
+
 ## v2.67 服务端（vc168，2026-11-18 10:45）— 服务端和客户端分开了
 - 用户：服务端用 v2.55，客户端用 v2.66。服务端源码在分支 **server-2.55**（基于 v2.55 commit fa4d7de），改服务端去那个分支改，用 zframe/build_srv.sh 只打服务端，然后把 core/b1.dex/.ver 和 releases/ZFrame-v*-服务端.apk 拷回 main（在线内核从 main 拉）。main 上的源码是客户端 v2.66，不要再用 build3.sh 覆盖 core/b1.*。
 - v2.67：服务端自己不能上车（之前能上、下不来）。CanUse 0xdafe1c 里 0xdb00f0 → cave 0x171e7fc，NetMode==2 且 ClosedVehicle 不空（=服务端本机人物）就返回 0；加入的人照旧能上。详见 server-2.55 分支 notes/history.md。未实测。

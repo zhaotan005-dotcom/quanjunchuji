@@ -808,3 +808,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.84 (vc185)：用户要求不要自动退回老版本 → NetCore.chain 去掉「连续 2 次没进大厅就不用在线内核」。注意：以后若新内核启动必闪退，只能清游戏数据/重装 ZFrame 才能回内置版本。
 - 13:28 v2.84 日志：补丁装上（加/删标点已补）但用户标点后 控制器+a04 仍全 0 → 要么 RPC 没走到实现，要么走到的是服务端那个控制器。v2.85 (vc186)：cave 挪到 SLACK+0x370，加标点时记 次数/x/y/this（+0x30），日志里打印并自动上传；虚表多记 +0x3f8（校验实际函数）。未实测。
 - 客户端 v2.86 (vc187) + 服务端 v2.72 (vc173)：在线更新改成并发查 6 个镜像取最大版本。
+- 14:21 用户：服务端菜单/功能比单机差太多（刷道具不行）；还是一直换子弹；重新加入加入不进去。客户端 v2.86 日志 matchend-1118-141454：14:13 加入 frp-put.com:47937 成功，14:14:25 ConnectionLost（FRP/网络断），之后重进没日志；联机日志 60 行被「per Net Tick, too much」刷满。
+- v2.87 (vc188/core188，三个包都从 main 打，build_all.sh)：服务端不再用 server-2.55 分支，改用 main 源码（菜单/刷道具/功能同单机最新）。移植服务端分支：v2.67 服务端不能上车 cave（Lan，只 BUILD==1 装）、v2.68/69 加载页查更新框（srvUpdatePage，白底）、大厅页精简、v2.72 多镜像更新。联机日志去掉刷屏行、加 Reconnect/ReLogin/Kick/Reject 关键字、150 行。换弹循环、重进失败：等服务端+客户端诊断。未实测。
