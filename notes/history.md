@@ -794,3 +794,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.77 (vc178)，未实测：飞天改下落模式 3 + GravityScale(0x120)=0，AirControl(0x19c)=1，FallingLateralFriction(0x1a8)=3，MaxWalkSpeed×倍数（偏移已用反射表核对）；模式不是 1/3、换人物、Bots.phase 变了就自动关并还原；关后限速最多管 (h/7m·s⁻¹ + 上升时间×3 + 5 秒)。
 - v2.78 (vc179)，未实测：地图标点。RE：ServerAddNewMapSign(FVector2D InNewLoc) 在 NZBRPlayerController（同表有 ServerSetTacticsInfo/ClientSetTacticsInfo），exec 0x11e528c；控制器 +0xa04 = MapSignInfo（NZBRMapSignInfo 0xc 字节）；TeamMemberInfo.MapSignLocation +0x30。控制器 = 人物+0x2c4(PS)→+0x60。
   MapMark.java：进对局起每 0.5 秒看 控制器+0xa04，变了写「标点日志」；开「点地图标点自动传送」→ Veh.teleport 到 (X,Y,max(当前z+30m,200m))，Fly.softLand 限速 -10 m/s 落 40 秒。标点本身显示不出来的原因还没定位，等这版日志看 +a04 有没有变。
+- v2.79 (vc180)：标点变化 5 秒后自动传诊断（mark-，30 秒一次）；一局结束回大厅 8 秒后自动传（matchend-）。

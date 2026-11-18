@@ -15,7 +15,7 @@ final class MapMark {
     static volatile boolean autoTp;
     static volatile String state = "标点：还没看到", log = "";
     static Thread th;
-    static long lastCtl; static String lastHex = "";
+    static long lastCtl, lastUp; static String lastHex = "";
 
     static synchronized void start() {
         if (th != null) return;
@@ -35,7 +35,11 @@ final class MapMark {
     }
 
     static void tick() throws Exception {
-        if (!Con.inMatch) { lastCtl = 0; lastHex = ""; return; }
+        if (!Con.inMatch) {
+            if (lastCtl != 0) {   // v2.79 一局结束（回大厅）也自动传一份，标点没反应也能看到
+                new Thread(() -> { try { Thread.sleep(8000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "matchend-"); } catch (Throwable ignored) {} }, "zf-end-log").start();
+            }
+            lastCtl = 0; lastHex = ""; return; }
         long b = Mods.base(); if (b == 0) return;
         long pawn = Mods.myPawn(); if (pawn < 0x10000) return;
         float x, y; String hex; long ctl;
@@ -57,6 +61,10 @@ final class MapMark {
         if (hex.equals(lastHex)) return;
         lastHex = hex;
         note(String.format("标点变了 +a04=%s → (%.0f, %.0f)", hex, x, y));
+        if (System.currentTimeMillis() - lastUp > 30000) {   // v2.79 标点有变化就自动传一份诊断（30 秒最多一次）
+            lastUp = System.currentTimeMillis();
+            new Thread(() -> { try { Thread.sleep(5000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "mark-"); } catch (Throwable ignored) {} }, "zf-mark-log").start();
+        }
         state = String.format("标点：最近一次 (%.0f, %.0f)", x, y);
         if (!autoTp || Ed.ED == 2 || Lan.role == 2) return;
         if (Float.isNaN(x) || Float.isNaN(y) || (x == 0 && y == 0) || Math.abs(x) > 2e6 || Math.abs(y) > 2e6) return;
