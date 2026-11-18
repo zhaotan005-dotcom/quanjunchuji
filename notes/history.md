@@ -790,3 +790,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 地图标点：RE 到 ServerAddNewMapSign（NZBRPlayerState，exec 0x11e528c，Validate vt+0x3f0 / 实现 vt+0x3f4，参数 8 字节 InNewLoc），标点存 NZBRTeamMemberInfo.MapSignLocation / bIsMapSignEnable；实现函数和失败原因还没找到。点标点传送未做。
 - v2.75 (vc176，客户端+单机)，未实测：用户要飞天一直飞、关了才落。Fly 改开关：MovementMode=5（Flying，无重力），前 h/20m·s⁻¹ 时间 Velocity.Z=2000，之后 0 悬停，每 40ms 重写；关时改 3，下落限速 -700。
 - v2.76 (vc177)，未实测：用户要空中能移动。飞行时 MaxFlySpeed(+0x170) = max(600, MaxWalkSpeed)×加速倍数，关时还原；诊断「飞天：飞行中 模式/水平速度/飞行上限」。
+- 12:40 用户（v2.76）：飞天开着跳伞掉不下去，关了也不行（截图跳伞 26 km/h = 关后的 -7 m/s 限速一直在管跳伞，跳伞也是模式 3）；空中是走路动作（模式 5）。诊断：飞行中 水平速度 450 → 空中能动。地图标点还是不行。
+- v2.77 (vc178)，未实测：飞天改下落模式 3 + GravityScale(0x120)=0，AirControl(0x19c)=1，FallingLateralFriction(0x1a8)=3，MaxWalkSpeed×倍数（偏移已用反射表核对）；模式不是 1/3、换人物、Bots.phase 变了就自动关并还原；关后限速最多管 (h/7m·s⁻¹ + 上升时间×3 + 5 秒)。

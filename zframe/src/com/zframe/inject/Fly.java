@@ -3,19 +3,23 @@ package com.zframe.inject;
 import java.io.RandomAccessFile;
 
 /**
- * v2.75 用户：飞天要一直飞，关掉才往下落。
- * 开：移动组件 MovementMode(+0x138) 改成 5（飞行，没有重力），先以 20 米/秒往上升到设定高度（按时间算），之后竖直速度保持 0 悬停，
- *  摇杆照常前后左右飞（飞行速度用游戏默认的 MaxFlySpeed）。游戏把模式改回别的就再改成 5。
- * 关：改成 3（下落），落下时竖直速度最多 -7 米/秒，不摔伤。只在单机/房主（服务器）上有效。
+ * v2.77 用户：v2.76 飞行模式（5）在空中是走路动作；开着跳伞掉不下去，关了也不行。
+ * 改成下落模式（3，跳起/弹射那种腾空动作）+ 重力 GravityScale(+0x120)=0：
+ *  - 开：前 h/20m·s⁻¹ 时间竖直速度 2000 往上，之后竖直速度 0 悬停；AirControl(+0x19c)=1、FallingLateralFriction(+0x1a8)=3，
+ *    MaxWalkSpeed(+0x164)×加速倍数 → 摇杆在空中前后左右飞。落到地面（模式 1）会再弹回下落模式，一直飞到关。
+ *  - 跳伞/上飞机/上车/游泳（模式不是 1 或 3）或换了人物：自动关掉并还原，绝不去改跳伞。
+ *  - 关：还原重力和这几个值，落下时竖直速度最多 -7 米/秒，不摔伤。
+ * 偏移来自 libUE4 反射表（名字指针后第 7 个字）。只在单机/房主（服务器）上有效。
  */
 final class Fly {
-    static final int MOVE_FLYING = 5;
+    static final int C_GRAV = 0x120, C_WALK = 0x164, C_AIR = 0x19c, C_LATF = 0x1a8;
     static final float RISE = 2000f, MAX_FALL = -700f;
     static volatile float height = 80f;   // 米
     static volatile String state = "飞天：还没用";
     static volatile boolean want, on, falling;
-    static final int C_FLY = 0x170;   // MaxFlySpeed（MaxSwimSpeed 0x16c 后一个）
-    static long t0, riseMs; static float baseFly = -1; static long lastLog;
+    static long t0, riseMs, lastLog, cmcOn;
+    static int phaseOn;
+    static float sGrav, sWalk, sAir, sLat;
 
     /** 按钮：开/关切换 */
     static String go() {
@@ -24,9 +28,9 @@ final class Fly {
             if (Ed.ED == 2 || Lan.role == 2) return state = "飞天：加入的玩家用不了（服务器说了算）";
             float h = Math.max(5f, Math.min(1000f, height)) * 100f;
             riseMs = (long) (h / RISE * 1000f);
-            want = true; on = false; falling = false;
+            want = true; falling = false; phaseOn = Bots.phase;
             Mods.startMover();
-            return state = "飞天：开，升到 " + Math.round(h / 100) + " 米后悬停，再点一下落地";
+            return state = "飞天：开，升到 " + Math.round(h / 100) + " 米后一直飞，再点一下关";
         }
         want = false;
         return state = "飞天：关，慢慢落下";
@@ -34,39 +38,59 @@ final class Fly {
 
     static boolean busy() { return want || on || falling; }
 
+    static void restore(RandomAccessFile m, long c) throws java.io.IOException {
+        if (!on) return;
+        on = false;
+        if (c == cmcOn) {
+            Mods.wf(m, c + C_GRAV, sGrav); Mods.wf(m, c + C_WALK, sWalk);
+            Mods.wf(m, c + C_AIR, sAir); Mods.wf(m, c + C_LATF, sLat);
+        }
+    }
+
     /** 移动线程每 40ms 调 */
     static void tick(RandomAccessFile m, long c) throws java.io.IOException {
         int mw = Mods.rd(m, c + Mods.C_MODE);
         int mode = mw & 0xff;
         long now = System.currentTimeMillis();
-        if (!Con.inMatch) { want = on = falling = false; return; }
+        boolean ok = mode == 1 || mode == Mods.MOVE_FALLING;
+        if (!Con.inMatch || (on && c != cmcOn) || (busy() && Bots.phase != phaseOn)) {   // 换人物/阶段变了（上飞机、跳伞）：关掉不管
+            if (busy() && Bots.phase != phaseOn) { state = "飞天：对局阶段变了，已自动关"; }
+            want = false; falling = false; restore(m, c); return; }
+        if (want && !ok) {   // 跳伞/飞机/车/水里：自动关
+            want = false; falling = false; restore(m, c);
+            state = "飞天：模式 " + mode + "（跳伞/上车/水里），已自动关";
+            LogCap.note(state);
+            return;
+        }
         if (want) {
             if (!on) {
-                if (mode == 0) return;   // 没在动（上车/死亡等）
-                on = true; falling = false; t0 = now;
-                LogCap.note("飞天：模式 " + mode + " → 5，上升 " + riseMs + "ms");
+                cmcOn = c; on = true; t0 = now;
+                sGrav = Mods.f(m, c + C_GRAV); sWalk = Mods.f(m, c + C_WALK);
+                sAir = Mods.f(m, c + C_AIR); sLat = Mods.f(m, c + C_LATF);
+                LogCap.note(String.format("飞天：开 模式 %d 重力 %.2f 走 %.0f 空中控制 %.2f", mode, sGrav, sWalk, sAir));
             }
-            if (mode != MOVE_FLYING) Mods.wi(m, c + Mods.C_MODE, (mw & ~0xff) | MOVE_FLYING);
-            // v2.76 空中要能移动：飞行速度 = 走路速度 × 加速倍数（至少 6 米/秒）
-            if (baseFly < 0) baseFly = Mods.f(m, c + C_FLY);
-            float fs = Math.max(600f, Mods.f(m, c + 0x164)) * Math.max(1f, Mods.speed);
-            if (Math.abs(Mods.f(m, c + C_FLY) - fs) > 1f) Mods.wf(m, c + C_FLY, fs);
+            if (mode != Mods.MOVE_FALLING) Mods.wi(m, c + Mods.C_MODE, (mw & ~0xff) | Mods.MOVE_FALLING);
+            Mods.wf(m, c + C_GRAV, 0f);
+            Mods.wf(m, c + C_AIR, 1f);
+            Mods.wf(m, c + C_LATF, 3f);
+            float ws = sWalk * Math.max(1f, Mods.speed);
+            if (Math.abs(Mods.f(m, c + C_WALK) - ws) > 1f) Mods.wf(m, c + C_WALK, ws);
             Mods.wf(m, c + Mods.C_VEL + 8, now - t0 < riseMs ? RISE : 0f);
             if (now - lastLog > 2000) { lastLog = now; float vx = Mods.f(m, c + Mods.C_VEL), vy = Mods.f(m, c + Mods.C_VEL + 4);
-                state = String.format("飞天：飞行中 模式 %d 水平速度 %.0f 飞行上限 %.0f", mode, Math.hypot(vx, vy), Mods.f(m, c + C_FLY)); }
+                state = String.format("飞天：飞行中 模式 %d 水平速度 %.0f 上限 %.0f", mode, Math.hypot(vx, vy), ws); }
             return;
         }
         if (on) {
-            on = false; falling = true; t0 = now;
-            if (mode == MOVE_FLYING) Mods.wi(m, c + Mods.C_MODE, (mw & ~0xff) | Mods.MOVE_FALLING);
+            restore(m, c);
+            falling = true; t0 = now;
             Mods.wf(m, c + Mods.C_VEL + 8, 0f);
-            if (baseFly >= 0) { Mods.wf(m, c + C_FLY, baseFly); baseFly = -1; }
             return;
         }
         if (falling) {
             if (mode == Mods.MOVE_FALLING) {
                 if (Mods.f(m, c + Mods.C_VEL + 8) < MAX_FALL) Mods.wf(m, c + Mods.C_VEL + 8, MAX_FALL);
             } else if (now - t0 > 500) { falling = false; state = "飞天：已落地"; }
+            if (now - t0 > riseMs * 3 + (long) (height * 1000f / 7f) + 5000) falling = false;   // 最多管这么久，不会卡住别的下落
         }
     }
 }
