@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.90";
+    static final String VER = "v2.91";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -154,11 +154,11 @@ public class GameOverlay {
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8);
+                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8 || id == 3 || id == 9 || id == 10 || id == 4 || id == 11);   // v2.91 客户端刷东西页加回来（服务端代刷）
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
-                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? true : (tab == 6 || tab == 5 || tab == 0 || tab == 8);
+                    boolean ok = r == 0 ? tab != 6 && tab != 7 : r == 1 ? true : (tab == 6 || tab == 5 || tab == 0 || tab == 8 || tab == 3 || tab == 9 || tab == 10 || tab == 4 || tab == 11);
                     if (!ok) { tab = r == 2 ? 6 : 0; paintTabs(tv, u); }
                 }
             };
@@ -504,7 +504,10 @@ public class GameOverlay {
     // 配件：枪口/握把/瞄具/弹匣/枪托（编号来自游戏里的自动拾取表和 GM 列表）
     static final String[] ATT = {"20501000001", "20501000003", "20502000001", "20502000002", "20503000001", "20503000003",
             "20503000004", "20503000005", "20503000008", "20503000009", "20504000001", "20505000001"};
+    /** v2.91：加入别人房间的客户端 → 刷东西都让服务端代刷在脚下 */
+    static boolean remote() { return Ed.ED == 2 && Lan.role == 2; }
     static void give(Activity a, String id, int n, String label) {
+        if (remote()) { Give.ask(id, n); return; }
         if (giveSt == 1 || giveSt == 3) { toast(a, "先在补丁更新里点「更新补丁」"); return; }
         give(a, id, n);
         after(a, label);
@@ -516,7 +519,7 @@ public class GameOverlay {
         if (i >= ids.size()) { toast(a, ids.size() == 1 ? lb + " 没刷出来（" + dbgReason() + "）" : lb + " 试了 " + ids.size() + " 个编号都没刷出来，把日志发我"); return; }
         final String id = ids.get(i);
         give(a, id, 1);
-        if (onGround) return;
+        if (onGround || remote()) return;
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
             String t = dbgText(); LogCap.note("刷物品诊断 " + lb + " " + id + ": " + t);
             boolean ok = dbg != null && dbg.getInt(0) == 0x5a02 && dbg.getInt(28) != 0;
@@ -546,7 +549,7 @@ public class GameOverlay {
     }
 
     static void after(Activity a, final String lb) {
-        if (onGround) return;
+        if (onGround || remote()) return;
         new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
             String t = dbgText(); LogCap.note("刷物品诊断 " + lb + ": " + t);
             boolean ok = dbg != null && dbg.getInt(0) == 0x5a02 && dbg.getInt(28) != 0;
@@ -859,7 +862,7 @@ public class GameOverlay {
      *  同一局每个部位只刷一次（刷在地上不受限）。 */
     static final java.util.Set<String> givenGear = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     static boolean gearOnce(Activity a, String slot) {
-        if (onGround) return true;
+        if (onGround || remote()) return true;
         if (givenGear.add(slot)) return true;
         toast(a, "这局已经刷过" + slot + "，身上已有再刷会闪退");
         return false;
@@ -871,7 +874,7 @@ public class GameOverlay {
         if (takesAttachments(id)) {
             // v2.70 用户：刷的枪没有配件。以前配件直接塞进背包（游戏不会自动装到枪上，日志里没有 Attaching adapter）。
             // 现在放到脚下：走游戏自己的拾取（自动拾取/点拾取），捡起来时游戏会自动装到能装的枪上。每把枪都给一套。
-            if (onGround) { for (String at : ATT) give(a, at, 1); }
+            if (onGround || remote()) { for (String at : ATT) give(a, at, 1); }
             else new Thread(() -> {
                 try {
                     Thread.sleep(700);
@@ -924,6 +927,7 @@ public class GameOverlay {
         }
     }
     static void giveHint(Activity a, LinearLayout root) {
+        if (remote()) { label(a, root, "点了让服务端刷在你脚下，几秒后出现，自己捡", 10.5f, false, ORANGE); return; }
         String gt = giveText(a); if (giveSt != 2 && !gt.isEmpty()) label(a, root, gt, 10.5f, false, ORANGE);
     }
     static void result(Activity a, String r) { if (!"ok".equals(r)) toast(a, "没改成：" + r); refreshAny(); }
@@ -1020,7 +1024,7 @@ public class GameOverlay {
         kv(a, u, c, "身份", Lan.roleText());
         kv(a, u, c, "本机 IP", Lan.ip());
         if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "服务端", Lan.lastIp);
-        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西、无敌这些要服务端那边开，客户端改了也不生效。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
+        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西点武器/子弹/装备/道具页，由服务端刷在你脚下；无敌要服务端开。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
         if (Ed.ED == 1) note(a, u, root, Loot.shortText());
         if (Lan.role == 1) { note(a, u, root, Crew.state); }
@@ -1199,7 +1203,7 @@ public class GameOverlay {
     }
     /** v2.61 道具页：全部道具（道具键在对局里右边） */
     static void propPage(final Activity a, final Ui u, final LinearLayout root) {
-        if (Ed.ED == 2) { note(a, u, root, "客户端刷不了道具。"); return; }
+        if (Ed.ED == 2 && !remote()) { note(a, u, root, "加入别人的房间后才能刷（服务端代刷在你脚下）。"); return; }
         giveHint(a, root);
         allItems(a, u, root);
     }
@@ -1353,6 +1357,7 @@ public class GameOverlay {
         note(a, u, root, ps + (mc == 0 ? "。还没发现缺的资源。" : "。游戏缺的资源（最近 " + Math.min(6, mc) + " 条，共 " + mc + " 条）：" + Prop.recent(6)));
     }
     static void giveItem(final Activity a, final long id) {
+        if (remote()) { int c3 = (int) (id / 100000000L); Give.ask(String.valueOf(id), c3 == 206 ? 30 : c3 == 204 || c3 == 401 ? 3 : 1); return; }
         if (giveSt == 1 || giveSt == 3) { toast(a, "先在补丁更新里点「更新补丁」"); return; }
         int cat3 = (int) (id / 100000000L);
         int n = cat3 == 206 ? 30 : cat3 == 204 || cat3 == 401 ? 3 : 1;
