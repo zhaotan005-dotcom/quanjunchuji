@@ -1086,3 +1086,23 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 未实测：手机上墙能否生成/复制/看见/挡子弹、选到的模型长什么样、出生保护是否生效、闪烁、等人流程。看日志：「单挑围墙：模型：…」「单挑围墙：外圈 n 块、场内 m 块…」「单挑围墙（客户端）：收到房主复制的墙 N 块，带模型 M 块」「单挑：出生保护：GM+2e0 … SpawnProtectionTime x→3.0」「原生出生保护：Eligible=1，CreationTime …」「保护闪烁 n/12」。
 
 - 2026-11-19 02:19 用户规则：掩体不要车、不要防弹墙，要真实建筑墙；要外圈围墙；掩体要明显比人高（不能跳枪）；两人都进来才开始；要全面考虑周全、打磨好再交付。v3.19 已按此做，未实测。
+
+## v3.20（vc221/core221，2026-11-19 02:4x，三包，未实测）— 单挑：同一张图再开一把
+- 02:21 用户：打完 20 个头还要能接着打，不用退房间重开。
+- 结束（20 头）：只是我们自己的结束（over=true，记 endAt），房主 toast「10 秒后自动再开一把」+ 日志，**不调游戏任何结束/结算函数**。10 秒后：两个加入玩家（NetConnection 控制器）都在 → 自动 newRound；不全在 → 也清场，回到「等待对手加入」，两人到齐（都活着、都在点上）自动开始。
+- 对局里服务端常用页「单挑」加按钮「再开一把」：任何时候（等人、选枪中、打到一半、结束后）马上重开。按钮只置标志（rematchReq），清场在单挑线程下一次循环里做，和摆枪/发装备/复活串行；清场中再按提示「正在重开」。
+- newRound 顺序：
+  1. 上一把围墙线程（wallsTh）还在跑就 join（最多 90 秒），不然刷完的墙没人删。
+  2. 活着在场的人背包里 204 投掷物、206 子弹按数量 ServerDiscardItem 0xcd6728 丢掉（Box.dropAll 用过的同一路径/参数）。**枪、头甲包不丢**：v1.98 实测丢枪闪退过，没有安全删枪路径 → 留着，照常发新装备，日志「身上还有上一把的枪 n 把」。
+  3. 删墙 Walls.destroyAll：Walls.spawned 里每个（Prop.alive + 类仍是 AStaticMeshActor）调 K2_DestroyActor。place() 改成生成成功就记进 spawned（以前半成功的那块不记 → 会漏）。
+  4. 清地上：扫 GUObjectArray，类名含 pickup/deathdrop/dropbox 且不含 component/manager/config/spawner/generator/point/airsupply/weap/character/controller/vehicle/widget/data，非类默认对象（+4 & 0x10），根组件是 Component，位置在围墙矩形外扩 15 米内（没墙就两个点 60 米内）→ K2_DestroyActor，最多 400 个；日志列类名计数和这个类虚表 +0x164 的目标（看是不是 1140af4）。
+  5. 比分 0、所有每人计时/标志（rowAt/deadAt/protectUntil/movedAt/hurtAt/tryAt/leashAt/respawnSince/picked/kitted/reKit/last）清掉，over/started/paused/winner/endAt/announced/wallsDone 清掉，round+1；单挑点（home/placed）、圈中心、GameState 出生保护时长保留。
+  6. 活着的：记下背包里已有的枪对象（oldGuns）→ 传回自己的点、补满血、原生出生保护（protect，3 秒 + 闪烁）。死着的：deadAt = now-5s → 下一次循环立刻 RestartPlayer（原来的复活路径），新人物传回、保护。
+  7. 下一次循环：两人到齐 → started → 重新摆枪（rowAt=0）、45 秒选枪；围墙重新刷（wallsDone=false）。
+- 选枪：重开时身上有旧枪的人，只认背包里**新出现**的枪对象（gunIn 跳过 oldGuns），不用手上枪类名判断（手上可能是旧枪）；旧枪集合按人物记，复活换了人物就作废。
+- 重复按/线程：gen 计数（reset/newRound 各 +1）；闪烁线程看 gen 变了就停（finally 照样显示）；围墙线程启动时 gen 不对就不刷；中途换图（HostMatch.newMatch → Duel.reset）newRound 在每一步检查 gen，不对就停。
+- 重连：接手掉线记录时 reKit = 已选枪；开打后他活着 → 背包里没枪就补发装备（有就不补）、传回点、出生保护。
+- 游戏自己的结束：0x100fbd4 查结束（核对：0x100fc60 仍是 cmp r0,#1 / 补丁 #0）—— HostMatch.solo 现在 `noEnd(hideHost || Duel.on)`，单挑开着时不管「去掉房主人物」开没开都只在 0 队活着才结算；全员退出 Lan.QUIT 0xc89960 照旧；不上飞机/不刷圈照旧（没记点那张图第一局仍是上飞机，后面的把都在点上）。
+- RE（capstone）：K2_DestroyActor exec thunk 0x2e6f950 = `ldr r1,[r0]; ldr r1,[r1,#0x164]; bx r1`（和 SetActorHiddenInGame vt+0x160 相邻）；AStaticMeshActor 虚表 0x4f42690（构造 0x2d98764 写的）+0x164 = 0x1140af4 = `mov r1,#0; mov r2,#1; b 0x273e8d4`；0x273e8d4 = AActor::Destroy（查 +0x110 bit2、对象表 PendingKill，GetWorld vt+0xa0，bl 0x2aab2e8）；0x2aab2e8 = UWorld::DestroyActor（函数里 "UWorld::DestroyActor: World has no context!"、LevelActor.cpp）。没有新 cave、没有新补丁字节（走已有 ucall 'U' 路径，所以没做 unicorn）。
+- 日志（中文）：「单挑：房主按了「再开一把」」「单挑：第 n 把结束 … 10 秒后…」「单挑：结束 10 秒，在场的只有 n/2 人 → 清场回到等人」「单挑：再开一把（第 n 把，原因）：开始清场」「单挑：再开一把 第 n 把，…：丢掉子弹/投掷物 x 件；删墙 a/b；清地上东西：找到…删了…{类名=数}；活着传回 x 人、待复活 y 人，用时 s 秒」「单挑：玩家 n 重连回来…」。开房页/常用页状态行带「第 n 把」和「上次重开：…」。
+- 未实测：K2_DestroyActor 在手机上删墙/拾取物是否同步到客户端（看客户端「收到房主复制的墙 N 块」数字是否先变小再变回来）；拾取物类名过滤是否抓得到（看「清地上东西」的类名表，抓不到就按表改 PICK_IN）；丢子弹/投掷物是否正常；旧枪留在身上对选枪/发装备的影响。

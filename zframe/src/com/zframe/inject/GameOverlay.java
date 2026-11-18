@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.19";
+    static final String VER = "v3.20";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1203,6 +1203,7 @@ public class GameOverlay {
             head(a, u, root, "单挑");
             LinearLayout dq = row(a, root);
             btn(a, u, dq, "记录单挑点", () -> toast(a, Duel.recordNow()));
+            btn(a, u, dq, "再开一把", () -> toast(a, Duel.rematch()));   // v3.20：同一张图马上重开（比分清零、清墙清枪、回到点上）
             note(a, u, root, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
         }
         if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（服务端这边算伤害）", Con.allGod, v -> Con.setAllGod(v));

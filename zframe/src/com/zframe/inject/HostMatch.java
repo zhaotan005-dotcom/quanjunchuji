@@ -31,7 +31,7 @@ final class HostMatch {
             long cur = Server.rd(m, gm + 0x998);
             if (one[0] != 1) { m.seek(gm + 0x8ed); m.write(new byte[]{1}); }
             if (cur != 0 && cur < 100) { m.seek(gm + 0x998); m.write(new byte[]{0, 0, 0, 0}); }
-            soloState = "单排：每队 1 人（原来每队 " + (one[0] & 0xff) + "），现有队伍 " + teams + "；" + noEnd(m, hideHost);
+            soloState = "单排：每队 1 人（原来每队 " + (one[0] & 0xff) + "），现有队伍 " + teams + "；" + noEnd(m, hideHost || Duel.on);   // v3.20：单挑开着时一定不让游戏自己结算（打完一把接着再开）
         } catch (Throwable t) { soloState = "单排：出错 " + t; }
     }
     /** v3.05 用户：服务端的人物实际还在（只是隐藏）→ 要删掉。直接销毁会让「活着的队」只剩加入的人，一个人加入时会立刻结算；

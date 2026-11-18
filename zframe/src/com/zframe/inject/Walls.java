@@ -131,6 +131,7 @@ public class Walls {
         long[] rr = Veh.ucall5(world, cls, 0, 0, null, b + SPAWN_T, wa, wa + 0x40, 0);
         long actor = rr[0] == 0x5b0e ? rr[1] : 0;
         if (actor < 0x10000) return 0;
+        synchronized (spawned) { spawned.add(actor); }   // v3.20：生成了就记下（后面哪一步没成也要能删掉，重开不漏）
         long comp;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             if (Server.rd(m, actor + 0xc) != cls) return 0;
@@ -148,7 +149,6 @@ public class Walls {
             boolean crep = (Server.rd(m, comp + 0x74) & 8) != 0;
             if (!meshOk || !rep || !crep) { LogCap.note("单挑围墙：一块没成 模型" + meshOk + " 复制" + rep + " 组件复制" + crep + " " + ms.name); return meshOk ? actor : 0; }
         }
-        synchronized (spawned) { spawned.add(actor); }
         return actor;
     }
 
@@ -240,7 +240,22 @@ public class Walls {
         }
         return c;
     }
-    static void reset() { synchronized (spawned) { spawned.clear(); } arena = null; state = "围墙：没刷"; }
+    static void reset() { synchronized (spawned) { spawned.clear(); } arena = null; ok = 0; state = "围墙：没刷"; }
+    /** v3.20 再开一把：删掉这局刷过的墙（AActor::K2_DestroyActor 虚表 +0x164，游戏线程；服务端销毁复制的 actor，客户端跟着删），然后清状态 */
+    static String destroyAll(long b) {
+        ArrayList<Long> l; synchronized (spawned) { l = new ArrayList<>(spawned); spawned.clear(); }
+        int done = 0, gone = 0;
+        long cls = 0;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { cls = Server.rd(m, b + SMA_CLS); } catch (Throwable ignored) {}
+        for (long a : l) {
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                if (!Prop.alive(m, b, a) || Server.rd(m, a + 0xc) != cls) { gone++; continue; }
+            } catch (Throwable t) { gone++; continue; }
+            try { long[] r = Veh.ucall(a, 0, 0x164, 0, null); if (r[0] == 0x5b0e) done++; } catch (Throwable ignored) {}
+        }
+        reset();
+        return "删墙 " + done + "/" + l.size() + "（已经没了 " + gone + "）";
+    }
 
     // ---------------- 客户端：打补丁 + 看能不能看到房主刷的墙 ----------------
     static volatile Thread cw;
