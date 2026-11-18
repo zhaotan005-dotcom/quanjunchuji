@@ -30,6 +30,7 @@ final class PropBtn {
     }
 
     static void attach(final Activity a) {
+        if (Ed.ED == 2) return;   // v3.01 用户：客户端要的是游戏原生道具栏（战术模式），不要自制键 → 撤回 v3.00 的客户端道具键
         // v3.00 用户：捡起道具后没有道具键。客户端包（ED 2）以前直接不放键 → 加入别人房间时永远没有。
         //  RE：拿出 DoSelectedFunctionalProp 0xfe9574 末尾 人物 Role==2（自主代理）时自己调 0xd11a88 发服务器；放下/收回也是游戏原生入口，客户端照用即可。
         try {
@@ -127,7 +128,7 @@ final class PropBtn {
     /** 只读查背包，决定显不显示、写什么字 */
     static void refresh() {
         final TextView t = btn; if (t == null || busy) return;
-        if (!Con.inMatch || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); TextView b2 = btn2; if (b2 != null) b2.setVisibility(View.GONE); if (!Con.inMatch) synchronized (Prop.placed) { Prop.placed.clear(); } return; }
+        if (!Con.inMatch || Ed.ED == 2 || ModeProbe.propsMode || !GameOverlay.lobbySeen) { t.setVisibility(View.GONE); TextView b2 = btn2; if (b2 != null) b2.setVisibility(View.GONE); if (!Con.inMatch) synchronized (Prop.placed) { Prop.placed.clear(); } return; }
         new Thread(() -> {
             try { Jet.tick(); } catch (Throwable ignored) {}   // v2.66 喷气背包卡键位
             String r = Prop.scanUse(true);

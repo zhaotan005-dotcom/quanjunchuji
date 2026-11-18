@@ -32,7 +32,8 @@ final class Flare {
         if (!hit) return;
         long now = System.currentTimeMillis();
         if (now < until) { int i = l.indexOf("]Log"); d("游戏: " + (i > 0 ? l.substring(i + 1) : l)); return; }
-        if (l.contains("Flare") && now - lastStart > 30000) start(l);   // 服务端不一定有开火动画行，任何 Flare 行都开始记
+        // v3.01：v3.00 任何含 Flare 的行都触发，结果大厅里 LensFlare/T_EFX_Flare 贴图日志也触发、记到的全是默认对象。只认信号枪本身的行
+        if ((l.contains("FlareGun") || l.contains("FlareBullet")) && now - lastStart > 30000) start(l);
     }
     static void start(String why) {
         lastStart = System.currentTimeMillis(); until = lastStart + 25000;
@@ -57,7 +58,7 @@ final class Flare {
             for (int j = 0; j < k; j++) {
                 long o = bb.getInt(j * 16) & 0xffffffffL; int f = bb.getInt(j * 16 + 4);
                 if (o < 0x10000 || (f & 0x20000000) != 0) continue;
-                if (Server.rd(m, o) == vt) out.add(o);
+                if (Server.rd(m, o) == vt && (Server.rd(m, o + 4) & 0x10) == 0) out.add(o);   // v3.01 跳过类默认对象（RF_ClassDefaultObject）
             }
         }
         return out;

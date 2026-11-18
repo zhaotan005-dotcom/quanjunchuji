@@ -913,3 +913,15 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - C 去掉用不了的：规则不变（功能道具刷出后没有场景模型类 / 缺资源 → 删），只是不再误删别的类。
 ### 三军对垒/决胜五军
 - 新 ModeProbe.survey：服务端第一次进大厅 20 秒后自动全量扫一次名字表（v2.99 修好的多块表），关键字 三军 Legion|ThreeArmy|3Army|Camp（空投系统里有 CampVioletGetBoxTips/CampBlue/CampGreen，阵营模式可能叫 Camp）、五军 BFA|FiveArmy|5Army，再列所有含 GameMode 的名字和其中的 /Game/ 路径，写联机日志并传 mode-*，不开房。开房按钮也改用同样的多关键字。
+
+## v3.01（vc202/core202，2026-11-18 17:5x，三包，未实测）— 看 v3.00 日志后：战术模式按钮、撤回客户端自制道具键、信号弹诊断误触发修正
+### v3.00 实测日志（17:28–17:40，服务端+客户端）
+- 名字表全量扫（mode-1118-173107）：**三军对垒没有蓝图**（Legion/Camp 206 个名字全是 C++ 类和 HUD 类）；**决胜五军有** /Game/Blueprints/BattleRoyaleBFAGame/BP_NZBRBFAGameMode.BP_NZBRBFAGameMode_C；/Game/ 模式蓝图共 12 个：BattleRoyale、Compact、Death、CustomItem、Desert、BFA、CompactDesert、Savage、Island、BTT、**BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode（战术/道具模式）**、FrontEnd。
+- 用户开了决胜五军（新海岛，?game=BP_NZBRBFAGameMode_C）：能进图，Game class 对、BFA 控制器/GameState 都起来了、MatchState 直接 InProgress、有蓝圈；但「Uin not found in options」、找队伍 NZBRBFATeamInfo 成员 0、大量 ANZBRBFAGameState::OnSameTeam..error!、上飞机 1 秒就被移下来、掉到地图原点地下被拉起 → 用户说「没有流程」。推断：五军的分组（NZBRBFAGroup）靠专用服务器开局时的分组信息，listen 开房没人进组 → 没有分组航线/五军流程。未追，下一步 RE ANZBRBFAGameMode 的分组入口（NZBRBFADsLogic）。
+- 信号弹诊断（flare-*）全部是误触发：触发词 Flare 匹配到 LensFlare/T_EFX_Flare 贴图日志，记到的「信号弹」「空投系统」都是类默认对象（Role 3、位置 0、LimitsNumAdd 0、圈对象空）→ 不能当结论。这轮用户没开信号枪。
+- 快扩：服务端诊断已列出 205 类 44 个编号（20501…20505），没有坏编号文件；用户还没反馈快扩能不能刷。
+- 客户端点了自制道具键（背包空，自动传了 prop-）；用户明确要游戏原生道具栏，不要自制键。
+### 改
+- 撤回 v3.00 的客户端自制道具键；当前对局模式类含 Props（战术模式）时单机/房主也不显示自制键（ModeProbe.gameClass 读「Game class is」）。
+- 联机页娱乐模式：去掉「三军对垒」（手机上没蓝图），加「战术模式（试）」= ?game=/Game/Blueprints/BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode..._C（新海岛）；道具栏 HUD 类 UNZBRPHUDWidget_PropsBar 属于这个模式。未实测，是否闪退/有没有原生道具栏看 mode-* 和 avatar-*。
+- Flare：只认含 FlareGun/FlareBullet 的行；扫对象跳过类默认对象（+4 & 0x10）。

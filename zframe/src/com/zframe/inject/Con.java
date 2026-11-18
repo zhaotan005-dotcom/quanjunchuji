@@ -428,6 +428,7 @@ public class Con {
     static void line(String l) {
         Prop.line(l);
         Flare.line(l);
+        if (l.contains("Game class is '")) ModeProbe.gameClass(l);
         if (l.contains("BP_NZWeap_") || l.contains("WeaponBase/W")) {
             java.util.regex.Matcher m = WEAP.matcher(l);
             if (m.find()) { String w = m.group(1) != null ? m.group(1) : m.group(2); if (!"EmptyHand".equals(w)) { lastWeap = w; lastWeapAt = System.currentTimeMillis(); } }

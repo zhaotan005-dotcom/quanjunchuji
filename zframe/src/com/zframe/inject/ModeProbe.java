@@ -19,6 +19,14 @@ import java.util.ArrayList;
  */
 public class ModeProbe {
     public static volatile String state = "娱乐模式：没查过";
+    /** v3.01：当前对局是战术模式（BP_NZBattleRoyalePropsGameMode，游戏自己有道具栏）→ 不放自制道具键 */
+    static volatile boolean propsMode;
+    static void gameClass(String l) {
+        int i = l.indexOf("Game class is '"); if (i < 0) return;
+        String c = l.substring(i + 15); int e = c.indexOf('\''); if (e > 0) c = c.substring(0, e);
+        propsMode = c.contains("Props");
+        LogCap.note("对局模式类：" + c + (propsMode ? "（战术模式，用游戏原生道具栏）" : ""));
+    }
     static volatile boolean busy;
 
     /** key：Legion / BFA；label：游戏里的中文名 */

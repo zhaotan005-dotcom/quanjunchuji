@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.00";
+    static final String VER = "v3.01";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -981,7 +981,9 @@ public class GameOverlay {
             // 名字（libUE4 本地化默认文本 NSCommon/MatchModeName_10/13）：Legion = 三军对垒（GroupCountMax 默认 3），BFA = 决胜五军（推断）
             final String RENEW = "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main";
             LinearLayout er = row(a, hc);
-            fillBtn(a, u, er, "三军对垒（试）", () -> toast(a, ModeProbe.host(ModeProbe.LEGION, "三军对垒", RENEW)));
+            // v3.01：v3.00 全量扫名字表 —— 三军对垒没有蓝图（只有 C++ 类）→ 按钮去掉；决胜五军有 BP_NZBRBFAGameMode（能进图，流程不全，见 history）；
+            //  战术模式 /Game/Blueprints/BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode（道具栏 UNZBRPHUDWidget_PropsBar 是这个模式的 HUD）
+            fillBtn(a, u, er, "战术模式（试）", () -> toast(a, ModeProbe.host("Props", "战术模式", RENEW)));
             fillBtn(a, u, er, "决胜五军（试）", () -> toast(a, ModeProbe.host(ModeProbe.BFA, "决胜五军", RENEW)));
             note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);
