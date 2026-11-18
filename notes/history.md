@@ -823,3 +823,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 服务端开房加「五军对决（试）」「BFA 模式（试）」：新海岛 + ?game=/Script/NZBattleRoyaleGame.NZBRLegionGameMode / NZBRBFAGameMode（模块名是猜的；日志关键词加 GameMode/Legion/BFA）。
 - 15:23 用户解释「取消不刷毒服务端上限人数」= 服务端一直开着，任何时候都不要停止接收别人加入。RE：AGameSession::ApproveLogin 0x2a01600 满员回 "Server full."；InitOptions 0x2a011c4 读 ?MaxPlayers= 存 GameSession+0x2b4。PreLogin 0x1009890 只拒绝「重连找不到控制器」，没有按开局拒新人。
 - v2.93 (vc194/core194，三包，未实测)：Lan.host 开房命令加 ?MaxPlayers=100。
+- 15:24 用户：信号枪召唤空投修复。日志：客户端开了信号枪（FlareGun_Stand_Fire_Gun role 2），服务端没有任何 AirSupply/飞机日志 → 游戏的信号枪空投不起作用。
+- v2.94 (vc195/core195，三包，未实测)：Loot.flareLine 兜底——客户端自己开信号枪（role 2）→ ntfy「A 1 x y z」→ 服务端在前方 8 米放 AWM+.300×2+3 级头/甲/包；服务端/单机自己开（role 3）直接放。15 秒内一次。诊断「信号枪空投：」。
