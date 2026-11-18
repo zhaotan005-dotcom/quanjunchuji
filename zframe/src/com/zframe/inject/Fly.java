@@ -14,7 +14,8 @@ final class Fly {
     static volatile float height = 80f;   // 米
     static volatile String state = "飞天：还没用";
     static volatile boolean want, on, falling;
-    static long t0, riseMs;
+    static final int C_FLY = 0x170;   // MaxFlySpeed（MaxSwimSpeed 0x16c 后一个）
+    static long t0, riseMs; static float baseFly = -1; static long lastLog;
 
     /** 按钮：开/关切换 */
     static String go() {
@@ -46,13 +47,20 @@ final class Fly {
                 LogCap.note("飞天：模式 " + mode + " → 5，上升 " + riseMs + "ms");
             }
             if (mode != MOVE_FLYING) Mods.wi(m, c + Mods.C_MODE, (mw & ~0xff) | MOVE_FLYING);
+            // v2.76 空中要能移动：飞行速度 = 走路速度 × 加速倍数（至少 6 米/秒）
+            if (baseFly < 0) baseFly = Mods.f(m, c + C_FLY);
+            float fs = Math.max(600f, Mods.f(m, c + 0x164)) * Math.max(1f, Mods.speed);
+            if (Math.abs(Mods.f(m, c + C_FLY) - fs) > 1f) Mods.wf(m, c + C_FLY, fs);
             Mods.wf(m, c + Mods.C_VEL + 8, now - t0 < riseMs ? RISE : 0f);
+            if (now - lastLog > 2000) { lastLog = now; float vx = Mods.f(m, c + Mods.C_VEL), vy = Mods.f(m, c + Mods.C_VEL + 4);
+                state = String.format("飞天：飞行中 模式 %d 水平速度 %.0f 飞行上限 %.0f", mode, Math.hypot(vx, vy), Mods.f(m, c + C_FLY)); }
             return;
         }
         if (on) {
             on = false; falling = true; t0 = now;
             if (mode == MOVE_FLYING) Mods.wi(m, c + Mods.C_MODE, (mw & ~0xff) | Mods.MOVE_FALLING);
             Mods.wf(m, c + Mods.C_VEL + 8, 0f);
+            if (baseFly >= 0) { Mods.wf(m, c + C_FLY, baseFly); baseFly = -1; }
             return;
         }
         if (falling) {
