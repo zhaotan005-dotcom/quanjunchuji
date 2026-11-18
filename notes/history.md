@@ -1050,3 +1050,37 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 选枪：背包列表读不到时认手上的枪（人物 +0x890 类名关键字 → 编号表 Duel.KW），认不出就记日志类名。
 - 传送模式：开局 60 秒内被游戏挪走 >50 米就拉回单挑点。
 - 用户问怎么联机：同一个服务端（虚拟机/云电脑），两人装客户端加入；房主幽灵人物是听服必需的，底层没变成纯服务器（做不到）。
+
+## v3.19（vc220/core220，2026-11-19 02:1x，三包，未实测）— 单挑：真墙围场 + 原生出生保护 + 等两人到齐
+用户 01:5x–02:09：车当掩体太敷衍（删）；也不要护盾墙，要地图里那种真墙/集装箱/箱子；布局要有变化（长短墙、L 形、交错、箱子），墙必须比人高、跳枪打不过去，贴地不悬空，不压出生点；两个人外面要一圈封闭围墙；无敌要真的有效果；两个人不同时进，要等齐了才开始，中途掉线暂停；「要全面考虑周全」。
+### 中途放弃的方案（记录）
+- 护盾墙（战术道具盾）：ANZItem_Shield 虚表 0x4ce8ed0，vt+0x3a4 = SpawnScenePropItem 0xf300dc（用道具 +0x3f0 TargetProp 在 +0x338/+0x344 生成）；ANZBRSceneItem_Shield 构造 0x1147360（虚表 0x4ca79b8，大小 0x480），HP = 场景道具 Health +0x2cc / HealthMax +0x2c8（反射 0x4c2faf4），寿命 LifeCycle +0x308（Tick 0xd95624：LifeCycle + 生成时间 +0x30c < 世界时间 → vt+0x344 过期），CanRecycleDist +0x420。用户 02:04 改主意，没用。
+### 墙（Walls.java）
+- 类：AStaticMeshActor StaticClass 缓存 *(base+0x5389048)（GetPrivateStaticClass 0x2fb9760 区，大小 0x2b8），构造 0x2d98764：StaticMeshComponent = actor+0x2b0 = 根组件，Mobility comp+0x16e=0(Static)，碰撞预设构造里设（vt+0x2f0）；BeginPlay 0x2d9888c。UStaticMesh 类缓存 *(base+0x538902c)（大小 0x118），ExtendedBounds = mesh+0xbc（Origin、BoxExtent、Radius；反射 0x503bedc）。
+- 生成：UWorld::SpawnActor(world, class, FTransform*, FActorSpawnParameters*) = 0x2aa756c（0x2aa8ad4 是 loc/rot 包装，内部拼 FTransform）。FTransform 非向量化：+0 FQuat、+0x10 位置、+0x1c 缩放（0x28 字节）。FActorSpawnParameters 0x20（构造 0x2e523bc），+0x18=1 AlwaysSpawn、+0x19=2 bNoFail、+0x1c=8。经 ucall5（ucave 已有 5 参数路径）。FRotator→FQuat 约定用 unicorn 跑 0x19fac90 核对（game/re/emu_quat.py，5 个 yaw 全对）。
+- 设模型：SetStaticMesh = 组件虚表 +0x43c（0x2957578，StaticMeshComponent 虚表 0x4ef5d58），StaticMesh 字段 comp+0x628。0x29575fc：已注册 + Mobility==Static 时拒绝（"Calling SetStaticMesh on '{0}' but Mobility is Static."）→ 服务端生成后先写 comp+0x16e=2。
+- 复制：AActor::SetReplicates 0x2747784（Role 3 且原来不复制 → AddNetworkActor 0x2e5c524，bReplicates = 字节 +0x5e bit3）；UActorComponent::SetIsReplicated 0x28a40d8（comp+0x74 bit3）；NetCullDistanceSquared actor+0xf4 写 1e12。反射：USceneComponent RelativeLocation/Rotation/Scale3D(+0x100/+0x10c/+0x118) 带 Net + OnRep_Transform；StaticMesh(+0x628) 带 Net + OnRep_StaticMesh(0x295596c：先清字段再调 vt+0x43c)。
+- 客户端会被同一个 Static 检查拒掉（客户端组件按类默认值 = Static）→ 补丁 0x29575fc..0x2957610（20 字节）：原 `ldrb r0,[r4,#0x16e]; cmp r0,#0; bne 0x29579e8; ldr r0,[pc,#0x490]; add r6,sp,#0x38` → `ldrb; cmp r0,#0; moveq r0,#2; strbeq r0,[r4,#0x16e]; b 0x29579e8`（只把 Static 改 Movable 再照常设模型）。盖掉的后两条是警告分支开头，0x2940000–0x2970000 内没有跳转进 0x2957600..0x2957614；0x29579e8 起不用 r0。unicorn：game/re/emu_meshpatch.py（Mobility 0/1/2 三种都对）。每次进图就打（房主、客户端都打；Walls.clientWatch 在 Con 进图处启动），客户端每 15 秒记「收到房主复制的墙 N 块，带模型 M 块」（Role==2 的 StaticMeshActor）。副作用：游戏运行时对 Static 组件调 SetStaticMesh 不再被拒（以前是报警告不生效），会变 Movable。
+- 选模型：扫 GUObjectArray 里类 == UStaticMesh 的对象，名字含 wall/fence/concrete/brick/barrier/container/partition/block（墙）或 crate/box/container/cargo（箱），排除 glass/window/door/roof/floor/stair/rock/tree 等；包围盒过滤：墙 长 2.5–25 米、厚 0.1–3 米、长≥1.8×厚、高 1.5–8 米；箱 三边 1–13 米、高≥1.5 米。按「不用放大就够高、长度接近 8 米」排序，墙取 4 种、箱取 3 种，全部写日志（名字 + 长厚高 + 中心偏移，以及前若干个候选）。
+- 摆放：场地坐标 u = A→C、v = 垂直；围墙矩形 u∈[-12 米, d+12 米]、v∈[±max(12 米, 0.35d)]，每边均分、段长 ≤ min(原长×3, 10 米)、相邻段多 8% 重叠、四角各伸出一个墙厚 → 无缝。场内 15 块：中间箱子、中线两侧竖墙、两组镜像 L 形（竖 5 米 + 横 4.5 米）、两块交错短墙、两侧箱子、两个出生点前 9 米偏一侧的掩体、两侧长墙；离两个出生点 7 米内不放、不压在站着的人身上、不出围墙。高度：Z 缩放到「地面以上 ≥3.3 米」（1–3 倍），底部埋地 1.2 米；地面 = 两个点人物中心 Z 沿 u 插值 − 90 厘米（没有做射线检测，坡度超过 1.2 米处会露底）。长度缩放 0.6–3 倍，太薄（<20 厘米）的加厚到 20 厘米。
+- 圈：有围墙时，看不见的掉血圈改成「围墙矩形外 3 米」，没刷成墙时还是原来的圆。两点距离 < 15 米或找不到合格墙模型 → 不刷，日志写原因，比赛照常。
+### 无敌（原生出生保护）
+- NZGameMode 伤害链：BR GameMode 虚表 +0x484 = 0x101112c → 0xcc0ad0 → 所有路径都到 0xcc0e0c bl 0xc8b450：受伤人物是 NZCharacter、有施害者、人物+0x7e0 bSpawnProtectionEligible≠0、人物+0x2d0≠施害者、(world+0x740 世界时间 − 人物+0x114 CreationTime) < [GM+0x380]+0x3c8 → 伤害写 0，日志 "[%s:%d] InjuredChar=%s don't take damage in SpawnProtection"。IsSpawnProtected（exec 0xe413ec → 0xd11268）同样条件，用 World+0x98 GameState。
+- 反射：bSpawnProtectionEligible 人物+0x7e0（Net，构造 0xcfee40 默认 1；虚表 +0x67c = 0xd1be90 清 0，拾取 0xce5f90 会调）；SpawnProtectionTime GameState+0x3c8（Net，float）。
+- 做法：每局一次把 GM+0x2e0 和 GM+0x380（类名含 GameState 才写）的 +0x3c8 写 3.0（日志原值）；复活 → 传送 → 发装备之后写人物 +0x7e0=1、+0x114=当前世界时间 → 从这一刻起 3 秒原生免伤（发装备的拾取可能清 Eligible，所以放在发装备之后）。效果：同时 12 次 × 0.25 秒 SetActorHiddenInGame（虚表 +0x160，bHidden 复制）闪烁，finally 恢复显示。补满血保留当后备。客户端有没有游戏自带的保护特效（蓝图/Lua 里用 IsSpawnProtected）无法在 libUE4 里确认（只有 exec thunk 调它）。
+### 等人 / 暂停 / 边界（自查清单，状态）
+- [做了] 两个 NetConnection 玩家都在且都活着、都到位才开始（摆枪、发装备、拉回、算分、掉血都在开始后）；等人时先到的人站在自己的点（离开 5 米拉回、补满血、不掉圈血），开房页/房主提示「等待对手加入（n/2）」，日志「单挑：等待对手加入 (1/2)」。客户端屏幕提示：没有可用的 HUD 通道，只有房主 toast + 日志。
+- [做了] 开打后有人掉线 → 暂停（不算分、不掉血），日志 + 房主 toast；新控制器进来时接手掉线玩家的记录（分数、枪、出生点），回到点上继续。
+- [做了] 选枪阶段死了：不算分，照常 5 秒后复活回出生点（还没选枪就不发装备）。只有两人都选好枪后的死亡才算分。
+- [做了] 同一刻两人都死：各给对方 +1；同时到 20 记「平局」。
+- [做了] 复活：每 2.5 秒调 RestartPlayer，30 秒还没复活写日志（含 RestartPlayer 标记）继续试；新人物出现后传回、发装备、原生保护。
+- [做了] 墙失败（找不到模型/拿不到 World/某块没成）：日志写原因，比赛照常，掉血圈回退成圆。墙刷完自动传 duel-* 日志。
+- [没做/限制] 地面只按两个出生点高度插值，没有射线检测：坡地超过 1.2 米会露底；点记在水里/楼里不做检查（录点时自己选平地）。
+- [做了] 墙不困人：外圈离出生点 ≥12 米，场内离出生点 7 米内不放、不压站着的人；枪摆成 8 列方阵在出生点朝对手 2.5–5.5 米处（不被墙压住）。
+- [做了] 连续开新的单挑：每局 HostMatch.newMatch → Duel.reset → Walls.reset 清状态；上一张图的墙随世界销毁（每次单挑都是新开房换图）。
+- [做了] 房主幽灵人物不算（只认 NetConnection 控制器），第三个人进来不算。
+- [做了] 20 头结束：不再复活、停掉圈、拉回、算分；房主 toast + 日志 + 自动传 duel-*。客户端没有结果界面（同上，无 HUD 通道）。
+- [注意] 没记过单挑点的那张图：第一局要上飞机跳（游戏自己的流程），第二个人晚进可能上不了飞机 → 建议两人都在时用「记录单挑点」。
+### 验证情况
+- 反汇编核对：上面所有偏移；unicorn：客户端 SetStaticMesh 补丁（emu_meshpatch.py）、FQuat 约定（emu_quat.py）；ucall5 5 参数路径沿用 v3.05 emu_ucave。
+- 未实测：手机上墙能否生成/复制/看见/挡子弹、选到的模型长什么样、出生保护是否生效、闪烁、等人流程。看日志：「单挑围墙：模型：…」「单挑围墙：外圈 n 块、场内 m 块…」「单挑围墙（客户端）：收到房主复制的墙 N 块，带模型 M 块」「单挑：出生保护：GM+2e0 … SpawnProtectionTime x→3.0」「原生出生保护：Eligible=1，CreationTime …」「保护闪烁 n/12」。
