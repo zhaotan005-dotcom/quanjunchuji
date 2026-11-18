@@ -1008,3 +1008,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - Training.java：
   - 原图：大厅（服务端）找 pakchunk_c2afa52b…pak（外部 files / obb / files 递归），只读末尾明文索引（标记 0x5A6F12E1、版本、索引位置；FString 名字 + FPakEntry），列出 .umap → /Game/Maps/TrainingIsland_Runtime/… 每个一个「训练营原图 xxx（试）」按钮（战术模式开）。索引加密/不认 → 日志记末尾字节。日志自动上传 pak-*。不解密。
   - 自制「训练营」按钮：新海岛 + 战术模式 + setNoZone（不上飞机不刷毒）+ 物资方块 + 排车 + 加入玩家前方 20 米一排 8 个固定靶子人机（不带枪，addBot 标志 4，Bots.manual 固定），每 15 秒看一次（Prop.alive + 血 +0x5a0>0），少了就补。其他开房按钮 Training.off()。
+
+## v3.12（vc213/core213，2026-11-18 21:1x，未实测）— 在线更新根修
+- 21:08 用户：更新要么装完闪退，要么没检测到更新。
+- NetCore：下完 dex 先用 DexClassLoader 读包里的 CORE_VER/BUILD，和 .ver 对不上就不装、换下个镜像（镜像缓存 .ver 新 .dex 旧 → 以前会装错包）；.ver 加 ?t= 分钟级防缓存。
+- chain（APK 里的启动代码，要重装 APK 才生效）：运行文件按版本命名 zcore_netrun<ver>.dex，删旧的及 oat；多进程同时启动不再互删，写本进程临时文件再原子改名。

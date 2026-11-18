@@ -27,7 +27,7 @@ final class NetCore {
         Thread[] ts = new Thread[BASES.length];
         for (int k = 0; k < BASES.length; k++) {
             final int i = k;
-            ts[i] = new Thread(() -> { try { v[i] = Integer.parseInt(new String(get(BASES[i] + name + ".ver", 64)).trim()); } catch (Throwable t) { synchronized (err) { err.append(BASES[i].substring(8, Math.min(28, BASES[i].length()))).append("：").append(t.getMessage()).append("；"); } } }, "zf-ver" + i);
+            ts[i] = new Thread(() -> { try { v[i] = Integer.parseInt(new String(get(BASES[i] + name + ".ver?t=" + System.currentTimeMillis() / 60000, 64)).trim()); } catch (Throwable t) { synchronized (err) { err.append(BASES[i].substring(8, Math.min(28, BASES[i].length()))).append("：").append(t.getMessage()).append("；"); } } }, "zf-ver" + i);
             ts[i].setDaemon(true); ts[i].start();
         }
         long end = System.currentTimeMillis() + 12000;
@@ -53,10 +53,20 @@ final class NetCore {
             int t = 0; try { t = Integer.parseInt(read(tries)); } catch (Throwable ignored) {}
             // v2.84 用户：不要自动退回老版本 → 不再因为连续没进大厅就不用（只记次数，诊断里看）
             if (main) write(tries, String.valueOf(t + 1));
-            File run = new File(ctx.getCodeCacheDir(), "zcore_netrun.dex");
-            run.setWritable(true); run.delete();
-            try (InputStream in = new FileInputStream(dex); OutputStream o = new FileOutputStream(run)) { copy(in, o); }
-            run.setReadOnly();
+            // v3.12 用户：装完闪退 —— 以前每版都拷成同一个名字 zcore_netrun.dex，ART 可能复用上一版留下的 oat/vdex → 新旧代码混着跑。
+            //  根修：每个版本用自己的文件名，旧的全删
+            File run = new File(ctx.getCodeCacheDir(), "zcore_netrun" + nv + ".dex");
+            File[] olds = ctx.getCodeCacheDir().listFiles();
+            if (olds != null) for (File o : olds) if (o.getName().startsWith("zcore_netrun") && !o.getName().startsWith("zcore_netrun" + nv + ".")) { o.setWritable(true); o.delete(); }
+            File oat = new File(ctx.getCodeCacheDir(), "oat"); deleteOld(oat, nv);
+            // 几个进程同时启动会一起走这里：已有同长度的就直接用；否则写到本进程自己的临时文件再原子改名，不删别人正在用的
+            if (!run.exists() || run.length() != dex.length()) {
+                File tmp = new File(ctx.getCodeCacheDir(), "znrtmp" + android.os.Process.myPid() + ".dex");
+                tmp.setWritable(true); tmp.delete();
+                try (InputStream in = new FileInputStream(dex); OutputStream o = new FileOutputStream(tmp)) { copy(in, o); }
+                tmp.setReadOnly();
+                if (!tmp.renameTo(run)) { tmp.setWritable(true); tmp.delete(); if (!run.exists()) return false; }
+            }
             ClassLoader cl = new dalvik.system.DexClassLoader(run.getAbsolutePath(), ctx.getCodeCacheDir().getAbsolutePath(), null, Context.class.getClassLoader());
             cl.loadClass(ZInit.class.getName()).getMethod("boot", Context.class).invoke(null, ctx);
             android.util.Log.i(ZInit.TAG, "已换成在线内核 " + nv);
@@ -141,6 +151,10 @@ final class NetCore {
                     if (d.length < 1000 || d[0] != 'd' || d[1] != 'e' || d[2] != 'x') throw new IOException("不是 dex");
                     File tmp = f(ctx, "zcore_net.tmp"), dex = f(ctx, "zcore_net.dex");
                     try (OutputStream o = new FileOutputStream(tmp)) { o.write(d); }
+                    // v3.12 用户：装完闪退/没检测到更新 —— 镜像缓存可能 .ver 是新的、.dex 还是旧的（或别的版本）→ 下错包，重启后跑的是旧代码甚至闪退。
+                    //  根修：下完先读 dex 里自己的 CORE_VER 和 BUILD，对不上就不装，换下一个镜像
+                    String bad = check(ctx, tmp, v);
+                    if (bad != null) { tmp.delete(); throw new IOException("包不对（" + bad + "）"); }
                     dex.setWritable(true); dex.delete();
                     if (!tmp.renameTo(dex)) throw new IOException("改名失败");
                     write(f(ctx, "zcore_net.ver"), v + " " + Ed.BUILD);
@@ -154,6 +168,29 @@ final class NetCore {
             pct = -1; say("检查更新失败（网络）", false);
             LogCap.note("在线更新失败：" + err);
         }, "zframe-netcore").start();
+    }
+
+    static void deleteOld(File d, int nv) {
+        if (d == null || !d.exists()) return;
+        File[] fs = d.listFiles(); if (fs == null) return;
+        for (File f : fs) { if (f.isDirectory()) deleteOld(f, nv); else if (f.getName().startsWith("zcore_netrun") && !f.getName().startsWith("zcore_netrun" + nv + ".")) { f.setWritable(true); f.delete(); } }
+    }
+    /** 下好的 dex 里的 CORE_VER 必须等于 .ver 写的版本、Ed.BUILD 必须是本版本；对得上返回 null */
+    static String check(Context ctx, File dex, int want) {
+        File dir = new File(ctx.getCodeCacheDir(), "zchk"); dir.mkdirs();
+        File c = new File(dir, "c" + System.nanoTime() + ".dex");
+        try {
+            try (InputStream in = new FileInputStream(dex); OutputStream o = new FileOutputStream(c)) { copy(in, o); }
+            c.setReadOnly();
+            ClassLoader cl = new dalvik.system.DexClassLoader(c.getAbsolutePath(), dir.getAbsolutePath(), null, Context.class.getClassLoader());
+            int cv = cl.loadClass(ZInit.class.getName()).getField("CORE_VER").getInt(null);
+            java.lang.reflect.Field bf = cl.loadClass(Ed.class.getName()).getDeclaredField("BUILD"); bf.setAccessible(true);
+            int b = bf.getInt(null);
+            if (cv != want) return "内核 " + cv + " 不是 " + want;
+            if (b != Ed.BUILD) return "版本 " + b + " 不是 " + Ed.BUILD;
+            return null;
+        } catch (Throwable t) { return "读不出 " + t; }
+        finally { File[] fs = dir.listFiles(); if (fs != null) for (File f : fs) { f.setWritable(true); f.delete(); } }
     }
 
     /** 重启游戏：3.5 秒后用闹钟重新打开，自己退出 */
