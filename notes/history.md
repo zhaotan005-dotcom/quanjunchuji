@@ -949,3 +949,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 稳定性：ntfy 429 —— 客户端代刷 0.5 秒内合并成一条多行消息，429 时 6 秒后重试 2 次；服务端从每 2 秒轮询改为长连接订阅 /json?since=（断了 5 秒重连）。
 - 重启：在线更新后的重开从 1.2 秒延到 3.5 秒（服务端 15:49、17:52 两次启动闪退都在 0x1a322f8 ← 0x1a2ea98（读 ini/命令行），推断是旧进程没退干净）。
 - 没做：换弹时切枪还会自动装弹（要那一刻的日志/RE）；「方块」（截图里灰色棋盘格方块，人偶站在上面）—— 是什么、要做成什么已问用户；pak 资源、训练营下一步。
+- 18:24 用户澄清「方块」：不是能站的方块，是装物资的箱子（像死亡盒），刷的装备放进箱子里。RE 线索：ANZPickupBox（NZPickupBox.cpp），背包组件 ServerSpawnPickupBox（thunk 0xe68298，校验 vt+0x368，实现 vt+0x36c），SpawnPickupBox exec 被桩成 bx lr；PickupBoxClass 属性 +0xf64（所属类未定）、AllPickupBoxList +0x674、bAutoDestroyPickupBox +0x8c8。背包组件虚表静态没定位，下次运行时从 人物+0x838 读。计划 v3.04 做「刷进箱子」+ 换弹切枪。
