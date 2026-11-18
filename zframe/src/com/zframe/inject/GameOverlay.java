@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.68";
+    static final String VER = "v2.69";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1487,8 +1487,10 @@ public class GameOverlay {
     /** v2.68 服务端（用户：更新一直显示获取更新、没在腾讯页面弹）：游戏自己的加载页（StartupMap）上盖一层，
      *  查 GitHub 有没有新内核；最新/失败 → 1.5 秒后关；下好了 → 2 秒后自动重启用新版。最多停 40 秒。 */
     static volatile View upd;
+    static final java.util.concurrent.atomic.AtomicBoolean updShown = new java.util.concurrent.atomic.AtomicBoolean();
     static void srvUpdatePage() {
-        final Activity a = Con.act; if (a == null || upd != null) return;
+        final Activity a = Con.act; if (a == null) return;
+        if (!updShown.compareAndSet(false, true)) return;   // v2.69：加载页日志会连着来几行，以前会叠两层，关掉一层另一层一直挂着
         a.runOnUiThread(() -> {
             try {
                 Ui u = new Ui(a);
@@ -1509,6 +1511,7 @@ public class GameOverlay {
                 wl.setTitle("zframe_upd");
                 a.getWindowManager().addView(bg, wl);
                 upd = bg;
+                bg.setOnClickListener(v -> closeUpd(a, bg));   // v2.69：点一下就关
                 final long t0 = System.currentTimeMillis();
                 final boolean[] restarting = { false };
                 NetCore.listener = (msg, ready) -> a.runOnUiThread(() -> {
@@ -1519,9 +1522,9 @@ public class GameOverlay {
                 { String s0 = NetCore.status; if (!s0.isEmpty()) st.setText(s0); if (NetCore.readyVer > ZInit.CORE_VER && !restarting[0]) { restarting[0] = true; bg.postDelayed(() -> NetCore.restart(a), 2000); } }
                 final Runnable[] tick = new Runnable[1];
                 tick[0] = () -> {
-                    if (upd != bg || restarting[0]) return;
+                    if (!bg.isAttachedToWindow() || restarting[0]) return;
                     long el = System.currentTimeMillis() - t0;
-                    if ((NetCore.done && el > 1500) || el > 40000) { closeUpd(a); return; }
+                    if ((NetCore.done && el > 1500) || el > 30000) { closeUpd(a, bg); return; }
                     bg.postDelayed(tick[0], 500);
                 };
                 bg.postDelayed(tick[0], 500);
@@ -1529,8 +1532,8 @@ public class GameOverlay {
             } catch (Throwable e) { LogCap.note("加载页查更新：显示失败 " + e); }
         });
     }
-    static void closeUpd(Activity a) {
-        View v = upd; upd = null; NetCore.listener = null;
+    static void closeUpd(Activity a, View v) {
+        if (upd == v) { upd = null; NetCore.listener = null; }
         if (v != null) try { a.getWindowManager().removeViewImmediate(v); } catch (Throwable ignored) {}
     }
     /** 选完（手动或超时）：关掉选择框，菜单标题跟着变 */
