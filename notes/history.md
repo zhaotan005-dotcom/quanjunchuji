@@ -795,3 +795,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.78 (vc179)，未实测：地图标点。RE：ServerAddNewMapSign(FVector2D InNewLoc) 在 NZBRPlayerController（同表有 ServerSetTacticsInfo/ClientSetTacticsInfo），exec 0x11e528c；控制器 +0xa04 = MapSignInfo（NZBRMapSignInfo 0xc 字节）；TeamMemberInfo.MapSignLocation +0x30。控制器 = 人物+0x2c4(PS)→+0x60。
   MapMark.java：进对局起每 0.5 秒看 控制器+0xa04，变了写「标点日志」；开「点地图标点自动传送」→ Veh.teleport 到 (X,Y,max(当前z+30m,200m))，Fly.softLand 限速 -10 m/s 落 40 秒。标点本身显示不出来的原因还没定位，等这版日志看 +a04 有没有变。
 - v2.79 (vc180)：标点变化 5 秒后自动传诊断（mark-，30 秒一次）；一局结束回大厅 8 秒后自动传（matchend-）。
+- 12:55 诊断（v2.79）：标点 控制器 BP_NZBRPlayerController_C，+a04 一直全 0 → 点大地图标点根本没写到 MapSignInfo（不是 UI 显示问题，或者 RPC 没调到/实现写别处）。12:50:20 启动 2 秒闪退一次，又是 0x19bb434 递归栈溢出（和 11:24 同一个），重开正常。离线找 NZBRPlayerController 虚表没成（vtable 在重定位里）。
+- v2.80 (vc181)：诊断加控制器虚表 0x3e8~0x3f4 函数地址（减基址），下次离线反汇编加标点实现。

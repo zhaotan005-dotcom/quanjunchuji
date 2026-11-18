@@ -51,6 +51,11 @@ final class MapMark {
                 String cn = Alive.clsName(m, nm, ctl);
                 lastCtl = ctl; lastHex = "";
                 state = "标点：控制器 " + Long.toHexString(ctl) + " " + cn;
+                // v2.80：记下控制器虚表里 删标点(0x3e8/0x3ec) 加标点(0x3f0 校验/0x3f4 实现) 的函数（减库基址），好离线看实现
+                long vt = Server.rd(m, ctl);
+                StringBuilder sb = new StringBuilder("虚表 ").append(Long.toHexString(vt - b));
+                for (int off = 0x3e8; off <= 0x3f4; off += 4) sb.append(" +").append(Integer.toHexString(off)).append("=").append(Long.toHexString(Server.rd(m, vt + off) - b));
+                note(sb.toString());
                 if (cn == null || !cn.contains("PlayerController")) { state += "（不是玩家控制器，不看）"; lastCtl = -1; }
             }
             if (lastCtl == -1) return;
