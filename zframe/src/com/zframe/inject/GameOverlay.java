@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.13";
+    static final String VER = "v3.14";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1032,6 +1032,7 @@ public class GameOverlay {
         } else if (Ed.ED == 1 ? (NetCore.status.startsWith("检查更新失败") || NetCore.status.startsWith("发现新版本")) : !NetCore.status.isEmpty()) note(a, u, root, Ed.ED == 1 ? NetCore.status : "更新：" + NetCore.status);
         // v2.13：分版本，不再有联机/单机切换
         lobbyTab = Ed.single() ? 1 : 0;
+        UpdUi.probe();   // v3.14：找游戏自己的更新页蓝图（日志 upd-*）
         if (lobbyTab == 0) {
           if (Ed.ED == 1) {
             LinearLayout hc = card(a, u, root);

@@ -1017,3 +1017,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.13（vc214/core214，2026-11-18 21:2x，未实测）
 - 21:11 用户：去掉单机/联机选择，不管单机联机都默认开服务端，大厅有装扮。
 - Ed：客户端包 ED 初值 0（自建大厅服务端+仓库衣服），chosen=true、canChoose=false；大厅游戏模式页下加「加入艾挽服务器」+ 上次地址；对局菜单：加入别人后只剩联机，没加入时按服务端页。
+
+## v3.14（vc215/core215，2026-11-18 21:3x，未实测）— 游戏自带更新页接管（第一步）
+- 21:16 用户：现在就做（用游戏自己的更新页显示我们的更新）。
+- RE：Dolphin（com/tencent/gcloud/dolphin UpdateCallBack/UpdateInterface，libUE4 strDolphinUpdateUrl、NZGCloudPuffer.cpp）；更新页成员 UpdatePanel/UpdateProgressBar/UpdateProcessValue/UpdateProcessText/UpdateTip/UpdateBtn，函数 OnUpdateProcess/OnUpdateBtnClick/OnAbortUpdateConfirm（libUE4 字符串 0x4811cf6 一带）。类名/蓝图路径不在 libUE4 字符串里。
+- UpdUi.java：大厅扫名字表带 Update 的名字，日志 upd-*。下一步：拿到蓝图路径 → 运行时创建/显示这页，下载时写进度条和文字。
