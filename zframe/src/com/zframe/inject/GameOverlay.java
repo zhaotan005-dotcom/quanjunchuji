@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.77";
+    static final String VER = "v2.78";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1116,6 +1116,7 @@ public class GameOverlay {
             slider(a, u, root, "飞天高度（米）", "点「飞天」升到这个高度后一直飞，摇杆控制方向；再点一下关掉慢慢落下。上飞机、跳伞、上车、下水会自动关", 10f, 500f, 10f, Fly.height, false, v -> Fly.height = v);
             LinearLayout fly = row(a, root);
             fillBtn(a, u, fly, "飞天 开/关", () -> new Thread(() -> { String r = Fly.go(); LogCap.note(r); toastAny(r.replace("飞天：", "")); }, "zf-fly").start());
+            switchRow(a, u, root, "点地图标点自动传送", "在大地图上标点后，自动传到那个点上空 200 米，再慢慢落下来", MapMark.autoTp, v -> { MapMark.autoTp = v; MapMark.start(); return "ok"; });
         }
         LinearLayout fc = card(a, u, root);
         LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);

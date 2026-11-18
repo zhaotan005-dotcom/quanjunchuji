@@ -18,7 +18,9 @@ final class Fly {
     static volatile String state = "飞天：还没用";
     static volatile boolean want, on, falling;
     static long t0, riseMs, lastLog, cmcOn;
-    static int phaseOn;
+    static int phaseOn; static float clampV = MAX_FALL; static long fallMs;
+    /** v2.78 传送到标点后从高处慢落 */
+    static void softLand() { if (want) return; clampV = -1000f; fallMs = 40000; falling = true; t0 = System.currentTimeMillis(); phaseOn = Bots.phase; Mods.startMover(); }
     static float sGrav, sWalk, sAir, sLat;
 
     /** 按钮：开/关切换 */
@@ -32,7 +34,7 @@ final class Fly {
             Mods.startMover();
             return state = "飞天：开，升到 " + Math.round(h / 100) + " 米后一直飞，再点一下关";
         }
-        want = false;
+        want = false; clampV = MAX_FALL;
         return state = "飞天：关，慢慢落下";
     }
 
@@ -82,15 +84,15 @@ final class Fly {
         }
         if (on) {
             restore(m, c);
-            falling = true; t0 = now;
+            falling = true; t0 = now; clampV = MAX_FALL; fallMs = riseMs * 3 + (long) (height * 1000f / 7f) + 5000;
             Mods.wf(m, c + Mods.C_VEL + 8, 0f);
             return;
         }
         if (falling) {
             if (mode == Mods.MOVE_FALLING) {
-                if (Mods.f(m, c + Mods.C_VEL + 8) < MAX_FALL) Mods.wf(m, c + Mods.C_VEL + 8, MAX_FALL);
+                if (Mods.f(m, c + Mods.C_VEL + 8) < clampV) Mods.wf(m, c + Mods.C_VEL + 8, clampV);
             } else if (now - t0 > 500) { falling = false; state = "飞天：已落地"; }
-            if (now - t0 > riseMs * 3 + (long) (height * 1000f / 7f) + 5000) falling = false;   // 最多管这么久，不会卡住别的下落
+            if (now - t0 > fallMs) falling = false;   // 最多管这么久，不会卡住别的下落
         }
     }
 }
