@@ -978,3 +978,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 做法：boxcave（game/re/boxcave.py + emu_boxcave.py 过）放在被剥掉的作弊 RPC thunk 0x11de78c..0x11de844（ServerTestSpawnAirSupplyBox 那两个，没人调），0xfd3424 bl → cave；缓冲区 [0]=n [4]=用过次数 [8..] FName；n>0 时把我们的 FName 追加进 +0x3f8（扩容 0xbc5580），不调原函数。
 - ucave 再加第 6 参数（buf+72 → [sp+4]），Veh.ucall6；ucave 0xb8 字节（到 SLACK+0x2f8）。
 - Box.airdrop：先投一个探路箱（游戏随机物资）读 FName 行名格式（找 11 位编号），再全量扫名字表找我们每件东西的行名序号，按 9 类每类投一个箱（出生岛，z+30 米落下），箱里每样一份；999 的地上堆保留在旁边。日志写在 avatar「空投」那段（空投系统、箱子类、探路箱物资、行名格式、找到几个、每箱是否换成我们的）。
+
+## v3.08（vc209/core209，2026-11-18 20:1x，未实测）
+- 19:59 用户：刷不了车；空投没有；v3.07 连枪和头甲包都看不到。
+- v3.07 box 日志：堆都放了（枪 36、头甲包 19、各类丢出若干堆），位置是「房主隐藏人物」出生点；真空投箱：空投系统 4 个箱子类全空 → 没投（这个模式不能用 DropAirSupplyBox）。
+- 根因（推断）：堆放在房主隐藏人物身边，加入玩家出生点不同（分散出生），所以看不到。改：Box.joinedPos 找第一个加入玩家（控制器+0x2fc NetConnection）人物位置，堆放在他身边（前 5 堆一排 y+4 米，后面 y+7.5 米，x 间隔 3 米）；没加入玩家就等。
+- 去掉 v3.07 的 airdrop() 调用（不装 0xfd3424 钩子），代码留着。
+- 刷车：give 主题 18:05 之后没收到客户端任何请求；客户端日志 v3.02 之后也没上传过 → 客户端那边请求没发出去（疑 429 或别的），要看客户端点刷车时的提示。

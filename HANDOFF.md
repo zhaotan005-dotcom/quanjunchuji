@@ -167,3 +167,6 @@
 
 ## v3.07（vc208）未实测
 - 真空投箱：Box.airdrop + boxcave（0xfd3424 钩子，cave 在 0x11de78c）+ ucall6。看 avatar「空投箱」行。
+
+## v3.08（vc209）未实测
+- Box 堆放在加入玩家身边（joinedPos）；airdrop() 不再调用。刷车：客户端请求没到 give 主题，待客户端提示。

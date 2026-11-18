@@ -78,14 +78,20 @@ final class Box {
             }
         }
         if (ctl == 0) { state = "空投：没找到房主自己的控制器"; return; }
+        // v3.08 用户：v3.07 枪和头甲包也没看到 —— 以前堆放在「房主隐藏人物」出生点旁边，加入的玩家出生点不一定在那（出生点是分散的）。
+        //   改成放在加入玩家（有 NetConnection 的控制器）身边；还没有加入玩家就等下一次（3 秒一次，最多 30 次）。
+        float[] pl = joinedPos(b, nm);
+        if (pl == null) { state = "空投：等加入的玩家出生"; return; }
+        String hostAt = Math.round(x0 / 100) + "," + Math.round(y0 / 100);
+        x0 = pl[0]; y0 = pl[1]; z0 = pl[2];
         if (Math.abs(x0) < 1 && Math.abs(y0) < 1) { state = "空投：房主位置读不到"; return; }
         done = true;
         java.util.ArrayList<Pile> ps = plan();
-        StringBuilder sb = new StringBuilder("空投（出生岛 " + Math.round(x0 / 100) + "," + Math.round(y0 / 100) + "）：");
+        StringBuilder sb = new StringBuilder("空投（放在加入玩家身边 " + Math.round(x0 / 100) + "," + Math.round(y0 / 100) + "," + Math.round(z0 / 100) + " 米；房主隐藏人物在 " + hostAt + "）：");
         for (int i = 0; i < ps.size(); i++) {
             Pile p = ps.get(i);
             // 两排：前 5 堆一排，后面的往后挪 5 米；堆和堆之间 4 米
-            float px = x0 + 400f * (i % 5) + 300f, py = y0 + (i < 5 ? 300f : 800f), pz = z0;
+            float px = x0 + 300f * (i % 5) - 600f, py = y0 + (i < 5 ? 400f : 750f), pz = z0;
             if (p.stack.isEmpty() && p.single.isEmpty()) { sb.append("\n· ").append(p.name).append("：物品表里没有"); continue; }
             int got = 0, drop = 0, one = 0;
             if (!p.stack.isEmpty()) {
@@ -105,12 +111,32 @@ final class Box {
         }
         Veh.teleport(pawn, x0, y0, z0 + 50f, 0);
         state = sb.toString();
-        try { sb.append("\n").append(airdrop(b, x0, y0, z0, ps)); } catch (Throwable t) { sb.append("\n空投箱：出错 ").append(t); }
+        // v3.08：v3.07 的真空投箱在这个模式没有箱子类（配置 4 个全空），调不了 → 不再调，也不装内容钩子（airdrop() 留着备查）
         state = sb.toString(); LogCap.note(state);
         Lan.autoUp("box");
         GameOverlay.toastAny("出生岛空投已放好（" + ps.size() + " 堆）");
     }
 
+    /** 第一个加入玩家（控制器 +0x2fc 是 NetConnection）的人物位置 */
+    static float[] joinedPos(long b, Veh.Names nm) throws Exception {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            double[] q = Veh.info(); long gm = q != null ? (long) q[4] : 0;
+            long gs = gm >= 0x10000 ? Server.rd(m, gm + 0x2e0) : 0;
+            long data = gs >= 0x10000 ? Server.rd(m, gs + 0x2bc) : 0;
+            int n = gs >= 0x10000 ? (int) Server.rd(m, gs + 0x2c0) : 0;
+            for (int k = 0; k < n && k < 200 && data >= 0x10000; k++) {
+                long ps = Server.rd(m, data + 4L * k); if (ps < 0x10000) continue;
+                long c = Server.rd(m, ps + 0x60); if (c < 0x10000) continue;
+                if (!Alive.clsName(m, nm, Server.rd(m, c + 0x2fc)).contains("NetConnection")) continue;
+                long p = Server.rd(m, c + 0x2c0); if (p < 0x10000 || !Alive.clsName(m, nm, p).contains("Character")) continue;
+                long root = Server.rd(m, p + 0x128); if (root < 0x10000) continue;
+                float x = Mods.f(m, root + 0x140), y = Mods.f(m, root + 0x144), z = Mods.f(m, root + 0x148);
+                if (Math.abs(x) < 1 && Math.abs(y) < 1) continue;
+                return new float[] { x, y, z };
+            }
+        }
+        return null;
+    }
     /** 把房主背包（物品列表 + 3 个道具槽）里的东西全部按数量丢出来 */
     static int dropAll(long b, long inv) throws Exception {
         int n = 0;
