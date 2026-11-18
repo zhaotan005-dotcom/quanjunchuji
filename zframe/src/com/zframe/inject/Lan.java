@@ -38,6 +38,8 @@ final class Lan {
     /** v2.13：房主进图约 2 分钟弹「网络异常无法收到结算数据」：日志 NZGameMode.cpp:2452 All players have quit game! NumPlayers[1]。
      *  0xc898e0 每 2 秒查一次：对局中且 vtbl+0x3f0（有连接的玩家数）==0 → 过 AllQuitEndGameProtectTime(120s) 就结束。
      *  房主自己的角色没有网络连接，算成 0 人。把 0xc89960 的 bne 改成 b，永远不走这条。 */
+    /** v3.15 断线重进：PreLogin(0x1009890) 找不到原来的控制器就拒绝（Refuse player to relogin, because playercontroller not find）→ 改成按新玩家放行（0x1009ab0 beq 0x1009d7c → 0x1009d68） */
+    static final long RELOG = 0x1009ab0L; static final String RELOG_O = "b100000a", RELOG_N = "ac00000a";
     static final long QUIT = 0xc89960L; static final String QUIT_O = "0d00001a", QUIT_N = "0d0000ea";
     static final long NAV = 0x276f058L; static final String NAV_O = "041090e5401081e3041080e5", NAV_N = "00f020e300f020e300f020e3";
     /** v2.17：刷到身上的枪丢出去闪退（tomb：0x25cb8e8 vldr s22,[r0,#0x1c]，r0=0）。函数 0x25cb880 = Recast dtNavMeshQuery::queryPolygons，
@@ -94,6 +96,7 @@ final class Lan {
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
         String d = Mods.write(NAV, NAV_O, NAV_N, true), e = Mods.write(QUIT, QUIT_O, QUIT_N, true);
+        String rl = Mods.write(RELOG, RELOG_O, RELOG_N, true);
         String g = Mods.write(NQ_CAVE, NQ_CAVE_O, NQ_CAVE_N, true);
         String car;
         if (Ed.BUILD == 1) {
@@ -102,7 +105,7 @@ final class Lan {
             else car = "cave " + car + "，退回：" + Mods.write(CAR, CAR_O, CAR_N, true);
         } else car = Mods.write(CAR, CAR_O, CAR_N, true);
         if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
-        pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e + "，加入的人上车 " + car;
+        pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e + "，断线重进 " + rl + "，加入的人上车 " + car;
         LogCap.note("联机补丁（启动时）：" + pre);
         adpInstall();    // v2.99 配件根修
         ammoInstall();   // v2.97 换弹根修（启动时、代码还没进指令缓存）

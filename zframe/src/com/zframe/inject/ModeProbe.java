@@ -134,7 +134,7 @@ public class ModeProbe {
                 Lan.note("GameMode 短名：" + join(h3, 120));
                 ArrayList<String> h4 = new ArrayList<>(); find("/game/maps/", h4);
                 java.util.TreeSet<String> mm = new java.util.TreeSet<>();
-                for (String x : h4) { String y = x; int d = y.indexOf('.'); if (d > 0) y = y.substring(0, d); if (y.endsWith("_Main") && !y.contains("FrontEnd") && !y.contains("RoleHall") && !y.contains("Startup")) mm.add(y); }
+                for (String x : h4) { String y = x; int d = y.indexOf('.'); if (d > 0) y = y.substring(0, d); if (y.endsWith("_Main") && !y.contains("FrontEnd") && !y.contains("RoleHall") && !y.contains("Startup") && !y.contains("Training")) mm.add(y); }
                 maps = new ArrayList<>(mm);
                 Lan.note("名字表全量扫 地图 /Game/Maps/ 命中 " + h4.size() + "，大地图 " + mm.size() + "：" + mm + "；全部：" + join(h4, 150));
                 state = "娱乐模式：自动扫完 三军对垒蓝图 " + (c1 == null ? "没有" : c1) + "，决胜五军蓝图 " + (c2 == null ? "没有" : c2) + "，/Game/ 模式蓝图 " + gm.size() + " 个";

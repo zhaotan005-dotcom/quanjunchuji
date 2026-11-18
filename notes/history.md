@@ -1022,3 +1022,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 21:16 用户：现在就做（用游戏自己的更新页显示我们的更新）。
 - RE：Dolphin（com/tencent/gcloud/dolphin UpdateCallBack/UpdateInterface，libUE4 strDolphinUpdateUrl、NZGCloudPuffer.cpp）；更新页成员 UpdatePanel/UpdateProgressBar/UpdateProcessValue/UpdateProcessText/UpdateTip/UpdateBtn，函数 OnUpdateProcess/OnUpdateBtnClick/OnAbortUpdateConfirm（libUE4 字符串 0x4811cf6 一带）。类名/蓝图路径不在 libUE4 字符串里。
 - UpdUi.java：大厅扫名字表带 Update 的名字，日志 upd-*。下一步：拿到蓝图路径 → 运行时创建/显示这页，下载时写进度条和文字。
+
+## v3.15（vc216/core216，2026-11-19 01:3x，三包，未实测）
+- 01:20 用户：删掉训练营和五军对决地图，修一些 bug。
+- 服务端开房页去掉「训练营」「训练营原图…」「决胜五军（试）」按钮（Training.java/ModeProbe.BFA 代码保留，无入口；不再调 Training.scan 读 pak）；ModeProbe.maps 额外地图列表排除含 Training 的关卡。
+- 断线重进修复：客户端 01:08 回大厅后再加入被拒，服务端回 `Refuse player to relogin, because playercontroller not find!`（UTF-32 字符串 0x436d964，PreLogin 0x1009890，xref 0x1009e48）。0x1009a40 vt+0x494 按 Uin 找到旧玩家信息(r5)，vt+0x498 找旧控制器(r7)；r7==0 → 0x1009ab0 beq 0x1009d7c 写错误拒绝。Lan.RELOG 改成 beq 0x1009d68（和「没有旧信息」同一条正常放行路径）：b100000a → ac00000a。诊断联机补丁行「断线重进 ok」。
