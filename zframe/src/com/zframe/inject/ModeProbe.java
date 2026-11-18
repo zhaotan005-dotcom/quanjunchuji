@@ -33,7 +33,8 @@ public class ModeProbe {
     static String host(final String key, final String label, final String map) {
         if (busy) return "正在查" + label + "的模式蓝图，稍等";
         busy = true;
-        state = "娱乐模式：正在查「" + label + "」的模式蓝图…";
+        final boolean known = cache.containsKey(key);
+        state = known ? "娱乐模式：开「" + label + "」…" : "娱乐模式：正在查「" + label + "」的模式蓝图…";
         new Thread(() -> {
             String msg;
             try {
@@ -42,7 +43,7 @@ public class ModeProbe {
                 if (cls == null) { cls = find(key, hits); if (cls != null) cache.put(key, cls); }
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < hits.size() && i < 40; i++) sb.append(i == 0 ? "" : " | ").append(hits.get(i));
-                Lan.note("模式蓝图「" + label + "」(" + key + ") 名字表命中 " + hits.size() + "：" + (sb.length() == 0 ? "无" : sb));
+                if (!known) Lan.note("模式蓝图「" + label + "」(" + key + ") 名字表命中 " + hits.size() + "：" + (sb.length() == 0 ? "无" : sb));
                 if (cls == null) {
                     msg = "这个安装包里没找到「" + label + "」的模式蓝图（只有 C++ 底层类，直接开必闪退），没开房。已传日志";
                     state = "娱乐模式：「" + label + "」没找到蓝图（命中 " + hits.size() + " 个相关名字），没开房";
@@ -63,7 +64,7 @@ public class ModeProbe {
             Lan.autoUp("mode");
             GameOverlay.refreshAny();
         }, "zf-mode").start();
-        return "正在查「" + label + "」的模式蓝图…";
+        return known ? "正在开「" + label + "」…" : "正在查「" + label + "」的模式蓝图…";
     }
 
     /** 扫名字表：收集含 key 的名字（hits），返回能当 ?game= 用的蓝图类路径，没有返回 null */
@@ -112,6 +113,8 @@ public class ModeProbe {
     /** v3.00：服务端进大厅后自动扫一次名字表（v2.99 名字表修好后第一次全量扫），只读，不开房：
      *  收集含模式关键字的名字和所有像 GameMode 蓝图的 /Game/ 路径，写联机日志并自动传 mode-*。 */
     static final java.util.concurrent.ConcurrentHashMap<String, String> cache = new java.util.concurrent.ConcurrentHashMap<>();
+    // v3.08 用户：海岛（战术模式）早就找到了，别每次开房再查蓝图 → 已确认的路径直接写死（v3.01 起实测能开）
+    static { cache.put("Props", "/Game/Blueprints/BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode.BP_NZBattleRoyalePropsGameMode_C"); }
     /** v3.03：名字表里扫到的大地图（/Game/Maps/…_Main，排除大厅/启动/训练营之外的都算） */
     static volatile java.util.List<String> maps = new java.util.ArrayList<>();
     static volatile boolean surveyed;

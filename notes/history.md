@@ -985,3 +985,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 根因（推断）：堆放在房主隐藏人物身边，加入玩家出生点不同（分散出生），所以看不到。改：Box.joinedPos 找第一个加入玩家（控制器+0x2fc NetConnection）人物位置，堆放在他身边（前 5 堆一排 y+4 米，后面 y+7.5 米，x 间隔 3 米）；没加入玩家就等。
 - 去掉 v3.07 的 airdrop() 调用（不装 0xfd3424 钩子），代码留着。
 - 刷车：give 主题 18:05 之后没收到客户端任何请求；客户端日志 v3.02 之后也没上传过 → 客户端那边请求没发出去（疑 429 或别的），要看客户端点刷车时的提示。
+
+## v3.09（vc210/core210，2026-11-18 20:1x，未实测）
+- 20:08 用户：新海岛怎么还在查蓝图，早就找到了直接开。改：ModeProbe.cache 写死 Props → /Game/Blueprints/BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode.BP_NZBattleRoyalePropsGameMode_C，点了直接开房，不扫名字表。含 v3.08 改动。
