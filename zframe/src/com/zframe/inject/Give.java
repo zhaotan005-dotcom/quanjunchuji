@@ -21,6 +21,29 @@ final class Give {
             } catch (Throwable t) { state = "代刷：请求失败 " + t; GameOverlay.toastAny("请求失败：" + t.getMessage()); }
         }, "zf-give-ask").start();
     }
+    /** v2.92 客户端刷车：发「V 车组序号 x y z」，服务端在你前面刷 */
+    static void askCar(final int gi, final String label) { post("V" + gi, "车 " + label); }
+    /** v2.92 客户端加速/高跳：拉条停 0.7 秒后发「S 加速 高跳 x y z」，服务端找离这个坐标最近的加入玩家，只给他改 */
+    static volatile float mySpeed = 1f, myJump = 1f; static volatile long moveAt;
+    static void askMove(float s, float j) {
+        mySpeed = Math.max(1f, s); myJump = Math.max(1f, j); final long t = moveAt = System.currentTimeMillis();
+        new Thread(() -> { try { Thread.sleep(700); } catch (InterruptedException e) { return; } if (moveAt == t) post("S" + mySpeed + "_" + myJump, "加速 " + mySpeed + " 高跳 " + myJump); }, "zf-move-ask").start();
+    }
+    static void post(final String head, final String what) {
+        new Thread(() -> {
+            try {
+                String e = Veh.ahead(20, -80);
+                if (e != null) { GameOverlay.toastAny("没拿到自己位置：" + e); return; }
+                String body = head + " 1 " + Veh.buf.getFloat(40) + " " + Veh.buf.getFloat(44) + " " + Veh.buf.getFloat(48);
+                java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(T).openConnection();
+                c.setConnectTimeout(8000); c.setReadTimeout(8000); c.setDoOutput(true); c.setRequestMethod("POST");
+                try (java.io.OutputStream o = c.getOutputStream()) { o.write(body.getBytes("UTF-8")); }
+                int rc = c.getResponseCode(); c.disconnect();
+                state = "代刷：已请求 " + body + "（HTTP " + rc + "）";
+                GameOverlay.toastAny(rc == 200 ? "已发给服务端：" + what : "请求失败 HTTP " + rc);
+            } catch (Throwable t) { state = "代刷：请求失败 " + t; GameOverlay.toastAny("请求失败：" + t.getMessage()); }
+        }, "zf-give-post").start();
+    }
     static volatile boolean polling;
     static String since = "";
     /** 服务端：开房后一直拉 */
@@ -43,6 +66,9 @@ final class Give {
                         if (msg == null) continue;
                         String[] p = msg.trim().split(" ");
                         if (p.length < 5) continue;
+                        float x0 = Float.parseFloat(p[2]), y0 = Float.parseFloat(p[3]), z0 = Float.parseFloat(p[4]);
+                        if (p[0].startsWith("V")) { state = "代刷：车 " + Veh.spawnGroupAt(Integer.parseInt(p[0].substring(1)), x0, y0, z0); LogCap.note(state); continue; }
+                        if (p[0].startsWith("S")) { String[] sj = p[0].substring(1).split("_"); state = "代刷：" + Crew.setFor(x0, y0, z0, Float.parseFloat(sj[0]), Float.parseFloat(sj[1])); LogCap.note(state); continue; }
                         long item = Long.parseLong(p[0]); int n = Math.min(3, Math.max(1, Integer.parseInt(p[1])));
                         float x = Float.parseFloat(p[2]), y = Float.parseFloat(p[3]), z = Float.parseFloat(p[4]);
                         String r = null;

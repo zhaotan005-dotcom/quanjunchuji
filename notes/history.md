@@ -813,3 +813,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.88 (vc189，三包)：用户不想点导出诊断 → Lan.autoUp：断线/加入失败(NetworkFailure/TravelFailure/ConnectionLost/Connection Closed/PreLogin failure/服务端 Closing connection)传 net-*，换弹循环(客户端 Force set ammo / 服务端弹匣 0 超 2.5 秒)传 ammo-*，同类 90 秒一次。未实测。
 - 14:39 用户：换弹了。ammo-1118-143620（客户端）：信号枪 ClientAmmo=1 ServerAmmo=0 每 6 秒强制同步+换弹动画；之前客户端本地刷配件 Can't Find Item → 客户端菜单 AddAvaItem 只在本地加，服务器没有 → 一直换弹。v2.89 (vc190)：Ed.ED==2 且已加入(Lan.role==2) 时 give() 不在本地刷，提示让服务端刷在脚下。服务端诊断 lobby-1118-143444 已能自动上传。未实测。
 - v2.90 (vc191)：Give.java 客户端代刷：加入后客户端点刷 → ntfy 主题 zf-qj-give-k7r2p9m4x1 发「编号 数量 x y z」（Veh.ahead 拿自己位置），服务端开房后每 2 秒拉，Veh.dropAt 在该坐标生成。诊断里有「代刷：」行。未实测。用户下一步要把服务器做成能在云服务器跑（计划：ARM Linux + Redroid 跑安卓版服务端）。
+- 15:11 用户（v2.91 实测）：客户端还是一直换弹；客户端少刷车、风衣；配件只有步枪的、扩容没有快速扩容；要刷油桶；加入玩家会和房主成队友；客户端没加速；试五军对决等娱乐模式能否开房；「取消不刷毒服务端情况下上限人数」（意思没确认，已问）。ammo-1118-150815（服务端）：加入玩家枪服务端弹匣 0 超 2.5 秒 172 次，动画修正生效但没用；客户端 Force set ... ClientAmmo=30 ServerAmmo=0 每 4 秒。
+- v2.92 (vc193/core193，三包，未实测)：
+  - 客户端分页加回 刷车(1)、衣服(7)；刷车走 ntfy「V<车组> 1 x y z」→ 服务端 Veh.spawnGroupAt（前方 6 米）。
+  - 客户端功能页加速/高跳拉条 → ntfy「S<加速>_<高跳> 1 x y z」（停 0.7 秒才发）→ 服务端 Crew.setFor 找离坐标最近的加入玩家（RootComponent +0x128，平移 +0x140），Crew.over 按人存；tick 里该玩家 PS.Score 写他自己的编码、时间膨胀/跳跃用他自己的数。
+  - 全套配件改成读游戏物品表扫到的全部 205 类（没扫过先扫）；新「油桶」键（从认出名字里找 油桶/Barrel/Gas，没认出就提示，编号未知）。
+  - 换弹：服务端弹匣 0 超 2.5 秒 → 从 +0x60c 备弹扣、装进 +0x604/+0x608（不白给；若备弹是从背包实时算的，可能扣不掉 → 看日志「换弹：服务端替加入玩家装弹」）。
+  - 队友：Crew.team：PS+0x35c TeamInfo，TeamInfo+0x2b0 TeamIndex（反射表）。不同对象同 TeamIndex → 改加入玩家的；同一对象只记日志。诊断「队伍：」。
+  - 服务端开房加「五军对决（试）」「BFA 模式（试）」：新海岛 + ?game=/Script/NZBattleRoyaleGame.NZBRLegionGameMode / NZBRBFAGameMode（模块名是猜的；日志关键词加 GameMode/Legion/BFA）。

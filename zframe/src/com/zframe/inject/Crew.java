@@ -16,7 +16,29 @@ final class Crew {
     static Thread th;
     static long lastFind;
 
-    static boolean want() { return Lan.role == 1 && Con.inMatch && (Mods.speed != 1f || Mods.jump != 1f || Mods.infAmmo); }
+    static boolean want() { return Lan.role == 1 && Con.inMatch && (Mods.speed != 1f || Mods.jump != 1f || Mods.infAmmo || !over.isEmpty()); }
+    /** v2.92 客户端自己要的加速/高跳（按人物），没有就用服务端的 */
+    static final java.util.concurrent.ConcurrentHashMap<Long, float[]> over = new java.util.concurrent.ConcurrentHashMap<>();
+    static String setFor(float x, float y, float z, float s, float j) {
+        if (Lan.role != 1 || !Con.inMatch) return "加速请求：服务端不在对局里";
+        find();
+        long best = 0; double bd = 1e18;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long b = Mods.base();
+            for (long p : players) {
+                if (!Mods.isObj(m, b, p)) continue;
+                long root = Mods.rp(m, p + 0x128); if (root < 0x10000) continue;   // RootComponent（history v1.8x：+0x128，ComponentToWorld 平移 +0x140）
+                double dx = Mods.f(m, root + 0x140) - x, dy = Mods.f(m, root + 0x144) - y, dz = Mods.f(m, root + 0x148) - z;
+                double d = dx * dx + dy * dy + dz * dz;
+                if (d < bd) { bd = d; best = p; }
+            }
+        } catch (Throwable t) { return "加速请求：出错 " + t; }
+        if (best == 0 && players.size() == 1) best = players.get(0);
+        if (best == 0) return "加速请求：没找到加入的玩家（" + players.size() + " 人）";
+        over.put(best, new float[] { Math.max(1f, s), Math.max(1f, j) });
+        lastFind = System.currentTimeMillis(); start();
+        return "加速请求：玩家 " + Long.toHexString(best) + " 加速 " + s + " 高跳 " + j + "（距离 " + (int) Math.sqrt(bd) / 100 + " 米）";
+    }
     /** v2.31：新加入的玩家拉到房主身边（每人每局一次）；按钮 pull() 再拉一次 */
     static final java.util.HashSet<Long> pulled = new java.util.HashSet<>();
     static volatile String pullState = "拉人：已去掉（v2.42 用户：开加速自己过去）";
@@ -57,7 +79,7 @@ final class Crew {
     }
 
     static void tick() throws Exception {
-        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); states = new java.util.ArrayList<>(); baseJump.clear(); emptySince.clear(); pulled.clear(); lastFind = 0; anyJoin = false; } return; }
+        if (Lan.role != 1 || !Con.inMatch) { if (!Con.inMatch) { players = new java.util.ArrayList<>(); states = new java.util.ArrayList<>(); baseJump.clear(); emptySince.clear(); over.clear(); teamDone.clear(); pulled.clear(); lastFind = 0; anyJoin = false; } return; }
         long now = System.currentTimeMillis();
         // v2.31：有人加入（日志）或点了按钮才找人、拉到房主身边；开着加速/高跳/子弹时照旧每 15 秒找一次
         long ja = joinAt;
@@ -73,9 +95,14 @@ final class Crew {
         float code = Mods.encode(Mods.speed, Mods.jump);
         long b = Mods.base(); if (b == 0) return;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-            for (long st : states) if (Mods.isObj(m, b, st) && Mods.f(m, st + Mods.PS_SCORE) != code) Mods.wf(m, st + Mods.PS_SCORE, code);
+            java.util.HashSet<Long> ovPs = new java.util.HashSet<>();
+            for (long p : ps) { float[] o = over.get(p); if (o == null || !Mods.isObj(m, b, p)) continue; long st = Mods.rp(m, p + 0x2c4); if (!Mods.isObj(m, b, st)) continue; ovPs.add(st); float c2 = Mods.encode(o[0], o[1]); if (Mods.f(m, st + Mods.PS_SCORE) != c2) Mods.wf(m, st + Mods.PS_SCORE, c2); }
+            for (long st : states) if (!ovPs.contains(st) && Mods.isObj(m, b, st) && Mods.f(m, st + Mods.PS_SCORE) != code) Mods.wf(m, st + Mods.PS_SCORE, code);
+            team(m, b);
             for (long p : ps) {
                 if (!Mods.isObj(m, b, p)) continue;
+                float[] ov = over.get(p);
+                float pSpeed = ov != null ? ov[0] : Mods.speed, pJump = ov != null ? ov[1] : Mods.jump;
                 long c = Mods.rp(m, p + Mods.P_CMC);
                 if (Mods.isObj(m, b, c)) {
                     // v2.36：高跳/加速有概率被拉回 → 服务器这边不再纠正加入玩家的位置（CMC bIgnoreClientMovementErrorChecksAndCorrection：+0x354 bit0）
@@ -90,11 +117,11 @@ final class Crew {
                 float jz = Mods.f(m, c + Mods.C_JUMP);
                 Float bj = baseJump.get(c);
                 if (bj == null) { if (!(jz >= 100f && jz <= 2000f)) continue; bj = jz; baseJump.put(c, bj); }
-                float wj = bj * Mods.jump;
+                float wj = bj * pJump;
                 if (Math.abs(jz - wj) > 0.01f) Mods.wf(m, c + Mods.C_JUMP, wj);
                 // 加速（空中恢复 1）
                 // v2.36：加入的玩家空中也不切回 1 倍（两边切换时机对不上就会被拉回），客户端那边同样一直是这个倍数
-                float wd = Mods.speed;
+                float wd = pSpeed;
                 float td = Mods.f(m, p + Mods.P_DIL);
                 if (td > 0.05f && td < 20f && Math.abs(td - wd) > 0.001f) Mods.wf(m, p + Mods.P_DIL, wd);
                 // 无限子弹（服务器这边改，会同步给客户端）
@@ -141,11 +168,42 @@ final class Crew {
         if (t0 == null) { emptySince.put(w, now); return; }
         if (now - t0 < 2500) return;
         emptySince.remove(w); refills++;
+        // v2.92 用户：还是一直换弹。服务端这边换弹结束事件不来 → 自己替游戏把这次换弹做完：从备弹（+0x60c）扣，装进弹匣（+0x604/+0x608），不白给
+        int carried = Mods.rd(m, w + 0x60c);
+        if (carried > 0 && carried < 10000) {
+            int put = Math.min(clip, carried);
+            Mods.wi(m, w + 0x60c, carried - put); Mods.wi(m, w + 0x608, put); Mods.wi(m, w + 0x604, put);
+            if (refills <= 8) LogCap.note("换弹：服务端替加入玩家装弹 " + put + "（备弹 " + carried + " → " + (carried - put) + "）");
+        } else if (refills <= 8) LogCap.note("换弹：服务端备弹 " + carried + "，没装");
         if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，WeaponAmmoCount=" + Mods.rd(m, w + 0x608) + "，服务端备弹 WeaponCarriedAmmoCount=" + Mods.rd(m, w + 0x60c) + "，动画修正 " + animFix + " 次）");
         ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
         Lan.autoUp("ammo");   // v2.88 自动传
     }
     static int animFix, animWas = -1;
+    /** v2.92 用户：加入的玩家和房主成了队友。PlayerState+0x35c = NZBRTeamInfo（TeamInfo+0x2b0 TeamIndex，反射表）。
+     *  两人 TeamInfo 不是同一个对象、但 TeamIndex 一样 → 把加入玩家的 TeamIndex 改成 房主+序号；是同一个对象 → 只记日志（不能乱拆，下一版处理）。 */
+    static final java.util.HashSet<Long> teamDone = new java.util.HashSet<>();
+    static volatile String teamState = "队伍：还没查";
+    static void team(RandomAccessFile m, long b) throws java.io.IOException {
+        long me = Mods.myPawn(); if (me < 0x10000) return;
+        long mps = Mods.rp(m, me + 0x2c4); if (!Mods.isObj(m, b, mps)) return;
+        long mti = Mods.rp(m, mps + 0x35c);
+        int k = 0;
+        for (long st : states) {
+            k++;
+            if (teamDone.contains(st) || !Mods.isObj(m, b, st)) continue;
+            long ti = Mods.rp(m, st + 0x35c);
+            String s;
+            if (ti < 0x10000 || mti < 0x10000) s = "队伍：TeamInfo 空（房主 " + Long.toHexString(mti) + " 玩家 " + Long.toHexString(ti) + "）";
+            else if (ti == mti) s = "队伍：加入玩家和房主是同一个 TeamInfo " + Long.toHexString(ti) + "（TeamIndex " + Mods.rd(m, ti + 0x2b0) + "），这版没拆";
+            else {
+                int a = Mods.rd(m, mti + 0x2b0), c = Mods.rd(m, ti + 0x2b0);
+                if (a == c && a >= 0 && a < 200) Mods.wi(m, ti + 0x2b0, a + 10 + k);
+                s = "队伍：房主 TeamIndex " + a + "，加入玩家 " + c + (a == c ? " → 改成 " + (a + 10 + k) : "（本来不同）");
+            }
+            teamDone.add(st); teamState = s; LogCap.note(s);
+        }
+    }
     static final java.util.HashMap<Long, Boolean> meshSeen = new java.util.HashMap<>();
     static boolean meshOk(RandomAccessFile m, long mesh) {
         Boolean ok = meshSeen.get(mesh);

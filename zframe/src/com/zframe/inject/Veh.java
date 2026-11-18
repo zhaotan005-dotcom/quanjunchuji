@@ -131,6 +131,20 @@ public class Veh {
         if (!call('G', id / 10000) || buf.getInt(0) != 0x5b0a) return "补丁代码没反应";
         return null;
     }
+    /** v2.92 服务端替客户端刷车：在 (x,y,z) 前方 6 米、高 1.5 米刷第 gi 组车 */
+    static synchronized String spawnGroupAt(int gi, float x, float y, float z) throws InterruptedException {
+        if (!installed) return state;
+        if (!call(0)) return "补丁代码没反应";
+        if (buf.getInt(36) == 0) return "这局没有车表";
+        ArrayList<Group> gs = groups;
+        if (gs == null || gs.isEmpty() || gi < 0) return "车表里没读到车编号";
+        Group g = gs.get(gi % gs.size());
+        long id = g.ids.get(g.at++ % g.ids.size());
+        buf.putFloat(40, x + 600f); buf.putFloat(44, y); buf.putFloat(48, z + 230f);
+        buf.putFloat(52, 0f); buf.putFloat(56, 0f); buf.putFloat(60, 0f);
+        boolean ok = call(id) && buf.getInt(0) == 0x5b03;
+        return (ok ? "已刷 " : "没反应 ") + g.label + "（编号 " + id + "）";
+    }
     /** v1.88 用游戏自己的分配器要一块内存（cave 'M'），失败返回 0 */
     static synchronized long malloc(int size) throws InterruptedException {
         if (!installed || size <= 0 || size > 0x10000) return 0;

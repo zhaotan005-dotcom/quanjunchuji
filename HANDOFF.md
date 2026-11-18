@@ -1,4 +1,4 @@
-# 交接给下一个智能体（2026-11-17 12:40，v2.20）
+# 交接给下一个智能体（最新在本文件末尾「v2.92」）
 
 先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
@@ -92,3 +92,9 @@
 - v2.90/2.91：客户端代刷。加入别人房间（Ed.ED==2 && Lan.role==2）时武器/特殊/子弹/装备/道具页都显示，点刷 → Give.ask 把「编号 数量 x y z」POST 到 ntfy zf-qj-give-k7r2p9m4x1；服务端开房（Lan.host，role=1）后 Give.serve 每 2 秒拉一次，用 Veh.dropAt 刷在客户端脚下。诊断里有「代刷：」行。未实测。
 - 待做：断线后重进进不去（等 net-* 日志）；服务端搬云主机（ARM Linux + Redroid 容器跑游戏+服务端 APK，一条命令装、开机自动开房，开 UDP 7777）；地图标点用户叫停；v2.74~2.77 毒圈/飞天等未实测。
 - 用户要求：在线内核不自动退回老版本；回复简体中文，没实测写「未实测」。
+
+## v2.92（vc193/core193，2026-11-18 15:2x，三包，未实测）
+- 改了：客户端刷车/衣服页、客户端加速高跳（服务端按人改）、全套配件=物品表全部 205 类、油桶键（编号未知，靠认名字）、服务端替加入玩家装弹（扣 +0x60c 备弹）、队友 TeamIndex 修正（PS+0x35c → +0x2b0）、开房「五军对决/BFA（试）」。详见 notes/history.md 末尾。
+- 构建环境（沙箱重置后）：JDK21 aarch64 → /workspace/work/rkenv/jdk-21.0.13+9（adoptium api），build-tools r36 → /workspace/work/tools/android-16（dl.google.com build-tools_r36_linux.zip 解出来的目录就叫 android-16），platform-36 → /workspace/work/tools/android-36。pip: capstone unicorn pyelftools numpy。
+- 日志：ntfy.sh/zf-qj-k7r2p9m4x1/json?poll=1&since=3h（附件 .gz）。
+- 待确认：用户说「取消不刷毒服务端情况下上限人数」，意思没确认（已问）。待做：油桶真实编号；队友若是同一个 TeamInfo 要拆；五军/BFA 若模块名不对日志里会找不到类。

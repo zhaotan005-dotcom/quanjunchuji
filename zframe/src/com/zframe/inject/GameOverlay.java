@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.91";
+    static final String VER = "v2.92";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -154,7 +154,7 @@ public class GameOverlay {
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8 || id == 3 || id == 9 || id == 10 || id == 4 || id == 11);   // v2.91 客户端刷东西页加回来（服务端代刷）
+                    boolean show = r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8 || id == 3 || id == 9 || id == 10 || id == 4 || id == 11 || id == 1 || id == 7);   // v2.92 客户端加回 刷车、衣服（服务端代刷）   // v2.91 客户端刷东西页加回来（服务端代刷）
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
@@ -504,6 +504,28 @@ public class GameOverlay {
     // 配件：枪口/握把/瞄具/弹匣/枪托（编号来自游戏里的自动拾取表和 GM 列表）
     static final String[] ATT = {"20501000001", "20501000003", "20502000001", "20502000002", "20503000001", "20503000003",
             "20503000004", "20503000005", "20503000008", "20503000009", "20504000001", "20505000001"};
+    /** v2.92 用户：全套配件只有步枪的、扩容没有快速扩容 → 用游戏物品表里扫到的全部 205 类（枪口/握把/瞄具/弹匣/枪托，所有枪种），没扫过就先扫 */
+    static void allAtt(Activity a) {
+        java.util.TreeMap<Long, java.util.ArrayList<Long>> m = items;
+        if (m == null) { loadItems(false); toast(a, "正在读游戏里的全部配件，读完再点一次"); return; }
+        java.util.ArrayList<String> l = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<Long, java.util.ArrayList<Long>> e : m.entrySet()) if (e.getKey() / 100 == 205) for (long v : e.getValue()) if (!itemBad.contains(v)) l.add(String.valueOf(v));
+        if (l.isEmpty()) for (String at : ATT) l.add(at);
+        int n = 0;
+        for (String at : l) if (givenAtt.add(at)) { give(a, at, 1); n++; }
+        if (n == 0) toast(a, "这局配件已经刷过了（共 " + l.size() + " 件）"); else toast(a, "全套配件 " + n + " 件，放在脚下");
+        LogCap.note("全套配件：" + l);
+    }
+    /** v2.92 用户：刷油桶。油桶是道具类（402），编号游戏里没写名字 → 从扫到的道具里找认出名字是油桶/Barrel 的；没认出来就提示 */
+    static void barrel(Activity a) {
+        java.util.TreeMap<Long, java.util.ArrayList<Long>> m = items;
+        if (m == null) { loadItems(false); toast(a, "正在读游戏道具表，读完再点一次"); return; }
+        for (java.util.Map.Entry<Long, String> e : itemName.entrySet()) {
+            String nm = e.getValue();
+            if (nm.contains("油桶") || nm.contains("Barrel") || nm.contains("Gas") || nm.contains("Oil") || nm.contains("Fuel")) { give(a, String.valueOf(e.getKey()), 1, "油桶"); return; }
+        }
+        toast(a, "还没认出哪个编号是油桶：去「道具」页 全部道具→道具，刷过的会显示名字，认出后这个键就能用");
+    }
     /** v2.91：加入别人房间的客户端 → 刷东西都让服务端代刷在脚下 */
     static boolean remote() { return Ed.ED == 2 && Lan.role == 2; }
     static void give(Activity a, String id, int n, String label) {
@@ -954,6 +976,10 @@ public class GameOverlay {
             fillBtn(a, u, r, "老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
             fillBtn(a, u, r, "新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
             fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
+            // v2.92 用户：试安装包里的娱乐模式能不能开房。代码里有五军对决（NZBRLegionGameMode）和 BFA 模式（NZBRBFAGameMode），用新海岛 + ?game= 指定模式（实验）
+            LinearLayout er = row(a, hc);
+            fillBtn(a, u, er, "五军对决（试）", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?game=/Script/NZBattleRoyaleGame.NZBRLegionGameMode")));
+            fillBtn(a, u, er, "BFA 模式（试）", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?game=/Script/NZBattleRoyaleGame.NZBRBFAGameMode")));
             LinearLayout mr = row(a, root);
             // v2.22：房主也能选模式。房主自己没网络连接，游戏不让他上飞机；「不刷毒对局」= 大家都不上飞机，一起在出生岛开打
             pick(a, u, mr, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> { toast(a, Mods.setNormal()); refreshAny(); });
@@ -1107,7 +1133,11 @@ public class GameOverlay {
     static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
         boolean cl = Lan.role == 2 || Ed.ED == 2;
         head(a, u, root, "跑跳");
-        if (Ed.ED == 2) {
+        if (Ed.ED == 2 && Lan.role == 2) {
+            // v2.92 用户：客户端也要加速 → 拉条发给服务端，服务端只给你一个人改，再同步回来
+            slider(a, u, root, "加速", "发给服务端，只改你自己；几秒后生效。现在：" + Mods.hostSyncText(), 0f, 67f, 1f, Give.mySpeed == 1f ? 0f : Give.mySpeed, true, v -> Give.askMove(v, Give.myJump));
+            slider(a, u, root, "高跳", "发给服务端，只改你自己", 0f, 10f, 0.5f, Give.myJump == 1f ? 0f : Give.myJump, true, v -> Give.askMove(Give.mySpeed, v));
+        } else if (Ed.ED == 2) {
             // v2.32 客户端：不再自己拉，跟房主的数
             LinearLayout cc = card(a, u, root);
             note(a, u, cc, "加速、高跳跟服务端走，服务端拉多少你就是多少。现在：" + Mods.hostSyncText());
@@ -1142,7 +1172,7 @@ public class GameOverlay {
         for (int i = 0; i < vg.size(); i++) {
             if (i % 3 == 0) vr = row(a, root);
             final int gi = i;
-            btn(a, u, vr, vg.get(i).label, () -> Veh.spawnGroup(gi));
+            btn(a, u, vr, vg.get(i).label, () -> { if (remote()) Give.askCar(gi, vg.get(gi).label); else Veh.spawnGroup(gi); });
         }
         if (Veh.state.contains("没反应") || Veh.state.contains("出错") || Veh.state.contains("没有")) note(a, u, root, Veh.state);
     }
@@ -1228,7 +1258,8 @@ public class GameOverlay {
         LinearLayout g3 = row(a, root);
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
         btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
-        btn(a, u, g3, "全套配件", () -> { int n = 0; for (String at : ATT) if (givenAtt.add(at)) { give(a, at, 1); n++; } if (n == 0) toast(a, "这局配件已经刷过了"); else after(a, "全套配件"); });
+        btn(a, u, g3, "全套配件", () -> allAtt(a));
+        btn(a, u, g3, "油桶", () -> barrel(a));
         if (Ed.ED != 2) note(a, u, root, "战术道具在「道具」页；拿出/放下用对局里的「道具」键。");
     }
 
