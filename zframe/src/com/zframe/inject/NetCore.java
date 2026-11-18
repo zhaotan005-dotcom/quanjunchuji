@@ -31,7 +31,7 @@ final class NetCore {
             int nv = Integer.parseInt(v[0]), nb = Integer.parseInt(v[1]);
             if (nb != Ed.BUILD || nv <= ZInit.CORE_VER) return false;
             int t = 0; try { t = Integer.parseInt(read(tries)); } catch (Throwable ignored) {}
-            if (t >= 2) { android.util.Log.w(ZInit.TAG, "在线内核 " + nv + " 连续没进大厅，不用"); return false; }
+            // v2.71 用户：不要自动退回老版本
             if (main) write(tries, String.valueOf(t + 1));
             File run = new File(ctx.getCodeCacheDir(), "zcore_netrun.dex");
             run.setWritable(true); run.delete();
