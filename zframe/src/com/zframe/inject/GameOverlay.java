@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.01";
+    static final String VER = "v3.02";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -877,7 +877,48 @@ public class GameOverlay {
 
     // ================= 刷枪 =================
     /** 枪类（会带配件）：步枪/机枪 201 01-02、霰弹 03、狙击/连狙 04、冲锋 05 */
-    static boolean takesAttachments(String id) { return id.startsWith("20101") || id.startsWith("20102") || id.startsWith("20103") || id.startsWith("20104") || id.startsWith("20105"); }
+    static boolean takesAttachments(String id) { return !attFor(id).isEmpty(); }
+    /** v3.01 用户：刷枪给的配件里没有快扩，而且别的枪给的也是步枪配件。
+     *  根因：以前所有枪都放同一套固定 12 件 ATT（步枪消音/补偿、20504000001 = 步枪「扩容」不是快扩）。
+     *  编号规律（推断，未实测）：205 类 5 组的个数和 libUE4 里 ENZWeapAdapterItemType 枚举按声明顺序的分组个数完全一致
+     *  （枪口 12、握把 6、瞄具 9、弹匣 12、枪托 5），所以 205XX000NNN 的 NNN = 该组内枚举顺序：
+     *  20501：1 步枪消音 2 步枪消焰 3 步枪补偿 4 冲锋消音 5 冲锋消焰 6 冲锋补偿 7 狙击消音 8 狙击消焰 9 狙击补偿 10 手枪消音 11 收束器 12 鸭嘴
+     *  20502：1 垂直 2 直角 3 拇指 4 半截 5 轻型握把 6 箭袋
+     *  20503：1 红点 2 全息 3 二倍 4 三倍 5 四倍 6 六倍 7 八倍 8 VSS 四倍 9 Dot
+     *  20504：步枪 1 扩容 2 快速 3 快扩；冲锋 4/5/6；狙击 7/8/9；手枪 10/11/12
+     *  20505：1 战术枪托 2 UZI 枪托 3 托腮板 4 子弹袋 5 98K 子弹袋
+     *  每把枪按它能装的位置给一套，弹匣只给快扩。 */
+    static java.util.List<String> attFor(String id) {
+        java.util.ArrayList<String> l = new java.util.ArrayList<>();
+        String[] AR_MZ = {"20501000001", "20501000002", "20501000003"}, SMG_MZ = {"20501000004", "20501000005", "20501000006"}, SR_MZ = {"20501000007", "20501000008", "20501000009"};
+        String[] GRIP = {"20502000001", "20502000002", "20502000003", "20502000004", "20502000005"};
+        String[] SC_CLOSE = {"20503000001", "20503000002"}, SC_MID = {"20503000001", "20503000002", "20503000003", "20503000004", "20503000005"},
+                 SC_AR = {"20503000001", "20503000002", "20503000003", "20503000004", "20503000005", "20503000006"},
+                 SC_SR = {"20503000001", "20503000002", "20503000003", "20503000004", "20503000005", "20503000006", "20503000007"};
+        String AR_MAG = "20504000003", SMG_MAG = "20504000006", SR_MAG = "20504000009", TAC = "20505000001", CHEEK = "20505000003";
+        switch (id) {
+            case "20101000001": case "20101000004": add(l, AR_MZ, GRIP, SC_AR); l.add(AR_MAG); if (id.endsWith("1")) l.add(TAC); break;   // M416（枪托）、SCAR-L
+            case "20101000003": add(l, AR_MZ, SC_AR); l.add(AR_MAG); l.add(TAC); break;   // M16A4 无握把
+            case "20101000002": add(l, AR_MZ, SC_AR); l.add(AR_MAG); break;               // AKM
+            case "20101000005": l.add("20501000001"); add(l, SC_AR); l.add(AR_MAG); break; // GROZA 只能消音
+            case "20102000001": case "20102000002": add(l, SC_AR); break;                // 机枪只给瞄具
+            case "20105000001": add(l, SMG_MZ, GRIP, SC_MID); l.add(SMG_MAG); break;      // UMP9
+            case "20105000002": add(l, SMG_MZ); l.add(SMG_MAG); l.add("20505000002"); break;   // UZI：UZI 枪托，没瞄具
+            case "20105000003": add(l, SMG_MZ, SC_MID); l.add(SMG_MAG); l.add(TAC); break;     // Vector
+            case "20105000004": l.add("20501000004"); l.add("20502000001"); add(l, SC_CLOSE); l.add(SMG_MAG); break;   // 汤姆逊
+            case "20103000001": case "20103000002": l.add("20501000011"); l.add("20505000004"); break;   // S1897、S686：收束器 + 子弹袋
+            case "20103000003": l.add("20501000011"); add(l, SC_CLOSE); l.add(AR_MAG); break;   // S12K
+            case "20104000001": add(l, SR_MZ, SC_SR); l.add(CHEEK); l.add("20505000005"); break;   // 98K
+            case "20104000002": case "20104000004": add(l, SR_MZ, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // AWM、M24
+            case "20104000003": add(l, SR_MZ, GRIP, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // SKS
+            case "20104000005": case "20104000008": add(l, SR_MZ, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // MK14、QBU88
+            case "20104000006": add(l, SR_MZ, SC_SR); l.add(SR_MAG); break;   // Mini14
+            case "20104000007": l.add(SR_MAG); break;   // VSS：自带消音和瞄具
+            case "20106000001": l.add("20502000006"); add(l, SC_CLOSE); break;   // 十字弩：箭袋
+        }
+        return l;
+    }
+    static void add(java.util.List<String> l, String[]... gs) { for (String[] g : gs) for (String x : g) l.add(x); }
     /** 这一局已经刷过的配件（换局清空）：包里已经有的配件不再重复刷 */
     static final java.util.Set<String> givenAtt = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
     static void newMatch() { givenAtt.clear(); givenGear.clear(); }
@@ -897,12 +938,14 @@ public class GameOverlay {
         if (takesAttachments(id)) {
             // v2.70 用户：刷的枪没有配件。以前配件直接塞进背包（游戏不会自动装到枪上，日志里没有 Attaching adapter）。
             // 现在放到脚下：走游戏自己的拾取（自动拾取/点拾取），捡起来时游戏会自动装到能装的枪上。每把枪都给一套。
-            if (onGround || remote()) { for (String at : ATT) give(a, at, 1); }
+            final java.util.List<String> set = attFor(id);
+            LogCap.note("刷枪配件 " + name + "：" + set);
+            if (onGround || remote()) { for (String at : set) give(a, at, 1); }
             else new Thread(() -> {
                 try {
                     Thread.sleep(700);
                     int bad = 0;
-                    for (String at : ATT) { String e = Veh.ground(Long.parseLong(at), 1); if (e != null) bad++; }
+                    for (String at : set) { String e = Veh.ground(Long.parseLong(at), 1); if (e != null) bad++; }
                     if (bad > 0) toastAny("配件有 " + bad + " 件没放到脚下");
                     else toastAny("配件放在脚下了，捡起来会自动装到枪上");
                 } catch (Throwable e) { toastAny("配件没放到脚下：" + e); }
