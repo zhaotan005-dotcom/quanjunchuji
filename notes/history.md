@@ -771,3 +771,12 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   RE：v2.69 日志进图 10:57:46，阶段 0→1 在 10:58:46（正好 60 秒），虽然 WaitingPlayersCountDownTime=1。PostLogin 0x100bb88：第一个玩家进来（GS+0x730 没置）就用 GS+0x72c 设定时器（0x2deb32c）到点调 StartCountDown 0x100c4a8；人数够 GS+0x728 也直接调。读到的是 GameState 构造里的默认 60.0（读表那句还没跑）。构造三处：0x1017d10/0x101afb4/0x101fcb0 movt r0,#0x4270。
   毒圈「刚上飞机就刷」= 阶段 4 一开始就出的 4327 米蓝圈（BlueCircle 日志正好在 10:59:06 阶段 4 开始），v2.71 已处理。
 - v2.72 (vc173，客户端+单机)，未实测：单机大厅加载 6 秒后把三处构造默认等人时间改成 1.0（Mods.WAIT_CTOR，诊断「单机等人默认 60→1 秒（构造）」）。
+- 11:54 用户（v2.72 实测，截图雨林）：开局还不是直接读秒；地图显示在缩毒却没圈；要「飞天」（参考弹射板的跳跃和动作，高度自定）；加速改到 67 倍、不要加快动作；翻墙秒翻；水里开加速很快没氧气；丢枪/配件到地上直接消失。
+  分析：缩毒看不到圈 = 第 1 项半径是边长×1.5（雨林 6120 米），缩 240 秒里前一大半蓝圈都在地图外。
+  RE 飞天：弹射板 LaunchPlayer 0x11417fc → 人物+0x114c LaunchPadComponent，0x1105428(组件, &info) 抄 0xd8 字节 LaunchPadRepInfo 到 组件+0xc8 并开 Tick；Tick 0x1104c0c 状态机 +0xac（1 Init→2 Launch→3 Rise→4 Fall→5 Land…）；0x1104720 起跳速度 = 方向(LaunchAngleByDegree +8) × LaunchVelocity(+0xc) → +0x1a8；下落用 GravityWhenFall(+4)。CMC MaxSimulationTimeStep 0x274 / MaxSimulationIterations 0x278。
+- v2.73 (vc174，客户端+单机)，未实测：
+  - 单机读秒：再改 PostLogin 定时器那句 0x100bcc8 vldr s16,[r0] → vmov.f32 s16,#1.0（Mods.WAIT_PL，和构造补丁一起打）。
+  - 毒圈第 1 项半径 边长×1.5 → ×0.72（刚盖住地图四角，一开始缩就看得见）。
+  - 新 Fly.java「飞天」：功能页高度滑条 10~500 米 + 按钮；自拼 info（G=1960，角度 75，竖直速度 √(2gh)，延迟 0.05/起跳 0.2/落地 0.8/0.4，特效路径空）→ ucall(组件, info, 0x1105428)。角度含义（离水平还是离竖直）没核实。
+  - 加速：滑条最大 67；只在走路模式（1）加速，游泳/翻越/其他特殊模式恢复 1 倍（翻墙秒翻、水里氧气）；倍数 >2 时 MaxSimulationIterations 加到 ⌈倍数×0.8⌉+2（最多 100），关了还原。
+  - 丢东西：Con.dropLog 记含 Drop/PickUpWrapper/Discard 的游戏日志，诊断里「丢东西日志」。原因还没查。

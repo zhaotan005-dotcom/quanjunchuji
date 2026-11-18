@@ -26,7 +26,9 @@ public class Mods {
      *  这时读表（WAIT 补丁那句）还没跑，读到的是 GameState 构造里的默认 60.0。三个 GameState 构造（0x1017ccc/0x101af80/0x101fc7c）
      *  里 movt r0,#0x4270 → movt r0,#0x3f80（默认值 60.0 → 1.0）。 */
     static final long[] WAIT_CTOR = { 0x1017d10L, 0x101afb4L, 0x101fcb0L }; static final String WAIT_CTOR_O = "700244e3", WAIT_CTOR_N = "800f43e3";
-    static String waitCtor() { StringBuilder r = new StringBuilder(); for (long a : WAIT_CTOR) { String x = write(a, WAIT_CTOR_O, WAIT_CTOR_N, true); r.append("ok".equals(x) ? "ok " : x + " "); } return r.toString().trim(); }
+    /** v2.73：实测 v2.72 还是要等 → 不管表/构造，直接改 PostLogin 定时器那一句：0x100bcc8 vldr s16,[r0]（GS+0x72c）→ vmov.f32 s16,#1.0 */
+    static final long WAIT_PL = 0x100bcc8L; static final String WAIT_PL_O = "008a90ed", WAIT_PL_N = "008ab7ee";
+    static String waitCtor() { StringBuilder r = new StringBuilder(); for (long a : WAIT_CTOR) { String x = write(a, WAIT_CTOR_O, WAIT_CTOR_N, true); r.append("ok".equals(x) ? "ok " : x + " "); } r.append("定时器 ").append(write(WAIT_PL, WAIT_PL_O, WAIT_PL_N, true)); return r.toString().trim(); }
     static final long START = 0x101977cL; static final String START_O = "3c0096e5", START_N = "a00144e3";
     // v1.41~1.43 的开火不扣子弹代码补丁(0xefd104)会让游戏启动几秒就闪退（扣子弹代码有校验），已删除，别再改这里
     static final long AMMO = 0xefd104L; static final String AMMO_O = "065045e0", AMMO_N = "0550a0e1";
@@ -316,7 +318,8 @@ public class Mods {
     // CMC GravityScale +0x120、JumpZVelocity +0x128、MovementMode +0x138（3 = 空中）；
     // USkeletalMeshComponent AnimScriptInstance +0x750、GlobalAnimRateScale +0x7c4
     static final int P_DIL = 0x58, P_MESH = 0x2f4, P_CMC = 0x2f8, C_JUMP = 0x128, C_MODE = 0x138, C_VEL = 0xb4, M_ANIM = 0x750, M_RATE = 0x7c4;
-    static final int MOVE_FALLING = 3;
+    static final int MOVE_FALLING = 3, C_ITER = 0x278;   // CMC MaxSimulationIterations（反射表，MaxSimulationTimeStep 是 0x274）
+    static int baseIter;
     static volatile long cmc; static float baseJump, lastJump = Float.NaN;
     static Thread mover;
     /** 动作放慢系数：1 = 动作和平时一样快；越小越像「科技」那种滑步 */
@@ -431,7 +434,7 @@ public class Mods {
             if (!isObj(m, b, pawn)) { GameOverlay.forgetPawn(); vehPawn = 0; cmc = 0; moveState = "等人物"; return; }
             long c = rp(m, pawn + P_CMC);
             if (!isObj(m, b, c)) { cmc = 0; moveState = "等人物"; return; }
-            if (c != cmc) { cmc = c; baseJump = f(m, c + C_JUMP); lastJump = Float.NaN; LogCap.note(String.format("移动组件 %x 跳=%.0f", c, baseJump)); }
+            if (c != cmc) { cmc = c; baseIter = 0; baseJump = f(m, c + C_JUMP); lastJump = Float.NaN; LogCap.note(String.format("移动组件 %x 跳=%.0f", c, baseJump)); }
             gun(m, b, pawn);
             jump(m, c);
             dilation(m, b, pawn, c);
@@ -470,6 +473,8 @@ public class Mods {
         int mode = rd(m, c + C_MODE) & 0xff;
         // v2.36 客户端：位置由服务端说了算，空中切回 1 倍、起跳加水平速度服务端都对不上 → 拉回。客户端一直保持同一个倍数（和服务端一致）
         boolean air = Ed.ED != 2 && mode == MOVE_FALLING;
+        // v2.73 用户：翻墙秒翻、水里开加速很快没氧气 → 只在「走路」模式（1）加速；游泳 4、飞/翻越等特殊模式 5/6 恢复 1 倍
+        boolean special = Ed.ED != 2 && mode != 1 && mode != MOVE_FALLING;
         if (air && !wasAir && speed > 1f) {
             float vx = f(m, c + C_VEL), vy = f(m, c + C_VEL + 4);
             if (Math.abs(vx) < 3000f && Math.abs(vy) < 3000f && vx * vx + vy * vy > 100f) {
@@ -477,9 +482,13 @@ public class Mods {
             }
         }
         wasAir = air;
-        float wantDil = speed == 1f || air ? 1f : speed;
+        float wantDil = speed == 1f || air || special ? 1f : speed;
         float td = f(m, pawn + P_DIL);
-        if (td > 0.05f && td < 20f && Math.abs(td - wantDil) > 0.001f) wf(m, pawn + P_DIL, wantDil);
+        if (td > 0.05f && td < 100f && Math.abs(td - wantDil) > 0.001f) wf(m, pawn + P_DIL, wantDil);
+        // v2.73：倍数大了一帧走很远，加大移动组件的分步次数（MaxSimulationIterations +0x278，原值记下来，关了还原），减少穿墙
+        int it = rd(m, c + C_ITER);
+        if (baseIter == 0 && it >= 1 && it <= 25) baseIter = it;
+        if (baseIter > 0) { int wantIt = wantDil > 2f ? Math.min(100, Math.max(baseIter, (int) Math.ceil(wantDil * 0.8f) + 2)) : baseIter; if (it != wantIt && it >= 1 && it <= 100) wi(m, c + C_ITER, wantIt); }
         long mesh = rp(m, pawn + P_MESH);
         if (!isObj(m, b, mesh)) return;
         if (mesh != lastMesh) { lastMesh = mesh; LogCap.note(String.format("骨骼网格 %x", mesh)); }

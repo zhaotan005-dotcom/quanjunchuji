@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.72";
+    static final String VER = "v2.73";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1108,8 +1108,14 @@ public class GameOverlay {
             LinearLayout cc = card(a, u, root);
             note(a, u, cc, "加速、高跳跟服务端走，服务端拉多少你就是多少。现在：" + Mods.hostSyncText());
         } else {
-        slider(a, u, root, "加速", cl ? "要和服务端拉到同一个数才不被拉回去" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关", 0f, 10f, 0.5f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
+        slider(a, u, root, "加速", cl ? "要和服务端拉到同一个数才不被拉回去" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关（最大 67 倍；游泳、翻墙时自动恢复正常）", 0f, 67f, 1f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
         slider(a, u, root, "高跳", cl ? "要和服务端拉到同一个数" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        }
+        if (Ed.ED != 2 && Lan.role != 2) {   // v2.73 用户：参考弹射板做「飞天」，高度可调
+            head(a, u, root, "飞天");
+            slider(a, u, root, "飞天高度（米）", "用弹射板的起跳和动作，点下面按钮起飞", 10f, 500f, 10f, Fly.height, false, v -> Fly.height = v);
+            LinearLayout fly = row(a, root);
+            fillBtn(a, u, fly, "飞天", () -> new Thread(() -> { String r = Fly.go(); LogCap.note(r); toastAny(r.replace("飞天：", "")); }, "zf-fly").start());
         }
         LinearLayout fc = card(a, u, root);
         LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);

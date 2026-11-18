@@ -200,6 +200,9 @@ public class Con {
     public static volatile String navInfo = "";
     static final java.util.ArrayList<String> botLog = new java.util.ArrayList<>();
     static String botLog() { synchronized (botLog) { return String.join("\n  ", botLog); } }
+    /** v2.73 用户：丢枪/配件到地上直接消失 → 记下游戏日志里丢东西、生成地上物的行 */
+    static final java.util.ArrayList<String> dropLog = new java.util.ArrayList<>();
+    static String dropLog() { synchronized (dropLog) { return dropLog.isEmpty() ? "（没有）" : String.join("\n  ", dropLog); } }
     static final java.util.ArrayList<String> flowLog = new java.util.ArrayList<>();
     static String flowLog() { synchronized (flowLog) { return String.join("\n  ", flowLog); } }
     public static volatile String tweakStatus = "等待游戏启动";
@@ -496,6 +499,9 @@ public class Con {
         // v1.86 诊断：航线、毒圈数据（每圈等待/缩圈时间、半径）、开局倒计时
         if (!l.contains("GVoice") && (l.contains("InitArea[") || l.contains("AirLine") || l.contains("RestrictedArea") || l.contains("Round") || l.contains("AirlineRadius") || l.contains("RadiusForAirLine") || l.contains("JumpRadiusScale") || l.contains("FlightNumber") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase"))) {
             synchronized (flowLog) { if (flowLog.size() >= 40) flowLog.remove(0); flowLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
+        }
+        if (l.contains("Drop") || l.contains("PickUpWrapper") || l.contains("PickUp") && l.contains("Spawn") || l.contains("Discard")) {
+            synchronized (dropLog) { if (dropLog.size() >= 40) dropLog.remove(0); dropLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
         }
         if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
             synchronized (botLog) { if (botLog.size() >= 30) botLog.remove(0); botLog.add(l.trim().length() > 220 ? l.trim().substring(0, 220) : l.trim()); }

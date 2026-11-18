@@ -165,7 +165,7 @@ public class Flow {
             b.position(o); b.put(i < cnt - 1 ? first : last);
             float r, w, s, x, y; int dmg;
             if (i == 0) { r = side * WHOLE; w = firstWait; s = 1; dmg = 1; x = 0; y = 0; }
-            else if (i == 1) { r = side * WHOLE; w = tb[0][1]; s = tb[0][2]; dmg = 1; x = 0; y = 0; }
+            else if (i == 1) { r = side * 0.72f; w = tb[0][1]; s = tb[0][2]; dmg = 1; x = 0; y = 0; }   // v2.73 用户：显示缩毒了却看不到圈 → 第 1 项（开始缩的那圈）刚好盖住地图四角（边长×0.707），一缩就看得见
             else {
                 int k = i - 2;   // 第 k 圈（k == tb.length 是最后 0.1 米）
                 if (k < tb.length) { r = tb[k][0]; dmg = (int) tb[k][3]; } else { r = 0.1f; dmg = 11; }
