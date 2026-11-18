@@ -51,12 +51,19 @@ final class Lan {
      *  房主机器上加入玩家的人物永远是空 → 永远失败。把「ClosedVehicle 为空就失败」的 beq 0xdb0430 改成 beq 0xdb0400（跳过距离/视线检查，
      *  只查车还在、有空座），和 ClosedVehicle 是别的车时游戏自己走的路一样。所有车（四轮/摩托/船）共用这个函数。 */
     static final long CAR = 0xdb00f0L; static final String CAR_O = "ce00000a", CAR_N = "c200000a";
+    /** v2.67：服务端（房主）自己能上车但下不来 → 服务端不让上车。上面那条 beq 改成 b 0x171e7fc（GM 面板废函数里 Alive cave 后面的空地，20 字节）：
+     *  ClosedVehicle 空 → 0xdb0400（同 v2.36，加入的人上车）；不空且 NetMode==2（听服本机 = 服务端自己，只有本机第一个玩家才写 ClosedVehicle）→ 0xdb0430 返回 0；
+     *  其他 → 0xdb00f4 原版检查。r0 此时还是 0xdafe88 GetNetMode 的返回值。单机(0)/客户端(3) 不受影响。game/re/emu_carhost.py 8 种情况通过。 */
+    static final long CARC = 0x171e7fcL;
+    static final String CARC_O = "0400a0e10610a0e1eef7eaeb47ffffea906aa003", CARC_N = "000057e3fe46da0a020050e30847da0a3846daea", CAR_H = "c1b925ea";
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
         String d = Mods.write(NAV, NAV_O, NAV_N, true), e = Mods.write(QUIT, QUIT_O, QUIT_N, true);
         String g = Mods.write(NQ_CAVE, NQ_CAVE_O, NQ_CAVE_N, true);
-        String car = Mods.write(CAR, CAR_O, CAR_N, true);
+        String car = Mods.write(CARC, CARC_O, CARC_N, true);
+        if ("ok".equals(car)) { car = Mods.write(CAR, CAR_O, CAR_H, true); if ("ok".equals(car)) car = "ok（服务端不能上车）"; }
+        else car = "cave " + car + "，退回 v2.36：" + Mods.write(CAR, CAR_O, CAR_N, true);
         if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
         pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e + "，加入的人上车 " + car;
         LogCap.note("联机补丁（启动时）：" + pre);

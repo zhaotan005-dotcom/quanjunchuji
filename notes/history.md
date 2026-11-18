@@ -749,3 +749,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 03:37 用户（v2.54 实测）：道具键能拿出（升降台/伪装岩/人偶标靶蓝色预览出来了），但放不下；要自动回传日志；选模式时能选不刷人机。
 - v2.55 (vc156)：LogUp.java —— AvatarLog.save 导出的诊断自动 gzip 传到 ntfy.sh/zf-qj-k7r2p9m4x1（附件 3 小时有效，取：curl "https://ntfy.sh/zf-qj-k7r2p9m4x1/json?poll=1&since=12h" 拿 attachment.url）；道具键「放下」后 1.5 秒还拿在手上就提示游戏给的原因（CanUseThisItem/SpawnScenePropItem 日志）并自动导出+上传；KEYS 加 PropBase/evanlu/SpawnScenePropItem/CanUseThisItem/UseThisItem；诊断头加 Prop.useState。Bots.want（prefs zframe/bots_auto）：选单机/联机框里「单机自动刷人机：开/关」，人机页也有开关，回大厅 auto=want。
 - 03:39 用户问能不能卸载补丁更新 App：libMczi 已删、没有插件；卸了以后 ZInit 走「上次保存的内核 / 内置内核」，内置 v2.52 有 NetCore 会链式加载下载的在线内核 → 可以卸。以后只有要改游戏包本体时才需要它重新打包。游戏自带更新页连腾讯服务器（已停）+ 弹窗在 Lua/UMG 里，没法复用；我们的更新检查放在选模式框里。
+
+## v2.67 服务端（vc168/core168，2026-11-18 10:45，分支 server-2.55，基于 v2.55 服务端源码；客户端仍是 main 上的 v2.66）
+- 10:36 用户（v2.55 服务端实测）：服务端能上车但下不了车；服务端本来就不该能上车。诊断里 10:24:56 EnterVehicle、10:25:04 Detach/DriverLeave、10:25:09 又上车、10:25:11 又下。
+- RE：VehicleInterface CanUse 0xdafe1c。0xdafe88 bl 0x274dbb0 = 人物的 GetNetMode（→ UWorld::GetNetMode 0x2b49740，listen=2）；!=1 走 0xdb00e8：ClosedVehicle(+0xb84) 空 → v2.36 补丁跳 0xdb0400（只查车/座位）；不空 → 0xdb00f4 距离/视线。ClosedVehicle 只有本机第一个玩家会写，所以在服务端上「不空」= 服务端自己。
+- 改：0xdb00f0（ce00000a）→ b 0x171e7fc（c1b925ea）。cave 20 字节在 GM 面板废函数 Alive cave（0x171e7d0..0x7fb）后面：cmp r7,#0; beq 0xdb0400; cmp r0,#2; beq 0xdb0430(返回0); b 0xdb00f4。单机(0)/客户端(3) 行为不变；cave 装不上就退回 v2.36 的 c200000a。启动时 Lan.preinstall 装，诊断「加入的人上车 ok（服务端不能上车）」。
+- 测试：game/re/emu_carhost.py（unicorn 跑真 libUE4，NetMode 0-3 × ClosedVehicle 有/空 8 种）全过；javac/d8 过。未实测。
+- 构建：zframe/build_srv.sh（build3.sh 只打服务端 e=1 的版本）：./build_srv.sh 2.55 2.67 156 168。只更新 core/b1.*（服务端在线内核），b0/b2 不动。
