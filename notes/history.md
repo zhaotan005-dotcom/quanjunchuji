@@ -1084,3 +1084,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ### 验证情况
 - 反汇编核对：上面所有偏移；unicorn：客户端 SetStaticMesh 补丁（emu_meshpatch.py）、FQuat 约定（emu_quat.py）；ucall5 5 参数路径沿用 v3.05 emu_ucave。
 - 未实测：手机上墙能否生成/复制/看见/挡子弹、选到的模型长什么样、出生保护是否生效、闪烁、等人流程。看日志：「单挑围墙：模型：…」「单挑围墙：外圈 n 块、场内 m 块…」「单挑围墙（客户端）：收到房主复制的墙 N 块，带模型 M 块」「单挑：出生保护：GM+2e0 … SpawnProtectionTime x→3.0」「原生出生保护：Eligible=1，CreationTime …」「保护闪烁 n/12」。
+
+- 2026-11-19 02:19 用户规则：掩体不要车、不要防弹墙，要真实建筑墙；要外圈围墙；掩体要明显比人高（不能跳枪）；两人都进来才开始；要全面考虑周全、打磨好再交付。v3.19 已按此做，未实测。
