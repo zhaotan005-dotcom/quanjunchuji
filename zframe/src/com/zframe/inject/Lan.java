@@ -167,7 +167,7 @@ final class Lan {
         try { trig(l); } catch (Throwable ignored) {}   // v2.31：有人进来 → 房主找人、拉到身边
         if (l.contains("LogNet") || l.contains("NetDriver") || l.contains("Listen") || l.contains("NMT_") || l.contains("PendingNet")
                 || l.contains("NetConnection") || l.contains("Welcomed") || l.contains("TravelFailure") || l.contains("NetworkFailure")
-                || l.contains("PreLogin") || l.contains("Login") && l.contains("NZ") || l.contains("Beacon") || l.contains("NetMode") || l.contains("Reconnect") || l.contains("ReLogin") || l.contains("Kick") || l.contains("Reject") || l.contains("Duplicate") || l.contains("GameMode") && l.contains("Login")) {
+                || l.contains("PreLogin") || l.contains("Login") && l.contains("NZ") || l.contains("Beacon") || l.contains("NetMode") || l.contains("Reconnect") || l.contains("ReLogin") || l.contains("Kick") || l.contains("Reject") || l.contains("Duplicate") || l.contains("GameMode") && l.contains("Login") || l.contains("Game class is")) {
             if (l.contains("UNZMobilePlayerinput") || l.contains("AvaListener") || l.contains("EventListener") || l.contains("KeyLobbyMsg") || l.contains("per Net Tick, too much") || l.contains("CheckNetRecvState")) return;   // v2.87：刷屏行挤掉了加入/重连的关键行
             add(l.trim());
         }

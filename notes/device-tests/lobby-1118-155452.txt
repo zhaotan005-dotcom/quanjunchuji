@@ -1,0 +1,995 @@
+ZFrame v2.95 服务端 诊断
+
+用道具日志：
+大厅人物：已改好（女，启动时装）
+启动早装（等库 1003 ms）：风衣 不装（v1.73 改成邮件领取），人物 ok，服务端 没装，刷车：已装（启动时），300 ms
+拾取动作：已装（1.5 秒内重复的不放），调用 0 次，挡掉重复 0 次
+毒圈底层：没装上（空位被占 0c798a01d147820480798a01d7478204）
+刷车：已装（启动时）
+  刷人机：还没试
+  
+人机：人机：自动刷新已关，难度 普通，已刷 0，阶段 -1
+  最后一个人机：
+  装备：
+  导航网格： | RecastNavMeshSizeBytes=4, Ar.IsLoading()=1, Ar.IsSaving()=0, Ar.IsCooking()=0, NavMeshVersion=13, this=RecastNavMesh-Def
+  服务器关卡：正在进图…
+  人机日志：
+  
+  毒圈：等进对局
+  
+  上一局：
+  ，现在 -1（人机 -1），已死人机 0
+  人机配枪：还没试
+  人机衣服：还没试
+  人机名字：还没试
+  仓库衣服：还没发
+  航线/毒圈日志：
+  [2026.11.18-15.54.35:591][  951]LogNavigation: Error: Attempt to build nav collision data for /Game/Blueprints/BattleRoyaleGame/RestrictedAreaMesh.RestrictedAreaMesh:NavCollision_0 when we are unable to. This platform requires cooked packages.
+  [2026.11.18-15.54.36:077][  951]LogActor: Warning: BP_BaseRestrictedAreaInfostate_C /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main.BR-ErangelRenew_Mobile_Main:PersistentLevel.BP_BaseRestrictedAreaInfostate_C_0 has natively added scene compone
+  [2026.11.18-15.54.47:754][  951]NZ: [NZBRGameState.cpp:304] WaitingPlayersCountDownTime=1.000000, StartMatchCountDownTime=20.000000, WaitingSkydivingCountDownTime=1.000000, SkydivingTime=120.000000, bUseServerFogDistance=0, ServerFogDistance=18000.000000
+  画质：设置里是 Unknown（进图时游戏已应用）
+  联机：服务端（服务器），导航查询空指针 ok，置标志 ok，开房检查 ok，加入检查 ok，导航空指针 ok，全员退出结束 ok，加入的人上车 ok（服务端不能上车），开房：已发 open BR-ErangelRenew_Mobile_Main?listen，等加载，本机 172.29.10.8（wlan0）
+  地图物资/门：地图物资/门：开（物资层 ok，物资点 ok）
+  这局：服务器层关卡 0 行，物资生成日志 0 行，门日志 0 行，空投空箱 0 次，补箱 0 次
+  剩余人数：还没查
+  全员：没开
+  拉人：已去掉（v2.42 用户：开加速自己过去）
+  换弹：没出现服务端弹匣 0
+  队伍：还没查
+  信号枪：服务端弹匣同步好了才会叫飞机（v2.95 换弹根修）
+  代刷：没用过
+  跟服务端：还没收到服务端的数
+  联机日志：
+  [2026.11.18-15.53.58:698][    0]LogNetVersion: PUBGM , NetCL: 0, EngineNetVer: 2, GameNetVer: 0 (Checksum: 620235833)
+  [2026.11.18-15.53.59:341][    0]LogTemp: CrashNotifyHandler SetListener.
+  [2026.11.18-15.53.59:350][    0]NZOnlineSubsystem: Error: [2026-11-18 15:53:59 348] | Error | [GCloud] |0xdae6ade0| ApolloAccountService.cpp:82|Initialize| CApolloAccountService::CApolloAccountService() GetLoginRecord error:7
+  [2026.11.18-15.53.59:506][    0]NZFrontEnd: QuickLogin: in stage 4
+  [2026.11.18-15.54.01:123][    0]LogNet: UNZGameInstance::CreateInitialPlayer Set LocalPlayer UniqueNetId to 00292614010B0F120036007A5068BF92
+  [2026.11.18-15.54.01:186][    0]LogNet: Browse: /Game/Startup/StartupMap?Name=Player
+  [2026.11.18-15.54.05:565][   17]LogNet: Browse: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+  [2026.11.18-15.54.09:089][   17]LogTemp: UNZOnlineMatch:RequestReLoginInfo
+  [2026.11.18-15.54.09:131][   17]LogTemp: UNZFrontEndUIController::InitQuickLogin
+  [2026.11.18-15.54.09:155][   17]NZFrontEnd: QuickLogin: Broadcast post wakeupinfo
+  15:54:31 联机补丁：导航查询空指针 ok，置标志 ok，开房检查 ok，加入检查 ok，导航空指针 ok，全员退出结束 ok，加入的人上车 ok（服务端不能上车）；清标志 ok
+  15:54:31 开房：已发 open BR-ErangelRenew_Mobile_Main?listen，等加载
+  [2026.11.18-15.54.31:191][  951]LogNet: Browse: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?listen?MaxPlayers=100
+  [2026.11.18-15.54.36:049][  951]LogNet: eth1_ip 172.29.10.8
+  [2026.11.18-15.54.36:050][  951]LogNet: Find LocalAddrs Num=2, IPs=172.29.10.8;127.0.0.1;
+  [2026.11.18-15.54.36:050][  951]LogNet: Created new socket 0
+  [2026.11.18-15.54.36:050][  951]LogNet: Created new socket 0
+  [2026.11.18-15.54.36:054][  951]LogNet: GameNetDriver NZIpNetDriver_0 IpNetDriver listening on port 7777
+  15:54:49 进图完成（服务端：航线/毒圈照单机改；减负）
+  [2026.11.18-15.54.48:866][  951]LogNet: UNetDriver::TickDispatch: Very long time between ticks. DeltaTime: 0.00, Realtime: 12.82. NZIpNetDriver_0
+  丢东西日志：
+  [2026.11.18-15.54.35:329][  951]LogNavigation: Error: Attempt to build nav collision data for /Game/Items/ItemSpawner/Meshes/P40300000001_DeathDropBox.P40300000001_DeathDropBox:NavCollision_0 when we are unable to. This platform requires cooked packages.
+  飞天：还没用
+  标点：还没看到，
+  标点日志：
+libUE4=aea80000
+入口 1503230=f66c08ea  仓库 1877bfc=30482de9 171e630=0020a0e30060a0e30530a0e1
+假仓库：没启用
+出生衣服：服务端不装
+  cave 171e610=0c909be508a09be509309ae10593f71a28a01fe500f020e30290a0e30193f7ea
+风衣 1503680=737dddeb  171e600=00a6f75f0810a0e1391d37eb2c001be5
+自建服务端：没开
+钩子：没装
+上次运行最后几步：
+  15:52:15.600 联机 开房：已发 open NZBattleRoyaleGame.NZBRLegionGameMode?listen，等加载
+  15:52:15.655 开房加载 0s VmSize: 534469424 kB VmRSS: 981492 kB VmSwap: 17716 kB 
+  15:52:16.109 毒圈底层：没装上（空位被占 0c798a01d147820480798a01d7478204）
+  15:52:16.697 开房加载 1s VmSize: 534397812 kB VmRSS: 948596 kB VmSwap: 17704 kB 
+  15:52:17.705 开房加载 2s VmSize: 534391536 kB VmRSS: 943800 kB VmSwap: 17704 kB 
+  15:52:18.721 开房加载 3s VmSize: 534409892 kB VmRSS: 960544 kB VmSwap: 17700 kB 
+  15:52:19.745 开房加载 4s VmSize: 534447392 kB VmRSS: 997612 kB VmSwap: 17700 kB 
+  15:52:20.756 开房加载 5s VmSize: 534494964 kB VmRSS: 1016460 kB VmSwap: 17700 kB 
+这次：
+  15:54:43.331 开房加载 12s VmSize: 534619340 kB VmRSS: 1137820 kB VmSwap: 17796 kB 
+  15:54:44.337 开房加载 13s VmSize: 534634384 kB VmRSS: 1204296 kB VmSwap: 17796 kB 
+  15:54:45.341 开房加载 14s VmSize: 534693948 kB VmRSS: 1263476 kB VmSwap: 17796 kB 
+  15:54:46.347 开房加载 15s VmSize: 534699028 kB VmRSS: 1268264 kB VmSwap: 17796 kB 
+  15:54:47.361 开房加载 16s VmSize: 534709928 kB VmRSS: 1279852 kB VmSwap: 17796 kB 
+  15:54:48.368 开房加载 17s VmSize: 534735628 kB VmRSS: 1309424 kB VmSwap: 17796 kB 
+  15:54:49.282 联机 进图完成（服务端：航线/毒圈照单机改；减负）
+  15:54:49.381 开房加载 18s VmSize: 534753896 kB VmRSS: 1331796 kB VmSwap: 17796 kB 已进图
+
+== 系统日志（闪退）==
+11-18 15:53:49.342 D/CrashReport( 5417): clean tombs 0
+11-18 15:53:49.346 I/CrashReport-Native( 5417): Set native info: app channel(73213123)
+11-18 15:53:49.346 D/CrashReport( 5417): [AsyncTaskHandler] Post a normal task: com.tencent.bugly.msdk.crashreport.crash.k
+11-18 15:53:49.346 I/CrashReport-Native( 5417): Set native info: app package(com.tencent.tmgp.pubgm)
+11-18 15:53:49.346 I/CrashReport-Native( 5417): Set native info: user ID(unknown)
+11-18 15:53:49.346 I/CrashReport-Native( 5417): Set native info: isAppForeground(false)
+11-18 15:53:49.346 D/CrashReport( 5417): [ExtraCrashManager] Trying to notify Bugly agents.
+11-18 15:53:49.347 D/CrashReport( 5417): add action android.net.conn.CONNECTIVITY_CHANGE
+11-18 15:53:49.347 D/CrashReport( 5417): [AsyncTaskHandler] Post a normal task: com.tencent.bugly.msdk.crashreport.crash.f
+11-18 15:53:49.347 I/CrashReport-Native( 5417): Set native info: launchTime(1794988428786)
+11-18 15:53:49.347 I/CrashReport( 5417): [ExtraCrashManager] no game agent
+11-18 15:53:49.348 D/CrashReport( 5417): [AsyncTaskHandler] Post a normal task: com.tencent.bugly.msdk.proguard.as
+11-18 15:53:49.348 D/CrashReport( 5417): [AsyncTaskHandler] Post a delay(time: 5000ms) task: com.tencent.bugly.msdk.crashreport.common.strategy.c
+11-18 15:53:49.348 I/CrashReportInfo( 5417): [init] Bugly initialization finished.
+11-18 15:53:49.352 D/CrashReport( 5417): [Native] Clean tombs 0
+11-18 15:53:49.352 D/CrashReport( 5417): [Util] try to unlock file:native_record_lock (pid=5417 | tid=5755)
+11-18 15:53:49.353 D/CrashReport( 5417): [Util] successfully unlocked file:native_record_lock (pid=5417 | tid=5755)
+11-18 15:53:49.354 I/CrashReport( 5417): [BuglyBroadcastRecevier] Register broadcast receiver of Bugly.
+11-18 15:53:49.655 I/CrashReportInfo( 5417): [param] remove user data: mMsdkStatus
+11-18 15:53:49.732 I/CrashReport-Native( 5417): Initiate native key-value list.
+11-18 15:53:49.732 I/CrashReport-Native( 5417): Initialization of native key-value list have been completed.
+11-18 15:53:49.734 I/CrashReportInfo( 5417): [param] set user data: mPackageStatus - MSDKGoFront
+11-18 15:53:49.761 D/WeGame LoginManager.handleCallback( 5417):  ###platformId:
+11-18 15:53:49.762 D/WeGame  cpp( 5417): WGPlatform::WGSetObserver needDelayWakeupNotify 0
+11-18 15:53:49.785 D/CrashReport( 5417): replace KV mPackageStatus MSDKGoFront
+11-18 15:53:50.441 D/CrashReport( 5417): replace KV mPackageStatus MSDKFront
+11-18 15:53:54.224 D/CrashReport( 5417): [AsyncTaskHandler] Post a delay(time: 0ms) task: com.tencent.bugly.msdk.crashreport.biz.a$a
+11-18 15:53:54.225 I/CrashReport( 5417): [session] launch app, new start
+11-18 15:53:54.225 D/CrashReport( 5417): [AsyncTaskHandler] Post a delay(time: 29170775ms) task: com.tencent.bugly.msdk.crashreport.biz.a$b
+11-18 15:53:54.229 D/CrashReport( 5417): [AsyncTaskHandler] Post a delay(time: 21600000ms) task: com.tencent.bugly.msdk.crashreport.biz.a$c
+11-18 15:53:54.230 D/CrashReport( 5417): [UserInfo] Record user info.
+11-18 15:53:54.238 D/CrashReport( 5417): [Database] insert t_ui success.
+11-18 15:53:54.239 D/CrashReport( 5417): [Database] insert t_ui success with ID: 48
+11-18 15:53:54.366 D/CrashReport( 5417): [Strategy] Notify com.tencent.bugly.msdk.crashreport.biz.b
+11-18 15:53:54.367 D/CrashReport( 5417): [AsyncTaskHandler] Post a normal task: com.tencent.bugly.msdk.crashreport.biz.e
+11-18 15:53:54.367 D/CrashReport( 5417): [Strategy] Notify com.tencent.bugly.msdk.CrashModule
+11-18 15:53:54.373 I/CrashReport( 5417): java changed to false
+11-18 15:53:54.373 I/CrashReport( 5417): close java monitor!
+11-18 15:53:54.374 D/CrashReport( 5417): Uploading frequency will not be checked if SDK is in debug mode.
+11-18 15:53:54.374 I/CrashReport( 5417): Java monitor to unregister: com.tencent.bugly.msdk.crashreport.crash.e@dac82ae
+11-18 15:53:54.375 W/CrashReport( 5417): server native changed to false
+11-18 15:53:54.375 I/CrashReport( 5417): native changed to false
+11-18 15:53:54.377 D/CrashReport-Native( 5417): Unregister signal handlers.
+11-18 15:53:54.379 I/CrashReport( 5417): [Native] Successfully closed native crash report.
+11-18 15:53:54.379 W/CrashReport( 5417): server anr changed to false
+11-18 15:53:54.379 I/CrashReport( 5417): anr changed to false
+11-18 15:53:54.379 W/CrashReport( 5417): close anr monitor!
+11-18 15:53:54.383 D/CrashReport( 5417): [AsyncTaskHandler] Post a delay(time: 0ms) task: com.tencent.bugly.msdk.crashreport.crash.j
+11-18 15:53:54.385 D/CrashReport( 5417): [Util] try to lock file:local_crash_lock (pid=5417 | tid=5754)
+11-18 15:53:54.387 D/CrashReport( 5417): [Util] successfully locked file:local_crash_lock (pid=5417 | tid=5754)
+11-18 15:53:54.387 W/CrashReport( 5417): Crashreport remote closed, please check your APP ID correct and Version available, then uninstall and reinstall your app.
+11-18 15:53:54.387 I/CrashReportInfo( 5417): [init] WARNING! Crashreport closed by server, please check your APP ID correct and Version available, then uninstall and reinstall your app.
+11-18 15:53:54.387 D/CrashReport( 5417): [Util] try to unlock file:local_crash_lock (pid=5417 | tid=5754)
+11-18 15:53:54.388 D/CrashReport( 5417): [Database] deleted t_ui data 1
+11-18 15:53:54.388 D/CrashReport( 5417): [UserInfo] Upload user info(size: 1)
+11-18 15:53:54.389 D/CrashReport( 5417): [Util] successfully unlocked file:local_crash_lock (pid=5417 | tid=5754)
+11-18 15:53:54.406 D/CrashReport( 5417): summary type 1 vm:9
+11-18 15:53:54.539 D/CrashReport( 5417): [z] Successfully get 'getprop' list.
+11-18 15:53:54.556 D/CrashReport( 5417): [z] System properties number: 751.
+11-18 15:53:54.561 W/CrashReport( 5417): java.io.FileNotFoundException: /system/build.prop: open failed: EACCES (Permission denied)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at libcore.io.IoBridge.open(IoBridge.java:574)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.io.FileInputStream.<init>(FileInputStream.java:179)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.io.FileInputStream.<init>(FileInputStream.java:133)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.io.FileReader.<init>(FileReader.java:60)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.crashreport.common.info.b.q(Unknown Source:6)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.crashreport.common.info.b.a(Unknown Source:3)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.crashreport.common.info.a.r(Unknown Source:5)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.proguard.a.a(Unknown Source:133)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.crashreport.biz.a.c(Unknown Source:293)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.crashreport.biz.a.a(Unknown Source:0)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at com.tencent.bugly.msdk.crashreport.biz.e.run(Unknown Source:2)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:487)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.util.concurrent.FutureTask.run(FutureTask.java:264)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:307)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:644)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at java.lang.Thread.run(Thread.java:1012)
+11-18 15:53:54.561 W/CrashReport( 5417): Caused by: android.system.ErrnoException: open failed: EACCES (Permission denied)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at libcore.io.Linux.open(Native Method)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at libcore.io.ForwardingOs.open(ForwardingOs.java:563)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at libcore.io.BlockGuardOs.open(BlockGuardOs.java:274)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at libcore.io.ForwardingOs.open(ForwardingOs.java:563)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at android.app.ActivityThread$AndroidOs.open(ActivityThread.java:8482)
+11-18 15:53:54.561 W/CrashReport( 5417): 	at libcore.io.IoBridge.open(IoBridge.java:560)
+11-18 15:53:54.561 W/CrashReport( 5417): 	... 16 more
+11-18 15:53:54.719 D/CrashReport( 5417): su is a tracked alias for /system/bin/su
+11-18 15:53:54.728 D/CrashReport( 5417): MAC interface: wlan1
+11-18 15:53:54.734 D/CrashReport( 5417): MAC address: 02:00:00:00:00:00
+11-18 15:53:54.734 I/CrashReport( 5417): ROM ID: samsung/x1q/x1q:14/QP1A.190711.019/G9810ZCU1ATD1:user/release-keys/fail
+11-18 15:53:54.736 I/CrashReport( 5417): SIM serial number: null
+11-18 15:53:54.736 I/CrashReport( 5417): Hardware serial number: unknown
+11-18 15:53:54.846 D/CrashReport( 5417): [UploadManager] Add upload task (pid=5417 | tid=5755)
+11-18 15:53:54.846 D/CrashReport( 5417): [UploadManager] Initialize security context now (pid=5417 | tid=5755)
+11-18 15:53:54.847 D/CrashReport( 5417): [UploadManager] Add upload task to queue (pid=5417 | tid=5755)
+11-18 15:53:54.848 I/CrashReport( 5417): [UploadManager] Create and start a new thread to execute a task of initializing security context: BUGLY_ASYNC_UPLOAD
+11-18 15:53:54.850 D/CrashReport( 5417): [Util] try to lock file:security_info (pid=5417 | tid=5904)
+11-18 15:53:54.851 D/CrashReport( 5417): [Util] successfully locked file:security_info (pid=5417 | tid=5904)
+11-18 15:53:54.851 D/CrashReport( 5417): [UploadManager] Load security info from database (pid=5417 | tid=5904)
+11-18 15:53:54.853 D/CrashReport( 5417): [UploadManager] Sucessfully got session ID, try to execute upload tasks now (pid=5417 | tid=5904)
+11-18 15:53:54.854 D/CrashReport( 5417): [UploadManager] Try to poll all upload task need and put them into temp queue (pid=5417 | tid=5904)
+11-18 15:53:54.855 D/CrashReport( 5417): [UploadManager] Execute urgent upload tasks of queue which has 1 tasks (pid=5417 | tid=5904)
+11-18 15:53:54.855 I/CrashReport( 5417): [UploadManager] Create and start a new thread to execute a upload task: BUGLY_ASYNC_UPLOAD
+11-18 15:53:54.856 D/CrashReport( 5417): [AsyncTaskHandler] Post a normal task: com.tencent.bugly.msdk.proguard.av
+11-18 15:53:54.858 D/CrashReport( 5417): [Util] try to unlock file:security_info (pid=5417 | tid=5904)
+11-18 15:53:54.858 D/CrashReport( 5417): [Util] successfully unlocked file:security_info (pid=5417 | tid=5904)
+11-18 15:53:54.868 D/CrashReport( 5417): [UploadManager] Local network consume: 46 KB
+11-18 15:53:54.868 D/CrashReport( 5417): [Upload] Run upload task with cmd: 840
+11-18 15:53:54.869 D/CrashReport( 5417): [UploadManager] Integrate security to HTTP headers (pid=5417 | tid=5905)
+11-18 15:53:54.869 D/CrashReport( 5417): [Util] Zip 1521 bytes data with type Gzip
+11-18 15:53:54.888 D/CrashReport( 5417): [Database] deleted t_lr data 1
+11-18 15:53:54.890 D/CrashReport( 5417): [Database] insert t_lr success.
+11-18 15:53:54.933 D/CrashReport( 5417): [UploadManager] Uploading(ID:1001) time: 2026-11-18 15:53:54
+11-18 15:53:54.933 D/CrashReport( 5417): [Upload] Send 1031 bytes
+11-18 15:53:54.934 D/CrashReport( 5417): [Upload] Upload to http://android.bugly.qq.com/rqd/async?aid=d0f37273-c0e5-4e17-912f-fbe6f050f65b with cmd 840 (pid=5417 | tid=5905).
+11-18 15:53:54.934 D/CrashReport( 5417): request: http://android.bugly.qq.com/rqd/async?aid=d0f37273-c0e5-4e17-912f-fbe6f050f65b, send: 1031 (pid=5417 | tid=5905)
+11-18 15:53:55.109 D/CrashReport( 5417): [Upload] Bugly version from headers is: bugly/1.0
+11-18 15:53:55.110 D/CrashReport( 5417): [Upload] Status from server is 0 (pid=5417 | tid=5905).
+11-18 15:53:55.110 D/CrashReport( 5417): [Upload] Received 131 bytes
+11-18 15:53:55.112 D/CrashReport( 5417): [Util] Unzip 115 bytes data with type Gzip
+11-18 15:53:55.121 D/CrashReport( 5417): [Upload] Response cmd is: 0, length of sBuffer is: 0
+11-18 15:53:55.121 I/CrashReport( 5417): [Upload] Success: userinfo
+11-18 15:53:55.123 D/CrashReport( 5417): [UploadManager] Local network consume: 46 KB
+11-18 15:53:55.125 D/CrashReport( 5417): [Database] deleted t_lr data 1
+11-18 15:53:55.129 D/CrashReport( 5417): [Database] insert t_lr success.
+11-18 15:53:55.133 D/CrashReport( 5417): [UploadManager] Network total consume: 47 KB
+11-18 15:53:55.134 D/CrashReport( 5417): [UserInfo] Successfully uploaded user info.
+11-18 15:53:55.145 D/CrashReport( 5417): [Database] insert t_ui success.
+11-18 15:53:55.145 D/CrashReport( 5417): [Database] insert t_ui success with ID: 48
+11-18 15:53:59.341 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:53:59.342 I/MSDKBuglyLog( 5417): CrashNotifyHandler SetListener.
+11-18 15:53:59.344 I/CrashReport-Native( 5417): Initiate native log.
+11-18 15:53:59.344 I/CrashReport-Native( 5417): Initialization of native log have been completed.
+11-18 15:53:59.496 D/CrashReport( 5417): >>> com.epicgames.ue4.GameActivity onPaused <<<
+11-18 15:53:59.500 I/CrashReport-Native( 5417): Set native info: isAppForeground(false)
+11-18 15:53:59.511 D/CrashReport( 5417): replace KV mPackageStatus MSDKGoBack
+11-18 15:54:00.152 D/CrashReport( 5417): >>> com.epicgames.ue4.GameActivity onResumed <<<
+11-18 15:54:00.154 I/CrashReport-Native( 5417): Set native info: isAppForeground(true)
+11-18 15:54:00.273 D/CrashReport( 5417): replace KV mPackageStatus MSDKFront
+11-18 15:54:01.192 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:54:01.192 I/MSDKBuglyLog( 5417): BeginLoad: /Game/Startup/StartupMap
+11-18 15:54:02.278 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:54:02.278 I/MSDKBuglyLog( 5417): App2Foreground
+11-18 15:54:02.396 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:54:02.396 I/MSDKBuglyLog( 5417): App2Background
+11-18 15:54:04.801 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:54:04.801 I/MSDKBuglyLog( 5417): App2Foreground
+11-18 15:54:05.587 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:54:05.587 I/MSDKBuglyLog( 5417): BeginLoad: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+11-18 15:54:31.201 D/WeGame  cpp( 5417): WGPlatform::WGBuglyLog 
+11-18 15:54:31.202 I/MSDKBuglyLog( 5417): BeginLoad: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main
+（150 行）
+== 游戏私有目录里的崩溃文件 ==
+--- 闪退现场 tomb_1794988187646.txt 15:49:47 ---
+--- --- --- --- --- --- --- Bugly NDK 3.3.1 --- --- --- --- --- --- --- 
+Build fingerprint: samsung/x1q/x1q:14/QP1A.190711.019/G9810ZCU1ATD1:user/release-keys
+Revision: 0
+ABI: arm
+time: 2026-11-18 15:49:47
+pid: 2371, tid: 2645, name: GameThread  >>> com.tencent.tmgp.pubgm <<<
+signal: 11 (SIGSEGV), code: 1 (SEGV_MAPERR) fault addr: 0x6f
+si_errno:0, si_errnoMsg:Success, sending pid:0, sending uid:0
+    r0: 0x0000006e  r1: 0x0000006f  r2: 0xa6b1131c  r3: 0xffffefff
+    r4: 0xa6b11310  r5: 0x00000001  r6: 0x00000000  r7: 0x00000000
+    r8: 0xffffe000  r9: 0xa4acef64  r10: 0x00000010  fp: 0xb4066500
+    ip: 0xb3c496f4  sp: 0xb40664d0  lr: 0xb0471bd0  pc: 0xb05512f8
+    cpsr: 0x200f0010
+        #00    pc 01a322f8    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #01    pc 01a2f220    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #02    pc 01a2ed40    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #03    pc 01a2e5e0    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #04    pc 00b6f734    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #05    pc 00b6c004    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #06    pc 00b65644    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #07    pc 00b64700    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #08    pc 00b68270    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #09    pc 00b7d294    /data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/lib/arm/libUE4.so [armeabi-v7a::b609a042a53f0689d37771cc8b55208d]
+        #10    pc 000443d3    /apex/com.android.runtime/lib/bionic/libc.so (_ZL15__pthread_startPv+40) [armeabi-v8::3da797463fe27a7298fcc50143dfe46a]
+
+15:54:15 /data/data/com.tencent.tmgp.pubgm/files/zf_crash_saved 17
+15:53:55 /data/data/com.tencent.tmgp.pubgm/databases/bugly_db_msdk 192512
+15:53:49 /data/data/com.tencent.tmgp.pubgm/app_crashrecord/1004 58
+15:53:49 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794988429293014.txt 0
+15:51:51 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794988311129629.txt 0
+15:51:13 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794988273800891.txt 0
+15:50:35 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794988235758391.txt 0
+15:50:23 /data/data/com.tencent.tmgp.pubgm/files/zf_tomb_saved 22
+15:49:53 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794988193601933.txt 0
+15:49:47 /data/data/com.tencent.tmgp.pubgm/app_bugly/tomb_1794988187646.txt 2650
+15:49:18 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794988158361174.txt 0
+14:59:01 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794985141706791.txt 0
+14:58:48 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794985128402815.txt 0
+14:58:24 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794985104413326.txt 0
+14:47:57 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794984477341371.txt 0
+14:47:51 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794984471897582.txt 0
+14:47:36 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794984457115.txt 0
+14:47:14 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_179498443421108.txt 0
+14:33:40 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794983620666790.txt 0
+14:32:59 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794983579141463.txt 0
+14:32:24 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794983544479689.txt 0
+14:07:53 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794982073126606.txt 0
+14:00:33 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794981633980508.txt 0
+13:54:50 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_1794981290378408.txt 0
+13:54:09 /data/data/com.tencent.tmgp.pubgm/app_bugly/sys_log_179498124964292.txt 0
+== 上一次游戏日志最后 80 行 ==
+PUBGM-backup-2026.11.18-15.53.52.log 307116 字节
+[2026.11.18-15.52.20:713][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_8x8/TEX_8x8/Tree_8x8_Billboard_02.ubulk
+[2026.11.18-15.52.20:716][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_02_D.ubulk
+[2026.11.18-15.52.20:720][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_02_D.ubulk
+[2026.11.18-15.52.20:721][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_02_D.ubulk
+[2026.11.18-15.52.20:722][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Blueprints/BattleRoyaleGame/RestrictedAreaMesh.RestrictedAreaMesh:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:723][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_8x8/TEX_8x8/Tree_NEW04_D_8X8.ubulk
+[2026.11.18-15.52.20:731][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_8x8/TEX_8x8/Tree_NEW04_D_8X8.ubulk
+[2026.11.18-15.52.20:731][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_8x8/TEX_8x8/Tree_NEW04_D_8X8.ubulk
+[2026.11.18-15.52.20:748][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_LOD2_D.ubulk
+[2026.11.18-15.52.20:751][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_LOD2_D.ubulk
+[2026.11.18-15.52.20:752][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_LOD2_D.ubulk
+[2026.11.18-15.52.20:752][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_LOD_D.ubulk
+[2026.11.18-15.52.20:755][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_LOD_D.ubulk
+[2026.11.18-15.52.20:756][  187]LogTexture: Error: Loading non-streamed mips from an external bulk file.  This is not desireable.  File ../../../PUBGM/Content/Environment/Landscape/BGGrass/Tree_NEW/Tex/Tree_NEW_LOD_D.ubulk
+[2026.11.18-15.52.20:758][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_NEW/Sky/Tree_NEW_08_Sky.Tree_NEW_08_Sky:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:759][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_NEW/Sky/Tree_NEW_06_Sky.Tree_NEW_06_Sky:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:759][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_NEW/Sky/Tree_NEW_04_Sky.Tree_NEW_04_Sky:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:759][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_NEW/Sky/Tree_NEW_03_Sky.Tree_NEW_03_Sky:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:759][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_NEW/Sky/Tree_NEW_02_Sky.Tree_NEW_02_Sky:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:759][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_NEW/Sky/Tree_NEW_01_Sky.Tree_NEW_01_Sky:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:759][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_Tree_NEW_06_8X8_140.SM_MERGED_Tree_NEW_06_8X8_140:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:763][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_CM_DeadTree04_yhg_SM3_110.SM_MERGED_CM_DeadTree04_yhg_SM3_110:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:763][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_CM_DeadTree01_yhg_SM3_110.SM_MERGED_CM_DeadTree01_yhg_SM3_110:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:763][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_bro_tree_09_Imposter4_120.SM_MERGED_bro_tree_09_Imposter4_120:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_bro_tree_09_Imposter3_26_120.SM_MERGED_bro_tree_09_Imposter3_26_120:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_bro_American_Elm_IM3_120.SM_MERGED_bro_American_Elm_IM3_120:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_Blue_Spruce_Hero_BRO4_80.SM_MERGED_Blue_Spruce_Hero_BRO4_80:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/SM_MERGED_Blue_Spruce_Hero_BRO3_120.SM_MERGED_Blue_Spruce_Hero_BRO3_120:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/ScotsPine_Desktop_BRO.ScotsPine_Desktop_BRO:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/Green_Ash_Desktop_BRO.Green_Ash_Desktop_BRO:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/CM_DeadTree04_yhg_SM.CM_DeadTree04_yhg_SM:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:764][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/CM_DeadTree01_yhg_SM.CM_DeadTree01_yhg_SM:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:765][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/bro_White_Oak_IM.bro_White_Oak_IM:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:765][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/bro_tree_09_Imposter.bro_tree_09_Imposter:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:765][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/bro_ForestC_BroadleafE_SM.bro_ForestC_BroadleafE_SM:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:765][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/bro_ForestC_BroadleafC_SM.bro_ForestC_BroadleafC_SM:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:765][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/bro_American_Elm_IM.bro_American_Elm_IM:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:765][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Landscape/BGGrass/Tree_8x8/Blue_Spruce_Hero_BRO.Blue_Spruce_Hero_BRO:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:768][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Assets/Walls/Wood_el2s.Wood_el2s:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:768][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Environment/Assets/Walls/Wood_el1s.Wood_el1s:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:772][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Items/CarePackage/CarePackage_CarePaKage_01_B.CarePackage_CarePaKage_01_B:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:773][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Items/CarePackage/CarePackage_ParachuteCare_B.CarePackage_ParachuteCare_B:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:773][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Items/CarePackage/CarePackage_ParachuteCare.CarePackage_ParachuteCare:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:773][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Items/CarePackage/CarePackage_CarePaKage_01.CarePackage_CarePaKage_01:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:777][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Items/CarePackage/Uaz_05.Uaz_05:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:779][  187]LogNavigation: Error: Attempt to build nav collision data for /Game/Vehicles/Wheeled/Uaz/Mesh/c130.c130:NavCollision_0 when we are unable to. This platform requires cooked packages.
+[2026.11.18-15.52.20:810][  187]LogSlate: Took 0.005660 seconds to synchronously load lazily loaded font '../../../PUBGM/Content/Startup/Fonts/FZLTZCHJW_1.ufont' (560K)
+[2026.11.18-15.52.20:853][  187]LogSlate: Took 0.041737 seconds to synchronously load lazily loaded font '../../../Engine/Content/Slate/Fonts/DroidSansFallback.ttf' (3848K)
+[2026.11.18-15.52.20:876][  187]LogAIModule: Creating AISystem for world BR-ErangelRenew_Mobile_Main
+[2026.11.18-15.52.20:878][  187]LogLoad: Game class is 'NZBRLegionGameMode'
+[2026.11.18-15.52.20:878][  187]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.52.20:883][  187]LogInit: BSD_Android: I am localhost (127.0.0.1:0)
+[2026.11.18-15.52.20:884][  187]LogSockets: (BSD_Android) Wifi Adapter IP 172.29.10.8
+[2026.11.18-15.52.20:885][  187]LogNet: eth1_ip 172.29.10.8
+[2026.11.18-15.52.20:885][  187]LogNet: Find LocalAddrs Num=2, IPs=172.29.10.8;127.0.0.1;
+[2026.11.18-15.52.20:885][  187]LogNet: Created new socket 0
+[2026.11.18-15.52.20:886][  187]LogNet: Created new socket 0
+[2026.11.18-15.52.20:887][  187]PacketHandlerLog: Loaded PacketHandler component: NZNetHandle (NZEncryptHandlerComponent)
+[2026.11.18-15.52.20:888][  187]PacketHandlerLog: Loaded PacketHandler component: Engine.EngineHandlerComponentFactory (StatelessConnectHandlerComponent)
+[2026.11.18-15.52.20:889][  187]LogNet: GameNetDriver NZIpNetDriver_0 IpNetDriver listening on port 7777
+[2026.11.18-15.52.20:934][  187]LogWorld: Bringing World /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main.BR-ErangelRenew_Mobile_Main up for play (max tick rate 60) at 2026.11.18-15.52.20
+[2026.11.18-15.52.20:940][  187]LogOnline: Warning: OSS: AutoLogin missing AUTH_LOGIN=<login id>.
+[2026.11.18-15.52.20:940][  187]NZ: [jerryttang net] InitGame called bUseHundredPlayerNetworkOpt = 0
+[2026.11.18-15.52.20:942][  187]NZ: [NZBattleRoyaleGameMode.cpp:355] NZBRGameMode inited
+[2026.11.18-15.52.20:946][  187]NZ: [NZDataTableManager.cpp:319] Load NewDataTable[GameModeType], Num:16
+[2026.11.18-15.52.20:947][  187]LogTemp: GameWelcomePlayer: GameMapId = 3, RoomType = 1, TeamType = 0
+[2026.11.18-15.52.20:947][  187]LogTemp: GameWelcomePlayer: MainGameModeType = -1, SubGameModeType = -1
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsManagerActor::FillLayersWithCacheData NumLayers : 18
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsManagerActor::FillLayersWithCacheData NumLevels : 6706
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsManagerActor::FillLayersWithCacheData CreateStreamingLevelTime : 0.000000
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsManagerActor::FillLayersWithCacheData CreateLevelsWorldTileInfoTime : 0.000000
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsManagerActor::FillLayersWithCacheData Total Duration : 0.000000
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsPolicy::Create() Name = NZStreamingLevelsPolicyDefault, GUID = 0AAD81B4150B0F12003400744A72B999
+[2026.11.18-15.52.21:116][  187]LogNZLevelStreaming: NZStreamingLevelsPolicy::Create() Name = NZStreamingLevelsPolicyServer, GUID = 0AAE349B150B0F12003400744A72B8C2
+[2026.11.18-15.52.21:116][  187]LogWorld: Bringing up level for play took: 0.193041
+[2026.11.18-15.52.21:118][  187]LogTemp: [NavMesh] UNavigationSystem found 0 NavigationData, this=NavigationSystem_0, World=BR-ErangelRenew_Mobile_Main
+[2026.11.18-15.52.21:119][  187]NZ: Warning: [NZBattleRoyaleGameMode.cpp:565] Uin not found in options
+[2026.11.18-15.52.21:120][  187]NZ: [NZGameMode.cpp:876] [zachma] Playercontroller SpawnLocation change from X=0.000 Y=0.000 Z=0.000 to X=387615.250 Y=-388622.344 Z=555.101
+[2026.11.18-15.52.21:121][  187]LogOnline: Warning: OSS: No game present to join for session (GameSession)
+[2026.11.18-15.52.21:129][  187]LogTemp: SetViewTarget---NewViewTarget = NZPlayerController_0, Role = 3
+
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_fa99b647693bd17e97be2567ea293086-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Hair/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_fa6c84bf1535954412ab099bbe8359ed-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f9af588468b6760f3d17e4dd5de5753c-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/ShortTrousers/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f70cf86cc4d21209baf0e5e1ac5f7dba-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f54ab436001b08a695d4f74fb69aecc6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_f38af86e6e7efee88bc9b8623eeda7c0-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_ec9122d878eedb0ac276c571f121c0f2-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_ec780b2bff70c2307ed9c3c691cf493c-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_dbf22f402fe361f4e441345e4d5ea1f6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:684][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_da4189438fd6cb5f2ac32120293b652c-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Bagpack/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_d027922abdfe89d0842a5438a29da712-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_cd9212e2e38c12614982698db7651402-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_cc7a30127ee122f70ef6a67dc8ab315f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Ghillie/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c8e99f9de7928c6d39a6e1ee29025d56-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c7f03540b1fd2aba92c9444b425f84f9-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000001/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c3b9b854c61d6c2a8f9cef14c905a770-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Overall/30323000002/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_c0835539d1e79faf163680a12bd46e46-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Character/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_bbfb5128122db5166cfad4453e20fce6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/LongShirt/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_b8953424c632f491edbdf06bcd64144a-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:685][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_adb009fe8097657ef9c5b2d76e4fa2e1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:686][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_a9e9e6afb3d3392e3379fecf62adb1af-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:686][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_a7ebfd2047d2dc5c38a19435d2d0c408-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Character/".
+[2026.11.18-15.53.58:686][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_a17880e1d682285f29358c9478752687-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:686][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_9c5cc489bfcfb02a6257eae2e4ce63db-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortShirt/".
+[2026.11.18-15.53.58:686][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_8df5a046a694a93ee2ae2e0d94dd0379-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:686][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_8c34b1c2ede410563d4462ba2710dab8-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Hair/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_8624257f5faf3889e31f716a00ae1195-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_7fc37d0f115660a03a98ef8ed40e29be-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_7b5fa81bebdc7380dd2f95c67798b249-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_77a400ff2fd3e787a12a47dc55ecb27b-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_7756f80f9cf4e1f5ddeb5c7d4e35fd58-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Hair/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_771a490be57e06921b1a7944b0dfc521-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Helmet/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_71e04843d5240e9b8be8d4750f8904ac-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortTrousers/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_6c21aee3354de113b5ce8f2839bae6ee-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/Character/".
+[2026.11.18-15.53.58:687][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_6529ba153fb97a1204ae64eeeabcffb1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Character/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_5bfc1b91987145bb3480b1bf1ad78f96-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_5a848240bb2b31ed4762f59da5c3ed7d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_5987e7cbde0143e3223ea2dd4c7355e1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/BareMidriff/30232000006/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_549d30de8c43344d14a79aefdb0eec7b-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_543662cef52321407afc50823c3a8e7d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_50b2f1f172478e071b87703fc7471f64-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000002/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_49bbdaf460a1ecd155b9dd5817615e64-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Bagpack/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_47ceced952058a6ee550739458fce99d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/ShortTrousers/".
+[2026.11.18-15.53.58:688][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_43b90cd02c5439f4924196dbd61fb438-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/BareMidriff/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3f69ca52523ef7887e3fbbd97533bb0f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3c1325f30e93c652271e3918a9ca07e1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_352d9ea3c58bbf6f3a4595b111fd9761-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3508239e2c800a0baec5fc95785acb3f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000005/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_325c16cc4994c10aba4a941824ead5ae-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000004/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_3246e7f563465d56d99cb058ae20602a-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2e2de190da27e20d5def758b380ff9dc-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000000/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2d7aea3dd936e90bc911e2eff95a8e62-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Base/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2b0b86fc799c1ef898bb8fd06a0c40bb-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_2a792d0fcc99d58a14298541d6ad0eb0-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortShirt/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_29124eda5141ddd75e8f7fe409690f20-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/30315000061/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_28846ddb7087223c1536f0b77522a856-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Hair/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_27a5fa662ae90d4d595ec8ef29071edb-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Male/Character/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_24c67bfe1b0f7f699bdcd476b72a62bf-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shoes/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_1aa28ee9b72290407313467d684f18f9-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_19a29c93cf7e533c8e52e14f6440ecb1-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000003/".
+[2026.11.18-15.53.58:689][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_17d6b92c19a82b2666186f1fd54132cc-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_1759f4fc3963ef3226b4724e028e95b5-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Female/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_16d93c15c4ad3bba0d0fd920581581c6-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_165f5090aa690031d77a09169168bb4f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Coat/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_1452221a648d9d867c7e5b0762ff111d-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shoes/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_133cd30b503a5d4bbcdf5193f7c55d5b-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_0afa5b1512a9ded1dc79ce1bda307989-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Trousers/30301000071/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_0af6413dfe41acb5315c7441a1c283d8-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_0a6dbea994f26aed26fa0365033bf35f-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/WholeBody/30325000005/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_08b56ec2e06bf0ad57fe294bc9575e7e-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/ShortShirt/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_04551149b029499062ef02ade1f9d8fb-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/LongShirt/".
+[2026.11.18-15.53.58:690][    0]LogPakFile: Success mount pak "PUBGM/Content/Paks/pakchunk_03be91f8e94271a1baac80118f0cc740-Android_ETC1ETC2.pak" ReadOrder 0 MountPoint "../../../PUBGM/Content/Avatar/Common/Shirt/".
+[2026.11.18-15.53.58:691][    0]LogPluginManager: Mounting plugin MergeAvatarPlugin
+[2026.11.18-15.53.58:695][    0]LogInit: Memory total: Physical=3785.00MB (4GB approx) Available=2156.92MB PageSize=4.0KB
+[2026.11.18-15.53.58:698][    0]LogTemp: cidefeng -------- 0xa420f000
+[2026.11.18-15.53.58:698][    0]LogTemp: cidefeng UNZUserCustomData -------- 0xa69942c0
+[2026.11.18-15.53.58:698][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:698][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]LogDsLogic: [NZBRBFADsLogic.cpp:23][UNZBRBFADsLogic] UNZBRBFADsLogic created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]LogDsLogic: [NZBRLegionDsLogic.cpp:23][UNZBRLegionDsLogic] UNZBRLegionDsLogic created
+[2026.11.18-15.53.58:699][    0]LogDsLogic: [NZBRLegionDsLogic.cpp:23][UNZBRLegionDsLogic] UNZBRLegionDsLogic created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.58:699][    0]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.53.59:350][    0]NZOnlineSubsystem: Error: [2026-11-18 15:53:59 348] | Error | [GCloud] |0xdae6ade0| ApolloAccountService.cpp:82|Initialize| CApolloAccountService::CApolloAccountService() GetLoginRecord error:7
+[2026.11.18-15.53.59:557][    0]LogTemp: cidefeng -------- 0xa40f09e0
+[2026.11.18-15.53.59:575][    0]NZOnlineSubsystem: Error: [2026-11-18 15:53:59 557] | Error | [GCloud] |0xacba9de0| puffer_init_action.cpp:162|MakeSureDirUseFull| dir is usefull /storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files/PufferCache
+[2026.11.18-15.53.59:575][    0]NZOnlineSubsystem: Error: [2026-11-18 15:53:59 557] | Error | [GCloud] |0xacba9de0| puffer_init_action.cpp:162|MakeSureDirUseFull| dir is usefull /storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files/PufferCache/puffer_temp
+[2026.11.18-15.53.59:575][    0]LogTemp: cidefeng UNZUserCustomData -------- 0xa376ce40
+[2026.11.18-15.53.59:575][    0]LogTemp: cidefeng UNZSystemSettingData UpdateByVersion
+[2026.11.18-15.53.59:578][    0]LogTemp: cidefeng UNZSystemSettingData UpdateByVersion NewVersion:9 CurVersion:9
+[2026.11.18-15.53.59:578][    0]LogTemp: cidefeng UNZSystemSettingData OnLoadInit
+[2026.11.18-15.54.01:062][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:00 177] | Error | [GCloud] |0xacba9de0| address_service.cpp:640|ProcessResponse| Recv_QueryAddrInfo ret:0, rsp.result:-101
+[2026.11.18-15.54.01:062][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:00 179] | Error | [GCloud] |0xacba9de0| rpc.cpp:495|OnGetServiceAddress| GetIpPorts failed(-11).
+[2026.11.18-15.54.01:191][    0]LogTemp: cidefeng UNZSystemSettingData PreLoadMap: /Game/Startup/StartupMap
+[2026.11.18-15.54.01:192][    0]LogTemp: cidefeng ApplyRenderQuality bCanApplyRenderQuality:0
+[2026.11.18-15.54.01:240][    0]LogLoad: LoadMap: /Game/Startup/StartupMap?Name=Player
+[2026.11.18-15.54.01:340][    0]LogLevel: [evanlu]LogGarbage ULevel begin to read GC setting from ini, ../../../PUBGM/Saved/Config/Android/GCSetting.ini.
+[2026.11.18-15.54.01:347][    0]LogLoad: Game class is 'NZStartupGameMode'
+[2026.11.18-15.54.01:368][    0]LogGameMode: FindPlayerStart: PATHS NOT DEFINED or NO PLAYERSTART with positive rating
+[2026.11.18-15.54.01:395][    0]LogGameMode: Display: Match State Changed from EnteringMap to WaitingToStart
+[2026.11.18-15.54.01:733][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:01 732] | Error | [GCloud] |0xdae6ade0| version_mgr_imp.cpp:46|Init| UsrConfig[{
+[2026.11.18-15.54.01:736][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:01 736] | Error | [GCloud] |0xdae6ade0| action_factory.cpp:102|init| init str :{
+[2026.11.18-15.54.01:737][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:01 737] | Error | [GCloud] |0xdae6ade0| action_factory.cpp:162|init| User_Data=
+[2026.11.18-15.54.01:737][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:01 737] | Error | [GCloud] |0xdae6ade0| action_factory.cpp:169|init| apollopath=/storage/emulated/0/Android/data/com.tencent.tmgp.pubgm/files/update/
+[2026.11.18-15.54.01:738][    0]NZOnlineSubsystem: Error: [2026-11-18 15:54:01 738] | Error | [GCloud] |0xdae6ade0| action_factory.cpp:152|init| m_update_type=20
+[2026.11.18-15.54.01:773][    0]LogGameMode: Display: Match State Changed from WaitingToStart to InProgress
+[2026.11.18-15.54.01:821][    0]LogTemp: cidefeng PostLoadMapWithWorld World: StartupMap
+[2026.11.18-15.54.01:821][    0]LogTemp: cidefeng UNZSystemSettingData SetWorldContext WorldContextRef: StartupMap
+[2026.11.18-15.54.01:821][    0]LogTemp: cidefeng PostLoadMapWithWorld Before bHadInited_UseRTTInBag:1 bUseRTTInBag:0
+[2026.11.18-15.54.01:822][    0]LogTemp: cidefeng PostLoadMapWithWorld After bHadInited_UseRTTInBag:1 bUseRTTInBag:0
+[2026.11.18-15.54.01:822][    0]LogTemp: cidefeng ApplyMSAA bUseMSAA:0 bRealUseMSAA: 0
+[2026.11.18-15.54.01:852][    0]LogLoad: Took 0.612264 seconds to LoadMap(/Game/Startup/StartupMap)
+[2026.11.18-15.54.05:104][    1]LogHttp: Warning: 0xa3721e80: request failed, libcurl error: 6 (Error)
+[2026.11.18-15.54.05:220][    2]LogHttp: Warning: 0xa3725a80: request failed, libcurl error: 6 (Error)
+[2026.11.18-15.54.05:238][    2]NZOnlineSubsystem: Error: [2026-11-18 15:54:05 237] | Error | [GCloud] |0xdae6ade0| IFSOpenArchive.cpp:120|SFileOpenArchive| [result]:read ifs failed and error=107
+[2026.11.18-15.54.05:238][    2]NZOnlineSubsystem: Error: [2026-11-18 15:54:05 238] | Error | [GCloud] |0xdae6ade0| first_extract_action.cpp:354|Initifs| SFileOpenArchive apk:///data/app/~~Wm3Y4ruOy2r9b0glI265Yg==/com.tencent.tmgp.pubgm-OPFsf3UFl1jaIzF2TetngQ==/base.apk?assets/nzres.png 107
+[2026.11.18-15.54.05:238][    2]NZOnlineSubsystem: Error: [2026-11-18 15:54:05 238] | Error | [GCloud] |0xdae6ade0| first_extract_action.cpp:92|DoAction| init ifs failed
+[2026.11.18-15.54.05:240][    2]NZFrontEnd: [lb#OnResUpdateResult] InErrorCode: 107, InInfo: 更新中(100):
+[2026.11.18-15.54.05:267][    4]LogHttp: Warning: 0xa3724040: request failed, libcurl error: 6 (Error)
+[2026.11.18-15.54.05:374][    6]LogHttp: Warning: 0xa3724e00: request failed, libcurl error: 6 (Error)
+[2026.11.18-15.54.05:420][    9]LogHttp: Warning: 0xa3724400: request failed, libcurl error: 6 (Error)
+[2026.11.18-15.54.05:565][   17]LogGameMode: Display: Match State Changed from InProgress to LeavingMap
+[2026.11.18-15.54.05:581][   17]LogTemp: cidefeng UNZSystemSettingData PreLoadMap: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+[2026.11.18-15.54.05:585][   17]LogTemp: cidefeng FTerSafeAPI:IsRunningInSimulator 0
+[2026.11.18-15.54.05:586][   17]LogTemp: cidefeng UNZSystemSettingData CheckIsRunInSimulator IsRunningInSimulator: 0 TAS:0
+[2026.11.18-15.54.05:586][   17]LogTemp: cidefeng UNZSystemSettingData CheckIsRunInSimulator : 0
+[2026.11.18-15.54.05:632][   17]LogLoad: LoadMap: /Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW
+[2026.11.18-15.54.06:451][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:451][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:609][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:609][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:609][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:609][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:609][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:609][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:621][   17]LogLoad: Game class is 'NZFrontEndGameMode_C'
+[2026.11.18-15.54.06:866][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.06:866][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.07:188][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.07:188][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.07:219][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.07:219][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.07:259][   17]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.07:271][   17]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.07:272][   17]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.07:273][   17]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.07:305][   17]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.07:312][   17]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.07:373][   17]LogGameMode: Display: Match State Changed from EnteringMap to WaitingToStart
+[2026.11.18-15.54.07:373][   17]LogGameMode: Display: Match State Changed from WaitingToStart to InProgress
+[2026.11.18-15.54.07:381][   17]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.18-15.54.07:381][   17]LogTemp: cidefeng UNZUIEventManager::Get Create UIEventManager
+[2026.11.18-15.54.07:382][   17]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.18-15.54.07:382][   17]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.18-15.54.07:382][   17]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.18-15.54.07:382][   17]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.18-15.54.07:382][   17]LogTemp: cidefeng ANZCharacter TryEnterFPPMode 0
+[2026.11.18-15.54.07:808][   17]NZ: [NZUIAvatarProxyManager.cpp:114] ###jayzhong### ANZUIAvatarProxyManager::InitProxyManager
+[2026.11.18-15.54.09:091][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:091][   17]NZOnlineSubsystem: KeyLobbyMsg: SendMsg 36001, waiting for response 36002, SequenceID=1, IsKeyMsg=1
+[2026.11.18-15.54.09:097][   17]NZFrontEnd: UNZFrontEndUIController::InitAvatar
+[2026.11.18-15.54.09:099][   17]NZ: Error: [NZFrontEndSceneMgr.cpp:233] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultDirectLight
+[2026.11.18-15.54.09:099][   17]NZ: Error: [NZFrontEndSceneMgr.cpp:243] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultSkyLight
+[2026.11.18-15.54.09:104][   17]NZ: [NZFrontEndSceneMgr.cpp:246] ANZUIAvatarProxyManager SwitchLight with type 1 result type 1
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry roleID = 10200000000
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---  Default ClotheID = 10200000000
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---  Default ClotheID = 30302000000
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---  Default ClotheID = 30301000001
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---  Default ClotheID = 30306000000
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---  Default ClotheID = 30213000003
+[2026.11.18-15.54.09:111][   17]NZFrontEnd: FNZStoreAvatarHelper::InitAvatarClotheTry  ---  Default ClotheID = 30303000006
+[2026.11.18-15.54.09:111][   17]NZ: [NZUIAvatarProxyManager.cpp:224] ###jayzhong### EquipItemsForHallRole  10200000000, 30302000000, 30301000001, 30306000000, 30213000003, 30303000006, 
+[2026.11.18-15.54.09:113][   17]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.09:114][   17]NZ: Warning: [NZBRCharacterUI.cpp:113] NZBRCharacterUI PlayUIAnimSet USkeletalMeshComponent empty at UICharacter_2
+[2026.11.18-15.54.09:114][   17]NZFrontEnd: UNZFrontEndUIController::InitAvatar  EquipItemsForHallRole
+[2026.11.18-15.54.09:114][   17]NZ: [NZBRWeaponUI.cpp:800] ANZBRWeaponUI EquipWeapon weapon ids: WeaponId:0, WeaponSuiteSkin:0, WeaponSkin:0, Adapters 0, AdapterSkins 0
+[2026.11.18-15.54.09:115][   17]NZFrontEnd: UNZFrontEndUIController::InitAvatar End
+[2026.11.18-15.54.09:117][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:117][   17]NZOnlineSubsystem: KeyLobbyMsg: SendMsg 22005, waiting for response 22006, SequenceID=2, IsKeyMsg=0
+[2026.11.18-15.54.09:117][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:118][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:131][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:131][   17]NZOnlineSubsystem: KeyLobbyMsg: SendMsg 30014, waiting for response 30015, SequenceID=5, IsKeyMsg=0
+[2026.11.18-15.54.09:135][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:137][   17]NZOnlineSubsystem: KeyLobbyMsg: reliable msg is waiting for response, message 37010 is add to pending list=1
+[2026.11.18-15.54.09:143][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.09:143][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.09:143][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.09:143][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.09:143][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.09:143][   17]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.09:144][   17]NZ: Error: [NZFrontEndSceneMgr.cpp:233] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultDirectLight
+[2026.11.18-15.54.09:144][   17]NZ: Error: [NZFrontEndSceneMgr.cpp:243] ANZUIAvatarProxyManager SwitchLight fail to find camera with tag HallDefaultSkyLight
+[2026.11.18-15.54.09:144][   17]NZ: [NZFrontEndSceneMgr.cpp:246] ANZUIAvatarProxyManager SwitchLight with type 1 result type 1
+[2026.11.18-15.54.09:156][   17]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.09:320][   17]LogTemp: cidefeng PostLoadMapWithWorld World: FrontEndMap_NEW
+[2026.11.18-15.54.09:320][   17]LogTemp: cidefeng UNZSystemSettingData SetWorldContext WorldContextRef: FrontEndMap_NEW
+[2026.11.18-15.54.09:320][   17]LogTemp: cidefeng PostLoadMapWithWorld Before bHadInited_UseRTTInBag:1 bUseRTTInBag:0
+[2026.11.18-15.54.09:321][   17]LogTemp: cidefeng PostLoadMapWithWorld After bHadInited_UseRTTInBag:1 bUseRTTInBag:0
+[2026.11.18-15.54.09:321][   17]LogTemp: cidefeng ApplyMSAA bUseMSAA:0 bRealUseMSAA: 0
+[2026.11.18-15.54.09:392][   17]LogLoad: Took 3.759927 seconds to LoadMap(/Game/Maps/Erangle_RoleHall/NEW/FrontEndMap_NEW)
+[2026.11.18-15.54.09:567][   17]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.18-15.54.09:568][   17]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.18-15.54.10:213][   18]LogHttp: Warning: 0x9f238880: request failed, libcurl error: 3 (Error)
+[2026.11.18-15.54.10:455][   18]NZ: Error: [NZFrontEndSceneMgr.cpp:193] ANZFrontEndSceneMgr InitLight fail to find camera with tag HallDefaultDirectLight
+[2026.11.18-15.54.10:457][   18]NZ: Error: [NZFrontEndSceneMgr.cpp:205] ANZFrontEndSceneMgr InitLight fail to find camera with tag HallDefaultSkyLight
+[2026.11.18-15.54.10:551][   18]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:0 CRQ:6
+[2026.11.18-15.54.10:552][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.10:552][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.10:555][   18]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.10:555][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.10:556][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.10:556][   18]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.10:556][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.10:557][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.10:557][   18]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.10:557][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.10:558][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.10:558][   18]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.10:558][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:1 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.18-15.54.10:558][   18]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.11:277][   32]NZ: [:1299] ###jayzhong###OnChangeHairColor CurrColorIdx:0, newColorIdx: 1, is ui: TRUE
+[2026.11.18-15.54.11:288][   32]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:1!
+[2026.11.18-15.54.11:363][   33]NZ: [:1299] ###jayzhong###OnChangeHairColor CurrColorIdx:1, newColorIdx: 1, is ui: TRUE
+[2026.11.18-15.54.12:342][   69]NZOnlineSubsystem: Error: ConnectorService::SendRawBuffer connector is invalidate
+[2026.11.18-15.54.21:998][  476]NZOnlineSubsystem: Error: [2026-11-18 15:54:21 977] | Error | [GCloud] |0xacba9de0| puffer_init_action.cpp:622|MakeSureGetUrlFromServer| connect server timeout
+[2026.11.18-15.54.22:351][  494]NZOnlineSubsystem: Error: [2026-11-18 15:54:22 349] | Error | [GCloud] |0xacba9de0| address_service.cpp:640|ProcessResponse| Recv_QueryAddrInfo ret:0, rsp.result:-101
+[2026.11.18-15.54.22:351][  494]NZOnlineSubsystem: Error: [2026-11-18 15:54:22 349] | Error | [GCloud] |0xacba9de0| rpc.cpp:495|OnGetServiceAddress| GetIpPorts failed(-11).
+[2026.11.18-15.54.31:191][  951]LogGameMode: Display: Match State Changed from InProgress to LeavingMap
+[2026.11.18-15.54.31:191][  951]LogTemp: UNZUIEventManager::OnBeforeLoadMap MapName: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main
+[2026.11.18-15.54.31:191][  951]LogTemp: cidefeng UNZUIEventManager::OnBeforeLoadMap Clear UIEventManager
+[2026.11.18-15.54.31:201][  951]LogTemp: cidefeng UNZSystemSettingData PreLoadMap: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main
+[2026.11.18-15.54.31:201][  951]LogTemp: cidefeng ApplyRenderQuality bCanApplyRenderQuality:0
+[2026.11.18-15.54.31:286][  951]LogLoad: LoadMap: /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?listen?MaxPlayers=100
+[2026.11.18-15.54.31:301][  951]LogTemp: ANZFrontEndGameMode:EndPlay bDisableWorldRendering 0
+[2026.11.18-15.54.31:301][  951]LogTemp: ANZFrontEndGameMode:EndPlay FNZMessageHelper ShutDown
+[2026.11.18-15.54.34:939][  951]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.54.34:939][  951]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.54.35:430][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.35:430][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.36:040][  951]LogLoad: Game class is 'BP_NZBRIslandGameMode_C'
+[2026.11.18-15.54.36:040][  951]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.54.36:074][  951]NZ: [NZBattleRoyaleGameMode.cpp:355] NZBRGameMode inited
+[2026.11.18-15.54.36:085][  951]NZ: [NZDataTableManager.cpp:319] Load NewDataTable[GameModeType], Num:16
+[2026.11.18-15.54.36:087][  951]LogTemp: GameWelcomePlayer: MainGameModeType = -1, SubGameModeType = -1
+[2026.11.18-15.54.36:249][  951]NZ: Warning: [NZBattleRoyaleGameMode.cpp:565] Uin not found in options
+[2026.11.18-15.54.36:250][  951]NZ: [NZGameMode.cpp:876] [zachma] Playercontroller SpawnLocation change from X=0.000 Y=0.000 Z=0.000 to X=387615.250 Y=-388622.344 Z=555.101
+[2026.11.18-15.54.41:331][  951]NZ: [NZBattleRoyaleGameMode.cpp:217] NZBRGameMode created
+[2026.11.18-15.54.41:994][  951]LogTemp: cidefeng UNZUIEventManager::Get Create UIEventManager
+[2026.11.18-15.54.41:994][  951]LogTemp: cidefeng UNZMobileMovementButtonView PostInit AddDynamic
+[2026.11.18-15.54.41:995][  951]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative GS :1
+[2026.11.18-15.54.41:995][  951]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative Sys :1
+[2026.11.18-15.54.41:996][  951]LogTemp: cidefeng UNZMobileMovementButtonView HandleUIMsgNative :1
+[2026.11.18-15.54.42:063][  951]NZ: [NZBattleRoyaleGameMode.cpp:929] Uin=1 PredictionData do nothing!
+[2026.11.18-15.54.42:064][  951]LogGameMode: Display: Match State Changed from EnteringMap to WaitingToStart
+[2026.11.18-15.54.42:064][  951]LogGameMode: Display: Match State Changed from WaitingToStart to InProgress
+[2026.11.18-15.54.43:983][  951]NZOnlineSubsystem: Error: [2026-11-18 15:54:43 974] | Error | [GCloud] |0xacba9de0| puffer_init_action.cpp:622|MakeSureGetUrlFromServer| connect server timeout
+[2026.11.18-15.54.43:983][  951]NZOnlineSubsystem: Error: [2026-11-18 15:54:43 974] | Error | [GCloud] |0xacba9de0| puffer_init_action.cpp:80|run| [CPufferInitAction::run] get url from server failed 70254639
+[2026.11.18-15.54.44:635][  951]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.44:636][  951]LogTemp: ###jayzhong### DS is nullptr
+[2026.11.18-15.54.44:638][  951]LogTemp: ###jayzhong### After find default role List Size: 6, 10200000000, 30302000000, 30301000001, 30306000000, 30213000003, 30303000006, uin:1
+[2026.11.18-15.54.44:638][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.44:667][  951]LogSkinnedMeshComp: Warning: GetSocketByName(FPPCamera): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_NZBRCharacter_BaseMan_IsLand_C_0)
+[2026.11.18-15.54.44:824][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.44:825][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.44:825][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.44:825][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.44:825][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.44:825][  951]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.47:622][  951]LogTemp: Display: InventoryID: 20301000001, Skin Index: 0 in WeaponMode: 1
+[2026.11.18-15.54.47:627][  951]LogTemp: [ConfigUpdateDataServer] Begin ApplyUpdateConfigsInTable at table WeaponSkinTable with 0 configs
+[2026.11.18-15.54.47:627][  951]NZ: [NZDataTableManager.cpp:199] Load NewDataTable[WeaponSkinTable] type:43, Num:172
+[2026.11.18-15.54.47:627][  951]NZ: Error: [NZWeaponBase.cpp:843] Can't Find Item in WeaponSkinTable, InventoryIdName=20301000001
+[2026.11.18-15.54.47:709][  951]LogDataTable: [csvTable] Read File Failed path = ../../../PUBGM/Saved/Config/GameFeatureConfig/AirSupplySystemConfig.csv
+[2026.11.18-15.54.47:721][  951]NZ: [NZDataTableManager.cpp:319] Load NewDataTable[AirSupplySystemConfig], Num:14
+[2026.11.18-15.54.47:721][  951]LogTemp: [ModeMapping]: Table: GameFeatureConfig/AirSupplySystemConfig, RowIndex=3, MapTable=
+[2026.11.18-15.54.47:732][  951]NZ: [NZGameMode.cpp:301] ANZGameMode::BeginPlay, this=BP_NZBRIslandGameMode_C_0
+[2026.11.18-15.54.47:732][  951]NZ: [NZGameMode.cpp:319] Create Game=BP_NZBRIslandGameMode_C_0 in BeginPlay in SHIPPINGEXTERNAL Mode!
+[2026.11.18-15.54.47:732][  951]NZ: [NZVehicleStatistics.cpp:12] [StartStat: ] Clean up all data !!!
+[2026.11.18-15.54.47:736][  951]LogDataTable: [csvTable] Read File Failed path = ../../../PUBGM/Saved/Config/NZGameModeTable.csv
+[2026.11.18-15.54.47:739][  951]NZ: [NZDataTableManager.cpp:319] Load NewDataTable[NZGameModeTable], Num:15
+[2026.11.18-15.54.47:740][  951]LogTemp: [ModeMapping]: Table: NZGameModeTable, RowIndex=4, MapTable=
+[2026.11.18-15.54.47:740][  951]LogTemp: cidefeng SetGameModeType MainGameModeType=-1, SubGameModeType=-1
+[2026.11.18-15.54.48:014][  951]LogTemp: Error: UNZSoundVisualizationManager::Init FNZSoundVisualDistTableRow index :19 sourceType: 255  error
+[2026.11.18-15.54.48:015][  951]LogTemp: Error: UNZSoundVisualizationManager::Init StopSoundVisualizationRestrictIndex index :5 
+[2026.11.18-15.54.48:404][  951]NZ: cidefeng ANZSceneItemManager::Set From:BP_NZBRPlayerController_C_0:BP_SceneItemManager_64:0
+[2026.11.18-15.54.48:405][  951]LogTemp: cidefeng UNZSystemSettingData GetCurrentMobileLevel : 5
+[2026.11.18-15.54.48:405][  951]LogTemp: cidefeng UNZSystemSettingData CalcDeviceLevel Result: 5
+[2026.11.18-15.54.48:405][  951]LogTemp: cidefeng UNZSystemSettingData GetCurrentMobileLevel : 5
+[2026.11.18-15.54.48:405][  951]LogTemp: cidefeng UNZSystemSettingData CalcDeviceLevel Result: 5
+[2026.11.18-15.54.48:406][  951]LogTemp: UCharacterCaptureComponent::BeginPlay enableBagRoleAvatar
+[2026.11.18-15.54.48:417][  951]LogTemp: Display: InventoryID: 20301000001, Skin Index: 0 in WeaponMode: 1
+[2026.11.18-15.54.48:417][  951]NZ: Error: [NZWeaponBase.cpp:843] Can't Find Item in WeaponSkinTable, InventoryIdName=20301000001
+[2026.11.18-15.54.48:432][  951]LogTemp: ###jayzhong### InitAvatarProxy bRet:1
+[2026.11.18-15.54.48:432][  951]LogTemp: ###jayzhong### GameMode is nullptr or playerController is nullptr
+[2026.11.18-15.54.48:432][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.48:433][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.48:433][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.48:433][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.48:433][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.48:433][  951]LogTemp: cidefeng UNZAvatarRepInfo OnRep_AvaRepInfo NWB:0 FUWB:0 RQFWB:0
+[2026.11.18-15.54.48:435][  951]LogSkinnedMeshComp: Warning: GetSocketByName(FPPCamera): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_NZBRCharacter_BaseMan_C_0)
+[2026.11.18-15.54.48:436][  951]LogSkinnedMeshComp: Warning: GetSocketByName(FPPCamera): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_NZBRCharacter_BaseMan_C_0)
+[2026.11.18-15.54.48:533][  951]LogTemp: cidefeng PostLoadMapWithWorld World: BR-ErangelRenew_Mobile_Main
+[2026.11.18-15.54.48:533][  951]LogTemp: cidefeng UNZSystemSettingData SetWorldContext WorldContextRef: BR-ErangelRenew_Mobile_Main
+[2026.11.18-15.54.48:533][  951]LogTemp: cidefeng PostLoadMapWithWorld Before bHadInited_UseRTTInBag:1 bUseRTTInBag:0
+[2026.11.18-15.54.48:533][  951]LogTemp: cidefeng PostLoadMapWithWorld After bHadInited_UseRTTInBag:1 bUseRTTInBag:0
+[2026.11.18-15.54.48:533][  951]LogTemp: cidefeng ApplyMSAA bUseMSAA:0 bRealUseMSAA: 0
+[2026.11.18-15.54.48:557][  951]LogStreamableManager: Error: RequestAsyncLoad called with empty or only null assets!
+[2026.11.18-15.54.48:863][  951]LogLoad: Took 17.576707 seconds to LoadMap(/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main)
+[2026.11.18-15.54.48:864][  951]NZ: [NZGameMode.cpp:2313] LongTickDiffTime[0.0010]
+[2026.11.18-15.54.49:072][  951]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 1 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.18-15.54.49:072][  951]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 1 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.18-15.54.49:130][  951]NZAvatar: Warning: cidefeng OnAvatarAssembler In Items: 0 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.18-15.54.49:130][  951]NZAvatar: Warning: cidefeng OnAvatarAssembler Out Items: 0 : 10200000000,30301000001,30302000000,30303000006,30306000000,30213000003
+[2026.11.18-15.54.49:403][  952]NZ: [NZGameMode.cpp:444] MapName=World /Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main.BR-ErangelRenew_Mobile_Main create GridMap, MapHalfWidth=400000.000000
+[2026.11.18-15.54.49:421][  952]NZ: Warning: [NZGameMode.cpp:500] RegisterCachedSpawnedPickupListToGridMap, CachedSpawnedPickupList.Num()=0
+[2026.11.18-15.54.49:421][  952]NZ: Warning: [NZGameMode.cpp:519] RegisterCachedPickupSPListToGridMap, CachedPickupSPList.Num()=0
+[2026.11.18-15.54.49:421][  952]NZ: Warning: [NZGameMode.cpp:629] Add 0 SceneItems to GridMap, Duplicated:0
+[2026.11.18-15.54.49:421][  952]NZ: Warning: [NZGameMode.cpp:732] Add 0 Doors to GridMap, Duplicated:0
+[2026.11.18-15.54.49:436][  953]LogTemp: Console Cmd[AddAvaItem V0x1929995336]
+[2026.11.18-15.54.49:458][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:458][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:458][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.18-15.54.49:458][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.18-15.54.49:459][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:1
+[2026.11.18-15.54.49:460][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:460][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:460][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:0 CurrRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng ANZAvatarAssembler::GetRenderQuality CurrentRQT:6 CRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes IsUI:0 bNeedPhysicsSimulatedInGame:1 CurrRQ:6
+[2026.11.18-15.54.49:461][  953]LogTemp: cidefeng UNZAvaListener_ClientSetup::ProcessSkinRes -------- IsLocalPlayer:0
+[2026.11.18-15.54.49:461][  953]NZAvatar: Error: Lower Device for Original Mesh! 
+[2026.11.18-15.54.49:680][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:680][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:687][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:688][  956]LogRHI: Error: Unsupported EPixelFormat 28
+[2026.11.18-15.54.49:799][  956]NZAvatar: ###jayzhong### HideLoadingProgress
+[2026.11.18-15.54.49:824][  956]NZAvatar: ###jayzhong###don't HideLoadingProgress IsGame3P:1, IsUICharacter:0!
+[2026.11.18-15.54.50:041][  957]NZ: [NZBattleRoyaleGameMode.cpp:993] [johnnyrao] forbid server to add new players after 15.00 seconds
+[2026.11.18-15.54.50:042][  957]NZ: [NZBattleRoyaleGameMode.cpp:1002] bEnableQuickStartMatch[1] BRGameState->ResetStartMatchCountDownTime[5.00]
+[2026.11.18-15.54.50:119][  958]NZ: [NZGameMode.cpp:2324] TotalLongTickCount[8] ElaspedTime[0.1165] CurConfigTickInterval[0.0333], Lag:83.1, TotalLag:1018
+[2026.11.18-15.54.51:052][  987]NZ: [NZGameMode.cpp:2324] TotalLongTickCount[19] ElaspedTime[0.0383] CurConfigTickInterval[0.0333], Lag:4.9, TotalLag:1179
+
+== 资源清单（v2.43）==
+挂载 pak 321 个，目录 168 种
+../../../ ×1
+Animations/ ×1
+Animations/Human/ ×1
+Animations/Human/Unarmed/ ×1
+Animations/Human/Unarmed/UI/ ×1
+Animations/Weapon/ ×1
+Animations/Weapon/ThrowWeapon/ ×1
+Avatar/Base/ ×1
+Avatar/Common/ ×5
+Avatar/Common/Bagpack/* ×2
+Avatar/Common/Coat/* ×8
+Avatar/Common/Ghillie/* ×1
+Avatar/Common/Helmet/* ×1
+Avatar/Common/LongShirt/* ×2
+Avatar/Common/Overall/* ×1
+Avatar/Common/Shirt/* ×17
+Avatar/Common/Shoes/* ×2
+Avatar/Common/ShortShirt/* ×3
+Avatar/Common/ShortTrousers/* ×1
+Avatar/Common/Trousers/* ×6
+Avatar/Common/WholeBody/* ×7
+Avatar/Female/ ×1
+Avatar/Female/BareMidriff/* ×2
+Avatar/Female/Character/* ×3
+Avatar/Female/Hair/* ×2
+Avatar/Female/ShortTrousers/* ×2
+Avatar/Male/ ×1
+Avatar/Male/Character/* ×2
+Avatar/Male/Hair/* ×2
+Blueprints/ ×1
+BodySetups/ ×3
+DataTables/ ×1
+EditorAssets/Texture/ ×1
+Effects/ ×2
+Effects/Impacts/ ×1
+Effects/Impacts/mat/ ×1
+Effects/Impacts/mat/SmokeDust/ ×1
+Effects/UI_Effects/ ×1
+Effects/UI_Effects/mat/ ×1
+Effects/UI_Effects/mat/M_UI_vfx_Energy_Streamline/ ×1
+Environment/ ×1
+Environment/Assets/ ×3
+Environment/Assets/House/ ×1
+Environment/Assets/House/Mesh/ ×2
+Environment/Assets/House/Mesh_8_8/ ×3
+Environment/Assets/House/Texture/ ×1
+Environment/Assets/Walls/ ×1
+Environment/Landscape/ ×1
+Environment/Landscape/BGGrass/ ×1
+Environment/Landscape/TexSavage/ ×1
+Environment/Landscape/Textures/ ×1
+Environment/Savage/House/ ×1
+Environment/Savage/House/Mesh/ ×1
+Environment/Savage/House/Texture/ ×1
+Environment/Savage/Props/ ×1
+Environment/Savage/Props/Props_Vehicle/ ×1
+Environment/Savage/Rock_4X4_Selected/ ×1
+Items/ ×1
+Items/CarePackage/ ×1
+Items/HealthItem/ ×1
+Items/HealthItem/Textures/ ×2
+Items/ItemSpawner/ ×1
+Items/ItemSpawner/Textures/ ×1
+Items/Parachute/ ×5
+Items/Prop/ ×2
+Items/Prop/tex/ ×1
+LuaSource/ ×1
+Maps/ ×1
+Maps/ErangeMobileRenew/ ×1
+Maps/ErangeMobileRenew_Runtime/ ×1
+Maps/ErangeMobileRenew_Runtime/Grass/ ×2
+Maps/ErangeMobileRenew_Runtime/Heightmap/ ×5
+Maps/ErangeMobileRenew_Runtime/OcHmp/ ×2
+Maps/ErangeMobileRenew_Runtime/Runtime/ ×1
+Maps/ErangeMobileRenew_Runtime/Runtime/Buildings/Interior/ ×1
+Maps/ErangeMobileRenew_Runtime/Runtime/Buildings/Main/ ×6
+Maps/ErangeMobileRenew_Runtime/Runtime/PhysicsOnly/ ×2
+Maps/ErangeMobileRenew_Runtime/Tree/ ×1
+Maps/ErangelMobile_Runtime/ ×2
+Maps/ErangelMobile_Runtime/Heightmap/MeshLandscapeLevels/ ×2
+Maps/ErangelMobile_Runtime/OcHmp/ ×2
+Maps/ErangelMobile_Runtime/Runtime/ ×1
+Maps/ErangelMobile_Runtime/Runtime/Buildings/Interior/ ×1
+Maps/ErangelMobile_Runtime/Runtime/Buildings/Main/ ×1
+Maps/SavageMobile_4x4_Runtime/ ×1
+Maps/SavageMobile_4x4_Runtime/Heightmap/ ×3
+Maps/SavageMobile_4x4_Runtime/OcHmp/ ×1
+Maps/SavageMobile_4x4_Runtime/Runtime/ ×1
+Maps/SavageMobile_4x4_Runtime/Runtime/Buildings/Interior/ ×1
+Maps/SavageMobile_4x4_Runtime/Runtime/Buildings/Main/ ×2
+Maps/SavageMobile_4x4_Runtime/Runtime/PhysicsOnly/ ×1
+Maps/SavageMobile_4x4_Runtime/Tree/ ×1
+Maps/TrainingIsland_Runtime/ ×1
+Materials/ ×2
+Materials/Effects/ ×1
+Materials/Effects/MainMaterial/ ×2
+Materials/Environment/ ×1
+Materials/Environment/Grass/ ×1
+PhysicalMaterials/ ×1
+Temp/ ×1
+UI/AppIcon/ ×1
+UI/UIAtlas/FrontEnd/ ×5
+UI/UIAtlas/FrontEnd/Common_0/Frames/ ×1
+UI/UIAtlas/FrontEnd/Common_0/Textures/ ×1
+UI/UIAtlas/FrontEnd/Task/ ×1
+UI/UIAtlas/FrontEnd/Team/ ×1
+UI/UIAtlas/Global/ ×1
+UI/UIAtlas/Global/Global_Hud/Frames/ ×1
+UI/UIAtlas/Global/Global_Hud/Textures/ ×2
+UI/UIAtlas/Global/System/ ×1
+UI/UIAtlas/HUD/ ×1
+UI/UIAtlas/HUD/HUD_Common/ ×2
+UI/UIAtlas/Icon/ ×1
+UI/UIAtlas/Icon/Normal/Frames/ ×1
+UI/UIAtlas/Icon/Normal/Textures/ ×10
+UI/UIAtlas/Icon/Small/Frames/ ×1
+UI/UIAtlas/Icon/Small/Textures/ ×1
+UI/UIAtlas/IconElse/ ×2
+UI/UIAtlas/IconElse/Title_N/ ×1
+UI/UIAtlas/UITextures/ ×1
+UI/UIAtlas/UITextures/Activity/Frames/ ×1
+UI/UIAtlas/UITextures/Activity/Textures/ ×3
+UI/UIAtlas/UITextures/Loading/Frames/ ×1
+UI/UIAtlas/UITextures/Loading/Textures/ ×3
+UI/UIAtlas/UITextures/SharePic/Frames/ ×1
+UI/UIAtlas/UITextures/SharePic/Textures/ ×2
+UI/UIBP/ ×1
+UI/UIBP/FrontEnd/ ×5
+UI/UIBP/FrontEnd/RankMatchUI/ ×2
+UI/UIBP/FrontEnd/RankMatchUI/RewardPopup/ ×1
+UI/UIBP/FrontEnd/UI_SystemSetting/ ×1
+UI/UIBP/HUD/ ×2
+UI/UIBP/HUD/Settlement/ ×1
+UI/UITexture/ ×1
+UI/UITexture/MapImage/ ×4
+UI/UITexture/RandomMap/ ×2
+Vehicles/ ×1
+Vehicles/Wheeled/ ×4
+Vehicles/Wheeled/Uaz/ ×1
+Vehicles/Wheeled/Uaz/Textures/ ×1
+Weapons/ ×1
+Weapons/Adapters/ ×7
+Weapons/Adapters/A20503000001_RedDot/ ×1
+Weapons/WeaponBase/ ×11
+Weapons/WeaponBase/W201010001_M416/ ×1
+Weapons/WeaponBase/W201010001_M416/Textures/ ×2
+Weapons/WeaponBase/W201010002_AKM/ ×1
+Weapons/WeaponBase/W201010002_AKM/Textures/ ×2
+Weapons/WeaponBase/W201010004_SCARL/ ×1
+Weapons/WeaponBase/W201010004_SCARL/Textures/ ×2
+Weapons/WeaponBase/W201030002_S686/ ×1
+Weapons/WeaponBase/W201030003_S12K/ ×1
+Weapons/WeaponBase/W201040001_Kar98k/ ×1
+Weapons/WeaponBase/W201040001_Kar98k/Textures/ ×1
+Weapons/WeaponBase/W201040003_SKS/ ×1
+Weapons/WeaponBase/W201040003_SKS/Textures/ ×1
+Weapons/WeaponBase/W201040008_QBU88/ ×1
+Weapons/WeaponBase/W201050001_UMP9/ ×1
+Weapons/WeaponBase/W201050002_UZI/ ×1
+Weapons/WeaponBase/W201050003_Vector/ ×1
+Weapons/WeaponBase/W201050004_TommyGun/ ×1
+Weapons/WeaponBase/W202010002_P1911/ ×1
+Weapons/WeaponBase/W202010004_P18C/ ×1
+Weapons/WeaponBase/W202010006_R45/ ×1
+Weapons/WeaponBase/W202010007_SawedOff/ ×1
+Weapons/WeaponBase/W203010002_Pan/ ×1
+WwiseAssets/ ×1
+WwiseAudio/Android/ ×17
+关键词命中：Environment/Landscape/TexSavage/  Environment/Savage/House/  Environment/Savage/House/Mesh/  Environment/Savage/House/Texture/  Environment/Savage/Props/  Environment/Savage/Props/Props_Vehicle/  Environment/Savage/Rock_4X4_Selected/  Items/Prop/  Items/Prop/tex/  Maps/  Maps/ErangeMobileRenew/  Maps/ErangeMobileRenew_Runtime/  Maps/ErangeMobileRenew_Runtime/Grass/  Maps/ErangeMobileRenew_Runtime/Heightmap/  Maps/ErangeMobileRenew_Runtime/OcHmp/  Maps/ErangeMobileRenew_Runtime/Runtime/  Maps/ErangeMobileRenew_Runtime/Runtime/Buildings/Interior/  Maps/ErangeMobileRenew_Runtime/Runtime/Buildings/Main/  Maps/ErangeMobileRenew_Runtime/Runtime/PhysicsOnly/  Maps/ErangeMobileRenew_Runtime/Tree/  Maps/ErangelMobile_Runtime/  Maps/ErangelMobile_Runtime/Heightmap/MeshLandscapeLevels/  Maps/ErangelMobile_Runtime/OcHmp/  Maps/ErangelMobile_Runtime/Runtime/  Maps/ErangelMobile_Runtime/Runtime/Buildings/Interior/  Maps/ErangelMobile_Runtime/Runtime/Buildings/Main/  Maps/SavageMobile_4x4_Runtime/  Maps/SavageMobile_4x4_Runtime/Heightmap/  Maps/SavageMobile_4x4_Runtime/OcHmp/  Maps/SavageMobile_4x4_Runtime/Runtime/  Maps/SavageMobile_4x4_Runtime/Runtime/Buildings/Interior/  Maps/SavageMobile_4x4_Runtime/Runtime/Buildings/Main/  Maps/SavageMobile_4x4_Runtime/Runtime/PhysicsOnly/  Maps/SavageMobile_4x4_Runtime/Tree/  Maps/TrainingIsland_Runtime/  
+-- 游戏目录大文件 --
+合计 0 个，0MB
+安装包 1734MB
+
+共 437 行，日志 PUBGM.log 505252 字节

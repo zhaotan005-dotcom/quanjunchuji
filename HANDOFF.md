@@ -98,3 +98,9 @@
 - 构建环境（沙箱重置后）：JDK21 aarch64 → /workspace/work/rkenv/jdk-21.0.13+9（adoptium api），build-tools r36 → /workspace/work/tools/android-16（dl.google.com build-tools_r36_linux.zip 解出来的目录就叫 android-16），platform-36 → /workspace/work/tools/android-36。pip: capstone unicorn pyelftools numpy。
 - 日志：ntfy.sh/zf-qj-k7r2p9m4x1/json?poll=1&since=3h（附件 .gz）。
 - 待确认：用户说「取消不刷毒服务端情况下上限人数」，意思没确认（已问）。待做：油桶真实编号；队友若是同一个 TeamInfo 要拆；五军/BFA 若模块名不对日志里会找不到类。
+
+## v2.96（vc197/core197，2026-11-18 16:xx，三包，未实测）— 娱乐模式开房闪退根因
+- 根因：v2.92~2.95 用 C++ 底层类 `?game=/Script/NZBattleRoyaleGame.NZBRLegionGameMode` 开房。类名/模块其实对（日志 Game class is 'NZBRLegionGameMode'），但 ANZGameMode 构造(0xc786c8) 只给基础类 ANZGameState/ANZPlayerController/ANZPlayerState/ANZHUD，吃鸡和 Legion/BFA 构造都不改 → 真配置在模式蓝图里，直接开 5 秒闪退（日志停在 SetViewTarget NZPlayerController_0）。
+- 修：ModeProbe 扫 GNames 找 Legion/BFA 的 GameMode 蓝图路径再开；找不到不开，传 mode-* 日志。下一步看 mode-* 里「模式蓝图…名字表命中」：命中 /Game/…GameMode 路径 → 看能不能进图；0 命中 → 名字表里没有（资产注册表没载入或包里没蓝图），要换办法查（不解密 pak 的前提下基本只能确认缺资源）。
+- 中文名：Legion = 三军对垒（MatchModeName_13，GroupCountMax 默认 3），BFA = 决胜五军（MatchModeName_10，推断）。全表见 history。
+- crash 里那份 15:49:47 tomb 是启动读 ini 的另一个崩溃（AppInit → LoadGlobalIniFile），不是开房的；对局内闪退没有 tomb（Bugly native 5 秒后被关）。

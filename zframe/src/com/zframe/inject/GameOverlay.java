@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.95";
+    static final String VER = "v2.96";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -976,10 +976,13 @@ public class GameOverlay {
             fillBtn(a, u, r, "老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
             fillBtn(a, u, r, "新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
             fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
-            // v2.92 用户：试安装包里的娱乐模式能不能开房。代码里有五军对决（NZBRLegionGameMode）和 BFA 模式（NZBRBFAGameMode），用新海岛 + ?game= 指定模式（实验）
+            // v2.92 试娱乐模式开房；v2.96 根修：?game= 必须是模式的蓝图类（C++ 底层类没配控制器/对局状态，开了必闪退，见 ModeProbe）。
+            // 名字（libUE4 本地化默认文本 NSCommon/MatchModeName_10/13）：Legion = 三军对垒（GroupCountMax 默认 3），BFA = 决胜五军（推断）
+            final String RENEW = "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main";
             LinearLayout er = row(a, hc);
-            fillBtn(a, u, er, "五军对决（试）", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?game=/Script/NZBattleRoyaleGame.NZBRLegionGameMode")));
-            fillBtn(a, u, er, "BFA 模式（试）", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main?game=/Script/NZBattleRoyaleGame.NZBRBFAGameMode")));
+            fillBtn(a, u, er, "三军对垒（试）", () -> toast(a, ModeProbe.host("Legion", "三军对垒", RENEW)));
+            fillBtn(a, u, er, "决胜五军（试）", () -> toast(a, ModeProbe.host("BFA", "决胜五军", RENEW)));
+            note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);
             // v2.22：房主也能选模式。房主自己没网络连接，游戏不让他上飞机；「不刷毒对局」= 大家都不上飞机，一起在出生岛开打
             pick(a, u, mr, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> { toast(a, Mods.setNormal()); refreshAny(); });
