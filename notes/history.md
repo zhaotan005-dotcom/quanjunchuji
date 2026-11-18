@@ -1013,3 +1013,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 21:08 用户：更新要么装完闪退，要么没检测到更新。
 - NetCore：下完 dex 先用 DexClassLoader 读包里的 CORE_VER/BUILD，和 .ver 对不上就不装、换下个镜像（镜像缓存 .ver 新 .dex 旧 → 以前会装错包）；.ver 加 ?t= 分钟级防缓存。
 - chain（APK 里的启动代码，要重装 APK 才生效）：运行文件按版本命名 zcore_netrun<ver>.dex，删旧的及 oat；多进程同时启动不再互删，写本进程临时文件再原子改名。
+
+## v3.13（vc214/core214，2026-11-18 21:2x，未实测）
+- 21:11 用户：去掉单机/联机选择，不管单机联机都默认开服务端，大厅有装扮。
+- Ed：客户端包 ED 初值 0（自建大厅服务端+仓库衣服），chosen=true、canChoose=false；大厅游戏模式页下加「加入艾挽服务器」+ 上次地址；对局菜单：加入别人后只剩联机，没加入时按服务端页。

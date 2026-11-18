@@ -6,15 +6,16 @@ package com.zframe.inject;
  *  ED 不能再是常量（javac 会把常量内联），改成运行时变量；启动早装要等选完再装。 */
 final class Ed {
     static final int BUILD = 1;
-    static volatile int ED = BUILD;
-    static volatile boolean chosen = BUILD != 2;
+    // v3.13 用户：去掉单机/联机选择，客户端包也默认开自建服务端（ED 0：大厅自建服务端 + 仓库衣服），大厅里照样能加入别人
+    static volatile int ED = BUILD == 2 ? 0 : BUILD;
+    static volatile boolean chosen = true;
     static boolean single() { return ED == 0; }
-    static boolean canChoose() { return BUILD == 2; }
-    static String name() { return ED == 1 ? "服务端" : ED == 2 ? "客户端" : BUILD == 2 ? "单机（客户端包）" : "单机版"; }
+    static boolean canChoose() { return false; }
+    static String name() { return ED == 1 ? "服务端" : ED == 2 ? "客户端" : BUILD == 2 ? "客户端" : "单机版"; }
     static java.io.File file;
     static synchronized void init(android.content.Context c) { if (file == null && c != null) file = new java.io.File(c.getFilesDir(), "zf_mode.txt"); }
     static int saved() {
-        if (BUILD == 2) return 2;   // v3.10 用户：删了单机/联机选择，客户端包只走联机（以前存过单机的也改回联机）
+        if (BUILD == 2) return 0;   // v3.13 自建服务端；v3.10 用户：删了单机/联机选择，客户端包只走联机（以前存过单机的也改回联机）
         try { if (file != null && file.exists()) return "0".equals(new String(java.nio.file.Files.readAllBytes(file.toPath())).trim()) ? 0 : 2; } catch (Throwable ignored) {}
         return 2;
     }

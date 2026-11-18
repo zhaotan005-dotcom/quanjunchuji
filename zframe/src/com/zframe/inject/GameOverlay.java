@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.12";
+    static final String VER = "v3.13";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -114,11 +114,13 @@ public class GameOverlay {
             // v2.61 用户：刷武器、特殊武器、子弹单独分页；道具单独一页
             // v3.05 用户：客户端只保留刷车（其他刷东西的页去掉，空投在出生岛）；分组重排更好看：人物 | 刷物资 | 载具/外观 | 联机/设置，组之间加分隔
             // v3.10 用户：客户端刷东西、画质、加速高跳都删掉（留给服务端），客户端只剩联机；服务端只留地图上没有的东西能刷（道具页只列战术道具 402）
-            final String[] tabs = Ed.ED == 2 ? new String[]{"联机"}
-                : Ed.ED == 1 ? new String[]{"常用", "功能", "道具", "刷车", "衣服", "联机", "画面"}
+            // v3.13：客户端包现在自建服务端 —— 没加入别人时按服务端的页；加入别人后只剩联机
+            final boolean cliT = Ed.ED == 2 || Lan.role == 2, srvT = Ed.ED == 1 || Ed.BUILD == 2;
+            final String[] tabs = cliT ? new String[]{"联机"}
+                : srvT ? new String[]{"常用", "功能", "道具", "刷车", "衣服", "联机", "画面"}
                 : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "人机", "联机", "画面"};
-            final int[] map = Ed.ED == 2 ? new int[]{6}
-                : Ed.ED == 1 ? new int[]{0, 8, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 2, 6, 5};
+            final int[] map = cliT ? new int[]{6}
+                : srvT ? new int[]{0, 8, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 2, 6, 5};
             { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = map[0]; }
             final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("道具", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
@@ -1120,6 +1122,14 @@ public class GameOverlay {
             note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
             // v2.56 用户：自动刷人机开关放大厅
             switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
+            if (Ed.BUILD == 2) {   // v3.13 用户：客户端包也默认开自建服务端，大厅里照样能加入
+                head(a, u, root, "加入房间");
+                LinearLayout jr = row(a, root); jr.setPadding(0, u.dp(6), 0, u.dp(6));
+                fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
+                final String last = Lan.lastIp;
+                if (last != null && !last.isEmpty() && !AIWAN.equals(last)) fillBtn(a, u, jr, "加入 " + last, () -> toast(a, Lan.join(last)));
+                if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
+            }
         }
         if (Ed.ED != 1) note(a, u, root, Server.state);
     }
