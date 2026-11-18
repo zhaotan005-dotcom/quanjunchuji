@@ -54,13 +54,23 @@ final class MapMark {
                 // v2.80：记下控制器虚表里 删标点(0x3e8/0x3ec) 加标点(0x3f0 校验/0x3f4 实现) 的函数（减库基址），好离线看实现
                 long vt = Server.rd(m, ctl);
                 StringBuilder sb = new StringBuilder("虚表 ").append(Long.toHexString(vt - b));
-                for (int off = 0x3e8; off <= 0x3f4; off += 4) sb.append(" +").append(Integer.toHexString(off)).append("=").append(Long.toHexString(Server.rd(m, vt + off) - b));
+                for (int off = 0x3e8; off <= 0x3f8; off += 4) sb.append(" +").append(Integer.toHexString(off)).append("=").append(Long.toHexString(Server.rd(m, vt + off) - b));
                 note(sb.toString());
                 note(install(m, b, vt));
                 findTeam(m, b, ps, ctl);
                 if (cn == null || !cn.contains("PlayerController")) { state += "（不是玩家控制器，不看）"; lastCtl = -1; }
             }
             if (lastCtl == -1) return;
+            int cnt = (int) Server.rd(m, b + MCAVE + DATA);
+            if (inst.contains("已补") && cnt != lastCnt) {
+                if (lastCnt >= 0 || cnt != 0) {
+                    long th = Server.rd(m, b + MCAVE + DATA + 12);
+                    note(String.format("加标点被调用 %d 次，最后一次 (%.0f, %.0f) 对象 %s%s", cnt, Mods.f(m, b + MCAVE + DATA + 4), Mods.f(m, b + MCAVE + DATA + 8),
+                        Long.toHexString(th), th == ctl ? "（本机控制器）" : "（不是本机控制器：" + Alive.clsName(m, Veh.Names.get(), th) + "）"));
+                    autoLog();
+                }
+                lastCnt = cnt;
+            }
             hex = Server.bytesAt(m, ctl + MI, 12);
             x = Mods.f(m, ctl + MI); y = Mods.f(m, ctl + MI + 4);
         }
@@ -69,10 +79,7 @@ final class MapMark {
         lastHex = hex;
         note(String.format("标点变了 +a04=%s → (%.0f, %.0f)", hex, x, y));
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) { syncTeam(m, ctl); } catch (Throwable t) { note("队伍信息写入出错 " + t); }
-        if (System.currentTimeMillis() - lastUp > 30000) {   // v2.79 标点有变化就自动传一份诊断（30 秒最多一次）
-            lastUp = System.currentTimeMillis();
-            new Thread(() -> { try { Thread.sleep(5000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "mark-"); } catch (Throwable ignored) {} }, "zf-mark-log").start();
-        }
+        autoLog();
         state = String.format("标点：最近一次 (%.0f, %.0f)", x, y);
         if (!autoTp || Ed.ED == 2 || Lan.role == 2) return;
         if (Float.isNaN(x) || Float.isNaN(y) || (x == 0 && y == 0) || Math.abs(x) > 2e6 || Math.abs(y) > 2e6) return;
@@ -85,15 +92,28 @@ final class MapMark {
 
     /** v2.81：游戏里 ServerAddNewMapSign/ServerRemoveMapSign 的实现是空的（vt+0x3f4/+0x3ec = 0xb63518「return 1」），标点永远存不下来、落在地图左上角。
      *  补两段：加标点 把 InNewLoc(r1,r2) 写到 控制器+0xa04/+0xa08、+0xa0c(bEnable)=1；删标点 +0xa0c=0。放 SLACK+0x3d0（v2.81 用的 +0xa90 那里其实是数据，毒圈 +0x990 装不上也是这个原因），改这个控制器类的虚表两格。 */
-    static final long MCAVE = Server.SLACK + 0x3d0, STUB = 0xb63518L;
-    static final String ADD = "041a80e5082a80e50130a0e30c3ac0e51eff2fe1", DEL = "0030a0e30c3ac0e51eff2fe1";
+    // v2.85：挪到 SLACK+0x370（Prop 用到 0x368，Veh 从 0x400），加标点顺便记 次数/x/y/this 到 +0x30（看 RPC 到底有没有被调）
+    static final long MCAVE = Server.SLACK + 0x370, STUB = 0xb63518L, DATA = 0x30, DELO = 0x40;
+    static final String ADD = "041a80e5082a80e50130a0e30c3ac0e518c08fe200309ce5013083e200308ce504108ce508208ce50c008ce51eff2fe1", DEL = "0030a0e30c3ac0e51eff2fe1";
+    static int lastCnt = -1;
+    static void autoLog() {
+            if (System.currentTimeMillis() - lastUp > 30000) {   // v2.79 标点有变化就自动传一份诊断（30 秒最多一次）
+            lastUp = System.currentTimeMillis();
+            new Thread(() -> { try { Thread.sleep(5000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "mark-"); } catch (Throwable ignored) {} }, "zf-mark-log").start();
+        }
+    }
     static volatile String inst = "";
+    static boolean put(RandomAccessFile m, long a, byte[] w) throws java.io.IOException {
+        byte[] cur = new byte[w.length]; m.seek(a); m.readFully(cur);
+        if (java.util.Arrays.equals(cur, w)) return true;
+        m.seek(a); m.write(w);
+        if (a == Mods.base() + MCAVE) { m.seek(a + DATA); m.write(new byte[16]); }
+        m.seek(a); m.readFully(cur); return java.util.Arrays.equals(cur, w);
+    }
     static String install(RandomAccessFile m, long b, long vt) throws java.io.IOException {
-        byte[] body = Patches.hex(ADD + DEL);
-        byte[] cur = new byte[body.length]; m.seek(b + MCAVE); m.readFully(cur);
         // v2.83：SLACK 这段是代码段最后一页里文件自带的数据段副本（数据段另在 0x4a2e528 映射），不是 0 但可以随便写
-        if (!java.util.Arrays.equals(cur, body)) { m.seek(b + MCAVE); m.write(body); m.seek(b + MCAVE); m.readFully(cur); if (!java.util.Arrays.equals(cur, body)) return inst = "补标点：写不进去"; }
-        long add = b + MCAVE, del = b + MCAVE + 20;
+        if (!put(m, b + MCAVE, Patches.hex(ADD)) || !put(m, b + MCAVE + DELO, Patches.hex(DEL))) return inst = "补标点：写不进去";
+        long add = b + MCAVE, del = b + MCAVE + DELO;
         long a4 = Server.rd(m, vt + 0x3f4), ac = Server.rd(m, vt + 0x3ec);
         String r = "补标点：";
         if (a4 == b + STUB) { Mods.wi(m, vt + 0x3f4, (int) add); r += "加标点已补 "; } else if (a4 == add) r += "加标点已补过 "; else r += "加标点原来不是空的(" + Long.toHexString(a4 - b) + ") ";

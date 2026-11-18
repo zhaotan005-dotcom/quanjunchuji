@@ -806,3 +806,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 13:16 v2.82 日志：SLACK+0x3d0 也「被占」。查 ELF：代码段 filesz 到 0x4a2d528，数据段 vaddr 0x4a2e528 另外映射 → SLACK(0x4a2d540~0x4a2e000) 里是文件里数据段开头的副本，非 0 但可以随便写（Veh 一直就是直接写）。毒圈 natInstall「空位被占」也是误判，+0x990 那段（0x12c 字节到 0xabc）其实能装 —— 还没改，改了会第一次启用底层毒圈，要单独一版。
 - v2.83 (vc184) 未实测：MapMark 去掉「必须是 0」的检查，直接写 SLACK+0x3d0。
 - v2.84 (vc185)：用户要求不要自动退回老版本 → NetCore.chain 去掉「连续 2 次没进大厅就不用在线内核」。注意：以后若新内核启动必闪退，只能清游戏数据/重装 ZFrame 才能回内置版本。
+- 13:28 v2.84 日志：补丁装上（加/删标点已补）但用户标点后 控制器+a04 仍全 0 → 要么 RPC 没走到实现，要么走到的是服务端那个控制器。v2.85 (vc186)：cave 挪到 SLACK+0x370，加标点时记 次数/x/y/this（+0x30），日志里打印并自动上传；虚表多记 +0x3f8（校验实际函数）。未实测。
