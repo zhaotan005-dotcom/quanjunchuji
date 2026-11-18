@@ -91,9 +91,8 @@ final class MapMark {
     static String install(RandomAccessFile m, long b, long vt) throws java.io.IOException {
         byte[] body = Patches.hex(ADD + DEL);
         byte[] cur = new byte[body.length]; m.seek(b + MCAVE); m.readFully(cur);
-        boolean zero = true; for (byte x : cur) if (x != 0) { zero = false; break; }
-        if (!zero && !java.util.Arrays.equals(cur, body)) return inst = "补标点：空位被占 " + Patches.hexs(cur);
-        if (zero) { m.seek(b + MCAVE); m.write(body); }
+        // v2.83：SLACK 这段是代码段最后一页里文件自带的数据段副本（数据段另在 0x4a2e528 映射），不是 0 但可以随便写
+        if (!java.util.Arrays.equals(cur, body)) { m.seek(b + MCAVE); m.write(body); m.seek(b + MCAVE); m.readFully(cur); if (!java.util.Arrays.equals(cur, body)) return inst = "补标点：写不进去"; }
         long add = b + MCAVE, del = b + MCAVE + 20;
         long a4 = Server.rd(m, vt + 0x3f4), ac = Server.rd(m, vt + 0x3ec);
         String r = "补标点：";

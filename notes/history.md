@@ -803,3 +803,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   注意：build_cli.sh 编译失败也会打印 built 并且已改版本号 → 失败后要 git checkout GameOverlay/ZInit/core/assets/build 再重跑。
 - 13:10 v2.81 日志：SLACK+0xa90 起「空位被占」（9c718a01d3488204…，像数据），SLACK+0x990 之后都不是空的 → 毒圈 natInstall 一直装不上也是这个原因。队伍：PS+0x35c NZBRTeamInfo，成员 0（单机不填）。
 - v2.82 (vc183) 未实测：标点补丁挪到 SLACK+0x3d0（Prop 用到 0x368，Veh 从 0x400 起）。
+- 13:16 v2.82 日志：SLACK+0x3d0 也「被占」。查 ELF：代码段 filesz 到 0x4a2d528，数据段 vaddr 0x4a2e528 另外映射 → SLACK(0x4a2d540~0x4a2e000) 里是文件里数据段开头的副本，非 0 但可以随便写（Veh 一直就是直接写）。毒圈 natInstall「空位被占」也是误判，+0x990 那段（0x12c 字节到 0xabc）其实能装 —— 还没改，改了会第一次启用底层毒圈，要单独一版。
+- v2.83 (vc184) 未实测：MapMark 去掉「必须是 0」的检查，直接写 SLACK+0x3d0。
