@@ -797,3 +797,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v2.79 (vc180)：标点变化 5 秒后自动传诊断（mark-，30 秒一次）；一局结束回大厅 8 秒后自动传（matchend-）。
 - 12:55 诊断（v2.79）：标点 控制器 BP_NZBRPlayerController_C，+a04 一直全 0 → 点大地图标点根本没写到 MapSignInfo（不是 UI 显示问题，或者 RPC 没调到/实现写别处）。12:50:20 启动 2 秒闪退一次，又是 0x19bb434 递归栈溢出（和 11:24 同一个），重开正常。离线找 NZBRPlayerController 虚表没成（vtable 在重定位里）。
 - v2.80 (vc181)：诊断加控制器虚表 0x3e8~0x3f4 函数地址（减基址），下次离线反汇编加标点实现。
+- 13:02 v2.80 日志：BP_NZBRPlayerController_C 虚表 +3e8=2c5bbfc +3ec=b63518 +3f0=2c6151c +3f4=b63518。0xb63518 = 「mov r0,#1; bx lr」→ ServerAddNewMapSign/ServerRemoveMapSign 的实现在这个包里是空的。用户截图：标点总落在地图左上角（显示 888m）。
+  RE：NZBRMapSignInfo(0xc) = Location FVector2D +0、bEnable +8；控制器 MapSignInfo +0xa04。NZBRTeamMemberInfo(0x50)：Location +0x14、Rotation +0x20、bIsMapSignEnable 推测 +0x2c、MapSignLocation +0x30、MemberIndex +0x38、Health +0x3c…；某个 Team 类 +0x2f4 = TeamMemberInfoList。
+- v2.81 (vc182)，未实测：SLACK+0xa90 放两段（加：str r1/r2 → +a04/+a08、+a0c=1；删：+a0c=0），改控制器虚表 +0x3f4/+0x3ec 指过去（只在原值是 0xb63518 时改）。MapMark 找 PS/控制器里类名带 Team 的对象，日志打印 TeamMemberInfoList；标点变了且成员只有 1 个时把位置/开关同步进去。
+  注意：build_cli.sh 编译失败也会打印 built 并且已改版本号 → 失败后要 git checkout GameOverlay/ZInit/core/assets/build 再重跑。
