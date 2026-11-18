@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.04";
+    static final String VER = "v3.05";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -112,8 +112,14 @@ public class GameOverlay {
             tabsRow.setBackground(box(RAIL, u.dp(12)));
             // v2.41 用户：服务端把刷人机删了
             // v2.61 用户：刷武器、特殊武器、子弹单独分页；道具单独一页
-            final String[] tabs = Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "联机", "画面"} : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "衣服", "刷车", "人机", "联机", "画面"};
-            final int[] map = Ed.ED == 1 ? new int[]{0, 8, 3, 9, 10, 4, 11, 7, 1, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 7, 1, 2, 6, 5};   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
+            // v3.05 用户：客户端只保留刷车（其他刷东西的页去掉，空投在出生岛）；分组重排更好看：人物 | 刷物资 | 载具/外观 | 联机/设置，组之间加分隔
+            final String[] tabs = Ed.ED == 2 ? new String[]{"功能", "刷车", "联机", "画面"}
+                : Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "联机", "画面"}
+                : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "人机", "联机", "画面"};
+            final int[] map = Ed.ED == 2 ? new int[]{8, 1, 6, 5}
+                : Ed.ED == 1 ? new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 2, 6, 5};
+            if (Ed.ED == 2) { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = 1; }
+            final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("武器", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -127,6 +133,11 @@ public class GameOverlay {
                 t.setText(tabs[k]); t.setTextSize(12.5f); t.setGravity(Gravity.CENTER);
                 t.setTag(idx);
                 LinearLayout.LayoutParams tl = new LinearLayout.LayoutParams(u.dp(48), u.dp(26)); tl.bottomMargin = u.dp(1);
+                if (k > 0 && groupStart.contains(tabs[k])) {
+                    android.view.View sep = new android.view.View(a); sep.setBackgroundColor(0x33FFFFFF);
+                    LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(u.dp(30), u.dp(1)); sl.gravity = Gravity.CENTER_HORIZONTAL; sl.topMargin = u.dp(4); sl.bottomMargin = u.dp(5);
+                    tabsRow.addView(sep, sl);
+                }
                 tabsRow.addView(t, tl);
                 tv[k] = t;
                 t.setOnClickListener(v -> { tab = idx; paintTabs(tv, u); fill(a, u, content); sv.scrollTo(0, 0); });
@@ -1039,7 +1050,8 @@ public class GameOverlay {
                 xn++;
             }
             if (xr != null) while (xn % 3 != 0) { xr.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); xn++; }
-            switchRow(a, u, hc, "藏起房主人物", "开局把房主自己的人物隐藏（加入的玩家看不到），房主只当服务器", HostMatch.hideHost, v -> { HostMatch.hideHost = v; return "ok"; });
+            switchRow(a, u, hc, "去掉房主人物", "开局把房主自己的人物隐藏、关碰撞、冻住（看不到、打不到、挡不住人，也不和任何人一队），房主只当服务器", HostMatch.hideHost, v -> { HostMatch.hideHost = v; return "ok"; });
+            switchRow(a, u, hc, "出生岛空投", "每局开局在房主出生的位置放 9 堆：枪械、特殊道具、子弹、投掷物、油桶、步枪配件、冲锋枪配件、药品、头甲包", Box.on, v -> { Box.on = v; return "ok"; });
             note(a, u, hc, HostMatch.state);
             note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);

@@ -221,6 +221,8 @@ final class Lan {
     static void trig(String l) {
         if (l.contains("NetworkFailure") || l.contains("TravelFailure") || l.contains("ConnectionLost") || l.contains("Connection Closed") || l.contains("PreLogin failure") || l.contains("Closing connection") && Lan.role == 1) autoUp("net");
         else if (l.contains("Force set local front ammo count") || l.contains("ServerAmmo=0")) autoUp("ammo");
+        // v3.05 用户：打药没效果 → 用药品（401 类）时自动传一份日志，看读条/结束/取消哪一步断了
+        else if ((l.contains("PreUseItem") || l.contains("FinishUsing") || l.contains("CancelUsing") || l.contains("CastTime")) && (l.contains("401") || l.contains("Heal") || l.contains("Drink") || l.contains("Bandage") || l.contains("FirstAid") || l.contains("Painkiller"))) autoUp("heal");
     }
     static String text() { synchronized (log) { return log.isEmpty() ? "（空）" : String.join("\n  ", log); } }
 }

@@ -952,3 +952,14 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 18:24 用户澄清「方块」：不是能站的方块，是装物资的箱子（像死亡盒），刷的装备放进箱子里。RE 线索：ANZPickupBox（NZPickupBox.cpp），背包组件 ServerSpawnPickupBox（thunk 0xe68298，校验 vt+0x368，实现 vt+0x36c），SpawnPickupBox exec 被桩成 bx lr；PickupBoxClass 属性 +0xf64（所属类未定）、AllPickupBoxList +0x674、bAutoDestroyPickupBox +0x8c8。背包组件虚表静态没定位，下次运行时从 人物+0x838 读。计划 v3.04 做「刷进箱子」+ 换弹切枪。
 - v3.04（vc205/core205）18:4x 用户（v3.03 实测）：新海岛战术模式选了「不刷毒对局」，进图后服务端和客户端都上了飞机，应该在出生岛。日志 avatar-1118-183906（服务端）：战术模式开房成功（BP_NZBattleRoyalePropsGameMode_C），阶段 0→1→2→3→4 走正常流程 + [SkyDiving] Add a passenger to plane；对比 15:54 海岛不刷毒那局是 0→4 直接跳。说明那局不上飞机补丁没打上。原因（推断）：Mods.noPlane/noPoison 只在本次进程里有效，没存；用户选完后为了更新内核重开了游戏 → 变回正常对局。修：setNoZone/setNormal 存 prefs zone_off，大厅加载完（coatAt 分支）Mods.restoreZone() 自动恢复；avatar 日志加「游戏模式」行。未实测。
 - 同局：开局发道具 13/13 种每种 999 成功（客户端截图「附近的物品」×999）；随后 18:38:01 UID=3 把 9 种各 999 Discard 到地上（谁触发未确认，可能是战术模式道具槽只有 3 个）。门/SceneItems 日志一直是 Add 0（正常对局也一样，不是判断依据）。
+
+## v3.05（vc206/core206，2026-11-18 19:1x，三包，未实测）— 单排、去掉房主人物、出生岛空投、客户端只留刷车、菜单分组
+- 19:01 用户（v3.04 实测有用）：加入玩家要单独一队（单排，不要双排四排），现在一进去就和服务端是队友；服务端人物只是隐藏、实际还在 → 删掉；出生岛放空投：枪械、特殊道具 999、各种子弹 9999、投掷物 999、油桶 999、步枪配件、冲锋枪配件（含倍镜）、药品 999、头甲包（含喷气背包）；客户端只留刷车；修打药没效果；喷气背包按之前改动做好。19:10：菜单分组排列更美观。
+- 日志 avatar-1118-185503（服务端 v3.04）：游戏模式恢复不刷毒 ok，阶段 0→4（出生岛）；队伍：加入玩家和房主同一个 TeamInfo（TeamIndex 0）；开局发道具 13/13；喷气背包这局没用；没有药品使用记录。
+- 单排 RE：SetupTestTeam 0x100b2b0（日志 "Uin not found in options" 后走这里）：GM+0x998 当前队人数（0 → 新建队，存下标 +0x99c），进人后 +1，>= GM+0x8ed MaxPlayerCountPerTeam（字节，反射名）就清 0；人机同理 +0x9a0/+0x8ee MaxBotCountPerTeam；Teams TArray GM+0x8c8/+0x8cc；NumTeams +0x8ec。修：HostMatch.solo() 每 1.5 秒 GM+0x8ed=1、+0x998 清 0 → 每个加入的人新建一队。已进来的人不改。
+- 去掉房主人物：直接销毁会让活着的队只剩加入的人（一个人加入就立刻结算，见 history 0x100fbd4）→ 隐藏 + 关碰撞（AActor::SetActorEnableCollision 原生 0x2740af0，由 exec thunk 0x2e70cc0 读出）+ CustomTimeDilation(+0x58)=0 冻结 + 血补满。联机页开关改名「去掉房主人物」。空投放完才冻结。
+- 出生岛空投（Box.java，服务端每局一次，联机页开关「出生岛空投」）：堆在一起游戏会显示成箱子（灰色方块 = P40300000001_DeathDropBox）。房主人物当搬运工：K2_TeleportTo 到第 i 堆（房主出生点起两排，隔 4 米），能叠的用刷物品补丁塞进房主背包（每次 999，子弹 10 次 = 9999），再调 ServerDiscardItem 实现 0xcd6728(背包, 物品, 数量, 不查容量 1, 校验 0) 丢在脚下（背包列表 +0x4a8/+0x4ac、道具槽 +0x490..、数量 +0x2b4、编号 +0x2cc/+0x2d0）；枪和头甲包用 SpawnOnePickUp（cave 'G'，Veh.dropAt）每件刷 1 个（不往身上塞，身上已有会换装走崩溃路）。枪「每把 999」没做：枪不能叠，999 把会刷出几万个物体。油桶按已认出名字（油桶/Barrel/Fuel/Oil）的 402 道具找，没认出就那堆为空，特殊道具那堆里有全部 402。
+- ucave 改（game/re/ucave.py，emu_ucave 过）：fn 路径多传 r2=buf+36、r3=buf+64、栈 [sp]=buf+68；虚表路径改用 lr/ip 取函数，r2/r3 也照传。Veh.ucall5。cave 长 0xb0（SLACK+0x240..0x2f0，不碰 0x300 道具 cave）。
+- 打药没效果：这次日志没有用药记录，根因未查到。加自动上传 heal-*（游戏日志出现 PreUseItem/FinishUsing/CancelUsing/CastTime 且是药品时）。
+- 客户端菜单只留 功能/刷车/联机/画面；服务端/单机分页顺序改成 常用 功能 | 武器 特殊 子弹 装备 道具 | 刷车 衣服 (人机) | 联机 画面，组间加分隔线。
+- 喷气背包：v3.03 改动未变，日志「喷气背包：这局还没见到」，等用一次看「喷气背包 原值」。

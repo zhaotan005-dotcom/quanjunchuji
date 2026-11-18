@@ -17,14 +17,53 @@ final class HostMatch {
     static volatile long hidden;
     static java.nio.ByteBuffer sb; static long sbAddr;
     static volatile boolean running;
-    static void newMatch() { synchronized (given) { given.clear(); } hidden = 0; }
+    static void newMatch() { synchronized (given) { given.clear(); } hidden = 0; ghost = 0; Box.newMatch(); }
+    /** v3.05 用户：要单排，新加入的玩家各自一队，不要和房主是队友。
+     *  RE：SetupTestTeam 0x100b2b0（没有专用服分组信息时给玩家分队）：GM+0x998 = 当前队已进人数，为 0 就新建一个 NZBRTeamInfo；
+     *  进人后 +0x998 加 1，>= GM+0x8ed（MaxPlayerCountPerTeam，字节）就清 0。所以把 MaxPlayerCountPerTeam 改 1、+0x998 清 0，
+     *  之后每个加入的人都新建一队（游戏自己的分队，不是事后改 TeamIndex）。对已经进来的人不改。 */
+    static volatile String soloState = "单排：还没开局";
+    static void solo() {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            double[] q = Veh.info(); long gm = q != null ? (long) q[4] : 0; if (gm < 0x10000) return;
+            int teams = (int) Server.rd(m, gm + 0x8cc); if (teams < 0 || teams > 200) { soloState = "单排：GameMode 队伍数不对（" + teams + "），没改"; return; }
+            byte[] one = new byte[1]; m.seek(gm + 0x8ed); m.readFully(one);
+            long cur = Server.rd(m, gm + 0x998);
+            if (one[0] != 1) { m.seek(gm + 0x8ed); m.write(new byte[]{1}); }
+            if (cur != 0 && cur < 100) { m.seek(gm + 0x998); m.write(new byte[]{0, 0, 0, 0}); }
+            soloState = "单排：每队 1 人（原来每队 " + (one[0] & 0xff) + "），现有队伍 " + teams;
+        } catch (Throwable t) { soloState = "单排：出错 " + t; }
+    }
+    /** v3.05 用户：服务端的人物实际还在（只是隐藏）→ 要删掉。直接销毁会让「活着的队」只剩加入的人，一个人加入时会立刻结算；
+     *  所以做成「不存在」：隐藏 + 关碰撞（游戏自己的 SetActorEnableCollision 0x2740af0，打不到、挡不住人）+ 时间冻结（CustomTimeDilation +0x58 = 0，不会掉下去）+ 血一直满。 */
+    static final long COLLISION = 0x2740af0L;
+    static volatile long ghost;
+    static void ghost() throws Exception {
+        if (!hideHost) return;
+        long p = Mods.myPawn(); if (p < 0x10000) return;
+        long b = Mods.base(); if (b == 0) return;
+        if (Box.busy || !Box.done && Box.on) { /* 空投放完再冻住（放空投要挪这个人物） */ return; }
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            if (!Mods.isObj(m, b, p)) return;
+            Mods.wf(m, p + 0x58, 0f);
+            float hp = Mods.f(m, p + 0x5a0), mx = Mods.f(m, p + 0x5a4);
+            if (mx > 1f && mx < 1000f && hp > 0f && hp < mx) Mods.wf(m, p + 0x5a0, mx);
+        }
+        if (ghost != p) {
+            long[] r = Veh.ucall(p, 0, 0, 0, null, b + COLLISION);
+            if (r[0] == 0x5b0e) { ghost = p; LogCap.note("房主人物：隐藏 + 关碰撞 + 冻结 " + Long.toHexString(p)); }
+        }
+    }
     static void start() {
         if (running) return; running = true;
         new Thread(() -> {
             while (true) {
-                try { Thread.sleep(3000); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(1500); } catch (InterruptedException e) { return; }
                 if (Lan.role != 1 || !Con.inMatch) continue;
+                solo();
                 try { hide(); } catch (Throwable t) { LogCap.note("藏房主人物出错 " + t); }
+                try { Box.tick(); } catch (Throwable t) { Box.state = "空投：出错 " + t; }
+                try { ghost(); } catch (Throwable t) { LogCap.note("房主人物冻结出错 " + t); }
                 try { giveAll(); } catch (Throwable t) { state = "开局发道具：出错 " + t; }
             }
         }, "zf-hostmatch").start();
