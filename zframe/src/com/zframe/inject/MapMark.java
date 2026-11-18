@@ -84,8 +84,8 @@ final class MapMark {
     }
 
     /** v2.81：游戏里 ServerAddNewMapSign/ServerRemoveMapSign 的实现是空的（vt+0x3f4/+0x3ec = 0xb63518「return 1」），标点永远存不下来、落在地图左上角。
-     *  补两段：加标点 把 InNewLoc(r1,r2) 写到 控制器+0xa04/+0xa08、+0xa0c(bEnable)=1；删标点 +0xa0c=0。放 SLACK 末尾，改这个控制器类的虚表两格。 */
-    static final long MCAVE = Server.SLACK + 0xa90, STUB = 0xb63518L;
+     *  补两段：加标点 把 InNewLoc(r1,r2) 写到 控制器+0xa04/+0xa08、+0xa0c(bEnable)=1；删标点 +0xa0c=0。放 SLACK+0x3d0（v2.81 用的 +0xa90 那里其实是数据，毒圈 +0x990 装不上也是这个原因），改这个控制器类的虚表两格。 */
+    static final long MCAVE = Server.SLACK + 0x3d0, STUB = 0xb63518L;
     static final String ADD = "041a80e5082a80e50130a0e30c3ac0e51eff2fe1", DEL = "0030a0e30c3ac0e51eff2fe1";
     static volatile String inst = "";
     static String install(RandomAccessFile m, long b, long vt) throws java.io.IOException {

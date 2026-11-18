@@ -801,3 +801,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   RE：NZBRMapSignInfo(0xc) = Location FVector2D +0、bEnable +8；控制器 MapSignInfo +0xa04。NZBRTeamMemberInfo(0x50)：Location +0x14、Rotation +0x20、bIsMapSignEnable 推测 +0x2c、MapSignLocation +0x30、MemberIndex +0x38、Health +0x3c…；某个 Team 类 +0x2f4 = TeamMemberInfoList。
 - v2.81 (vc182)，未实测：SLACK+0xa90 放两段（加：str r1/r2 → +a04/+a08、+a0c=1；删：+a0c=0），改控制器虚表 +0x3f4/+0x3ec 指过去（只在原值是 0xb63518 时改）。MapMark 找 PS/控制器里类名带 Team 的对象，日志打印 TeamMemberInfoList；标点变了且成员只有 1 个时把位置/开关同步进去。
   注意：build_cli.sh 编译失败也会打印 built 并且已改版本号 → 失败后要 git checkout GameOverlay/ZInit/core/assets/build 再重跑。
+- 13:10 v2.81 日志：SLACK+0xa90 起「空位被占」（9c718a01d3488204…，像数据），SLACK+0x990 之后都不是空的 → 毒圈 natInstall 一直装不上也是这个原因。队伍：PS+0x35c NZBRTeamInfo，成员 0（单机不填）。
+- v2.82 (vc183) 未实测：标点补丁挪到 SLACK+0x3d0（Prop 用到 0x368，Veh 从 0x400 起）。
