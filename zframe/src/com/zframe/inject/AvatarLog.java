@@ -8,7 +8,7 @@ import java.io.*;
 
 /** v1.56 灰色人物诊断：按一下，把游戏日志里和人物/衣服有关的行存到 下载/ZFrame/avatar-*.txt。平时什么都不做。 */
 public class AvatarLog {
-    static final String[] KEYS = { "GameMode", "Legion", "BFA", "PropBase", "evanlu", "SpawnScenePropItem", "CanUseThisItem", "UseThisItem", "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
+    static final String[] KEYS = { "GameMode", "Legion", "BFA", "PropBase", "evanlu", "PreUseItem", "FinishUsingItemCastTime", "StopPreUsingItem", "AbortPreUsingItem", "Recycle", "PlayerPropComponent", "SpawnScenePropItem", "CanUseThisItem", "UseThisItem", "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
             "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried", "AirSupply", "AirBox", "Flare", "FunctionalProp", "Legion", "FiveArmy" };
 
     static String export(Activity a) { return export(a, "avatar-"); }
@@ -17,7 +17,7 @@ public class AvatarLog {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
-            sb.append("ZFrame " + GameOverlay.VER + " " + Ed.name() + " 诊断\n").append(Prop.useState).append("\n用道具日志：").append(Prop.lastUseLog).append("\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n').append(PickAnim.report()).append('\n').append(Flow.natState).append('\n');
+            sb.append("ZFrame " + GameOverlay.VER + " " + Ed.name() + " 诊断\n").append(Prop.useState).append("\n用道具日志：").append(Prop.lastUseLog).append("\n").append(Prop.diagText()).append("\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n').append(PickAnim.report()).append('\n').append(Flow.natState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
             sb.append("人机：").append(Bots.state).append("，难度 ").append(Veh.DIFF[Bots.diff]).append("，已刷 ").append(Bots.spawned).append("，阶段 ").append(Bots.phase)
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())

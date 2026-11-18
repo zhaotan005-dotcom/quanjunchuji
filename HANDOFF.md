@@ -109,3 +109,10 @@
 - 换弹根因：游戏所有设弹匣处 `GetNetMode()==1(专用服)` 才写同步弹匣 枪+0x604，我们是听服(2) → 永远 0 → 客户端 0xefd460 强制改 0 → 无限换弹。Lan.ammoInstall 启动时 9 处改成「非客户端都写」。换弹 RPC（ServerProceedWeapRepInfo，可靠）一直是通的。去掉 v2.95 手调 0xefd13c。Crew.find 改按 控制器+0x2fc 类名区分加入玩家（NetConnection）和房主（LocalPlayer）。
 - 载具：客户端 netspeed 10000 + 听服动态带宽 → 连接饱和，不可靠 RPC（ServerMove、车 ServerUpdateState）被丢、服务端跳过复制。NetRate.java 把两边速率提到 100000。车代码里还有很多 GetNetMode()==1 分支没查（列表在 history v2.97），如果带宽修好后还拉回，下一步查这些。FRP 抖动（Not Recived Data 0.2~7 秒）配置修不了。
 - 等用户实测：客户端 "Force set" 是否消失；诊断「听服弹匣同步」「联机带宽」「全员…跳过：」三行。
+
+## v2.98（vc199/core199，2026-11-18 17:xx，三包，未实测）— 道具放下/收回原生化（native-prop 接手）
+- 放下：PropBtn/装备页「放下」= 背包 vt+0x484（游戏原生：读条 → FinishUsingItemCastTime → UseThisItem 生成 + 0xcdf058 扣数量）。根因：FinishUsingItemCastTime(0xcde9f4) 对 bIsBot==0 的人物先调 ClientStopPreUsingItem，单机/房主本机在本地执行 → 背包+0x2c0 清 0 → 校验失败。修：0xcdea88 → cave SLACK+0x3d0 调完写回（fin_cave.py / emu_fin.py）。去掉了 force()（直接 SpawnScenePropItem 不扣数量）和「面前 1.5 米」兜底；预览红直接提示不放。
+- 收回：单机 0x110d6a0、房主 0x110f334（Lan.role==1），组件=人物+0x1160；去掉 destroyBack。放下成功后扫 GUObjectArray 找 TargetProp 类的新对象记进 placed。
+- 诊断：诊断头「道具诊断：」（Prop.diagText，AvatarLog 加了一句）；放下/收回每 0.5 秒记状态，失败/完成自动传 prop-*；进图扫一次 GNames 的 PropsBar 资源。
+- SLACK 现在：0x240–0x2df U cave；0x300–0x37f Prop 地上模型 cave；0x380–0x3cb MapMark（从 0x370 挪过来，原来盖了 Prop 的字面量）；0x3d0–0x3fb 放下修复；0x400–0x98f vcave；0x990– 毒圈。没空位了。
+- 等用户测：拿出 → 放下（看有没有读条、放下后数量减 1、地上有东西）→ 收回键（读条后回背包）。不行就看 ntfy prop-* 的「道具诊断」段。

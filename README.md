@@ -47,7 +47,10 @@
   4. 用 apksigner 签名：zframe.jks，密码 zframe123，别名 zf。
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
-## 最新（2026-11-18 16:4x，v2.97 / vc198 / core198，未实测）
+## 最新（2026-11-18 17:xx，v2.98 / vc199 / core199，未实测）
+- 道具放下/收回走游戏原生路径。放下断点根因：读条结束 FinishUsingItemCastTime 对非人机先调 ClientStopPreUsingItem，单机/房主本机这个 Client RPC 在本地执行，把 CachedPreUsingItem(背包+0x2c0) 清 0，后面的校验失败 → 不生成不扣数量。cave（SLACK+0x3d0）调完写回。收回：单机 StartRecycleItem 0x110d6a0，房主直接服务端实现 0x110f334（避免双读条互相取消），去掉「删掉再刷回」。诊断每 0.5 秒记状态并自动上传 prop-*。详见 notes/history.md v2.98。
+
+## 上一版（v2.97 / vc198 / core198，未实测）
 - 换弹循环根修：游戏只在「专用服务器」(NetMode 1) 写枪的同步弹匣 ServerWeaponAmmoCount(+0x604)，我们是听服(NetMode 2) → 永远 0 → 客户端每 2 秒被强制改成 0 → 无限换弹。9 处 `cmp r0,#1/streq` 改成 `cmp r0,#3/strne`（非客户端都写），启动时装（Lan.ammoInstall）。去掉 v2.95 手动调换弹结束。
 - 联机带宽（开车延迟/船被拉回）：客户端 netspeed 10000 字节/秒 + 听服动态带宽 → 两边连接饱和，不可靠 RPC（ServerMove、车 ServerUpdateState）被引擎丢掉、服务端跳过复制。新 NetRate.java 进对局后把 NetDriver/连接/GameNetworkManager 的速率提到 100000。详见 notes/history.md v2.97。
 

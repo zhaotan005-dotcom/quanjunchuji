@@ -108,8 +108,7 @@ final class PropBtn {
                 try {
                     Prop.Placed p = Prop.lastPlaced();
                     if (p == null) msg = "附近没有放下的道具";
-                    else { String r = Prop.recycle(p); if (!"ok".equals(r)) msg = r; else if (!Prop.camo(p.cls)) msg = "已收回"; }
-                    if (a != null) AvatarLog.export(a, "prop-");   // v2.66 每次收回都传日志
+                    else { String r = Prop.recycle(p); if (!"ok".equals(r)) msg = r; else if (!Prop.camo(p.cls)) msg = "收回中（游戏读条）"; }   // v2.98 原生回收，结果和日志由 Prop.watchRecycle 处理
                 } catch (Throwable e) { msg = "出错 " + e; }
                 finally {
                     busy = false; final String m = msg;
@@ -179,30 +178,9 @@ final class PropBtn {
                     String r = Prop.select(l.get(idx));
                     if (!"ok".equals(r)) msg = r;
                     else if (l.get(idx).target == null) msg = cn(l.get(idx).cls) + "：手机上没有它的场景模型，可能放不出来";
-                } else {
-                    Prop.lastUseLog = "";
-                    {   // v2.60：游戏自己的 UseItem 单机里只取消预览、从不生成（v2.58 日志）→ 先直接生成，不行再走老路
-                        String f = Prop.force();
-                        if ("ok".equals(f)) { Thread.sleep(300); Prop.unselect(); return; }
-                        LogCap.note("用道具：直接生成没成 " + f + "，走游戏的");
-                    }
-                    String r = Prop.use();
-                    if (!"ok".equals(r) && !"ok2".equals(r)) msg = r;
-                    else {   // v2.54：用户说点了放不下 —— 1.5 秒后看还拿在手上没有；没放下就提示原因并自动导出+上传日志
-                        Thread.sleep(1500);
-                        Prop.scanUse(true);
-                        boolean still = false; for (Prop.It it : Prop.useList) if (it.sel) still = true;
-                        if (still) {   // v2.59：游戏的 UseItem 不生成 → 直接让道具生成
-                            String f = Prop.force();
-                            if ("ok".equals(f)) { Thread.sleep(300); Prop.unselect(); msg = null; return; }
-                            Prop.lastUseLog = Prop.lastUseLog.isEmpty() ? f : Prop.lastUseLog;
-                        }
-                        if (still) {
-                            String why = Prop.lastUseLog.isEmpty() ? "游戏没给原因" : Prop.lastUseLog.replaceAll("^.*\\]", "").trim();
-                            msg = "没放下：" + (why.length() > 60 ? why.substring(0, 60) : why) + "（日志已自动上传）";
-                            if (a != null) AvatarLog.export(a, "prop-");
-                        }
-                    }
+                } else {   // v2.98：游戏原生放下（背包 vt+0x484 → 读条 → FinishUsingItemCastTime → 生成 + 扣数量），结果由 Prop.watchPlace 记录/上传
+                    String r = Prop.place();
+                    if (!"ok".equals(r)) msg = r;
                 }
             } catch (Throwable e) { msg = "出错 " + e; }
             finally {

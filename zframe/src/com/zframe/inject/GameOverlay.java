@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.97";
+    static final String VER = "v2.98";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1272,8 +1272,8 @@ public class GameOverlay {
         LinearLayout r0 = row(a, root);
         btn(a, u, r0, "查背包里的道具", () -> new Thread(() -> { String r = Prop.scanUse(); if (!"ok".equals(r)) a.runOnUiThread(() -> toast(a, r)); refreshAny(); }, "zf-use").start());
         btn(a, u, r0, "放下 / 使用", () -> new Thread(() -> {
-            final String r = Prop.use();
-            a.runOnUiThread(() -> toast(a, "ok".equals(r) ? "已放下（游戏算的位置）" : "ok2".equals(r) ? "已放下（面前 1.5 米）" : r));
+            final String r = Prop.place();   // v2.98 游戏原生放下（读条、扣数量、生成都由游戏做）
+            a.runOnUiThread(() -> toast(a, "ok".equals(r) ? "放下中（游戏读条）" : r));
             try { Thread.sleep(1500); } catch (Throwable t) {}
             Prop.scanUse(); refreshAny();
         }, "zf-use").start());

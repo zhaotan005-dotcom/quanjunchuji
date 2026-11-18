@@ -51,6 +51,8 @@ public class Prop {
     static void matchLoad() {
         String r = install();
         LogCap.note("地上模型替身 → " + r);
+        LogCap.note(finInstall());   // v2.98 放下原生路径修复（FinishUsingItemCastTime）
+        scanPropsBar();
     }
     static boolean fallbackUsed() { return slot != null && slot.getInt(0) != 0; }
 
@@ -59,6 +61,7 @@ public class Prop {
     static volatile long missAt; static volatile String lastMiss = "", lastUseLog = "";
     static final java.util.regex.Pattern PATH = java.util.regex.Pattern.compile("(/Game/[^\\s'\"\\]\\)\\[,]+)");
     static void line(String l) {
+        gameLine(l);
         String kind = null;
         if (l.contains("SpawnScenePropItem") || l.contains("CanUseThisItem")) { LogCap.note("用道具日志: " + l); lastUseLog = l; }
         if (l.contains("asynchronous load mesh failed")) kind = "地上模型";
@@ -195,67 +198,122 @@ public class Prop {
             return (r[1] & 0xff) != 0 ? "ok" : "游戏不让拿出（在车上/正在用别的/已经拿着）";
         } catch (InterruptedException e) { return "中断"; }
     }
-    /** 放下/用：背包 vt+0x484；放置点无效就用面前 1.5 米 */
-    static String use() {
-        long b = Mods.base(); if (b == 0) return "找不到游戏库";
-        long inv, sel; boolean valid; float[] pos = null;
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-            inv = inv(m, b); if (inv <= 0) return "背包不对";
-            sel = Server.rd(m, inv + 0x568);
-            if (!isProp(m, b, sel)) return "还没拿出道具：先点道具名「拿出」";
-            byte[] x = new byte[1]; m.seek(sel + 0x336); m.readFully(x); valid = x[0] != 0;
-            if (!valid) {
-                double[] q = Veh.info();
-                if (q == null) return "读不到人物位置";
-                double yaw = Math.toRadians(q[3]);
-                pos = new float[] { (float) (q[0] + Math.cos(yaw) * 150), (float) (q[1] + Math.sin(yaw) * 150), (float) (q[2] - 88), 0f, (float) q[3], 0f };
-            }
-        } catch (Throwable e) { return "出错 " + e; }
-        try {
-            long[] r = Veh.ucall(inv, 0, 0x484, valid ? 0 : sel, pos);
-            if (r[0] != 0x5b0e) return Veh.uOn ? "补丁没反应" : "用道具补丁没装（" + (Veh.installed ? "空位被占 " + Veh.uBusy : "刷物品补丁还没装好，进对局再试") + "）";
-            LogCap.note("用道具：放下 " + Long.toHexString(sel) + (valid ? "（游戏算的放置点）" : "（面前 1.5 米）"));
-            return valid ? "ok" : "ok2";
-        } catch (InterruptedException e) { return "中断"; }
+    // ---------------- v2.98 放下 / 收回 走游戏原生路径 ----------------
+    // 放下断点根因（RE，NZInventoryManager）：
+    //  背包 vt+0x484 → UseItem 0xcdcdfc → PreUseItem vt+0x494 0xcdd510 → 0xcddf54 起读条（人物+0xce4 ActionWithCastTime，
+    //  inv+0x2c0 CachedPreUsingItem = 道具，道具状态 +0x311=2）→ 读条完 → 委托 FinishUsingItemCastTime vt+0x4b8 0xcde9f4。
+    //  它在权威端、人物不是人机（人物+0xb34 bIsBot==0）时先调 ClientStopPreUsingItem(道具)（0xcdea88，vt+0x4a8）——
+    //  专用服务器上这是发给客户端的 RPC；单机(NetMode 0)和房主自己的人物上 RPC 直接在本地执行 →
+    //  ClientStopPreUsingItem_Implementation 0xcde77c → vt+0x4a0 0xcde5e0：道具 StopPreUsingItem（日志 [marvinsong]…StopPreUsingItem）、
+    //  inv+0x2c0 = 0 → 回到 0xcdeaa0 比较 0xcdb0ac(inv)（状态 2 的道具）== inv+0x2c0 失败 → 「FinishUsingItemCastTime failed」，
+    //  UseThisItem（生成场景道具）和 0xcdf058（扣数量）都不走。人机 bIsBot=1 跳过这个 RPC，所以人机能放盾。
+    // 修：0xcdea88 → cave（SLACK+0x3d0，game/re/fin_cave.py，emu_fin.py 测过）：照样调 ClientStopPreUsingItem（客户端那一半的收尾照做），
+    //  调完 inv+0x2c0 变 0 就写回原来的道具（专用服务器/远端客户端 RPC 不在本地跑，值不变，不受影响），再回 0xcdea98 走原来的成功分支。
+    static final long FIN_HOOK = 0xcdea88L, FIN_RET = 0xcdea98L, FIN_CAVE = Server.SLACK + 0x3d0;
+    static final String FIN_O = "000094e5a82490e5";
+    static final String FIN_CODE = "06002de9000094e5a82490e50400a0e132ff2fe10600bde8c00294e5000050e3c012840504f01fe5";
+    static volatile String finState = "放下修复：没装";
+    static synchronized String finInstall() {
+        long b = Mods.base(); if (b == 0) return finState = "放下修复：找不到游戏库";
+        byte[] want = Patches.hex(FIN_CODE + Server.w32((int) (b + FIN_RET)));
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            byte[] cur = new byte[want.length]; m.seek(b + FIN_CAVE); m.readFully(cur);
+            if (!java.util.Arrays.equals(cur, want)) { m.seek(b + FIN_CAVE); m.write(want); m.seek(b + FIN_CAVE); m.readFully(cur); }
+            if (!java.util.Arrays.equals(cur, want)) return finState = "放下修复：cave 写不进去";
+        } catch (Throwable e) { return finState = "放下修复：出错 " + e.getMessage(); }
+        String r = Mods.write(FIN_HOOK, FIN_O, "04f01fe5" + Server.w32((int) (b + FIN_CAVE)), true);
+        return finState = "ok".equals(r) ? "放下修复：已装" : "放下修复：钩子 " + r;
     }
-    /** v2.59/2.60：背包 vt+0x484（UseItem）在单机里只走到 StopPreUsingItem、不生成。直接让道具自己生成：
-     *  核对 vt+0x348 == UseThisItem 0xf2e3c4（所有功能道具共用），再调 vt+0x3a4 SpawnScenePropItem（伪装石头等子类自己覆盖），返回生成的场景道具 → 记下来给「收回/取消伪装」用 */
-    static final class Placed { long actor; String cls; long t; }
-    static final java.util.ArrayList<Placed> placed = new java.util.ArrayList<>();
-    static String force() {
+
+    // ---------------- 诊断 ----------------
+    static final java.util.ArrayDeque<String> diag = new java.util.ArrayDeque<>();
+    static void d(String s) {
+        String t = new java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US).format(new java.util.Date()) + " " + s;
+        synchronized (diag) { diag.addLast(t); while (diag.size() > 160) diag.removeFirst(); }
+        LogCap.note("道具：" + s);
+    }
+    static String diagText() {
+        StringBuilder sb = new StringBuilder("道具诊断：").append(finState).append("；").append(propsBar);
+        synchronized (diag) { for (String x : diag) sb.append('\n').append(x); }
+        return sb.toString();
+    }
+    static final String[] GAME_KEYS = { "PreUseItem", "FinishUsingItemCastTime", "StopPreUsingItem", "AbortPreUsingItem", "CanUseThisItem",
+        "UseThisItem", "SpawnScenePropItem", "Recycle", "recycle", "StartAction", "PlayerPropComponent", "ClientPreUseItemPrepareFinish" };
+    static volatile long watchUntil;
+    static void gameLine(String l) {
+        if (System.currentTimeMillis() > watchUntil) return;
+        for (String k : GAME_KEYS) if (l.contains(k)) { int i = l.indexOf("]Log"); d("游戏: " + (i > 0 ? l.substring(i + 1) : l)); return; }
+    }
+    static void upload(String why) {
+        d("上传日志：" + why);
+        android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "prop-");
+    }
+    static int b8(RandomAccessFile m, long a) throws java.io.IOException { byte[] x = new byte[1]; m.seek(a); m.readFully(x); return x[0] & 0xff; }
+    static float fl(RandomAccessFile m, long a) { return Float.intBitsToFloat((int) Server.rd(m, a)); }
+    /** 人物+0xce4 读条动作：+0x48 进行中、+0x5c 类型（1 用道具 / 6 回收）、+0x34 时长 */
+    static String act(RandomAccessFile m, long pawn) throws java.io.IOException {
+        long ac = Server.rd(m, pawn + 0xce4);
+        if (ac < 0x10000) return "读条无";
+        return "读条 " + (b8(m, ac + 0x48) != 0 ? "进行中" : "停") + " 类型" + Server.rd(m, ac + 0x5c) + " " + fl(m, ac + 0x34) + "s";
+    }
+    static int netMode() { return Lan.role == 1 ? 2 : Lan.role == 2 ? 3 : 0; }
+
+    /** 放下：游戏自己的「用选中的道具」背包 vt+0x484（读条、扣数量、生成都由游戏做）。之后 0.5 秒记一次状态，最多 10 秒 */
+    static String place() {
         long b = Mods.base(); if (b == 0) return "找不到游戏库";
-        long inv, sel; long vt; String cls = null;
+        if (!finState.endsWith("已装")) finInstall();
+        long inv, sel, pawn = Mods.myPawn(); int valid; long cnt0; String cls = null; long target;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             inv = inv(m, b); if (inv <= 0) return "背包不对";
             sel = Server.rd(m, inv + 0x568);
             if (!isProp(m, b, sel)) return "手上没有道具";
-            vt = Server.rd(m, sel);
-            if (Server.rd(m, vt + 0x348) != b + 0xf2e3c4L) return "道具函数对不上";
-            byte[] x = new byte[1]; m.seek(sel + 0x336); m.readFully(x);
+            valid = b8(m, sel + 0x336); cnt0 = Server.rd(m, sel + 0x2b4); target = Server.rd(m, sel + 0x3f0);
             for (It it : useList) if (it.p == sel) cls = it.cls;
-            if (x[0] == 0) {   // v2.64：v2.63 实测预览一直是红的（CanUseThisItem 5）→ 不管，放到面前 1.5 米脚下，强行生成
-                double[] q = Veh.info();
-                if (q == null) return "放置点无效，读不到人物位置";
-                double yaw = Math.toRadians(q[3]);
-                try (RandomAccessFile w = new RandomAccessFile("/proc/self/mem", "rw")) {
-                    Mods.wf(w, sel + 0x338, (float) (q[0] + Math.cos(yaw) * 150));
-                    Mods.wf(w, sel + 0x33c, (float) (q[1] + Math.sin(yaw) * 150));
-                    Mods.wf(w, sel + 0x340, (float) (q[2] - 88));
-                    Mods.wf(w, sel + 0x344, 0f); Mods.wf(w, sel + 0x348, (float) q[3]); Mods.wf(w, sel + 0x34c, 0f);
-                }
-                LogCap.note("用道具：预览红色，强行放到面前 " + cls);
-            }
+            long own = Server.rd(m, sel + 0x2b0), ps = pawn < 0x10000 ? 0 : Server.rd(m, pawn + 0x2c4);
+            d("放下 " + cls + " 数量 " + cnt0 + " 放置点" + (valid != 0 ? "有效" : "无效") + " 状态+311=" + b8(m, sel + 0x311)
+                + " 拥有者=" + (own == pawn ? "我" : Long.toHexString(own)) + " 拥有者背包=" + (own < 0x10000 ? "-" : Long.toHexString(Server.rd(m, own + 0x838)))
+                + " 地图状态PS+a14=" + (ps < 0x10000 ? "-" : String.valueOf(Server.rd(m, ps + 0xa14))) + " 倒地+fe4=" + (pawn < 0x10000 ? "-" : String.valueOf(b8(m, pawn + 0xfe4)))
+                + " 载具+ae8=" + (pawn < 0x10000 ? "-" : Long.toHexString(Server.rd(m, pawn + 0xae8))) + " NetMode≈" + netMode() + " " + finState);
         } catch (Throwable e) { return "出错 " + e; }
-        try {
-            long[] r = Veh.ucall(sel, 0, 0x3a4, 0, null);
-            LogCap.note("用道具：直接生成 " + cls + " 返回 " + Long.toHexString(r[0]) + "/" + Long.toHexString(r[1]));
-            if (r[0] != 0x5b0e) return "补丁没反应";
-            if (r[1] < 0x10000) return "游戏没生成";
-            Placed p = new Placed(); p.actor = r[1]; p.cls = cls == null ? "" : cls; p.t = System.currentTimeMillis();
-            synchronized (placed) { placed.add(p); }
-            return "ok";
-        } catch (InterruptedException e) { return "中断"; }
+        if (valid == 0) { d("放置点无效（预览红），游戏不会放"); return "放置位置不行（预览是红的），换个平地再放"; }
+        watchUntil = System.currentTimeMillis() + 12000;
+        long[] r;
+        try { r = Veh.ucall(inv, 0, 0x484, 0, null); } catch (InterruptedException e) { return "中断"; }
+        if (r[0] != 0x5b0e) return Veh.uOn ? "补丁没反应" : "用道具补丁没装（" + (Veh.installed ? "空位被占 " + Veh.uBusy : "刷物品补丁还没装好，进对局再试") + "）";
+        final long fsel = sel, finv = inv, fpawn = pawn, ftarget = target, fcnt0 = cnt0; final String fcls = cls;
+        new Thread(() -> watchPlace(b, finv, fsel, fpawn, ftarget, fcnt0, fcls), "zf-prop-watch").start();
+        return "ok";
     }
+    static void watchPlace(long b, long inv, long sel, long pawn, long target, long cnt0, String cls) {
+        boolean done = false; String res = "10 秒内没放下";
+        java.util.HashSet<Long> before = new java.util.HashSet<>(scene(target));
+        for (int i = 0; i < 20 && !done; i++) {
+            try { Thread.sleep(500); } catch (InterruptedException e) { return; }
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                boolean al = alive(m, b, sel);
+                long cnt = al ? Server.rd(m, sel + 0x2b4) : 0;
+                d(String.format(java.util.Locale.US, "放下中 %.1fs 道具%s 数量%d 状态+311=%s inv+2c0=%s +2c4=%s %s", (i + 1) * 0.5, al ? "在" : "没了", cnt,
+                    al ? String.valueOf(b8(m, sel + 0x311)) : "-", Long.toHexString(Server.rd(m, inv + 0x2c0)), Long.toHexString(Server.rd(m, inv + 0x2c4)), act(m, pawn)));
+                if (!al || cnt < cnt0) { done = true; res = "放下成功（数量 " + cnt0 + " → " + cnt + "）"; }
+            } catch (Throwable e) { d("放下监视出错 " + e); }
+        }
+        int added = 0;
+        if (done) {
+            try { Thread.sleep(300); } catch (InterruptedException ignored) {}
+            long now = System.currentTimeMillis();
+            for (long o : scene(target)) if (!before.contains(o)) { Placed p = new Placed(); p.actor = o; p.cls = cls == null ? "" : cls; p.t = now; synchronized (placed) { placed.add(p); } added++; }
+            res += "，地上新场景道具 " + added + " 个";
+        }
+        d(res);
+        if (!done || added == 0) upload("放下" + (done ? "后没找到场景道具" : "失败"));
+        final String msg = done ? null : "没放下（日志已自动上传）";
+        android.app.Activity a = Con.act; if (msg != null && a != null) a.runOnUiThread(() -> GameOverlay.toast(a, msg));
+        PropBtn.refresh();
+    }
+
+    /** 放下的场景道具（放下成功后按 TargetProp 类扫出来的新对象），给「收回 / 取消伪装」用 */
+    static final class Placed { long actor; String cls; long t; }
+    static final java.util.ArrayList<Placed> placed = new java.util.ArrayList<>();
     /** UObject 还活着：GUObjectArray（*0x51250ac +0x10，每项 16 字节）[idx].Object == 自己，且没标 PendingKill（+4 的 1<<29） */
     static boolean alive(RandomAccessFile m, long b, long o) {
         if (o < 0x10000) return false;
@@ -276,63 +334,124 @@ public class Prop {
         } catch (Throwable ignored) {}
         return null;
     }
-    /** 收回：人物+0x1160 道具组件 StartRecycleItem 0x110d6a0(组件, 场景道具)（要求 场景道具+0x2ec 回收时长 > 0）；
-     *  伪装石头：人物 RequestCancelCamouflage 0x10e9434(人物, 0) */
+
+    /** 全部活着的、类 == cls 的对象（GUObjectArray：*0x51250ac +0x10 Objects，+0x18 个数，每项 16 字节） */
+    static java.util.ArrayList<Long> scene(long cls) {
+        java.util.ArrayList<Long> out = new java.util.ArrayList<>();
+        long b = Mods.base(); if (b == 0 || cls < 0x10000) return out;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long g = Server.rd(m, b + 0x51250acL); if (g < 0x10000) return out;
+            long objs = Server.rd(m, g + 0x10), n = Server.rd(m, g + 0x18);
+            if (objs < 0x10000 || n <= 0 || n > 0x200000) return out;
+            byte[] blk = new byte[16 * 4096]; byte[] c4 = new byte[4];
+            for (long i = 0; i < n; i += 4096) {
+                int k = (int) Math.min(4096, n - i);
+                m.seek(objs + i * 16); m.readFully(blk, 0, k * 16);
+                java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(blk).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+                for (int j = 0; j < k; j++) {
+                    long o = bb.getInt(j * 16) & 0xffffffffL; int fl = bb.getInt(j * 16 + 4);
+                    if (o < 0x10000 || (fl & 0x20000000) != 0) continue;
+                    try { m.seek(o + 0xc); m.readFully(c4); } catch (Throwable t) { continue; }
+                    if ((java.nio.ByteBuffer.wrap(c4).order(java.nio.ByteOrder.LITTLE_ENDIAN).getInt() & 0xffffffffL) == cls) out.add(o);
+                }
+            }
+        } catch (Throwable e) { d("扫场景道具出错 " + e); }
+        return out;
+    }
+
+    /** 收回：道具组件 = 人物+0x1160（UNZBRPlayerPropComponent，组件+0xbc = 人物，虚表+0x210 = ServerStartRecycleSceneItem 实现 0x110f334）。
+     *  单机(NetMode 0)：调客户端入口 StartRecycleItem 0x110d6a0 —— NetMode 0 时它不起本地读条，直接 RPC（本地执行）进 0x110f334，只有一个读条。
+     *  房主(NetMode 2)：0x110d6a0 会先在同一个读条动作(组件+0xb8)上起本地读条，再本地执行 0x110f334 起服务端读条 → 同一个动作 StartAction 两次，
+     *   第二次「already active, force to abort」把第一次 Abort → 广播 OnCancelRecycleSceneItem → StopRecycleItem，两边互相取消。
+     *   所以房主直接调服务端实现 0x110f334（专用服务器收到 RPC 后做的就是这个）：只起服务端读条，场景道具 Tick 倒计时 → OnRecycle → DoRecycleDestroy 还背包、删除。
+     *  伪装石头：取消伪装 0x110dc50(组件, 伪装物)。 */
+    static final long REC_CLIENT = 0x110d6a0L, REC_SERVER = 0x110f334L, CANCEL_CAMO = 0x110dc50L;
     static String recycle(Placed p) {
         long b = Mods.base(); if (b == 0) return "找不到游戏库";
         long pawn = Mods.myPawn(); if (pawn < 0x10000) return "找不到人物";
-        long comp, ctl; float dur;
+        long comp; float dur; int nm = netMode();
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             if (!alive(m, b, p.actor)) { synchronized (placed) { placed.remove(p); } return "已经没了"; }
-            // v2.62：v2.61 直接读 控制器+0x1160 用错了对象 → 闪退。改成按类名找：人物/控制器里类名带 PlayerPropComponent 的那个指针
-            long ps = Server.rd(m, pawn + 0x2c4); ctl = ps < 0x10000 ? 0 : Server.rd(m, ps + 0x60);
-            comp = 0; String where = "";
-            Veh.Names nm = Veh.Names.get();
-            for (long o : new long[]{pawn, ctl}) {
-                if (o < 0x10000 || comp != 0) continue;
-                for (int off = 0x200; off < 0x1800; off += 4) {
-                    long q = Server.rd(m, o + off);
-                    if (q < 0x10000 || q >= 0xffff0000L) continue;
-                    String cn = Alive.clsName(m, nm, q);
-                    if (cn != null && cn.contains("PlayerPropComponent")) { comp = q; where = (o == pawn ? "人物+" : "控制器+") + Integer.toHexString(off) + " " + cn; break; }
-                }
+            comp = Server.rd(m, pawn + 0x1160);
+            long vt = comp < 0x10000 ? 0 : Server.rd(m, comp);
+            if (comp < 0x10000 || Server.rd(m, comp + 0xbc) != pawn || Server.rd(m, vt + 0x210) != b + REC_SERVER) {
+                d("道具组件对不上：人物+1160=" + Long.toHexString(comp) + (comp < 0x10000 ? "" : " +bc=" + Long.toHexString(Server.rd(m, comp + 0xbc)) + " vt+210=" + Long.toHexString(Server.rd(m, vt + 0x210) - b)));
+                upload("收回：道具组件对不上"); return "道具组件对不上（日志已上传）";
             }
-            LogCap.note("用道具：道具组件 " + (comp == 0 ? "没找到" : where));
-            if (comp == 0) return "找不到道具组件（已记日志）";
-            dur = Float.intBitsToFloat((int) Server.rd(m, p.actor + 0x2ec));
+            dur = fl(m, p.actor + 0x2ec);
+            d("收回 " + p.cls + " 场景道具 " + Long.toHexString(p.actor) + " 回收时长+2ec=" + dur + " 可回收距离+420=" + fl(m, p.actor + 0x420)
+                + " 距离=" + dist(m, pawn, p.actor) + " NetMode≈" + nm + " " + act(m, pawn));
         } catch (Throwable e) { return "出错 " + e; }
-        try {
-            long[] r;
-            if (camo(p.cls)) r = Veh.ucall(comp, p.actor, 0, 0, null, b + 0x110dc50L);   // 道具组件取消伪装(组件, 伪装物)，控制器的 RequestCancelCamouflage 0x10e9434 就是转到这里
-            else return destroyBack(p, b, pawn);   // v2.66 用户：还是收不回 → 不走游戏的回收读条，直接删掉场景道具，背包里没有就刷回一个
-            LogCap.note("用道具：" + (camo(p.cls) ? "取消伪装 " : "收回 ") + p.cls + " 回收时长 " + dur + " 返回 " + Long.toHexString(r[0]));
-            if (r[0] != 0x5b0e) return "补丁没反应";
-            if (camo(p.cls)) synchronized (placed) { placed.remove(p); }
-            return "ok";
-        } catch (InterruptedException e) { return "中断"; }
+        boolean cm = camo(p.cls);
+        if (!cm && dur <= 0) { upload("收回：回收时长为 0"); return "这个道具游戏里不能回收（回收时长 0）"; }
+        if (nm == 3) return "加入别人的房间时由房主收回";
+        long fn = cm ? CANCEL_CAMO : nm == 2 ? REC_SERVER : REC_CLIENT;
+        watchUntil = System.currentTimeMillis() + 20000;
+        long[] r;
+        try { r = Veh.ucall(comp, p.actor, 0, 0, null, b + fn); } catch (InterruptedException e) { return "中断"; }
+        d((cm ? "取消伪装" : nm == 2 ? "收回：调服务端实现 0x110f334" : "收回：调 StartRecycleItem 0x110d6a0") + " 返回 " + Long.toHexString(r[0]));
+        if (r[0] != 0x5b0e) return "补丁没反应";
+        if (cm) { synchronized (placed) { placed.remove(p); } return "ok"; }
+        final long fp = pawn;
+        new Thread(() -> watchRecycle(b, p, fp), "zf-prop-rec").start();
+        return "ok";
     }
-    /** v2.66 收回：K2_DestroyActor（AActor 虚表 +0x164，核对和人物的同一个函数）删掉，再看背包里还有没有同类，没有就按类名里的 11 位编号刷回 1 个 */
-    static String destroyBack(Placed p, long b, long pawn) {
-        boolean has = false;
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-            long fa = Server.rd(m, Server.rd(m, p.actor) + 0x164), fp = Server.rd(m, Server.rd(m, pawn) + 0x164);
-            LogCap.note("用道具：收回 " + p.cls + " 删除函数 " + Long.toHexString(fa - b) + " 人物的 " + Long.toHexString(fp - b));
-            if (fa != fp || fa == b + 0xb63a30L) return "删除函数对不上（已记日志）";
-        } catch (Throwable e) { return "出错 " + e; }
+    static String dist(RandomAccessFile m, long a1, long a2) {
         try {
-            long[] r = Veh.ucall(p.actor, 0, 0x164, 0, null);
-            if (r[0] != 0x5b0e) return "补丁没反应";
-            Thread.sleep(400);
-            scanUse(true);
-            for (It it : useList) if (it.cls != null && it.cls.equals(p.cls)) has = true;
-            synchronized (placed) { placed.remove(p); }
-            java.util.regex.Matcher mm = java.util.regex.Pattern.compile("(\\d{11})").matcher(p.cls);
-            String back = has ? "背包里还有，不补" : mm.find() ? "刷回 " + mm.group(1) : "类名里没编号，没刷回";
-            if (!has && mm.find(0)) { final String id = mm.group(1); android.app.Activity a = Con.act; if (a != null) a.runOnUiThread(() -> GameOverlay.give(a, id, 1)); }
-            LogCap.note("用道具：已删除 " + p.cls + "，" + back);
-            return "ok";
-        } catch (InterruptedException e) { return "中断"; }
+            long r1 = Server.rd(m, a1 + 0x128), r2 = Server.rd(m, a2 + 0x128);
+            if (r1 < 0x10000 || r2 < 0x10000) return "?";
+            float dx = fl(m, r1 + 0x140) - fl(m, r2 + 0x140), dy = fl(m, r1 + 0x144) - fl(m, r2 + 0x144), dz = fl(m, r1 + 0x148) - fl(m, r2 + 0x148);
+            return String.valueOf(Math.round(Math.sqrt(dx * dx + dy * dy + dz * dz)));
+        } catch (Throwable e) { return "?"; }
     }
+    /** 每 0.5 秒记 场景道具 +0x3e4/+0x3e8/+0x2cc/+0x438/+0x439/存活 和读条，最多 20 秒；没收回就自动上传 */
+    static void watchRecycle(long b, Placed p, long pawn) {
+        boolean gone = false;
+        for (int i = 0; i < 40 && !gone; i++) {
+            try { Thread.sleep(500); } catch (InterruptedException e) { return; }
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                boolean al = alive(m, b, p.actor);
+                if (!al) { gone = true; d(String.format(java.util.Locale.US, "收回中 %.1fs 场景道具已删除", (i + 1) * 0.5)); break; }
+                long a = p.actor;
+                d(String.format(java.util.Locale.US, "收回中 %.1fs +3e4=%s +3e8=%s +2cc=%s(%.2f) +438=%d +439=%d 距离=%s %s", (i + 1) * 0.5,
+                    Long.toHexString(Server.rd(m, a + 0x3e4)), Long.toHexString(Server.rd(m, a + 0x3e8)), Long.toHexString(Server.rd(m, a + 0x2cc)), fl(m, a + 0x2cc),
+                    b8(m, a + 0x438), b8(m, a + 0x439), dist(m, pawn, a), act(m, pawn)));
+            } catch (Throwable e) { d("收回监视出错 " + e); }
+        }
+        if (gone) synchronized (placed) { placed.remove(p); }
+        try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+        scanUse(true);
+        StringBuilder bag = new StringBuilder();
+        for (It it : useList) if (it.cls != null && it.cls.equals(p.cls)) bag.append(" 背包里 ").append(nice(it.cls)).append(" 数量 ").append(it.cnt);
+        d((gone ? "收回完成" : "20 秒没收回") + (bag.length() == 0 ? "，背包里没看到同类" : "，" + bag));
+        upload(gone ? "收回完成" : "收回失败");
+        android.app.Activity a = Con.act;
+        final String msg = gone ? "已收回" + (bag.length() == 0 ? "（背包里没看到，日志已上传）" : "") : "没收回（日志已上传）";
+        if (a != null) a.runOnUiThread(() -> GameOverlay.toast(a, msg));
+        PropBtn.refresh();
+    }
+
+    /** 运行时扫 GNames 里含 PropsBar 的名字，只确认手机上有没有原生道具栏 UMG 资源（不做别的） */
+    static volatile String propsBar = "道具栏资源：没查";
+    static volatile boolean pbBusy;
+    static void scanPropsBar() {
+        if (pbBusy || !propsBar.equals("道具栏资源：没查")) return;
+        pbBusy = true;
+        new Thread(() -> {
+            try {
+                Thread.sleep(8000);
+                java.util.ArrayList<String> hits = new java.util.ArrayList<>();
+                ModeProbe.find("propsbar", hits);
+                StringBuilder g = new StringBuilder(); int nGame = 0;
+                for (String h : hits) if (h.startsWith("/Game/")) { nGame++; if (g.length() < 1200) g.append("\n  ").append(h); }
+                propsBar = "道具栏资源：名字表含 PropsBar " + hits.size() + " 个，/Game/ 路径 " + nGame + " 个" + g
+                    + (hits.size() > nGame ? "\n  其它：" + String.join(" ", hits.subList(0, Math.min(hits.size(), 30))) : "");
+                d(propsBar);
+            } catch (Throwable e) { propsBar = "道具栏资源：扫名字表出错 " + e; }
+            finally { pbBusy = false; }
+        }, "zf-propsbar").start();
+    }
+
     /** 收起手上的道具：背包 vt+0x4d4 0xfe96e4 */
     static void unselect() {
         try {

@@ -857,3 +857,30 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 偏移来源：反射表 UNetDriver NetServerMaxTickRate 0x34 / MaxInternetClientRate 0x38 / MaxClientRate 0x3c；UPlayer ConfiguredInternetSpeed 0x28 / ConfiguredLanSpeed 0x2c；AGameNetworkManager TotalNetBandwidth 0x2b8 / Min 0x2bc / Max 0x2c0 / ClientNetSendMoveThrottleAtNetSpeed 0x304。World+0x310 = NetworkManager 是从 0x2992888 推断的，代码里核对类名。
 - 新工具：game/re/fstart.py（找函数头）、vtslot.py（函数在哪些虚表第几格）、vcall.py（找 ldr [rX,#off]+blx 的虚调用）。
 - 未实测。要看：客户端还有没有 "Force set local front ammo count"；诊断「听服弹匣同步 9/9」「联机带宽」两行；开车/船上岸下车还被不被拉回；若还拉回，看服务端有没有 Saturated / skip replicated、看车 GetNetMode()==1 分支。
+
+## native-prop 上一轮结论（2026-11-18，补记，静态 RE）
+- 道具组件 = 人物+0x1160（UNZBRPlayerPropComponent），组件+0xbc = 人物，组件+0xb8 = 读条动作。v2.61 用 控制器+0x1160 是错的（闪退）。
+- 原生回收：客户端 StartRecycleItem 0x110d6a0（要求 场景道具+0x2ec 回收时长>0；NetMode≠0 时先在 组件+0xb8 上本地读条 0xcde1f0(动作, 时长, 6, 1) 并绑 OnCancel/OnFinishRecycleSceneItem，再 0x11e2f10 RPC ServerStartRecycleSceneItem；NetMode 0 不起本地读条直接 RPC）。服务端实现 0x110f334（组件虚表 +0x210，校验 +0x20c）：人物 vt+0x680、场景道具 vt+0x358 OnTriggerRecycle 0x1143234（记表 +0x3e4）、绑 OnCancelRecycleSceneItemServer、在同一个 组件+0xb8 上 StartAction(6)、人物+0xd28=0。场景道具 Tick vt+0x204 0x1134df0（要 +0x2cc>0）倒计时 → vt+0x360 OnRecycle 0x1143560（距离−300 > CanRecycleDist +0x420 失败，日志 "Error Recycle Distance"）→ ClientFinishRecycle → RecycleDestroy 0x1143d38（置 +0x439，按 +0x428 定时）→ DoRecycleDestroy 0x116d09c：0xd11a48(人物, 场景道具+0x320 编号, 1, 0, 6=Recycle) 还背包，0x273e8d4 删除。
+- 拿出/收起：背包 vt+0x4d0 / +0x4d4 就是原生道具格按钮做的事，本来就是原生。
+- 原生 UseItem 单机停在 StopPreUsingItem（根因见下面 v2.98）。PreUseItem 背包 vt+0x494 0xcdd510；FinishUsingItemCastTime vt+0x4b8 0xcde9f4（要求 0xcdb0ac(背包)==背包+0x2c0 CachedPreUsingItem，然后道具 UseThisItem vt+0x348 → 0xcdf058 扣数量）。
+- 原生道具栏 UMG（UNZBRPHUDWidget_PropsBar*）只由 pak 蓝图创建，经典界面没有，改标志出不来。
+
+## v2.98（vc199/core199，2026-11-18 17:xx，三包，未实测）— 道具放下/收回原生化
+### 放下断点根因（静态 RE，NZInventoryManager.cpp）
+- 链：背包 vt+0x484 0xfe98b0（选中且 +0x336 放置点有效）→ vt+0x480 UseItem 0xcdcdfc（道具 vt+0x33c CanUseThisItem==1）→ vt+0x494 PreUseItem 0xcdd510（权威端：准备时长>0 时定时器回调 0xcdddb8，否则直接）→ 0xcddf54 PreUseItemPrepareFinish：StartAction(人物+0xce4 ActionWithCastTimeInstance, 道具+0x318, 类型1)、背包+0x2c0 = 道具、道具 vt+0x340 StartPreUsing（+0x311 状态→2）。定时器回调还会调 ClientPreUseItemPrepareFinish（RPC，单机本地执行 0xcde05c → 再来一遍 0xcddf54 → 第二次 StartAction「already active, force to abort」→ 动作 OnAbort(+0x28) → AbortPreUsingItem 0xcdcba0 → 收尾后又被第二次重新置好，最终状态一致）。
+- 读条完：动作 OnFinish(+0x1c) 绑的是 UFunction FinishUsingItemCastTime（exec 0xe67348 → vt+0x4b8 0xcde9f4，绑定在 0xcdc280）。它先算 r5 = 0xcdb0ac(背包)（vt+0x400 列表里状态 +0x311==2 的道具），然后**权威端 + 背包+0x2c0≠0 + 人物+0xb34 bIsBot==0 时调 ClientStopPreUsingItem(道具)（0xcdea88，vt+0x4a8 = 0xe66908 ProcessEvent）**。专用服务器上这是发给客户端的 RPC；单机 NetMode 0（以及房主自己的人物）上 Client RPC 本地执行 → ClientStopPreUsingItem_Implementation 0xcde77c → vt+0x4a0 0xcde5e0：清定时器、动作 Abort、道具 vt+0x37c StopPreUsingItem（日志 "[marvinsong]ANZItem_PropBase::StopPreUsingItem"，状态 2→1）、**背包+0x2c0 = 0** → 回来 `r5 == 背包+0x2c0` 不成立 → 日志 "FinishUsingItemCastTime failed …" → 不调 UseThisItem（生成）也不调 0xcdf058（扣数量）。人机 bIsBot=1 跳过这个 RPC，所以游戏自己的人机放盾能成。
+- 反射/字符串证据：+0x2c0 = CachedPreUsingItem（反射表）；+0xb34 = bIsBot（布尔属性 setter 0xe47838）；FName 表 0x51486a0：+0x40 ClientPreUseItem、+0x48 ClientPreUseItemPrepareFinish、+0x50 ClientStopPreUsingItem（初始化在 0x8e07a4）。
+- 修：0xcdea88 两条（ldr r0,[r4]; ldr r2,[r0,#0x4a8]）→ `ldr pc,[pc,#-4]` 跳 cave SLACK+0x3d0（game/re/fin_cave.py，unicorn game/re/emu_fin.py 三种情况：本地清 0 → 写回；远端不变 → 不动；被改成别的 → 不动）：push{r1,r2}；照原样调 ClientStopPreUsingItem（客户端那半边的收尾照做）；pop；`背包+0x2c0==0` 就写回原道具；回 0xcdea98 走原成功分支（UseThisItem → SpawnScenePropItem + 0xcdf058 扣数量）。专用服务器/远端客户端行为不变。Prop.finInstall，进对局图时装（Prop.matchLoad），诊断「放下修复：已装」。
+- UseThisItem 之后：CanUseThisItem（状态 1 不忙）→ 状态 3 → vt+0x3a4 生成。CanUseThisItem 失败码 5 = 拥有者(+0x2b0)/其背包(+0x838)空，或 拥有者 vt+0x918（ANZBRCharacter 0x10e6690：PS(+0x2c4)+0xa14 MapPlayerState==5；5 = 人物+0xfe4 置位，0x8c8 那格里置，像倒地）。预览红 = 道具 Tick 0xf2e124 里放置点 vt+0x3b4 无效，或人物 vt+0x4ac（+0xae8，载具）非空。
+### 收回
+- 去掉 v2.66 Prop.destroyBack（删掉再刷回）。NetMode 0：调 0x110d6a0（它在 NetMode 0 不起本地读条，直接本地执行 0x110f334，单读条）；房主 NetMode 2：直接调服务端实现 0x110f334（避开 0x110d6a0 本地读条 + 服务端读条在同一个 组件+0xb8 上 StartAction 两次互相 Abort → OnCancelRecycleSceneItem → StopRecycleItem）。调前核对 组件=人物+0x1160、组件+0xbc==人物、组件 vt+0x210==0x110f334、场景道具+0x2ec>0。NetMode 用 Lan.role 推（1→2、2→3、其它 0）。伪装岩仍走 0x110dc50。
+- 放下后找场景道具：游戏不返回指针 → 扫 GUObjectArray（*0x51250ac +0x10 Objects / +0x18 个数）找 类==道具 TargetProp(+0x3f0) 的新对象，记进 placed 给收回键用。
+### 诊断（Prop.d → 诊断头「道具诊断」，自动上传 prop-*）
+- 放下：拥有者/拥有者背包/PS+0xa14/人物+0xfe4/+0xae8/NetMode/修复状态；之后每 0.5 秒记 数量、+0x311、背包+0x2c0/+0x2c4、读条（人物+0xce4：+0x48 进行中、+0x5c 类型、+0x34 时长），10 秒；失败或没找到场景道具自动上传。
+- 收回：时长 +0x2ec、可回收距离 +0x420、距离；每 0.5 秒记 +0x3e4/+0x3e8/+0x2cc/+0x438/+0x439/存活/读条，20 秒；完成/失败都上传。
+- 期间游戏日志含 PreUseItem/FinishUsingItemCastTime/StopPreUsingItem/AbortPreUsingItem/Recycle/StartAction… 的行也记进去（AvatarLog KEYS 也加了）。
+- 进图 8 秒后扫一次 GNames 含 PropsBar 的名字（ModeProbe.find），诊断里列 /Game/ 路径个数和前几条，只看资源在不在。
+### 顺手修的冲突
+- MapMark 补标点 cave 在 SLACK+0x370，但 Prop 地上模型 cave（代码 0x68 + 6 个字面量）实际占到 0x380 → MapMark 装上后把 Prop cave 末尾 4 个字面量盖掉，之后地上模型加载回调走到 cave 会跳飞。MapMark 挪到 0x380（到 0x3cc），0x3d0~0x3fc 给放下修复 cave。
+- 删掉临时 game/re/_pp.py。新工具 game/re/ldrscan.py（找 ldr [rX,#imm]+blx）、pcref.py/pcref2.py（pc 相对引用）、offname.py（偏移→反射属性名，结构对齐不准，仅参考）、dref.py（数据段指针引用）。
+- 未实测：单机/房主放下是否读条后生成并扣数量；预览会不会一直红（v2.63 报过 CanUseThisItem 5）；收回读条能否走完（距离、+0x2cc）；房主收回加入玩家放的道具不支持（只收自己 placed 里的）。

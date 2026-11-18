@@ -92,8 +92,9 @@ final class MapMark {
 
     /** v2.81：游戏里 ServerAddNewMapSign/ServerRemoveMapSign 的实现是空的（vt+0x3f4/+0x3ec = 0xb63518「return 1」），标点永远存不下来、落在地图左上角。
      *  补两段：加标点 把 InNewLoc(r1,r2) 写到 控制器+0xa04/+0xa08、+0xa0c(bEnable)=1；删标点 +0xa0c=0。放 SLACK+0x3d0（v2.81 用的 +0xa90 那里其实是数据，毒圈 +0x990 装不上也是这个原因），改这个控制器类的虚表两格。 */
+    // v2.98：挪到 SLACK+0x380（Prop 地上模型 cave 代码+字面量实际到 0x380，0x370 会把它末尾 4 个字面量盖掉）；0x3d0 起是放下修复 cave
     // v2.85：挪到 SLACK+0x370（Prop 用到 0x368，Veh 从 0x400），加标点顺便记 次数/x/y/this 到 +0x30（看 RPC 到底有没有被调）
-    static final long MCAVE = Server.SLACK + 0x370, STUB = 0xb63518L, DATA = 0x30, DELO = 0x40;
+    static final long MCAVE = Server.SLACK + 0x380, STUB = 0xb63518L, DATA = 0x30, DELO = 0x40;
     static final String ADD = "041a80e5082a80e50130a0e30c3ac0e518c08fe200309ce5013083e200308ce504108ce508208ce50c008ce51eff2fe1", DEL = "0030a0e30c3ac0e51eff2fe1";
     static int lastCnt = -1;
     static void autoLog() {
