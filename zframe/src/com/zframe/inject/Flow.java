@@ -190,6 +190,10 @@ public class Flow {
         }
     }
     static volatile float sideNow = 408000f;
+    /** v2.70 用户：要在航线内才能跳伞，跳伞键被提前打开了。以前跳伞段 = 整条航线（一起飞就能跳，海上也能跳）。
+     *  现在跳伞段取航线的 JUMP_A ~ JUMP_B（起点后约 18%，已经进图了；到 92% 强制跳）。 */
+    static final double JUMP_A = 0.18, JUMP_B = 0.92;
+    static float lerp(float a, float b, double t) { return (float) (a + (b - a) * t); }
 
     /** v1.94：按日志里的起点/终点坐标值，在各系统对象和它们指向的对象里找（不靠猜偏移），找到就改；没找到返回 null */
     static String airByValue(RandomAccessFile m, long[] sys, float side) throws Exception {
@@ -203,7 +207,7 @@ public class Flow {
                 if (d >= 0x10000 && n >= 1 && n <= 4) for (int x = 0; x < n; x++) { long t = Server.rd(m, d + 4L * x); if (t >= 0x10000 && !objs.contains(t)) objs.add(t); }
             }
         }
-        StringBuilder sb = new StringBuilder(); int hits = 0;
+        StringBuilder sb = new StringBuilder(); int hits = 0; boolean jumpSet = false;
         Random rnd = new Random();
         double ang = rnd.nextDouble() * Math.PI * 2, dx = Math.cos(ang), dy = Math.sin(ang), off = (rnd.nextDouble() * 2 - 1) * side * 0.1;
         double mx = -dy * off, my = dx * off, h = side * 0.55;
@@ -221,9 +225,10 @@ public class Flow {
                 // 跳伞段：起点后 0x80 字节内找 StartJumpLoc / EndJumpLoc 的值
                 if (la[2] != null && la[3] != null) for (int j = k + 12; j + 24 <= Math.min(b.length, k + 0x80); j += 4) {
                     if (bb.getInt(j) == Float.floatToRawIntBits(la[2][0]) && bb.getInt(j + 4) == Float.floatToRawIntBits(la[2][1]) && bb.getInt(j + 12) == Float.floatToRawIntBits(la[3][0]) && bb.getInt(j + 16) == Float.floatToRawIntBits(la[3][1]) && j != k) {
-                        wf(m, o + j, nsx); wf(m, o + j + 4, nsy); wf(m, o + j + 12, nex); wf(m, o + j + 16, ney); wf(m, o + j + 8, PLANE_Z); wf(m, o + j + 20, PLANE_Z);
+                        wf(m, o + j, lerp(nsx, nex, JUMP_A)); wf(m, o + j + 4, lerp(nsy, ney, JUMP_A)); wf(m, o + j + 12, lerp(nsx, nex, JUMP_B)); wf(m, o + j + 16, lerp(nsy, ney, JUMP_B)); wf(m, o + j + 8, PLANE_Z); wf(m, o + j + 20, PLANE_Z);
                         double jl = Math.hypot(la[3][0] - la[2][0], la[3][1] - la[2][1]);
-                        if (j + 0x1c <= b.length && Math.abs(bb.getFloat(j + 0x18) - jl) < Math.max(100, jl * 0.02)) wf(m, o + j + 0x18, (float) (2 * h));
+                        if (j + 0x1c <= b.length && Math.abs(bb.getFloat(j + 0x18) - jl) < Math.max(100, jl * 0.02)) wf(m, o + j + 0x18, (float) (2 * h * (JUMP_B - JUMP_A)));
+                        jumpSet = true;
                         break;
                     }
                 }
@@ -231,7 +236,7 @@ public class Flow {
             }
         }
         if (hits == 0) return null;
-        return Math.round(Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]) / 100) + " 米 → " + Math.round(2 * h / 100) + " 米，高 " + Math.round(PLANE_Z / 100) + " 米，穿过地图中间（改了 " + hits + " 处：" + sb.toString().trim() + "）";
+        return Math.round(Math.hypot(la[1][0] - la[0][0], la[1][1] - la[0][1]) / 100) + " 米 → " + Math.round(2 * h / 100) + " 米，高 " + Math.round(PLANE_Z / 100)  + " 米，穿过地图中间，跳伞段 " + (jumpSet ? Math.round(JUMP_A * 100) + "%~" + Math.round(JUMP_B * 100) + "%" : "没找到") + "（改了 " + hits + " 处：" + sb.toString().trim() + "）";
     }
     static byte[] read(RandomAccessFile m, long a, int n) { try { byte[] b = new byte[n]; m.seek(a); m.readFully(b); return b; } catch (Throwable e) { return null; } }
 
@@ -263,8 +268,8 @@ public class Flow {
                 wf(m, t + 0x324, (float) (2 * h));
                 // 能跳的范围也跟着拉长（原来是不是和航线同样两端都记下来）
                 float jsx = f(m, t + 0x328), jsy = f(m, t + 0x32c), jex = f(m, t + 0x334), jey = f(m, t + 0x338);
-                wf(m, t + 0x328, nsx); wf(m, t + 0x32c, nsy); wf(m, t + 0x334, nex); wf(m, t + 0x338, ney); wf(m, t + 0x330, PLANE_Z); wf(m, t + 0x33c, PLANE_Z);
-                wf(m, t + 0x340, (float) (2 * h));
+                wf(m, t + 0x328, lerp(nsx, nex, JUMP_A)); wf(m, t + 0x32c, lerp(nsy, ney, JUMP_A)); wf(m, t + 0x334, lerp(nsx, nex, JUMP_B)); wf(m, t + 0x338, lerp(nsy, ney, JUMP_B)); wf(m, t + 0x330, PLANE_Z); wf(m, t + 0x33c, PLANE_Z);
+                wf(m, t + 0x340, (float) (2 * h * (JUMP_B - JUMP_A)));
                 sb.append(Math.round(len / 100)).append(" 米 → ").append(Math.round(side / 100)).append(" 米（起 ").append(Math.round(sx)).append(',').append(Math.round(sy))
                   .append(" 终 ").append(Math.round(ex)).append(',').append(Math.round(ey)).append(" 原跳伞段 ").append(Math.round(jsx)).append(',').append(Math.round(jsy))
                   .append('~').append(Math.round(jex)).append(',').append(Math.round(jey)).append(" 速度 ").append(Math.round(speed)).append("）");
@@ -298,7 +303,10 @@ public class Flow {
     //   zone_cave.py 生成并用 unicorn 测过。
     static final long ZA = 0xd977ecL, ZB = 0xd97b6cL, ZS = Server.SLACK + 0x990;
     static final String ZA_O = "4c5394e560008de5", ZB_O = "1cd04be2f08fbde8";
-    static final String ZCA = "60008de52cc04fe200109ce5000051e32700000a08209ce5000052e32400001a3c2394e5400394e5000052e32000000a010050e31e0000ba08408ce50c208ce510008ce5443394e514308ce5010040e25430a0e3902320e004309ce5c0002de90050a0e3030055e10d0000aa016043e2060055e100e0a00102e0a0115460a0e395162ce02070a0e307609ee707608ce7047087e2540057e3faffffba015085e2efffffeac000bde83c1384e5403384e5443384e54c5394e504f01fe5", ZCB = "e8c04fe208109ce5000051e30700000a0c209ce53c2381e510209ce5402381e514209ce5442381e50020a0e308208ce51cd04be2f08fbde8";
+    static final String ZCA = "60008de52cc04fe200109ce5000051e32700000a08209ce5000052e32400001a3c2394e5400394e5000052e32000000a010050e31e0000ba08408ce50c208ce510008ce5443394e514308ce5010040e25430a0e3902320e004309ce5c0002de90050a0e3030055e10d0000aa016043e2060055e100e0a00102e0a0115460a0e395162ce02070a0e307609ee707608ce7047087e2540057e3faffffba015085e2efffffeac000bde83c1384e5403384e5443384e54c5394e504f01fe5", ZCB = "e8c04fe208109ce5000051e30c00000a0c209ce53c2381e510209ce5402381e514209ce5442381e50020a0e308208ce5582391e5000052e3010000dac02391e5b02381e51cd04be2f08fbde8";
+    // v2.70 用户：开局不应该有毒圈。开局的蓝圈 = 地图对角线一半(+0x330/+0x334 求 hypot，约 4327 米，圈心是第一项的圈心) → 地图上看得到。
+    //   cave B 出口把 +0x3b0 写成第一项半径 +0x3c0；换圈函数 0xd974d4 第一次（当前 -1）也改成读 +0x3c0（vldr s0,[r4,#0x3c0]; b 0xd975a8）。
+    static final long ZF = 0xd97578L; static final String ZF_O = "cc0a94edcd1a94ed", ZF_N = "f00a94ed090000ea";
     static volatile boolean nat; public static volatile String natState = "";
     static java.nio.ByteBuffer tbuf; static long taddr;
     static synchronized String natInstall() {
@@ -317,6 +325,8 @@ public class Flow {
         if (!"ok".equals(ra)) return "入口 " + ra;
         String rb = Mods.write(ZB, ZB_O, "04f01fe5" + Server.w32((int) (b + ZS + 0xe0)), true);
         if (!"ok".equals(rb)) { Mods.write(ZA, ZA_O, "04f01fe5" + Server.w32((int) (b + ZS + 0x20)), false); return "出口 " + rb; }
+        String rf = Mods.write(ZF, ZF_O, ZF_N, true);
+        if (!"ok".equals(rf)) Veh.note("毒圈底层：开局蓝圈补丁没打（" + rf + "）");
         nat = true; return "ok";
     }
     /** 进对局地图（Browse）时调：按地图写好本局的表（游戏 InitArea 会用） */

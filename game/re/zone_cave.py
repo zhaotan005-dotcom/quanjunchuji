@@ -1,3 +1,4 @@
+# v2.70: cave B also sets blue circle radius +0x3b0 = first entry radius +0x3c0 (no visible circle at start)
 # v2.45 native poison-zone table: InitArea (0xd9777c) reads our DefaultRestrictedAreaInfos, restores after
 import asm, capstone, struct
 S_OFF = 0x990            # inside Server.SLACK
@@ -72,6 +73,11 @@ def caveB(org):
   str r2, [r1, #0x344]
   mov r2, #0
   str r2, [ip, #8]
+  ldr r2, [r1, #0x358]
+  cmp r2, #0
+  ble out
+  ldr r2, [r1, #0x3c0]
+  str r2, [r1, #0x3b0]
 out:
   sub sp, fp, #0x1c
   pop {r4-r11, pc}

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.69";
+    static final String VER = "v2.70";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -866,7 +866,20 @@ public class GameOverlay {
     static void giveGun(Activity a, String name, String id, String ammo) {
         give(a, id, 1);
         if (!"0".equals(ammo)) give(a, "2060000000" + ammo, "7".equals(ammo) ? 30 : 60);
-        if (takesAttachments(id)) for (String at : ATT) if (givenAtt.add(at)) give(a, at, 1);
+        if (takesAttachments(id)) {
+            // v2.70 用户：刷的枪没有配件。以前配件直接塞进背包（游戏不会自动装到枪上，日志里没有 Attaching adapter）。
+            // 现在放到脚下：走游戏自己的拾取（自动拾取/点拾取），捡起来时游戏会自动装到能装的枪上。每把枪都给一套。
+            if (onGround) { for (String at : ATT) give(a, at, 1); }
+            else new Thread(() -> {
+                try {
+                    Thread.sleep(700);
+                    int bad = 0;
+                    for (String at : ATT) { String e = Veh.ground(Long.parseLong(at), 1); if (e != null) bad++; }
+                    if (bad > 0) toastAny("配件有 " + bad + " 件没放到脚下");
+                    else toastAny("配件放在脚下了，捡起来会自动装到枪上");
+                } catch (Throwable e) { toastAny("配件没放到脚下：" + e); }
+            }, "zf-att").start();
+        }
         after(a, name);
     }
     static void gunGrid(final Activity a, final Ui u, final LinearLayout root, final int c) {
@@ -1153,7 +1166,7 @@ public class GameOverlay {
         }
         hs.addView(cr);
         root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        head(a, u, root, "点一下放进背包（带子弹和配件）");
+        head(a, u, root, "点一下放进背包（带子弹，配件放在脚下）");
         gunGrid(a, u, root, weapCat);
         giveHint(a, root);
     }

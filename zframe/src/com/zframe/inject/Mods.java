@@ -93,6 +93,7 @@ public class Mods {
         } else wearState = "出生衣服：" + Ed.name() + "不装";
         Lan.preinstall();
         LogCap.note("刷车钩子 → " + Veh.install());
+        LogCap.note(PickAnim.install());   // v2.70 拾取两次动作
         earlyDone = "ok".equals(r);
         earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + Veh.state + "，" + (System.currentTimeMillis() - t0) + " ms";
         LogCap.note(earlyState);
