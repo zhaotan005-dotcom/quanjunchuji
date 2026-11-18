@@ -156,14 +156,14 @@ final class NetCore {
         }, "zframe-netcore").start();
     }
 
-    /** 重启游戏：1 秒后用闹钟重新打开，自己退出 */
+    /** 重启游戏：3.5 秒后用闹钟重新打开，自己退出 */
     static void restart(android.app.Activity a) {
         try {
             android.content.Intent i = a.getPackageManager().getLaunchIntentForPackage(a.getPackageName());
             i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);
             android.app.PendingIntent pi = android.app.PendingIntent.getActivity(a, 7301, i, android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_CANCEL_CURRENT);
             android.app.AlarmManager am = (android.app.AlarmManager) a.getSystemService(Context.ALARM_SERVICE);
-            am.set(android.app.AlarmManager.RTC, System.currentTimeMillis() + 1200, pi);
+            am.set(android.app.AlarmManager.RTC, System.currentTimeMillis() + 3500, pi);   // v3.03：1.2 秒太快，旧进程还没退干净新进程就读配置，两次启动闪退都在读 ini 时（0x1a322f8，推断）
         } catch (Throwable t) { LogCap.note("重启：定时打开失败 " + t); }
         a.finishAffinity();
         android.os.Process.killProcess(android.os.Process.myPid());

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.02";
+    static final String VER = "v3.03";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -921,7 +921,7 @@ public class GameOverlay {
     static void add(java.util.List<String> l, String[]... gs) { for (String[] g : gs) for (String x : g) l.add(x); }
     /** 这一局已经刷过的配件（换局清空）：包里已经有的配件不再重复刷 */
     static final java.util.Set<String> givenAtt = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
-    static void newMatch() { givenAtt.clear(); givenGear.clear(); }
+    static void newMatch() { givenAtt.clear(); givenGear.clear(); HostMatch.newMatch(); }
     /** v2.02 用户：开局刷了 3 级套，跳伞后再刷一次直接闪退（栈溢出）。头/甲/包身上已有时再塞一件 = 游戏要换装、把旧的扔地上，这条路会崩。
      *  同一局每个部位只刷一次（刷在地上不受限）。 */
     static final java.util.Set<String> givenGear = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
@@ -1018,7 +1018,8 @@ public class GameOverlay {
             kv(a, u, hc, "本机 IP", Lan.ip());
             LinearLayout r = row(a, hc); r.setPadding(0, u.dp(4), 0, u.dp(6));
             fillBtn(a, u, r, "老海岛", () -> toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")));
-            fillBtn(a, u, r, "新海岛", () -> toast(a, Lan.host("/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
+            // v3.03 用户：新海岛默认就是战术模式（v3.02 实测战术模式能用：原生道具栏、道具都能用）
+            fillBtn(a, u, r, "新海岛", () -> toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")));
             fillBtn(a, u, r, "雨林", () -> toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")));
             // v2.92 试娱乐模式开房；v2.96 根修：?game= 必须是模式的蓝图类（C++ 底层类没配控制器/对局状态，开了必闪退，见 ModeProbe）。
             // 名字（libUE4 本地化默认文本 NSCommon/MatchModeName_10/13）：Legion = 三军对垒（GroupCountMax 默认 3），BFA = 决胜五军（推断）
@@ -1026,8 +1027,20 @@ public class GameOverlay {
             LinearLayout er = row(a, hc);
             // v3.01：v3.00 全量扫名字表 —— 三军对垒没有蓝图（只有 C++ 类）→ 按钮去掉；决胜五军有 BP_NZBRBFAGameMode（能进图，流程不全，见 history）；
             //  战术模式 /Game/Blueprints/BattleRoyalePropsGame/BP_NZBattleRoyalePropsGameMode（道具栏 UNZBRPHUDWidget_PropsBar 是这个模式的 HUD）
-            fillBtn(a, u, er, "战术模式（试）", () -> toast(a, ModeProbe.host("Props", "战术模式", RENEW)));
             fillBtn(a, u, er, "决胜五军（试）", () -> toast(a, ModeProbe.host(ModeProbe.BFA, "决胜五军", RENEW)));
+            // v3.03 用户：再找找别的地图 → 服务端进大厅自动扫名字表里的 /Game/Maps/…_Main（ModeProbe.maps），除了上面三张，扫到的都列出来（战术模式开）
+            java.util.List<String> extra = ModeProbe.maps;
+            LinearLayout xr = null; int xn = 0;
+            for (final String mp : extra) {
+                if (mp.contains("BR-Erangel_Mobile_Main") || mp.contains("BR-ErangelRenew_Mobile_Main") || mp.contains("BR-Savage_Mobile_Main")) continue;
+                if (xn % 3 == 0) xr = row(a, hc);
+                String lb = mp.substring(mp.lastIndexOf('/') + 1).replace("BR-", "").replace("_Mobile_Main", "").replace("_Main", "");
+                fillBtn(a, u, xr, lb + "（试）", () -> toast(a, ModeProbe.host("Props", "战术模式", mp)));
+                xn++;
+            }
+            if (xr != null) while (xn % 3 != 0) { xr.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); xn++; }
+            switchRow(a, u, hc, "藏起房主人物", "开局把房主自己的人物隐藏（加入的玩家看不到），房主只当服务器", HostMatch.hideHost, v -> { HostMatch.hideHost = v; return "ok"; });
+            note(a, u, hc, HostMatch.state);
             note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);
             // v2.22：房主也能选模式。房主自己没网络连接，游戏不让他上飞机；「不刷毒对局」= 大家都不上飞机，一起在出生岛开打
@@ -1195,10 +1208,8 @@ public class GameOverlay {
         slider(a, u, root, "高跳", cl ? "要和服务端拉到同一个数" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
         }
         if (Ed.ED != 2 && Lan.role != 2) {   // v2.73 用户：参考弹射板做「飞天」，高度可调
-            head(a, u, root, "飞天");
-            slider(a, u, root, "飞天高度（米）", "点「飞天」升到这个高度后一直飞，摇杆控制方向；再点一下关掉慢慢落下。上飞机、跳伞、上车、下水会自动关", 10f, 500f, 10f, Fly.height, false, v -> Fly.height = v);
-            LinearLayout fly = row(a, root);
-            fillBtn(a, u, fly, "飞天 开/关", () -> new Thread(() -> { String r = Fly.go(); LogCap.note(r); toastAny(r.replace("飞天：", "")); }, "zf-fly").start());
+            // v3.03 用户：飞天去掉（客户端本来就没有）。传送落地还用 Fly.softLand
+            head(a, u, root, "传送");
             switchRow(a, u, root, "点地图标点自动传送", "在大地图上标点后，自动传到那个点上空 200 米，再慢慢落下来", MapMark.autoTp, v -> { MapMark.autoTp = v; MapMark.start(); return "ok"; });
         }
         LinearLayout fc = card(a, u, root);
@@ -1308,7 +1319,7 @@ public class GameOverlay {
         btn(a, u, g3, "全套药品", () -> { for (String m : MED) give(a, m, 5); after(a, "全套药品"); });
         btn(a, u, g3, "手雷×3", () -> give(a, "20401000001", 3, "手雷"));
         btn(a, u, g3, "全套配件", () -> allAtt(a));
-        btn(a, u, g3, "油桶", () -> barrel(a));
+        // v3.03：油桶键去掉（编号认不出名字，按不出来）；战术模式开局服务端每样战术道具发 999（HostMatch），油桶类道具在里面
         if (Ed.ED != 2) note(a, u, root, "战术道具在「道具」页；拿出/放下用对局里的「道具」键。");
     }
 

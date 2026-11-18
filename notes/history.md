@@ -936,3 +936,16 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 20504 弹匣：每类 扩容/快速/快扩，步枪 1–3、冲锋 4–6、狙击 7–9、手枪 10–12 → 快扩：步枪 20504000003、冲锋 20504000006、狙击 20504000009
   - 20505：1 战术枪托 2 UZI 枪托 3 托腮板 4 子弹袋 5 98K 子弹袋
 - 改：GameOverlay.attFor(枪编号) 按枪给能装的配件，弹匣只给快扩；十字弩给箭袋；日志记「刷枪配件 名字：[…]」。若用户反馈名字对不上，按这行日志和捡起时的提示修正表。
+
+## v3.03（vc204/core204，2026-11-18 18:4x，三包，未实测）— 新海岛默认战术模式、找地图、喷气背包、去飞天、开局发道具 999、藏房主人物、ntfy 限流
+用户 18:13 实测 v3.02：「这次很不错，都能用了」（战术模式开房、原生道具栏、人偶可能也能用；信号枪服务端这次触发了叫飞机 +0x330=1，CalcAirSupplyPlaneMoveInfo 出现）。客户端截图「请求失败 HTTP 429」。
+- 新海岛按钮直接开战术模式（ModeProbe.host("Props")，模式类缓存 cache）；去掉单独的「战术模式（试）」。
+- 找地图：服务端大厅自动扫名字表 /Game/Maps/…_Main（ModeProbe.maps，排除 FrontEnd/RoleHall/Startup），除老海岛/新海岛/雨林外扫到的都加按钮（战术模式），联机日志「名字表全量扫 地图」。
+- 喷气背包（Jetpack.java）：ANZItem_JetpackBagBase 反射属性（全 float）：CurrentEnergy 0x388 / MaxEnergy 0x38c / LaunchCostEnergyPer 0x390 / …FromCfg 0x394 / HoldCostEnergyPerSec 0x398；CurrentDurable 0x39c / MaxDurable 0x3a0 / LaunchCostDurablePer 0x3a4 / …FromCfg 0x3a8 / HoldCostDurablePerSec 0x3ac / RecoverDurablePerSec 0x3b0 / RecoverDurableCDTime 0x3b8 / CurrentState 0x3f4。两条（能量、耐久）都改上限 999999、当前填满一次、起飞/按住扣 1。服务端客户端都每 2 秒扫（类名含 JetpackBag）。日志记原值，哪条是燃料哪条是过热看日志。
+- 飞天：菜单去掉（客户端本来没有），传送开关留。
+- 开局发战术道具（HostMatch.java，服务端）：ucall 刷物品补丁 0x17169c0(加入玩家控制器, FString "P<id>x999")，补丁取控制器+0x2c0 人物 → 服务器直接放进他背包。道具 = 道具表 402 类去坏编号。每局每个控制器一次。
+- 藏房主人物：房主自己人物 AActor::SetActorHiddenInGame vt+0x160（thunk 0x2e70d40），不关碰撞（SetActorEnableCollision = 0x2740af0，没用，关了会掉出地图）。联机页开关「藏起房主人物」默认开。
+- 油桶键去掉（认不出编号）。
+- 稳定性：ntfy 429 —— 客户端代刷 0.5 秒内合并成一条多行消息，429 时 6 秒后重试 2 次；服务端从每 2 秒轮询改为长连接订阅 /json?since=（断了 5 秒重连）。
+- 重启：在线更新后的重开从 1.2 秒延到 3.5 秒（服务端 15:49、17:52 两次启动闪退都在 0x1a322f8 ← 0x1a2ea98（读 ini/命令行），推断是旧进程没退干净）。
+- 没做：换弹时切枪还会自动装弹（要那一刻的日志/RE）；「方块」（截图里灰色棋盘格方块，人偶站在上面）—— 是什么、要做成什么已问用户；pak 资源、训练营下一步。

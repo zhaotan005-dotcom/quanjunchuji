@@ -38,7 +38,8 @@ public class ModeProbe {
             String msg;
             try {
                 ArrayList<String> hits = new ArrayList<>();
-                String cls = find(key, hits);
+                String cls = cache.get(key);
+                if (cls == null) { cls = find(key, hits); if (cls != null) cache.put(key, cls); }
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < hits.size() && i < 40; i++) sb.append(i == 0 ? "" : " | ").append(hits.get(i));
                 Lan.note("模式蓝图「" + label + "」(" + key + ") 名字表命中 " + hits.size() + "：" + (sb.length() == 0 ? "无" : sb));
@@ -110,6 +111,9 @@ public class ModeProbe {
 
     /** v3.00：服务端进大厅后自动扫一次名字表（v2.99 名字表修好后第一次全量扫），只读，不开房：
      *  收集含模式关键字的名字和所有像 GameMode 蓝图的 /Game/ 路径，写联机日志并自动传 mode-*。 */
+    static final java.util.concurrent.ConcurrentHashMap<String, String> cache = new java.util.concurrent.ConcurrentHashMap<>();
+    /** v3.03：名字表里扫到的大地图（/Game/Maps/…_Main，排除大厅/启动/训练营之外的都算） */
+    static volatile java.util.List<String> maps = new java.util.ArrayList<>();
     static volatile boolean surveyed;
     static void survey() {
         if (surveyed || Ed.ED != 1) return; surveyed = true;
@@ -125,6 +129,11 @@ public class ModeProbe {
                 Lan.note("名字表全量扫 决胜五军(" + BFA + ") 命中 " + h2.size() + "，蓝图 " + c2 + "：" + join(h2, 60));
                 Lan.note("名字表全量扫 GameMode 命中 " + h3.size() + "，其中 /Game/ 路径 " + gm.size() + "：" + join(gm, 80));
                 Lan.note("GameMode 短名：" + join(h3, 120));
+                ArrayList<String> h4 = new ArrayList<>(); find("/game/maps/", h4);
+                java.util.TreeSet<String> mm = new java.util.TreeSet<>();
+                for (String x : h4) { String y = x; int d = y.indexOf('.'); if (d > 0) y = y.substring(0, d); if (y.endsWith("_Main") && !y.contains("FrontEnd") && !y.contains("RoleHall") && !y.contains("Startup")) mm.add(y); }
+                maps = new ArrayList<>(mm);
+                Lan.note("名字表全量扫 地图 /Game/Maps/ 命中 " + h4.size() + "，大地图 " + mm.size() + "：" + mm + "；全部：" + join(h4, 150));
                 state = "娱乐模式：自动扫完 三军对垒蓝图 " + (c1 == null ? "没有" : c1) + "，决胜五军蓝图 " + (c2 == null ? "没有" : c2) + "，/Game/ 模式蓝图 " + gm.size() + " 个";
                 Lan.note(state);
                 Lan.autoUp("mode");
