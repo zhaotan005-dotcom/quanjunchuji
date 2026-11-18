@@ -107,6 +107,30 @@ final class Loot {
         }, "zf-airdrop").start();
     }
 
+    /** v2.93 用户：信号枪召唤空投不行（日志里开枪了，服务端没有任何空投飞机/箱子）。兜底：开信号枪后在前方 8 米放一套空投物资。
+     *  客户端：自己日志出现 FlareGun_*_Fire_Gun role 2 → ntfy「A 1 x y z」让服务端放；服务端/单机：自己开枪（role 3）直接放。15 秒内只放一次。 */
+    static volatile long flareAt; static volatile String flareState = "信号枪空投：没用过";
+    static void flareLine(String l) {
+        if (!l.contains("FlareGun_") || !l.contains("_Fire_Gun")) return;
+        long now = System.currentTimeMillis();
+        if (now - flareAt < 15000) return;
+        if (Ed.ED == 2 && Lan.role == 2) { if (!l.contains("role 2")) return; flareAt = now; flareState = "信号枪空投：已请求服务端"; Give.post("A", "信号枪空投"); return; }
+        if (Lan.role == 2 || !l.contains("role 3")) return;
+        flareAt = now;
+        new Thread(() -> { try { String e = Veh.ahead(800, -80); if (e != null) { flareState = "信号枪空投：" + e; return; } flareKit(Veh.buf.getFloat(40), Veh.buf.getFloat(44), Veh.buf.getFloat(48)); } catch (Throwable t) { flareState = "信号枪空投：出错 " + t; } }, "zf-flare").start();
+    }
+    static String flareKit(float x, float y, float z) throws InterruptedException {
+        long[] kit = {20104000002L, 20600000006L, 20600000006L, 30304000005L, 30305000003L, 30307000006L};   // AWM、.300×2、3 级头、3 级甲、3 级包
+        int ok = 0; String err = null;
+        for (int k = 0; k < kit.length; k++) {
+            double a = Math.PI * 2 * k / kit.length;
+            String e = Veh.dropAt(kit[k], (float) (x + 80 * Math.cos(a)), (float) (y + 80 * Math.sin(a)), z);
+            if (e == null) ok++; else err = e;
+        }
+        flareState = "信号枪空投：放了 " + ok + "/" + kit.length + " 件（" + Math.round(x) + "," + Math.round(y) + "）" + (err == null ? "" : "，" + err);
+        LogCap.note(flareState); GameOverlay.toastAny("空投物资放在前面 8 米");
+        return flareState;
+    }
     /** 联机页一行 */
     static String shortText() {
         if (Ed.ED != 1) return "";

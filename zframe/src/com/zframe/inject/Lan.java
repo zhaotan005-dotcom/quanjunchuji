@@ -100,7 +100,8 @@ final class Lan {
     static String host(String map) {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
         role = 1; Give.serve(); Bots.auto = false; Server.quiet(); beat("开房加载");
-        boolean ok = Con.exec("open " + map + "?listen");
+        // v2.93 用户：服务端一直收人。引擎 GameSession.MaxPlayers（+0x2b4）默认很小，满了 ApproveLogin 回「Server full.」→ 开房带 ?MaxPlayers=100（InitOptions 0x2a011c4 读这个选项）
+        boolean ok = Con.exec("open " + map + "?listen?MaxPlayers=100");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
         note(state);
         return ok ? "正在开房，加载完把本机 IP 告诉另一台" : "命令没发出去";

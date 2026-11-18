@@ -821,3 +821,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 换弹：服务端弹匣 0 超 2.5 秒 → 从 +0x60c 备弹扣、装进 +0x604/+0x608（不白给；若备弹是从背包实时算的，可能扣不掉 → 看日志「换弹：服务端替加入玩家装弹」）。
   - 队友：Crew.team：PS+0x35c TeamInfo，TeamInfo+0x2b0 TeamIndex（反射表）。不同对象同 TeamIndex → 改加入玩家的；同一对象只记日志。诊断「队伍：」。
   - 服务端开房加「五军对决（试）」「BFA 模式（试）」：新海岛 + ?game=/Script/NZBattleRoyaleGame.NZBRLegionGameMode / NZBRBFAGameMode（模块名是猜的；日志关键词加 GameMode/Legion/BFA）。
+- 15:23 用户解释「取消不刷毒服务端上限人数」= 服务端一直开着，任何时候都不要停止接收别人加入。RE：AGameSession::ApproveLogin 0x2a01600 满员回 "Server full."；InitOptions 0x2a011c4 读 ?MaxPlayers= 存 GameSession+0x2b4。PreLogin 0x1009890 只拒绝「重连找不到控制器」，没有按开局拒新人。
+- v2.93 (vc194/core194，三包，未实测)：Lan.host 开房命令加 ?MaxPlayers=100。
