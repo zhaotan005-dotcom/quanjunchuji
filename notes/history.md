@@ -764,3 +764,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 跳伞段：以前 = 整条航线（一起飞就能跳）。Flow 改成航线的 18%~92%（JUMP_A/JUMP_B），两处（airByValue / airline）都改，TotalJumpDist 按比例。
   - 拾取两次动作：BeginPlayingPickupAnim 0xd21bfc（清旧计时器 +0xbf8、设 1 秒计时器、+0xc00=1）被 C++ 0xf041e8 和 Lua thunk 0xe3ff20 各调一次。PickAnim.java：入口 b 0x171e200（GM GiveItem 死函数 0x171e1c8 中间），同一人物 1.5 秒内（GetWorld 0x273d080 +0x740 TimeSeconds）第二次直接返回；诊断显示调用/挡掉次数。pickanim_cave.py / emu_pickanim.py 测过。
   - 刷枪配件：背包里塞配件不会装上枪（日志没有 Arielchou Attaching adapter）。改成配件放脚下（cave G），走游戏拾取自动装；每把枪都给。ServerAttachAdapter 是背包组件 vt+0x330/0x334（0xfecca0，参数 物品, bool），没直接调。
+- 11:27 用户：上把跳伞时闪退。lobby-1118-112527（v2.70）：系统日志只有 #370 以后的帧，全是 0x19bb448（0x19bb434：[r0+4]->vt+0x60 递归）= 栈溢出，顶部帧被截掉；Bugly 没留 tomb（栈溢出写不出），游戏日志备份最后停在 11:09:36，崩溃那段没写出来。原因不明。
+  同一份诊断发现 v2.70 两处没装上：「拾取动作：空位字节不符」（比较少比 4 字节的 bug）；「毒圈底层：没装上（空位被占）」——SLACK+0x990 起在内存里本来就是文件里下一段的字节（不是 0），natInstall 要求全 0，所以 v2.45 起底层毒圈从来没装上过，一直是 Flow.circle 事后换数组在起作用。
+- v2.71 (vc172，客户端+单机)，未实测：PickAnim 比较修好；开局蓝圈改在 Flow.circle 换完数组后写 +0x3c0/+0x3b0 = 第一项半径并打 ZF 补丁（0xd97578），newMatch 时撤掉 ZF（防止没换成数组时用游戏第一项 1500 米当开局蓝圈）。底层毒圈 natInstall 保持不动（继续装不上，不贸然启用）。

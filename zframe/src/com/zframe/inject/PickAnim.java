@@ -22,7 +22,7 @@ final class PickAnim {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             byte[] cur = new byte[want.length]; m.seek(b + CAVE); m.readFully(cur);
             boolean ours = java.util.Arrays.equals(java.util.Arrays.copyOf(cur, want.length - 4), java.util.Arrays.copyOf(want, want.length - 4));
-            boolean orig = Patches.hexs(java.util.Arrays.copyOf(cur, want.length - 4)).replace(" ", "").equalsIgnoreCase(ORIG);
+            boolean orig = Patches.hexs(cur).equalsIgnoreCase(ORIG);   // v2.71：以前少比 4 字节，永远不符
             if (!ours && !orig) return state = "拾取动作：空位字节不符 " + Patches.hexs(java.util.Arrays.copyOf(cur, 8));
             m.seek(b + CAVE); m.write(want);
         } catch (Throwable e) { return state = "拾取动作：出错 " + e.getMessage(); }

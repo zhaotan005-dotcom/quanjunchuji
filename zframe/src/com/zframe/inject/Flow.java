@@ -51,7 +51,7 @@ public class Flow {
         }
         if (r[0] != null && r[1] != null) logAir = r;
     }
-    static void newMatch() { logAir = null; if (!state.startsWith("毒圈：等进对局")) last = state + "。" + air; gen++; state = on ? "毒圈：等进对局" : "毒圈：不改（用游戏自带）"; air = ""; }
+    static void newMatch() { Mods.write(ZF, ZF_O, ZF_N, false); logAir = null; if (!state.startsWith("毒圈：等进对局")) last = state + "。" + air; gen++; state = on ? "毒圈：等进对局" : "毒圈：不改（用游戏自带）"; air = ""; }
 
     static void matchLoaded(final String map) {
         final int g = ++gen;
@@ -135,7 +135,11 @@ public class Flow {
             m.seek(mem); m.write(nb);
             // 先写元素，再换指针，最后改个数
             wi(m, ta + 8, cnt); wi(m, ta, (int) mem); wi(m, ta + 4, cnt);
-            return "改好 " + cnt + " 圈：" + rows(m, mem, cnt) + "（原来 " + before + "）";
+            // v2.71：开局蓝圈（+0x3b0）和换圈函数第一次用的「上一圈」半径（+0x3c0，配合 ZF 补丁）都改成第一项（整图），地图上就看不到圈
+            float whole = f(m, mem + 0x10);
+            wf(m, o + 0x3c0, whole); wf(m, o + 0x3b0, whole);
+            String rf = Mods.write(ZF, ZF_O, ZF_N, true);
+            return "改好 " + cnt + " 圈：" + rows(m, mem, cnt) + "（原来 " + before + "），开局蓝圈 " + Math.round(whole / 100) + " 米" + ("ok".equals(rf) ? "" : "（补丁 " + rf + "）");
         }
         return null;
     }
@@ -325,8 +329,7 @@ public class Flow {
         if (!"ok".equals(ra)) return "入口 " + ra;
         String rb = Mods.write(ZB, ZB_O, "04f01fe5" + Server.w32((int) (b + ZS + 0xe0)), true);
         if (!"ok".equals(rb)) { Mods.write(ZA, ZA_O, "04f01fe5" + Server.w32((int) (b + ZS + 0x20)), false); return "出口 " + rb; }
-        String rf = Mods.write(ZF, ZF_O, ZF_N, true);
-        if (!"ok".equals(rf)) Veh.note("毒圈底层：开局蓝圈补丁没打（" + rf + "）");
+
         nat = true; return "ok";
     }
     /** 进对局地图（Browse）时调：按地图写好本局的表（游戏 InitArea 会用） */
