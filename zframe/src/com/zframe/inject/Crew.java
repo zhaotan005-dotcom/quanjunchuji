@@ -143,6 +143,7 @@ final class Crew {
         emptySince.remove(w); refills++;
         if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，WeaponAmmoCount=" + Mods.rd(m, w + 0x608) + "，服务端备弹 WeaponCarriedAmmoCount=" + Mods.rd(m, w + 0x60c) + "，动画修正 " + animFix + " 次）");
         ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
+        Lan.autoUp("ammo");   // v2.88 自动传
     }
     static int animFix, animWas = -1;
     static final java.util.HashMap<Long, Boolean> meshSeen = new java.util.HashMap<>();

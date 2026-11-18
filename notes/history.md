@@ -810,3 +810,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 客户端 v2.86 (vc187) + 服务端 v2.72 (vc173)：在线更新改成并发查 6 个镜像取最大版本。
 - 14:21 用户：服务端菜单/功能比单机差太多（刷道具不行）；还是一直换子弹；重新加入加入不进去。客户端 v2.86 日志 matchend-1118-141454：14:13 加入 frp-put.com:47937 成功，14:14:25 ConnectionLost（FRP/网络断），之后重进没日志；联机日志 60 行被「per Net Tick, too much」刷满。
 - v2.87 (vc188/core188，三个包都从 main 打，build_all.sh)：服务端不再用 server-2.55 分支，改用 main 源码（菜单/刷道具/功能同单机最新）。移植服务端分支：v2.67 服务端不能上车 cave（Lan，只 BUILD==1 装）、v2.68/69 加载页查更新框（srvUpdatePage，白底）、大厅页精简、v2.72 多镜像更新。联机日志去掉刷屏行、加 Reconnect/ReLogin/Kick/Reject 关键字、150 行。换弹循环、重进失败：等服务端+客户端诊断。未实测。
+- v2.88 (vc189，三包)：用户不想点导出诊断 → Lan.autoUp：断线/加入失败(NetworkFailure/TravelFailure/ConnectionLost/Connection Closed/PreLogin failure/服务端 Closing connection)传 net-*，换弹循环(客户端 Force set ammo / 服务端弹匣 0 超 2.5 秒)传 ammo-*，同类 90 秒一次。未实测。
