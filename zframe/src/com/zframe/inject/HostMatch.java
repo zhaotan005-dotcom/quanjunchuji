@@ -76,7 +76,8 @@ final class HostMatch {
                 try { hide(); } catch (Throwable t) { LogCap.note("藏房主人物出错 " + t); }
                 try { Box.tick(); } catch (Throwable t) { Box.state = "空投：出错 " + t; }
                 try { ghost(); } catch (Throwable t) { LogCap.note("房主人物冻结出错 " + t); }
-                try { giveAll(); } catch (Throwable t) { state = "开局发道具：出错 " + t; }
+                // v3.10 用户：道具只刷在玩家脚下（物资箱里每种 67），不再直接塞进背包（塞满后游戏会把多的丢出来）
+                state = "开局发道具：改成放进玩家身边的物资箱（Box）";
             }
         }, "zf-hostmatch").start();
     }

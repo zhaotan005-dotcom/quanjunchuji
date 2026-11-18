@@ -14,6 +14,7 @@ final class Ed {
     static java.io.File file;
     static synchronized void init(android.content.Context c) { if (file == null && c != null) file = new java.io.File(c.getFilesDir(), "zf_mode.txt"); }
     static int saved() {
+        if (BUILD == 2) return 2;   // v3.10 用户：删了单机/联机选择，客户端包只走联机（以前存过单机的也改回联机）
         try { if (file != null && file.exists()) return "0".equals(new String(java.nio.file.Files.readAllBytes(file.toPath())).trim()) ? 0 : 2; } catch (Throwable ignored) {}
         return 2;
     }

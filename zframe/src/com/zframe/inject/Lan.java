@@ -137,7 +137,7 @@ final class Lan {
     }
     static String host(String map) {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
-        role = 1; NetRate.start(); Give.serve(); Bots.auto = false; Server.quiet(); beat("开房加载");
+        role = 1; NetRate.start(); /* v3.10：客户端不再请求代刷（菜单删了），服务端不再订阅 ntfy，少占限流 */ Bots.auto = false; Server.quiet(); beat("开房加载");
         // v2.93 用户：服务端一直收人。引擎 GameSession.MaxPlayers（+0x2b4）默认很小，满了 ApproveLogin 回「Server full.」→ 开房带 ?MaxPlayers=100（InitOptions 0x2a011c4 读这个选项）
         boolean ok = Con.exec("open " + map + "?listen?MaxPlayers=100");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";

@@ -31,20 +31,21 @@ final class Box {
     static java.util.ArrayList<Long> att(String[]... gs) { java.util.ArrayList<Long> l = new java.util.ArrayList<>(); for (String[] g : gs) for (String x : g) { long v = Long.parseLong(x); if (!l.contains(v)) l.add(v); } return l; }
     static String nm(long id) { String s = GameOverlay.itemName.get(id); return s == null ? "" : s; }
 
+    /** v3.10 用户：枪每把 10 把；配件通用一堆、每个 67；药品、投掷物、战术道具每个 67；子弹 9999 不变；喷气背包和头甲包每种 6 份。
+     *  每一类东西全部放在同一个点 → 游戏自己合成一个「方块」（拾取箱，模型 P40300000001_DeathDropBox），打开就是一个列表。 */
     static java.util.ArrayList<Pile> plan() {
         java.util.ArrayList<Pile> ps = new java.util.ArrayList<>();
         Pile p;
-        p = new Pile(); p.name = "枪械"; p.single = ids(v -> { long g = grp(v); return g / 100 == 201 || g / 100 == 202; }); ps.add(p);
-        p = new Pile(); p.name = "特殊道具"; p.stack = ids(v -> grp(v) / 100 == 402); p.n = 999; ps.add(p);
+        p = new Pile(); p.name = "枪械"; p.single = ids(v -> { long g = grp(v); return g / 100 == 201 || g / 100 == 202; }); p.n = 10; ps.add(p);
+        p = new Pile(); p.name = "战术道具"; p.stack = ids(v -> grp(v) / 100 == 402); p.n = 67; ps.add(p);
         p = new Pile(); p.name = "子弹"; p.stack = ids(v -> grp(v) == 20600); p.n = 9999; ps.add(p);
-        p = new Pile(); p.name = "投掷物"; p.stack = ids(v -> grp(v) == 20401); p.n = 999; ps.add(p);
-        p = new Pile(); p.name = "油桶"; p.stack = ids(v -> { String s = nm(v); return grp(v) / 100 == 402 && (s.contains("油桶") || s.contains("Barrel") || s.contains("Fuel") || s.contains("Oil")); }); p.n = 999; ps.add(p);
+        p = new Pile(); p.name = "投掷物"; p.stack = ids(v -> grp(v) == 20401); p.n = 67; ps.add(p);
         String[] SC = {"20503000001", "20503000002", "20503000003", "20503000004", "20503000005", "20503000006", "20503000007", "20503000008", "20503000009"};
         String[] GRIP = {"20502000001", "20502000002", "20502000003", "20502000004", "20502000005"};
-        p = new Pile(); p.name = "步枪配件"; p.stack = att(new String[]{"20501000001", "20501000002", "20501000003"}, GRIP, SC, new String[]{"20504000001", "20504000002", "20504000003", "20505000001", "20505000003"}); p.n = 999; ps.add(p);
-        p = new Pile(); p.name = "冲锋枪配件"; p.stack = att(new String[]{"20501000004", "20501000005", "20501000006"}, GRIP, SC, new String[]{"20504000004", "20504000005", "20504000006", "20505000001", "20505000002"}); p.n = 999; ps.add(p);
-        p = new Pile(); p.name = "药品"; p.stack = ids(v -> grp(v) / 100 == 401); p.n = 999; ps.add(p);
-        p = new Pile(); p.name = "头甲包"; p.single = ids(v -> { long g = grp(v); String s = nm(v); return g == 30304 || g == 30305 || g == 30307 || s.contains("喷气") || s.contains("Jetpack"); }); ps.add(p);
+        p = new Pile(); p.name = "配件"; p.stack = att(new String[]{"20501000001", "20501000002", "20501000003", "20501000004", "20501000005", "20501000006"}, GRIP, SC,
+            new String[]{"20504000001", "20504000002", "20504000003", "20504000004", "20504000005", "20504000006", "20505000001", "20505000002", "20505000003"}); p.n = 67; ps.add(p);
+        p = new Pile(); p.name = "药品"; p.stack = ids(v -> grp(v) / 100 == 401); p.n = 67; ps.add(p);
+        p = new Pile(); p.name = "头甲包"; p.single = ids(v -> { long g = grp(v); String s = nm(v); return g == 30304 || g == 30305 || g == 30307 || s.contains("喷气") || s.contains("Jetpack"); }); p.n = 6; ps.add(p);
         return ps;
     }
 
@@ -90,8 +91,8 @@ final class Box {
         StringBuilder sb = new StringBuilder("空投（放在加入玩家身边 " + Math.round(x0 / 100) + "," + Math.round(y0 / 100) + "," + Math.round(z0 / 100) + " 米；房主隐藏人物在 " + hostAt + "）：");
         for (int i = 0; i < ps.size(); i++) {
             Pile p = ps.get(i);
-            // 两排：前 5 堆一排，后面的往后挪 5 米；堆和堆之间 4 米
-            float px = x0 + 300f * (i % 5) - 600f, py = y0 + (i < 5 ? 400f : 750f), pz = z0;
+            // 一排，堆和堆之间 3 米，在玩家前面 4 米
+            float px = x0 + 300f * i - 900f, py = y0 + 400f, pz = z0;
             if (p.stack.isEmpty() && p.single.isEmpty()) { sb.append("\n· ").append(p.name).append("：物品表里没有"); continue; }
             int got = 0, drop = 0, one = 0;
             if (!p.stack.isEmpty()) {
@@ -103,20 +104,37 @@ final class Box {
                 }
                 drop = dropAll(b, inv);
             }
-            for (long id : p.single) if (Veh.dropAt(id, px + (one % 6) * 40f - 100f, py + (one / 6) * 40f - 100f, pz) == null) one++;
-            sb.append("\n· ").append(p.name).append("：").append(p.stack.size() + p.single.size()).append(" 种")
-              .append(p.stack.isEmpty() ? "" : "，每种 " + p.n + "，塞进 " + got + " 次、丢出 " + drop + " 堆")
-              .append(p.single.isEmpty() ? "" : "，地上刷 " + one + " 件");
+            // 不能叠的：同一个点刷（离地约 10 厘米），游戏自己合进同一个方块
+            for (long id : p.single) for (int k = 0; k < p.n; k++) if (Veh.dropAt(id, px, py, pz - 80f) == null) one++;
+            sb.append("\n· ").append(p.name).append("：").append(p.stack.size() + p.single.size()).append(" 种，每种 ").append(p.n)
+              .append(p.stack.isEmpty() ? "" : "，塞进 " + got + " 次、丢出 " + drop + " 堆")
+              .append(p.single.isEmpty() ? "" : "，刷了 " + one + " 件");
             state = sb.toString();
         }
         Veh.teleport(pawn, x0, y0, z0 + 50f, 0);
         state = sb.toString();
+        sb.append("\n").append(cars(x0, y0, z0));
         // v3.08：v3.07 的真空投箱在这个模式没有箱子类（配置 4 个全空），调不了 → 不再调，也不装内容钩子（airdrop() 留着备查）
         state = sb.toString(); LogCap.note(state);
         Lan.autoUp("box");
-        GameOverlay.toastAny("出生岛空投已放好（" + ps.size() + " 堆）");
+        GameOverlay.toastAny("出生岛物资箱和车已放好");
     }
 
+    /** v3.10 用户：开局默认刷所有车，在出生地排好（玩家身后 8 米一排，隔 5 米；船不刷） */
+    static String cars(float x0, float y0, float z0) {
+        StringBuilder sb = new StringBuilder("开局排车：");
+        try {
+            java.util.ArrayList<Veh.Group> gs = Veh.groups; int ok = 0, k = 0;
+            for (int gi = 0; gi < gs.size(); gi++) {
+                String lb = gs.get(gi).label; if (lb.contains("艇") || lb.contains("船")) continue;
+                String r = Veh.spawnGroupAt(gi, x0 + 500f * k - 3100f, y0 - 800f, z0);   // spawnGroupAt 自己 x+6 米、z+2.3 米
+                k++; if (r.startsWith("已刷")) ok++; else sb.append(r).append("；");
+                Thread.sleep(200);
+            }
+            sb.append(ok).append("/").append(k).append(" 辆");
+        } catch (Throwable t) { sb.append("出错 ").append(t); }
+        return sb.toString();
+    }
     /** 第一个加入玩家（控制器 +0x2fc 是 NetConnection）的人物位置 */
     static float[] joinedPos(long b, Veh.Names nm) throws Exception {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {

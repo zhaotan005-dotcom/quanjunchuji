@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.09";
+    static final String VER = "v3.10";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -113,13 +113,14 @@ public class GameOverlay {
             // v2.41 用户：服务端把刷人机删了
             // v2.61 用户：刷武器、特殊武器、子弹单独分页；道具单独一页
             // v3.05 用户：客户端只保留刷车（其他刷东西的页去掉，空投在出生岛）；分组重排更好看：人物 | 刷物资 | 载具/外观 | 联机/设置，组之间加分隔
-            final String[] tabs = Ed.ED == 2 ? new String[]{"功能", "刷车", "联机", "画面"}
-                : Ed.ED == 1 ? new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "联机", "画面"}
+            // v3.10 用户：客户端刷东西、画质、加速高跳都删掉（留给服务端），客户端只剩联机；服务端只留地图上没有的东西能刷（道具页只列战术道具 402）
+            final String[] tabs = Ed.ED == 2 ? new String[]{"联机"}
+                : Ed.ED == 1 ? new String[]{"常用", "功能", "道具", "刷车", "衣服", "联机", "画面"}
                 : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "人机", "联机", "画面"};
-            final int[] map = Ed.ED == 2 ? new int[]{8, 1, 6, 5}
-                : Ed.ED == 1 ? new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 2, 6, 5};
-            if (Ed.ED == 2) { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = 1; }
-            final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("武器", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
+            final int[] map = Ed.ED == 2 ? new int[]{6}
+                : Ed.ED == 1 ? new int[]{0, 8, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 2, 6, 5};
+            { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = map[0]; }
+            final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("道具", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
@@ -489,7 +490,13 @@ public class GameOverlay {
             final long v; try { v = Long.parseLong(id); } catch (Throwable e) { return; }
             final int piles = n <= 1 ? 1 : Math.min(3, n);
             new Thread(() -> {
-                try { String e = Veh.ground(v, piles); if (e != null) toastAny("没刷到地上：" + e); }
+                try {
+                    // v3.10 用户：服务端刷的东西只放在加入玩家脚下，不放服务端脚下（没有加入玩家才放自己脚下）
+                    if (Ed.ED == 1 && Lan.role == 1) {
+                        float[] pl = Box.joinedPos(Mods.base(), Veh.Names.get());
+                        if (pl != null) { String e = null; for (int i = 0; i < piles && e == null; i++) e = Veh.dropAt(v, pl[0], pl[1], pl[2] - 80f); toastAny(e == null ? "已刷在加入玩家脚下" : "没刷到：" + e); return; }
+                    }
+                    String e = Veh.ground(v, piles); if (e != null) toastAny("没刷到地上：" + e); }
                 catch (Throwable e) { toastAny("没刷到地上：" + e); }
             }, "zf-ground").start();
             return;
@@ -1064,16 +1071,19 @@ public class GameOverlay {
           } else {
             head(a, u, root, "加入房间");
             LinearLayout jc = card(a, u, root);
-            // v2.26 用户：只要「粘贴」和「加入」。地址原样连（域名也直接交给游戏），不自己解析
-            if (ipBuf == null) ipBuf = Lan.lastIp != null ? Lan.lastIp : "";
-            // v2.44 用户：地址能自己输入、能删。输入框 + 粘贴 / 清空 / 加入
+            // v3.10 用户：默认一个地址 frp-put.com:47937，按钮显示「加入艾挽服务器」；右边留一个能自己改的地址
+            if (ipBuf == null) ipBuf = Lan.lastIp != null && !AIWAN.equals(Lan.lastIp) ? Lan.lastIp : "";
+            LinearLayout jr = row(a, jc); jr.setPadding(0, u.dp(8), 0, u.dp(8)); jr.setGravity(Gravity.CENTER_VERTICAL);
+            fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
+            LinearLayout rc = new LinearLayout(a); rc.setOrientation(LinearLayout.VERTICAL);
+            LinearLayout.LayoutParams rcl = new LinearLayout.LayoutParams(0, -2, 1); rcl.leftMargin = u.dp(8);
+            jr.addView(rc, rcl);
             final EditText ipEt = new EditText(a);
-            ipEt.setText(ipBuf); ipEt.setHint("输入或粘贴服务端地址"); ipEt.setTextColor(TXT); ipEt.setHintTextColor(SUBT); ipEt.setTextSize(15);
+            ipEt.setText(ipBuf); ipEt.setHint("自己填地址"); ipEt.setTextColor(TXT); ipEt.setHintTextColor(SUBT); ipEt.setTextSize(13);
             ipEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI); ipEt.setSingleLine(true);
             ipEt.setGravity(Gravity.CENTER);
-            ipEt.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); ipEt.setPadding(u.dp(10), u.dp(8), u.dp(10), u.dp(8));
-            LinearLayout.LayoutParams ilp = new LinearLayout.LayoutParams(-1, -2); ilp.setMargins(0, u.dp(8), 0, u.dp(8));
-            jc.addView(ipEt, ilp);
+            ipEt.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); ipEt.setPadding(u.dp(8), u.dp(6), u.dp(8), u.dp(6));
+            rc.addView(ipEt, new LinearLayout.LayoutParams(-1, -2));
             ipEt.setOnTouchListener((v, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_DOWN) focusable(v, true); return false; });
             ipEt.setOnFocusChangeListener((v, f) -> { if (!f) focusable(v, false); });
             ipEt.addTextChangedListener(new android.text.TextWatcher() {
@@ -1082,18 +1092,8 @@ public class GameOverlay {
                 public void afterTextChanged(android.text.Editable e) { ipBuf = e.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", ""); }
             });
             ipEt.setOnEditorActionListener((v, act, ev) -> { focusable(ipEt, false); ipEt.clearFocus(); return false; });
-            LinearLayout er = row(a, jc); er.setPadding(0, 0, 0, u.dp(8));
-            btn(a, u, er, "粘贴", () -> {
-                try {
-                    android.content.ClipboardManager cm = (android.content.ClipboardManager) a.getSystemService(android.content.Context.CLIPBOARD_SERVICE);
-                    CharSequence t = cm.hasPrimaryClip() ? cm.getPrimaryClip().getItemAt(0).coerceToText(a) : null;
-                    String v = t == null ? "" : t.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", "");
-                    if (v.isEmpty()) { toast(a, "剪贴板是空的"); return; }
-                    ipEt.setText(v.length() > 80 ? v.substring(0, 80) : v); ipEt.setSelection(ipEt.length());
-                } catch (Throwable ex) { toast(a, "读不到剪贴板"); }
-            });
-            btn(a, u, er, "清空", () -> { ipEt.setText(""); });
-            fillBtn(a, u, er, "加入", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填服务端地址"); return; } toast(a, Lan.join(ipBuf)); });
+            LinearLayout er = row(a, rc); er.setPadding(0, u.dp(4), 0, 0);
+            btn(a, u, er, "加入这个地址", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填地址"); return; } toast(a, Lan.join(ipBuf)); });
             note(a, u, root, "服务端先进图，再点加入。");
           }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
@@ -1124,7 +1124,7 @@ public class GameOverlay {
         kv(a, u, c, "身份", Lan.roleText());
         kv(a, u, c, "本机 IP", Lan.ip());
         if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "服务端", Lan.lastIp);
-        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：刷东西点武器/子弹/装备/道具页，由服务端刷在你脚下；无敌要服务端开。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
+        note(a, u, root, Lan.role == 2 ? "你是加入的玩家：物资箱和车开局由服务端放在你身边；要别的东西让服务端刷，会刷在你脚下。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
         if (Ed.ED == 1) note(a, u, root, Loot.shortText());
         if (Lan.role == 1) { note(a, u, root, Crew.state); }
@@ -1145,6 +1145,7 @@ public class GameOverlay {
     }
     /** 实心蓝按钮 */
     static String ipBuf;
+    static final String AIWAN = "frp-put.com:47937";
     static boolean ipOk(String ip) {
         if (!ip.matches("\\d{1,3}(\\.\\d{1,3}){3}(:\\d{1,5})?")) return false;
         for (String o : ip.split(":")[0].split("\\.")) if (Integer.parseInt(o) > 255) return false;
@@ -1450,7 +1451,9 @@ public class GameOverlay {
             return;
         }
         LinearLayout cr = null; int i = 0;
+        if (Ed.ED == 1 && itemCatSel / 100 != 402) for (long c0 : m.keySet()) if (c0 / 100 == 402) { itemCatSel = c0; break; }
         for (final long c : m.keySet()) {
+            if (Ed.ED == 1 && c / 100 != 402) continue;   // v3.10 服务端只留地图上没有的（战术道具）
             int cn = 0; for (long v : m.get(c)) if (!itemBad.contains(v)) cn++;
             if (cn == 0) continue;
             if (i++ % 4 == 0) cr = row(a, root);
@@ -1649,12 +1652,11 @@ public class GameOverlay {
             View[] f = GameDlg.frame(a, "选择模式", null);
             LinearLayout body = (LinearLayout) f[1];
             final int last = Ed.ED;
-            GameDlg.text(a, body, "这次怎么玩？", 16, GameDlg.WHITE).setPadding(0, GameDlg.dp(a, 4), 0, 0);
-            final TextView sub = GameDlg.text(a, body, "现在是" + (last == 0 ? "单机" : "联机") + "，不点就按这个进；换模式会自动重启一次", 11.5f, GameDlg.SUB);
+            // v3.10 用户：把「单机 / 联机」选择删了，客户端包只有联机
+            GameDlg.text(a, body, "全军出击联机版", 16, GameDlg.WHITE).setPadding(0, GameDlg.dp(a, 4), 0, 0);
+            final TextView sub = GameDlg.text(a, body, "检查完更新自动进入", 11.5f, GameDlg.SUB);
             sub.setPadding(0, GameDlg.dp(a, 4), 0, 0);
-            LinearLayout r = GameDlg.row(a, body, 16);
-            GameDlg.add(a, r, GameDlg.button(a, "联机（加入房间）", last == 2, () -> pickMode(a, 2, sub)));
-            GameDlg.add(a, r, GameDlg.button(a, "单机", last == 0, () -> pickMode(a, 0, sub)));
+            picked = true;   // 没有可选的了：查完更新就进
             final TextView up = GameDlg.text(a, body, "当前 " + VER + " · 正在检查更新…", 11.5f, GameDlg.SUB);
             up.setPadding(0, GameDlg.dp(a, 14), 0, 0);
             final View[] pb = GameDlg.progress(a, body);

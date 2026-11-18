@@ -26,6 +26,20 @@ final class Jetpack {
             }
         }, "zf-jetpack").start();
     }
+    /** v3.10：v3.09 日志「这局还没见到」（客户端背着喷气背包飞过）→ 只看类自己的名字不够（蓝图子类名不一定带 JetpackBag）。
+     *  改成沿 FStructBaseChain 看所有父类名（类+0x58 链数组、+0x5c 层数-1，游戏自己的 IsA 就这么查：见 0xefcf64 附近），任一层含 JetpackBag 就算。 */
+    static boolean isJet(RandomAccessFile m, Veh.Names nm, long c) throws Exception {
+        String cn = Alive.objName(m, nm, c);
+        if (has(cn)) return true;
+        long arr = Server.rd(m, c + 0x58); long d = Server.rd(m, c + 0x5c);
+        if (arr < 0x10000 || d < 0 || d > 30) return false;
+        for (int k = 0; k <= d; k++) {
+            long e = Server.rd(m, arr + 4L * k); if (e < 0x10000) continue;
+            if (has(Alive.objName(m, nm, e - 0x58))) { LogCap.note("喷气背包类：" + cn + "（父类链第 " + k + " 层是 JetpackBag）"); return true; }
+        }
+        return false;
+    }
+    static boolean has(String n) { return n != null && (n.contains("JetpackBag") || n.contains("JetPackBag") || n.contains("Jetpack_") || n.contains("JetPack_")); }
     static boolean sane(float v) { return !Float.isNaN(v) && v >= 0f && v <= 2e6f; }
     static void tick() throws Exception {
         long b = Mods.base(); if (b == 0) return;
@@ -45,7 +59,7 @@ final class Jetpack {
                     if (o < 0x10000 || (f & 0x20000000) != 0) continue;
                     long c = Server.rd(m, o + 0xc); if (c < 0x10000) continue;
                     Boolean ok = clsOk.get(c);
-                    if (ok == null) { String cn = Alive.objName(m, nm, c); ok = cn.contains("JetpackBag") || cn.contains("JetPackBag"); clsOk.put(c, ok); }
+                    if (ok == null) { ok = isJet(m, nm, c); clsOk.put(c, ok); }
                     if (!ok || (Server.rd(m, o + 4) & 0x10) != 0) continue;   // 跳过类默认对象
                     if (!sane(Mods.f(m, o + MAX_E)) || !sane(Mods.f(m, o + MAX_D))) continue;
                     n++;
