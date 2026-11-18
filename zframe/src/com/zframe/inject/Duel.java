@@ -16,7 +16,9 @@ import java.io.RandomAccessFile;
  *   - 每张图记两个单挑点（prefs duel_e / duel_s）。没记过：这局照常上飞机（不刷毒），两人自己跳到想打的地方，
  *     落地站稳 2.5 秒就记成这张图的两个点；记过：不上飞机，进图直接传到两个点。开房页也能手动「记录单挑点」「清除」。
  *   - 毒圈：以两个点中点为圆心、半径 = 两点距离一半 + 60 米（至少 100 米）的固定圈，不缩；圈外每秒掉 10 血（最低留 1）。
- *     游戏自己的毒圈关着（不刷毒补丁），所以圈是看不见的，靠掉血提示。 */
+ *     游戏自己的毒圈关着（不刷毒补丁），所以圈是看不见的，靠掉血提示。
+ *  v3.18 用户：慢慢做，掩体和细节做好：两点连线中间放 6 辆车当掩体（Veh.spawnGroupAt）；选枪也认手上的枪（人物+0x890 类名关键字）；
+ *     传送模式开局 60 秒内被游戏挪走超过 50 米就拉回。 */
 public class Duel {
     static volatile boolean on;
     static volatile String state = "单挑：没开";
@@ -26,7 +28,7 @@ public class Duel {
 
     static class P {
         long ctl, pawn; int kills, idx; long gun; String gunName = "", ammo = "1";
-        float[] home, last; long rowAt, deadAt, protectUntil, movedAt, hurtAt, tryAt; boolean dead, kitted, picked, placed;
+        float[] home, last; long rowAt, deadAt, protectUntil, movedAt, hurtAt, tryAt; boolean dead, kitted, picked, placed, tele;
     }
     static final java.util.LinkedHashMap<Long, P> ps = new java.util.LinkedHashMap<>();
     static volatile boolean over; static volatile String winner = "";
@@ -80,7 +82,23 @@ public class Duel {
         return ModeProbe.host("Props", "单挑", RENEW);
     }
     static void off() { on = false; }
-    static void reset() { synchronized (ps) { ps.clear(); } over = false; winner = ""; center = null; }
+    static void reset() { synchronized (ps) { ps.clear(); } over = false; winner = ""; center = null; coverDone = false; }
+    static volatile boolean coverDone;
+    /** 掩体：两点连线上 25%~75% 放 6 辆车（面包车/吉普/轿车），左右交错 4 米 */
+    static void cover(float[] a, float[] c) {
+        try {
+            double dx = c[0] - a[0], dy = c[1] - a[1], len = Math.hypot(dx, dy); if (len < 1000) return;
+            double nx = -dy / len, ny = dx / len;
+            int[] gi = { 5, 0, 3, 5, 0, 3 }; int ok = 0;
+            for (int i = 0; i < 6; i++) {
+                double t = 0.25 + 0.1 * i, side = (i % 2 == 0 ? 400 : -400);
+                float x = (float) (a[0] + dx * t + nx * side) - 600f, y = (float) (a[1] + dy * t + ny * side), z = (float) (a[2] + (c[2] - a[2]) * t) - 130f;
+                String r = Veh.spawnGroupAt(gi[i], x, y, z); if (r.startsWith("已刷")) ok++;
+                Thread.sleep(200);
+            }
+            LogCap.note("单挑：两点之间放了 " + ok + "/6 辆车当掩体");
+        } catch (Throwable t) { LogCap.note("单挑：放掩体出错 " + t); }
+    }
 
     static void start() {
         if (th != null && th.isAlive()) return;
@@ -133,6 +151,23 @@ public class Duel {
         }
         return 0;
     }
+    /** 手上的枪：人物 +0x890（Crew 换弹用的同一个），类名按关键字认编号 */
+    static final String[][] KW = {
+        {"m416", "20101000001"}, {"akm", "20101000002"}, {"m16", "20101000003"}, {"scar", "20101000004"}, {"groza", "20101000005"},
+        {"m249", "20102000001"}, {"dp28", "20102000002"}, {"ump", "20105000001"}, {"uzi", "20105000002"}, {"vector", "20105000003"},
+        {"tommy", "20105000004"}, {"thompson", "20105000004"}, {"s1897", "20103000001"}, {"s686", "20103000002"}, {"s12k", "20103000003"},
+        {"kar98", "20104000001"}, {"98k", "20104000001"}, {"awm", "20104000002"}, {"m24", "20104000004"}, {"sks", "20104000003"},
+        {"mk14", "20104000005"}, {"mini14", "20104000006"}, {"vss", "20104000007"}, {"qbu", "20104000008"},
+        {"p92", "20201000001"}, {"p1911", "20201000002"}, {"r1895", "20201000003"}, {"p18c", "20201000004"}, {"r45", "20201000006"} };
+    static volatile String lastWeapCls = "";
+    static long gunInHand(RandomAccessFile m, long b, Veh.Names nm, long p) throws Exception {
+        long w = Mods.rp(m, p + 0x890);
+        if (!Mods.isObj(m, b, w)) return 0;
+        String cls = Alive.clsName(m, nm, w); lastWeapCls = cls;
+        String k = cls.toLowerCase().replace("_", "").replace("-", "");
+        for (String[] e : KW) if (k.contains(e[0])) return Long.parseLong(e[1]);
+        return -1;   // 拿着东西但认不出
+    }
     static String[] gunInfo(long id) {
         String s = Long.toString(id);
         for (String[] c : GameOverlay.CATS) for (int j = 1; j < c.length; j++) { String[] t = c[j].split(":"); if (t.length >= 3 && t[1].equals(s)) return t; }
@@ -167,7 +202,7 @@ public class Duel {
                         if (pt != null && p.idx < 2) {
                             if (now - p.tryAt < 2000) continue; p.tryAt = now;
                             final float[] h = pt[p.idx]; final long pw = pawn;
-                            p.home = h; p.placed = true; p.movedAt = now;
+                            p.home = h; p.placed = true; p.tele = true; p.movedAt = now;
                             todo.add(() -> { try { Veh.teleport(pw, h[0], h[1], h[2] + 50, 0); } catch (Throwable ignored) {} });
                             continue;
                         }
@@ -183,6 +218,7 @@ public class Duel {
                     if (now - p.movedAt < 1500) continue;   // 传送完等一下再摆枪
                     if (p.rowAt == 0) { final float[] at = p.home; p.rowAt = now; todo.add(() -> gunRow(at)); continue; }
                     long g = gunIn(m, pawn);
+                    if (g == 0) { long h = gunInHand(m, b, nm, pawn); if (h > 0) g = h; else if (h < 0 && now - p.rowAt > 8000) LogCap.note("单挑：手上的枪类名认不出 " + lastWeapCls); }
                     if (g == 0 && now - p.rowAt < 45000) continue;
                     p.gun = g != 0 ? g : 20101000001L;
                     String[] gi = gunInfo(p.gun); p.gunName = gi[0]; p.ammo = gi[2];
@@ -191,6 +227,14 @@ public class Duel {
                     LogCap.note("单挑：" + Long.toHexString(p.ctl) + " 选了 " + p.gunName + (had ? "" : "（45 秒没捡，默认）"));
                     todo.add(() -> kit(b, p, had ? 1 : 2));
                     continue;
+                }
+                // 开局 60 秒内被游戏挪走（比如开局统一传送）就拉回出生点
+                if (alive && p.tele && !p.dead && p.home != null && now - p.movedAt < 60000 && now - p.tryAt > 3000) {
+                    float[] q = pos(m, pawn);
+                    if (q != null && Math.hypot(q[0] - p.home[0], q[1] - p.home[1]) > 5000) {
+                        p.tryAt = now; final float[] h = p.home; final long pw = pawn;
+                        todo.add(() -> { try { Veh.teleport(pw, h[0], h[1], h[2] + 50, 0); } catch (Throwable ignored) {} });
+                    }
                 }
                 // 毒圈（看不见）：圈外每秒掉 10 血，最低留 1
                 float[] c = center;
@@ -219,6 +263,10 @@ public class Duel {
                     }
                 }
             }
+        }
+        if (!coverDone && center != null) {
+            java.util.ArrayList<P> all = snapshot();
+            if (all.size() >= 2 && all.get(0).home != null && all.get(1).home != null) { coverDone = true; final float[] a = all.get(0).home, c = all.get(1).home; todo.add(() -> cover(a, c)); }
         }
         for (Runnable r : todo) r.run();
         state = over ? "单挑：结束，赢家 " + winner + "，比分 " + score()
