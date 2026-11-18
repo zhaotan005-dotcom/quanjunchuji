@@ -17,7 +17,7 @@ final class HostMatch {
     static volatile long hidden;
     static java.nio.ByteBuffer sb; static long sbAddr;
     static volatile boolean running;
-    static void newMatch() { synchronized (given) { given.clear(); } hidden = 0; ghost = 0; Box.newMatch(); Training.done = false; synchronized (Training.pawns) { Training.pawns.clear(); } }
+    static void newMatch() { synchronized (given) { given.clear(); } hidden = 0; ghost = 0; Box.newMatch(); Training.done = false; Duel.reset(); synchronized (Training.pawns) { Training.pawns.clear(); } }
     /** v3.05 用户：要单排，新加入的玩家各自一队，不要和房主是队友。
      *  RE：SetupTestTeam 0x100b2b0（没有专用服分组信息时给玩家分队）：GM+0x998 = 当前队已进人数，为 0 就新建一个 NZBRTeamInfo；
      *  进人后 +0x998 加 1，>= GM+0x8ed（MaxPlayerCountPerTeam，字节）就清 0。所以把 MaxPlayerCountPerTeam 改 1、+0x998 清 0，

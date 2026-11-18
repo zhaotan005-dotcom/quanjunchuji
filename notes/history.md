@@ -1027,3 +1027,12 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 01:20 用户：删掉训练营和五军对决地图，修一些 bug。
 - 服务端开房页去掉「训练营」「训练营原图…」「决胜五军（试）」按钮（Training.java/ModeProbe.BFA 代码保留，无入口；不再调 Training.scan 读 pak）；ModeProbe.maps 额外地图列表排除含 Training 的关卡。
 - 断线重进修复：客户端 01:08 回大厅后再加入被拒，服务端回 `Refuse player to relogin, because playercontroller not find!`（UTF-32 字符串 0x436d964，PreLogin 0x1009890，xref 0x1009e48）。0x1009a40 vt+0x494 按 Uin 找到旧玩家信息(r5)，vt+0x498 找旧控制器(r7)；r7==0 → 0x1009ab0 beq 0x1009d7c 写错误拒绝。Lan.RELOG 改成 beq 0x1009d68（和「没有旧信息」同一条正常放行路径）：b100000a → ac00000a。诊断联机补丁行「断线重进 ok」。
+
+## v3.16（vc217/core217，2026-11-19 02:xx，三包，未实测）— 两人单挑
+- 01:36 用户：两人单挑 20 个头定胜负；雨林、海岛各一个，有掩体；开局前自由选枪；死了 5 秒复活、3 秒无敌；两把一样的枪 + 300 发，配件在背包，3 头 3 甲，背包用喷气背包。
+- Duel.java（服务端）：开房页「单挑·海岛」（战术模式蓝图 + 新海岛）「单挑·雨林」（默认模式）；setNoZone，关物资箱，在出生岛打（不能做新地图）。
+  - 选枪：进图后在每个加入玩家面前摆一排全部枪（CATS 前 6 类，Veh.dropAt），背包 +0x4a8 列表出现 201/202 编号 = 选好（读不到 45 秒默认 M416）；选好时位置 = 他的出生点。
+  - 发装备 HostMatch.giveTo：同款枪补到 2 把、子弹 300、attFor 全部配件、helmet3/armor3、喷气背包（itemName 含 喷气/Jetpack）。
+  - 死亡：控制器+0x2c0 不是活人物/血 +0x5a0<=0 → 对面 +1；5 秒后每 2.5 秒调一次 GameMode 虚表 +0x39c(RestartPlayer，NZ 版 0x10127a4，BTT 0x1079fa8)；新人物出现 → 传回出生点、发装备、3 秒内补满血。20 头结束，不再复活。
+  - RE：GameMode 虚表 0x3a0 RestartPlayerAtPlayerStart(0x29f6170)、0x3a4 RestartPlayerAtTransform(0x29f65e0)；NZ RestartPlayer 检查 PS(+0x2c4)+0x2bc>=2、vt+0x3ec==1、PS+0x2d4 bit2。BTT 模式蓝图存在（BTT 有原生复活 AIRespawn），没用。
+  - 未知/待测：死后 RestartPlayer 是否被拒（PS 状态）；比赛是否因只剩 1 人结束（房主幽灵人物算一队，应不会）；选枪读背包能否读到枪（枪可能不在物品列表里）。看服务端日志「单挑：」行。
