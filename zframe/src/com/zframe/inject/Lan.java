@@ -54,6 +54,27 @@ final class Lan {
     /** v2.67（服务端分支移植）：服务端自己不能上车（能上下不来）。beq 改成 b 0x171e7fc cave：ClosedVehicle 空 → 0xdb0400；不空且 NetMode==2 → 0xdb0430 返回 0；其他 → 原版检查。只在服务端装。 */
     static final long CARC = 0x171e7fcL;
     static final String CARC_O = "0400a0e10610a0e1eef7eaeb47ffffea906aa003", CARC_N = "000057e3fe46da0a020050e30847da0a3846daea", CAR_H = "c1b925ea";
+    /** v2.97 换弹根因：游戏的弹匣同步只为「专用服务器」写。所有「设弹匣」处都是
+     *  if (GetNetMode()==NM_DedicatedServer=1) 枪+0x604 ServerWeaponAmmoCount = n;  枪+0x608 WeaponAmmoCount = n;
+     *  （0x274dbb0 = AActor::GetNetMode；开火扣弹 0xefd110、换弹结束 0xefd43c、捡枪/补满/清零等共 9 处）。
+     *  我们的房主是听服（NetMode 2）→ +0x604 永远 0 → 同步到客户端，客户端 0xefd460 每 2 秒发现「ServerAmmo 0 ≠ 本地 30」就强制改成 0 → 自动换弹 → 循环。
+     *  服务端那边换弹 RPC（ServerProceedWeapRepInfo，可靠，0xed7d38 → 事件 21 → 0xefd13c）其实跑了，只是结果没写进同步字段。
+     *  改法：cmp r0,#1 / streq（moveq）→ cmp r0,#3 / strne（movne）：除了客户端（3）都写 +0x604，听服和专用服行为一致；客户端行为不变。 */
+    static final long[] AMMO_AT = { 0xeda308L, 0xedbc94L, 0xefcc94L, 0xefce0cL, 0xefd110L, 0xefd43cL, 0xefd618L, 0xf0e334L, 0xf0e4a4L };
+    static final String[] AMMO_O = { "010050e304668505", "010050e304568405", "010050e30000a00304068505", "010050e304468505", "010050e304568405",
+        "010050e304568405", "010050e304568405", "010050e30000a00304068405", "010050e30000a00304068405" };
+    static final String[] AMMO_N = { "030050e304668515", "030050e304568415", "030050e30000a01304068515", "030050e304468515", "030050e304568415",
+        "030050e304568415", "030050e304568415", "030050e30000a01304068415", "030050e30000a01304068415" };
+    static volatile String ammoPatch = "听服弹匣同步：没装";
+    static void ammoInstall() {
+        int ok = 0; StringBuilder bad = new StringBuilder();
+        for (int i = 0; i < AMMO_AT.length; i++) {
+            String r = Mods.write(AMMO_AT[i], AMMO_O[i], AMMO_N[i], true);
+            if ("ok".equals(r)) ok++; else bad.append(" ").append(Long.toHexString(AMMO_AT[i])).append(":").append(r);
+        }
+        ammoPatch = "听服弹匣同步（+0x604 不再只给专用服写）：" + ok + "/" + AMMO_AT.length + (bad.length() > 0 ? "，失败" + bad : " ok");
+        LogCap.note(ammoPatch);
+    }
     static volatile String pre = "没装";
     static void preinstall() {
         String a = Mods.write(SETF, SETF_O, SETF_N, true), b = Mods.write(CHEAT, CHEAT_O, CHEAT_N, true), c = Mods.write(JOINC, JOINC_O, JOINC_N, true);
@@ -68,6 +89,7 @@ final class Lan {
         if ("ok".equals(g)) g = Mods.write(NQ, NQ_O, NQ_N, true);
         pre = "导航查询空指针 " + g + "，置标志 " + a + "，开房检查 " + b + "，加入检查 " + c + "，导航空指针 " + d + "，全员退出结束 " + e + "，加入的人上车 " + car;
         LogCap.note("联机补丁（启动时）：" + pre);
+        ammoInstall();   // v2.97 换弹根修（启动时、代码还没进指令缓存）
         Loot.preinstall();   // v2.20 房主版：地图物资/门（ServerOnly 层）
     }
     static String unlock() {
@@ -99,7 +121,7 @@ final class Lan {
     }
     static String host(String map) {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
-        role = 1; Give.serve(); Bots.auto = false; Server.quiet(); beat("开房加载");
+        role = 1; NetRate.start(); Give.serve(); Bots.auto = false; Server.quiet(); beat("开房加载");
         // v2.93 用户：服务端一直收人。引擎 GameSession.MaxPlayers（+0x2b4）默认很小，满了 ApproveLogin 回「Server full.」→ 开房带 ?MaxPlayers=100（InitOptions 0x2a011c4 读这个选项）
         boolean ok = Con.exec("open " + map + "?listen?MaxPlayers=100");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
@@ -140,7 +162,7 @@ final class Lan {
 
     private static String openJoin(String ip, String shown) {
         unlock();
-        role = 2; Mods.startMover(); Bots.auto = false; Server.quiet(); beat("加入加载");
+        role = 2; NetRate.start(); Mods.startMover(); Bots.auto = false; Server.quiet(); beat("加入加载");
         boolean ok = Con.exec("open " + ip);
         state = ok ? "加入：已发 open " + shown : "加入：命令没发出去";
         note(ok ? "加入：open " + ip : state);
@@ -168,6 +190,7 @@ final class Lan {
         if (l.contains("LogNet") || l.contains("NetDriver") || l.contains("Listen") || l.contains("NMT_") || l.contains("PendingNet")
                 || l.contains("NetConnection") || l.contains("Welcomed") || l.contains("TravelFailure") || l.contains("NetworkFailure")
                 || l.contains("PreLogin") || l.contains("Login") && l.contains("NZ") || l.contains("Beacon") || l.contains("NetMode") || l.contains("Reconnect") || l.contains("ReLogin") || l.contains("Kick") || l.contains("Reject") || l.contains("Duplicate") || l.contains("GameMode") && l.contains("Login") || l.contains("Game class is")) {
+            if (l.contains("Saturated") && l.contains("NZIpNetConnection")) { if (NetRate.satLines++ % 100 != 0) return; }   // v2.97：饱和行每帧一条，挤掉别的；只记数、每 100 条留一条
             if (l.contains("UNZMobilePlayerinput") || l.contains("AvaListener") || l.contains("EventListener") || l.contains("KeyLobbyMsg") || l.contains("per Net Tick, too much") || l.contains("CheckNetRecvState")) return;   // v2.87：刷屏行挤掉了加入/重连的关键行
             add(l.trim());
         }

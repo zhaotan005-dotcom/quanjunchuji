@@ -1,4 +1,4 @@
-# 交接给下一个智能体（最新在本文件末尾「v2.92」）
+# 交接给下一个智能体（最新在本文件末尾「v2.97」）
 
 先读：README.md → notes/history.md（末尾最新，含所有 RE 偏移）→ zframe/build3.sh。
 
@@ -104,3 +104,8 @@
 - 修：ModeProbe 扫 GNames 找 Legion/BFA 的 GameMode 蓝图路径再开；找不到不开，传 mode-* 日志。下一步看 mode-* 里「模式蓝图…名字表命中」：命中 /Game/…GameMode 路径 → 看能不能进图；0 命中 → 名字表里没有（资产注册表没载入或包里没蓝图），要换办法查（不解密 pak 的前提下基本只能确认缺资源）。
 - 中文名：Legion = 三军对垒（MatchModeName_13，GroupCountMax 默认 3），BFA = 决胜五军（MatchModeName_10，推断）。全表见 history。
 - crash 里那份 15:49:47 tomb 是启动读 ini 的另一个崩溃（AppInit → LoadGlobalIniFile），不是开房的；对局内闪退没有 tomb（Bugly native 5 秒后被关）。
+
+## v2.97（vc198/core198，2026-11-18 16:4x，三包，未实测）— 换弹根因 + 联机带宽
+- 换弹根因：游戏所有设弹匣处 `GetNetMode()==1(专用服)` 才写同步弹匣 枪+0x604，我们是听服(2) → 永远 0 → 客户端 0xefd460 强制改 0 → 无限换弹。Lan.ammoInstall 启动时 9 处改成「非客户端都写」。换弹 RPC（ServerProceedWeapRepInfo，可靠）一直是通的。去掉 v2.95 手调 0xefd13c。Crew.find 改按 控制器+0x2fc 类名区分加入玩家（NetConnection）和房主（LocalPlayer）。
+- 载具：客户端 netspeed 10000 + 听服动态带宽 → 连接饱和，不可靠 RPC（ServerMove、车 ServerUpdateState）被丢、服务端跳过复制。NetRate.java 把两边速率提到 100000。车代码里还有很多 GetNetMode()==1 分支没查（列表在 history v2.97），如果带宽修好后还拉回，下一步查这些。FRP 抖动（Not Recived Data 0.2~7 秒）配置修不了。
+- 等用户实测：客户端 "Force set" 是否消失；诊断「听服弹匣同步」「联机带宽」「全员…跳过：」三行。

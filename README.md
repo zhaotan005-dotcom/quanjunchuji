@@ -47,7 +47,11 @@
   4. 用 apksigner 签名：zframe.jks，密码 zframe123，别名 zf。
 - 每版都要：versionCode +1；ZInit.CORE_VER +1；在 history.md 追加记录；APK 复制到 releases/；提交 git。
 
-## 最新（2026-11-18 16:xx，v2.96 / vc197 / core197，未实测）
+## 最新（2026-11-18 16:4x，v2.97 / vc198 / core198，未实测）
+- 换弹循环根修：游戏只在「专用服务器」(NetMode 1) 写枪的同步弹匣 ServerWeaponAmmoCount(+0x604)，我们是听服(NetMode 2) → 永远 0 → 客户端每 2 秒被强制改成 0 → 无限换弹。9 处 `cmp r0,#1/streq` 改成 `cmp r0,#3/strne`（非客户端都写），启动时装（Lan.ammoInstall）。去掉 v2.95 手动调换弹结束。
+- 联机带宽（开车延迟/船被拉回）：客户端 netspeed 10000 字节/秒 + 听服动态带宽 → 两边连接饱和，不可靠 RPC（ServerMove、车 ServerUpdateState）被引擎丢掉、服务端跳过复制。新 NetRate.java 进对局后把 NetDriver/连接/GameNetworkManager 的速率提到 100000。详见 notes/history.md v2.97。
+
+## 上一版（2026-11-18 16:xx，v2.96 / vc197 / core197，未实测）
 - 服务端娱乐模式开房根修：?game= 必须是模式的蓝图类，C++ 底层类（NZBRLegionGameMode 等）直接开必闪退（GameState/控制器是 NZGame 基础类）。按钮「三军对垒（试）」（Legion）「决胜五军（试）」（BFA，推断）先从游戏名字表找蓝图，找不到不开房。详见 notes/history.md 15:51 条。
 
 ## 当前状态（2026-11-16 17:40）

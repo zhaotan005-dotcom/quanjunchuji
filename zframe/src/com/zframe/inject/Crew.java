@@ -164,46 +164,19 @@ final class Crew {
         if (clip <= 0 || clip > 200) return;
         if (gunSeen.add(w) && gunSeen.size() <= 6) LogCap.note("换弹：加入玩家拿枪（容量 " + clip + "，服务端弹匣 " + srv + "，备弹 " + Mods.rd(m, w + 0x60c) + "）");
         if (srv != 0) { emptySince.remove(w); return; }
+        if (Mods.rd(m, w + 0x60c) <= 0) { emptySince.remove(w); return; }   // 真没子弹了，弹匣 0 是正常的
         Long t0 = emptySince.get(w);
         if (t0 == null) { emptySince.put(w, now); return; }
         if (now - t0 < 2500) return;
         emptySince.remove(w); refills++;
-        // v2.95 根上修：不再自己写弹匣。服务端这边游戏的「换弹结束」事件（EStateEvent 21）没跑到 → 直接调游戏自己的
-        // UNZWeaponAmmoComponent 换弹结束函数 0xefd13c(弹药组件)：它从服务端背包（组件+0x2c → 背包 vt+0x2f8）读备弹、装进弹匣、
-        // 权威端用背包 vt+0x2fc 真扣子弹，再写 +0x604/+0x608 同步给客户端。弹药组件 = 枪身上 [q+0x20]==枪 的那个对象。
-        // 信号枪同理：服务端弹匣是 0 → 服务端不认这一枪 → 不叫飞机。
-        long comp = ammoComp(m, b, w);
+        // v2.97：真因 = 游戏只在专用服（NetMode 1）写 +0x604，听服永远 0（Lan.AMMO_*，启动时改成「非客户端都写」）。
+        // v2.95 这里手动调换弹结束 0xefd13c 已去掉（会和游戏自己的换弹叠加、重复扣子弹）。这里只留检测：补丁装上后还出现就是新问题，自动传日志。
         int carried = Mods.rd(m, w + 0x60c);
-        if (comp != 0 && clip > 0) {
-            final long fc = comp, fw = w; final int fcar = carried;
-            new Thread(() -> {
-                try {
-                    long[] r = Veh.ucall(fc, 0, 0, 0, null, Mods.base() + END_CLIP);
-                    int now604 = -1, now60c = -1;
-                    try (RandomAccessFile mm = new RandomAccessFile("/proc/self/mem", "r")) { now604 = Mods.rd(mm, fw + 0x604); now60c = Mods.rd(mm, fw + 0x60c); } catch (Throwable ignored) {}
-                    if (refills <= 8) LogCap.note("换弹：服务端调游戏换弹结束 " + Long.toHexString(r[0]) + "，弹匣 0 → " + now604 + "，备弹 " + fcar + " → " + now60c);
-                } catch (Throwable t) { LogCap.note("换弹：调换弹结束出错 " + t); }
-            }, "zf-clip").start();
-        } else if (refills <= 8) LogCap.note("换弹：没找到弹药组件（备弹 " + carried + "）");
-        if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，WeaponAmmoCount=" + Mods.rd(m, w + 0x608) + "，服务端备弹 WeaponCarriedAmmoCount=" + Mods.rd(m, w + 0x60c) + "，动画修正 " + animFix + " 次）");
+        if (refills <= 5) LogCap.note("换弹：服务端弹匣 0 超 2.5 秒（容量 " + clip + "，WeaponAmmoCount=" + Mods.rd(m, w + 0x608) + "，服务端备弹 " + carried + "，" + Lan.ammoPatch + "）");
         ammoState = "换弹：服务端弹匣 0 超过 2.5 秒 " + refills + " 次（容量 " + clip + "，动画修正 " + animFix + " 次，原值 " + animWas + "）";
         Lan.autoUp("ammo");   // v2.88 自动传
     }
     static int animFix, animWas = -1;
-    static final long END_CLIP = 0xefd13cL;   // UNZWeaponAmmoComponent 换弹结束（打 "Current clip is full, do not need to change clip!" 那个）
-    static final java.util.HashMap<Long, Long> compOf = new java.util.HashMap<>();
-    /** 枪(+0x200..0x800) 里找 [q+0x20]==枪 且 [q+0x24]==容量 的弹药组件，按枪缓存 */
-    static long ammoComp(RandomAccessFile m, long b, long w) throws java.io.IOException {
-        Long c = compOf.get(w);
-        if (c != null) return c;
-        int clip = Mods.rd(m, w + 0x52c);
-        for (int o = 0x200; o < 0x800; o += 4) {
-            long q = Mods.rp(m, w + o);
-            if (q < 0x10000 || q == w || !Mods.isObj(m, b, q)) continue;
-            if (Mods.rp(m, q + 0x20) == w && Mods.rd(m, q + 0x24) == clip) { compOf.put(w, q); LogCap.note("换弹：弹药组件在枪 +0x" + Integer.toHexString(o)); return q; }
-        }
-        compOf.put(w, 0L); return 0;
-    }
     /** v2.92 用户：加入的玩家和房主成了队友。PlayerState+0x35c = NZBRTeamInfo（TeamInfo+0x2b0 TeamIndex，反射表）。
      *  两人 TeamInfo 不是同一个对象、但 TeamIndex 一样 → 把加入玩家的 TeamIndex 改成 房主+序号；是同一个对象 → 只记日志（不能乱拆，下一版处理）。 */
     static final java.util.HashSet<Long> teamDone = new java.util.HashSet<>();
@@ -247,7 +220,7 @@ final class Crew {
     static void find() {
         long me = Mods.myPawn();
         java.util.ArrayList<Long> out = new java.util.ArrayList<>(), sts = new java.util.ArrayList<>();
-        int total = 0; String how = "PlayerArray"; drivers = 0;
+        int total = 0; String how = "PlayerArray"; drivers = 0; StringBuilder skip = new StringBuilder();
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             Veh.Names nm = null; try { nm = Veh.Names.get(); } catch (Throwable t) {}
             long mps = me >= 0x10000 ? Server.rd(m, me + 0x2c4) : 0;
@@ -262,13 +235,18 @@ final class Crew {
                     long ps = Server.rd(m, data + 4L * k);
                     if (ps < 0x10000 || ps == mps) continue;
                     long ctl = Server.rd(m, ps + 0x60);
-                    if (ctl < 0x10000) continue;
-                    if (!Alive.clsName(m, nm, ctl).contains("PlayerController")) continue;
+                    if (ctl < 0x10000) { skip.append(" 无控制器"); continue; }
+                    String ccn = Alive.clsName(m, nm, ctl);
+                    if (!ccn.contains("PlayerController")) { skip.append(" ").append(ccn); continue; }
+                    // v2.97：v2.95 实测「找到 0 个（共 2）」。以前靠「不是我自己的人物」区分：房主没人物（不上飞机）时 me=0，加入玩家人物一时读成 0 就被当成自己跳过。
+                    // 改成看控制器 +0x2fc Player：加入的玩家是 UNetConnection，房主自己是 LocalPlayer。
+                    String pcn = Alive.clsName(m, nm, Server.rd(m, ctl + 0x2fc));
+                    if (!pcn.contains("NetConnection")) { skip.append(" 本机(").append(pcn).append(")"); continue; }
                     long p = Server.rd(m, ctl + 0x2c0); if (p < 0x10000) p = Server.rd(m, ctl + 0x2b4);
-                    if (p == me) continue;
+                    if (p != 0 && p == me) { skip.append(" 是我"); continue; }
                     sts.add(ps);
                     // v2.41 服务端开车闪退：玩家上车后控制器的 Pawn 是车（BP_Vehicle_…），以前当成人物去写移动组件/血/骨骼网格 → 写坏车的内存。只认人物
-                    if (p >= 0x10000) { String cn = Alive.clsName(m, nm, p); if (cn.contains("Character")) out.add(p); else drivers++; }
+                    if (p >= 0x10000) { String cn = Alive.clsName(m, nm, p); if (cn.contains("Character")) out.add(p); else drivers++; } else skip.append(" 没人物");
                 }
             } else {
                 how = "计数钩子";
@@ -285,7 +263,7 @@ final class Crew {
         } catch (Throwable t) { state = "全员：读出错 " + t.getMessage(); return; }
         players = out; states = sts;
         lastTotal = total;
-        String ns = "全员（" + how + "）：找到加入的玩家 " + out.size() + " 个（共 " + total + "，在车上 " + drivers + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo;
+        String ns = "全员（" + how + "）：找到加入的玩家 " + out.size() + " 个（共 " + total + "，在车上 " + drivers + "），加速 " + Mods.speed + " 高跳 " + Mods.jump + " 子弹 " + Mods.infAmmo + (skip.length() > 0 ? "；跳过：" + skip : "");
         if (!ns.equals(state)) LogCap.note(ns);
         state = ns;
     }
