@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.89";
+    static final String VER = "v2.90";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -472,7 +472,7 @@ public class GameOverlay {
     static volatile boolean onGround = Ed.ED == 1;   // v2.13：房主版固定刷在脚下
     static void give(Activity a, String id, int n) {
         // v2.89：联机客户端本地刷的东西服务器不认（日志 Force set local front ammo count…ServerAmmo=0）→ 一直换弹。加入别人房间时不在本地刷
-        if (Ed.ED == 2 && Lan.role == 2) { toast(a, "联机时客户端刷的东西服务器不认（会一直换弹），请让服务端刷在脚下再捡"); return; }
+        if (Ed.ED == 2 && Lan.role == 2) { Give.ask(id, n); return; }   // v2.90：让服务端代刷在自己脚下
         if (onGround) {
             final long v; try { v = Long.parseLong(id); } catch (Throwable e) { return; }
             final int piles = n <= 1 ? 1 : Math.min(3, n);
