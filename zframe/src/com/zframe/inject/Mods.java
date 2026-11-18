@@ -319,7 +319,7 @@ public class Mods {
     // USkeletalMeshComponent AnimScriptInstance +0x750、GlobalAnimRateScale +0x7c4
     static final int P_DIL = 0x58, P_MESH = 0x2f4, P_CMC = 0x2f8, C_JUMP = 0x128, C_MODE = 0x138, C_VEL = 0xb4, M_ANIM = 0x750, M_RATE = 0x7c4;
     static final int MOVE_FALLING = 3, C_ITER = 0x278;   // CMC MaxSimulationIterations（反射表，MaxSimulationTimeStep 是 0x274）
-    static int baseIter;
+    static int baseIter; static final int C_SWIM = 0x16c; static float baseSwim, lastSwim = -1;
     static volatile long cmc; static float baseJump, lastJump = Float.NaN;
     static Thread mover;
     /** 动作放慢系数：1 = 动作和平时一样快；越小越像「科技」那种滑步 */
@@ -401,7 +401,7 @@ public class Mods {
             }
         } catch (Throwable t) { syncState = "读服务端的数出错 " + t.getMessage(); }
     }
-    static boolean active() { return speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }
+    static boolean active() { return Fly.busy() || speed != 1f || jump != 1f || noRecoil || noShake || infAmmo || cmc != 0; }
 
     static synchronized void startMover() {
         if (mover != null) return;
@@ -409,7 +409,7 @@ public class Mods {
             while (true) {
                 try { tickMove(); } catch (Throwable t) { LogCap.note("移动线程出错 " + t); }
                 // 开加速时要及时发现「起跳」，40ms 查一次；其他时候 200ms
-                try { Thread.sleep(speed != 1f || Con.godOn ? 40 : 200); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(speed != 1f || Con.godOn || Fly.busy() ? 40 : 200); } catch (InterruptedException e) { return; }
             }
         }, "zframe-move");
         mover.setDaemon(true);
@@ -434,10 +434,11 @@ public class Mods {
             if (!isObj(m, b, pawn)) { GameOverlay.forgetPawn(); vehPawn = 0; cmc = 0; moveState = "等人物"; return; }
             long c = rp(m, pawn + P_CMC);
             if (!isObj(m, b, c)) { cmc = 0; moveState = "等人物"; return; }
-            if (c != cmc) { cmc = c; baseIter = 0; baseJump = f(m, c + C_JUMP); lastJump = Float.NaN; LogCap.note(String.format("移动组件 %x 跳=%.0f", c, baseJump)); }
+            if (c != cmc) { cmc = c; baseIter = 0; baseSwim = 0; lastSwim = -1; baseJump = f(m, c + C_JUMP); lastJump = Float.NaN; LogCap.note(String.format("移动组件 %x 跳=%.0f", c, baseJump)); }
             gun(m, b, pawn);
             jump(m, c);
             dilation(m, b, pawn, c);
+            Fly.tick(m, c);   // v2.74 飞天
             moveState = "已生效";
         }
     }
@@ -475,6 +476,15 @@ public class Mods {
         boolean air = Ed.ED != 2 && mode == MOVE_FALLING;
         // v2.73 用户：翻墙秒翻、水里开加速很快没氧气 → 只在「走路」模式（1）加速；游泳 4、飞/翻越等特殊模式 5/6 恢复 1 倍
         boolean special = Ed.ED != 2 && mode != 1 && mode != MOVE_FALLING;
+        // v2.74 用户：水里别取消加速，只是别加快掉氧气 → 游泳时时间倍率仍是 1（氧气正常），改 MaxSwimSpeed(+0x16c) = 原值 × 倍数
+        boolean swim = Ed.ED != 2 && mode == 4;
+        float sw = f(m, c + C_SWIM);
+        if (sw > 10f && sw < 2000f && Math.abs(sw - lastSwim) > 0.5f) baseSwim = sw;   // 不是我们写的值 = 游戏的原值
+        if (baseSwim > 0) {
+            float wantSw = swim && speed > 1f ? Math.min(baseSwim * speed, 30000f) : baseSwim;
+            if (Math.abs(sw - wantSw) > 0.5f) { wf(m, c + C_SWIM, wantSw); }
+            lastSwim = wantSw;
+        }
         if (air && !wasAir && speed > 1f) {
             float vx = f(m, c + C_VEL), vy = f(m, c + C_VEL + 4);
             if (Math.abs(vx) < 3000f && Math.abs(vy) < 3000f && vx * vx + vy * vy > 100f) {
@@ -493,8 +503,8 @@ public class Mods {
         if (!isObj(m, b, mesh)) return;
         if (mesh != lastMesh) { lastMesh = mesh; LogCap.note(String.format("骨骼网格 %x", mesh)); }
         float ar = f(m, mesh + M_RATE);
-        float want = wantDil == 1f ? 1f : Math.max(0.1f, slowMo / wantDil);
-        if (ar > 0.01f && ar < 20f && Math.abs(ar - want) > 0.001f) wf(m, mesh + M_RATE, want);
+        float want = wantDil == 1f ? 1f : Math.max(0.005f, slowMo / wantDil);   // v2.74 用户：67 倍动作也变快 → 以前最低 0.1 卡住了，67 倍时动作快 6.7 倍
+        if (ar > 0.001f && ar < 20f && Math.abs(ar - want) > 0.001f) wf(m, mesh + M_RATE, want);
     }
 
     // ---------- 枪械：人物 CurrWeapon(+0x890) ----------

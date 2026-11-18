@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v2.73";
+    static final String VER = "v2.74";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1113,7 +1113,7 @@ public class GameOverlay {
         }
         if (Ed.ED != 2 && Lan.role != 2) {   // v2.73 用户：参考弹射板做「飞天」，高度可调
             head(a, u, root, "飞天");
-            slider(a, u, root, "飞天高度（米）", "用弹射板的起跳和动作，点下面按钮起飞", 10f, 500f, 10f, Fly.height, false, v -> Fly.height = v);
+            slider(a, u, root, "飞天高度（米）", "点「飞天」往上弹到这个高度，再慢慢飘下来（不摔伤）", 10f, 500f, 10f, Fly.height, false, v -> Fly.height = v);
             LinearLayout fly = row(a, root);
             fillBtn(a, u, fly, "飞天", () -> new Thread(() -> { String r = Fly.go(); LogCap.note(r); toastAny(r.replace("飞天：", "")); }, "zf-fly").start());
         }

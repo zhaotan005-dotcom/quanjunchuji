@@ -780,3 +780,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 新 Fly.java「飞天」：功能页高度滑条 10~500 米 + 按钮；自拼 info（G=1960，角度 75，竖直速度 √(2gh)，延迟 0.05/起跳 0.2/落地 0.8/0.4，特效路径空）→ ucall(组件, info, 0x1105428)。角度含义（离水平还是离竖直）没核实。
   - 加速：滑条最大 67；只在走路模式（1）加速，游泳/翻越/其他特殊模式恢复 1 倍（翻墙秒翻、水里氧气）；倍数 >2 时 MaxSimulationIterations 加到 ⌈倍数×0.8⌉+2（最多 100），关了还原。
   - 丢东西：Con.dropLog 记含 Drop/PickUpWrapper/Discard 的游戏日志，诊断里「丢东西日志」。原因还没查。
+- 12:21 用户（v2.73 实测）：还是不刷毒；67 倍动作也变快（忘了放慢）；飞天不要弹射板、要同款效果，v2.73 那版用不了；水里别取消加速，只要别加快掉氧气；翻墙要慢放；修地图标点；加「点地图标点自动传送」。
+  日志 lobby-1118-120656：v2.73 读秒已好（进图 1.6 秒就 阶段 0→1）。毒圈表第 0 项等 120 秒 + 第 1 项等 420 秒，第一次看得见的缩圈要 9 分钟后 → 用户以为不刷毒。
+- v2.74 (vc175，客户端+单机)，未实测：
+  - 毒圈：去掉中间项，第 0 项整图等 min(firstWait,60) 后用第一圈的缩圈时间直接缩到第一圈（白圈一开始就有）。服务端 v2.70 同改。
+  - 动作：M_RATE 下限 0.1 → 0.005（67 倍时以前被卡在 0.1，动作快 6.7 倍）。
+  - 游泳：时间倍率保持 1（氧气正常），MaxSwimSpeed(+0x16c) = 原值×倍数。翻越等特殊模式仍 1 倍。
+  - 飞天重写：不用弹射板组件，移动线程把 MovementMode 改 3、Velocity.Z = √(2·980·h)，下落最快 -7 米/秒。
+  - 地图标点：RE 到 ServerAddNewMapSign（NZBRPlayerState，exec 0x11e528c，Validate vt+0x3f0 / 实现 vt+0x3f4，参数 8 字节 InNewLoc），标点存 NZBRTeamMemberInfo.MapSignLocation / bIsMapSignEnable；实现函数和失败原因还没找到。点标点传送未做。
