@@ -12,8 +12,8 @@ import java.io.*;
  */
 final class NetCore {
     static final String[] BASES = {
+        "https://cdn.jsdelivr.net/gh/zhaotan005-dotcom/quanjunchuji@main/core/",   // v2.68：国内 raw.githubusercontent 常连不上（卡在域名解析，超时管不到）→ jsdelivr 先
         "https://raw.githubusercontent.com/zhaotan005-dotcom/quanjunchuji/main/core/",
-        "https://cdn.jsdelivr.net/gh/zhaotan005-dotcom/quanjunchuji@main/core/",
     };
     static volatile String status = "";
     static volatile int netVer;
@@ -65,7 +65,8 @@ final class NetCore {
     static volatile int readyVer;   // 已下好、等重启的版本
     interface L { void on(String msg, boolean ready); }
     static volatile L listener;
-    static void say(String m, boolean ready) { status = m; GameOverlay.refreshAny(); LogCap.note("在线更新：" + m); L l = listener; if (l != null) try { l.on(m, ready); } catch (Throwable ignored) {} }
+    static volatile boolean done;
+    static void say(String m, boolean ready) { status = m; if (ready || m.startsWith("已是最新") || m.startsWith("检查更新失败")) done = true; GameOverlay.refreshAny(); LogCap.note("在线更新：" + m); L l = listener; if (l != null) try { l.on(m, ready); } catch (Throwable ignored) {} }
 
     /** 进大厅后调：清掉闪退计数；本内核是刚换上的就提示「已更新」；再查一次新版本（选单机/联机时查过就不重复） */
     static void lobby(final Context ctx) {
@@ -80,6 +81,10 @@ final class NetCore {
     static void check(final Context ctx) {
         if (ctx == null || started) return; started = true;
         say("正在检查更新…", false);
+        new Thread(() -> {   // v2.68：总共 45 秒没结果就报失败（域名解析卡住时 HttpURLConnection 的超时不起作用）
+            try { Thread.sleep(45000); } catch (InterruptedException ignored) {}
+            if (!done && readyVer <= ZInit.CORE_VER && !status.startsWith("发现新版本")) say("检查更新失败（网络超时）", false);
+        }, "zframe-netcore-wd").start();
         new Thread(() -> {
             String err = "";
             for (String base : BASES) {

@@ -756,3 +756,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 改：0xdb00f0（ce00000a）→ b 0x171e7fc（c1b925ea）。cave 20 字节在 GM 面板废函数 Alive cave（0x171e7d0..0x7fb）后面：cmp r7,#0; beq 0xdb0400; cmp r0,#2; beq 0xdb0430(返回0); b 0xdb00f4。单机(0)/客户端(3) 行为不变；cave 装不上就退回 v2.36 的 c200000a。启动时 Lan.preinstall 装，诊断「加入的人上车 ok（服务端不能上车）」。
 - 测试：game/re/emu_carhost.py（unicorn 跑真 libUE4，NetMode 0-3 × ClosedVehicle 有/空 8 种）全过；javac/d8 过。未实测。
 - 构建：zframe/build_srv.sh（build3.sh 只打服务端 e=1 的版本）：./build_srv.sh 2.55 2.67 156 168。只更新 core/b1.*（服务端在线内核），b0/b2 不动。
+- 11:58 用户：服务端一直显示「正在检查更新」、没在腾讯页面弹更新；大厅页太啰嗦。截图里服务端是 v2.55（没更新上来）。
+- v2.68 服务端 (vc169, b1=169)：jsdelivr 先、raw 后（国内 raw 常卡在域名解析）；45 秒总超时报失败；游戏加载页（Browse StartupMap）盖一层「正在检查更新」，最新/失败 1.5 秒后关，下好 2 秒后自动重启；大厅页去掉「开房（我当服务器）」标题、说明文字、「自建服务端：没开」，更新状态只在失败/下载时显示。build_srv.sh 基底改成 ZFrame-v<旧>-服务端.apk。未实测。

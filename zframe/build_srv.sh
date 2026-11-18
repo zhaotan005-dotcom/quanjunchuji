@@ -5,7 +5,7 @@ O=$1; N=$2; OC=$3; NC=$4
 export JAVA_HOME=/workspace/work/rkenv/jdk-21.0.13+9 PATH=/workspace/work/rkenv/jdk-21.0.13+9/bin:$PATH
 AJ=/workspace/work/tools/android-36/android.jar; BT=/workspace/work/tools/android-16; APKSIG=$BT/lib/apksigner.jar
 D8="java -cp $BT/lib/d8.jar com.android.tools.r8.D8 --release --min-api 26 --lib $AJ"
-BASE=../releases/ZFrame-v$O-单机.apk; [ -f "$BASE" ] || BASE=../releases/ZFrame-v$O.apk
+BASE=../releases/ZFrame-v$O-服务端.apk
 sed -i "s/VER = \"v[0-9.]*\"/VER = \"v$N\"/" src/com/zframe/inject/GameOverlay.java
 sed -i "s/ZFrame v[0-9.]* \" + Ed.name()/ZFrame v$N \" + Ed.name()/" src/com/zframe/inject/AvatarLog.java
 sed -i "s/CORE_VER = [0-9]*;/CORE_VER = $NC;/" src/com/zframe/inject/ZInit.java
