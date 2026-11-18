@@ -164,3 +164,6 @@
 
 ## v3.06（vc207）未实测
 - 修 U cave 空位检查；0x100fc60 不结算补丁（HostMatch.noEnd）。看 avatar「单排」「空投」两行。
+
+## v3.07（vc208）未实测
+- 真空投箱：Box.airdrop + boxcave（0xfd3424 钩子，cave 在 0x11de78c）+ ucall6。看 avatar「空投箱」行。

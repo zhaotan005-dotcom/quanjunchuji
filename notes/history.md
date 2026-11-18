@@ -969,3 +969,12 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 原因 1：v3.05 ucave 变长 0xb0，尾巴伸进 SLACK 页自带数据段副本（非 0）→ 空位检查失败 → U cave 没装 → 所有 ucall（刷物品补丁、丢弃、关碰撞）返回 0。修：只查开头 0x98（旧长度）是不是 0（v2.83：这段数据没人用，可以写）。
 - 原因 2：net-1118-193226：OnPlayerKilled AliveTeamMembersCount[0] AliveTeamCount[1] → NZGameMode.cpp:1677 start to kick all players。单排后房主隐藏人物自己算一队，加入的人一死只剩它 → 结算踢人。修：去掉房主人物开着时 0x100fc60 cmp r0,#1 → cmp r0,#0（只有 0 队活着才结算），关掉改回；状态写在 avatar「单排」行。
 - 19:40 用户：没看到空投。v3.05/3.06 的「空投」只是地上堆（房主出生点旁，枪那堆在集装箱旁），不是箱子。已答应下一版（v3.07）改成游戏自己的空投箱，每类一个落在出生岛。RE 起点：DropAirSupplyBox 0x118a820(this, x, y, z, [fp+8] 索引/类, [fp+0xc] 字节) → 0x1186a74 取配置 → 0x1023490 → SpawnActor 0x2aa8ad4 → 0xfd4c64(箱, 字节) → 0xfd3274(箱, 表) 填物品；箱子 PickupItemIDList +0x3f8/+0x3fc（元素格式看 0xfd3ac0）。要 6 参数，ucave 只支持 1 个栈参数，需再扩。
+
+## v3.07（vc208/core208，2026-11-18 20:xx，未实测）— 真空投箱
+- 19:42 用户：「所以你修啊」（没看到空投）。v3.05/3.06 的空投只是地上堆。
+- RE：DropAirSupplyBox 0x118a820(this=空投系统, x, y, z 浮点按位, [sp] 箱型序号 0..3, [sp+4] 字节)：0x1186a74(this) 取配置对象（GM+0x380 那套），0x1023490(配置, 序号) → 类：0→+0x32c，1→+0x334，2→+0x338，3→+0x330；校验是 ANZBRAirSupplyBox 子类（StaticClass 0x11c0918）→ SpawnActor 0x2aa8ad4 → 0xfd4c64(箱, 字节) → 0xfd3274(箱, 0xde1fa4(配置)) 初始化。
+- 0xfd3274 内 0xfd3424 bl 0xfd3ac0 按物品池（箱+0x3d8 组）填 PickupItemIDList 箱+0x3f8（元素 8 字节 = FName ItemDesc，反射 NZBRAirSupplyItemPercent{ItemDesc, Percent, MaxAmmoPickupCount, MinAmmoPickupCount}，NZBRAirSupplyItemCountPercent{PickupCount, Percent}）；之后 0x1112cb0 登记（所以要在填表这一步换，不能事后改）。列表没有数量字段。
+- 背包组件 ServerSpawnPickupBox（vt+0x36c）= 0xb63a30 桩，不能用。BR 背包虚表 0x4c830a4（ServerDiscardItem vt+0x34c=0xcd6728，vt+0x354=0xcd40d0 有「[Pickup] BOX … Box spawn at」日志，参数没认）。
+- 做法：boxcave（game/re/boxcave.py + emu_boxcave.py 过）放在被剥掉的作弊 RPC thunk 0x11de78c..0x11de844（ServerTestSpawnAirSupplyBox 那两个，没人调），0xfd3424 bl → cave；缓冲区 [0]=n [4]=用过次数 [8..] FName；n>0 时把我们的 FName 追加进 +0x3f8（扩容 0xbc5580），不调原函数。
+- ucave 再加第 6 参数（buf+72 → [sp+4]），Veh.ucall6；ucave 0xb8 字节（到 SLACK+0x2f8）。
+- Box.airdrop：先投一个探路箱（游戏随机物资）读 FName 行名格式（找 11 位编号），再全量扫名字表找我们每件东西的行名序号，按 9 类每类投一个箱（出生岛，z+30 米落下），箱里每样一份；999 的地上堆保留在旁边。日志写在 avatar「空投」那段（空投系统、箱子类、探路箱物资、行名格式、找到几个、每箱是否换成我们的）。

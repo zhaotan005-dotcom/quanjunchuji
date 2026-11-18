@@ -3,7 +3,7 @@
 # 'U'（"AddAvaItem U"）：缓冲区地址在 cave 末尾字面量 ubuf（Java 装的时候填）
 #   buf+28 道具对象（非 0 时先把 buf+40..+63 六个字拷到 道具+0x338..+0x34c（放置位置 FVector + 朝向 FRotator），再把 道具+0x336（放置有效）置 1）
 #   buf+12 对象 obj、buf+16 参数 arg、buf+20 虚表偏移 off → 调 obj->vt[off](obj, arg)，返回写 buf+24；完成标记 buf+0 = 0x5b0e，obj 空 = 0x5b0f
-#   v3.05：buf+36 第 3 个参数 r2、buf+64 第 4 个参数 r3、buf+68 第 5 个参数（栈上）；Java 每次清零 0..71
+#   v3.05：buf+36 第 3 个参数 r2、buf+64 第 4 个参数 r3、buf+68 第 5 个参数（栈上）；v3.07：buf+72 第 6 个参数（[sp+4]）；Java 每次清零 0..75
 #   v2.60：buf+32 非 0 = 直接调这个绝对地址 fn(obj, arg)（不走虚表；Java 填 libUE4 基址+偏移，只用于收回道具/取消伪装）
 #   Java 只用两种：背包组件 vt+0x4d0 DoSelectedFunctionalProp(道具)（0xfe9570）、vt+0x484 用当前选中的道具（0xfe98b0），调之前核对虚表项
 # 其他字母：原样收尾（和 vcave 的 done 一样）
@@ -36,6 +36,8 @@ nopos:
     beq fail
     ldr r1, [r8, #68]
     str r1, [sp]
+    ldr r1, [r8, #72]
+    str r1, [sp, #4]
     ldr r2, [r8, #36]
     ldr r3, [r8, #64]
     ldr r1, [r8, #16]

@@ -104,6 +104,8 @@ final class Box {
             state = sb.toString();
         }
         Veh.teleport(pawn, x0, y0, z0 + 50f, 0);
+        state = sb.toString();
+        try { sb.append("\n").append(airdrop(b, x0, y0, z0, ps)); } catch (Throwable t) { sb.append("\n空投箱：出错 ").append(t); }
         state = sb.toString(); LogCap.note(state);
         Lan.autoUp("box");
         GameOverlay.toastAny("出生岛空投已放好（" + ps.size() + " 堆）");
@@ -128,5 +130,134 @@ final class Box {
             }
         }
         return n;
+    }
+    /* ---------------- v3.07 真空投箱 ----------------
+     * 用户：没看到空投（v3.05/3.06 只是地上堆）。改成游戏自己的空投箱 ANZBRAirSupplyBox：
+     *  DropAirSupplyBox 0x118a820(空投系统, x, y, z, 箱型序号, 字节)：空投系统 AAirSupplySystem（虚表 0x4caf198，每局一个）；
+     *   箱型序号 0..3 → 配置 +0x32c / +0x334 / +0x338 / +0x330 的箱子类；
+     *   生成后 0xfd3274 初始化 → 0xfd3424 bl 0xfd3ac0 按空投物品池填 PickupItemIDList(箱+0x3f8，元素 8 字节 = FName 物品行名) → 0x1112cb0 登记。
+     *  内容：0xfd3424 改 bl cave（game/re/boxcave.py，放在被剥掉的作弊 RPC thunk 0x11de78c..0x11de844 上，emu_boxcave 过）：
+     *   我们的缓冲区 n>0 时用我们的 FName 列表代替随机物资，n=0 照原样。
+     *  FName 格式不知道 → 先投一个「探路箱」（游戏自己的随机物资），读它的列表认出行名格式（含 11 位编号的那种），再在名字表里找我们每件东西的序号。
+     *  箱子里每样东西是一份（数量是游戏默认的，列表里没有数量字段），999 的那些还在旁边地上那堆里。 */
+    static final long DROP = 0x118a820L, SYS_VT = 0x4caf198L, CAVE_AT = 0x11de78cL, HOOK_AT = 0xfd3424L;
+    static final String CAVE = "f0412de90040a0e10180a0e194509fe5006095e5000056e31e00000ac80056e3c860a0c30070a0e3060057e1130000aafc1394e5010081e2fc0384e5000494e5000051e1030000bafe0f84e206002de9679be7eb0600bde8f80394e5810180e0082085e2872182e0003092e5003080e5043092e5043080e5017087e2e9ffffea0000a0e3000085e5040095e5010080e2040085e5f081bde80400a0e10810a0e1f041bde8a2d4f7ea";
+    static final String HOOK_O = "a50100eb", HOOK_N = "d82c08eb";
+    static final String CAVE_O64 = "104c2de908b08de20040a0e1100091e5000050e301008012100081e5000094e5f81c90e50400a0e131ff2fe1000050e30400000a000094e5fc1c90e50400a0e1";
+    static java.nio.ByteBuffer cbuf; static long caddr;
+    static String installCave(long b) throws Exception {
+        if (cbuf == null) { cbuf = java.nio.ByteBuffer.allocateDirect(8 + 8 * 200).order(java.nio.ByteOrder.LITTLE_ENDIAN); caddr = GameOverlay.bufAddr(cbuf); }
+        if (caddr <= 0 || caddr > 0xffffffffL) return "缓冲区地址不对";
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            String h = Server.bytesAt(m, b + HOOK_AT, 4);
+            if (!h.equals(HOOK_O) && !h.equals(HOOK_N)) return "钩子处字节不对 " + h;
+            String c = Server.bytesAt(m, b + CAVE_AT, 64);
+            if (!c.equals(CAVE_O64) && !c.equals(CAVE.substring(0, 128))) return "cave 处字节不对 " + c.substring(0, 16);
+            cbuf.putInt(0, 0);
+            m.seek(b + CAVE_AT); m.write(Patches.hex(CAVE + Server.w32((int) caddr)));
+            m.seek(b + HOOK_AT); m.write(Patches.hex(HOOK_N));
+            if (!Server.bytesAt(m, b + HOOK_AT, 4).equals(HOOK_N)) return "钩子没写进去";
+        }
+        return "ok";
+    }
+    /** 活着的、类名含 key 的对象（跳过类默认对象） */
+    static java.util.ArrayList<Long> byCls(RandomAccessFile m, long b, Veh.Names nm, String key) throws java.io.IOException {
+        java.util.ArrayList<Long> out = new java.util.ArrayList<>();
+        java.util.HashMap<Long, Boolean> ok = new java.util.HashMap<>();
+        long g = Server.rd(m, b + 0x51250acL); if (g < 0x10000) return out;
+        long objs = Server.rd(m, g + 0x10), num = Server.rd(m, g + 0x18);
+        if (objs < 0x10000 || num <= 0 || num > 0x200000) return out;
+        byte[] blk = new byte[16 * 4096];
+        for (long i = 0; i < num; i += 4096) {
+            int k = (int) Math.min(4096, num - i);
+            m.seek(objs + i * 16); m.readFully(blk, 0, k * 16);
+            java.nio.ByteBuffer bb = java.nio.ByteBuffer.wrap(blk).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+            for (int j = 0; j < k; j++) {
+                long o = bb.getInt(j * 16) & 0xffffffffL; int f = bb.getInt(j * 16 + 4);
+                if (o < 0x10000 || (f & 0x20000000) != 0) continue;
+                long c = Server.rd(m, o + 0xc); if (c < 0x10000) continue;
+                Boolean y = ok.get(c);
+                if (y == null) { y = Alive.objName(m, nm, c).contains(key); ok.put(c, y); }
+                if (y && (Server.rd(m, o + 4) & 0x10) == 0) out.add(o);
+            }
+        }
+        return out;
+    }
+    static String nameOf(RandomAccessFile m, Veh.Names nm, long idx) { String s = idx >= 0 && idx < 0x400000 ? nm.name(m, (int) idx) : null; return s == null ? "#" + idx : s; }
+    static long drop(long b, long sys, float x, float y, float z, int type) throws InterruptedException {
+        long[] r = Veh.ucall6(sys, Float.floatToRawIntBits(x) & 0xffffffffL, 0, 0, null, b + DROP,
+            Float.floatToRawIntBits(y) & 0xffffffffL, Float.floatToRawIntBits(z) & 0xffffffffL, type, 0);
+        return r[0];
+    }
+    static String airdrop(long b, float x0, float y0, float z0, java.util.ArrayList<Pile> ps) throws Exception {
+        StringBuilder sb = new StringBuilder("空投箱：");
+        String ic = installCave(b);
+        sb.append("内容补丁 ").append(ic);
+        Veh.Names nm = Veh.Names.get(); if (nm == null) return sb.append("；名字表没找到").toString();
+        long sys = 0; int type = -1;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            java.util.ArrayList<Long> ss = Flare.byVt(m, b, b + SYS_VT);
+            if (ss.isEmpty()) return sb.append("；这局没有空投系统").toString();
+            sys = ss.get(0);
+            int[] offs = { 0x32c, 0x334, 0x338, 0x330 };
+            sb.append("；空投系统 ").append(Long.toHexString(sys)).append(" 箱子类");
+            for (int t : new int[] { 0, 3, 1, 2 }) {
+                long c = Server.rd(m, sys + offs[t]);
+                sb.append(" ").append(t).append("=").append(c < 0x10000 ? "空" : Alive.objName(m, nm, c));
+                if (type < 0 && c >= 0x10000) type = t;
+            }
+        }
+        if (type < 0) return sb.append("；没有可用的箱子类").toString();
+        // 探路箱：游戏自己的随机物资，用来认 FName 格式
+        java.util.HashSet<Long> before = new java.util.HashSet<>();
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { before.addAll(byCls(m, b, nm, "AirSupplyBox")); }
+        if (cbuf != null) cbuf.putInt(0, 0);
+        long r0 = drop(b, sys, x0 - 600f, y0 + 300f, z0 + 3000f, type);
+        Thread.sleep(800);
+        String tplA = null, tplB = null; java.util.ArrayList<String> probe = new java.util.ArrayList<>();
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            java.util.ArrayList<Long> now = byCls(m, b, nm, "AirSupplyBox");
+            long box = 0; for (long o : now) if (!before.contains(o)) { box = o; break; }
+            sb.append("；探路箱 ").append(r0 == 0x5b0e ? "已调" : "没调成(" + Long.toHexString(r0) + ")").append(box == 0 ? "，没找到新箱子" : "，箱子 " + Long.toHexString(box) + " " + Alive.clsName(m, nm, box));
+            if (box != 0) {
+                long data = Server.rd(m, box + 0x3f8), n = Server.rd(m, box + 0x3fc);
+                for (int i = 0; i < Math.min(n, 40) && data >= 0x10000; i++) probe.add(nameOf(m, nm, Server.rd(m, data + 8L * i)) + (Server.rd(m, data + 8L * i + 4) != 0 ? "_" + Server.rd(m, data + 8L * i + 4) : ""));
+                sb.append("，随机物资 ").append(n).append(" 件：").append(String.join(" ", probe));
+            }
+        }
+        java.util.regex.Pattern d11 = java.util.regex.Pattern.compile("(\\d{11})");
+        for (String s : probe) { java.util.regex.Matcher mt = d11.matcher(s); if (mt.find()) { tplA = s.substring(0, mt.start()); tplB = s.substring(mt.end()); break; } }
+        if (tplA == null) return sb.append("；行名里没有 11 位编号，认不出格式，箱子内容没换").toString();
+        sb.append("；行名格式 ").append(tplA).append("<编号>").append(tplB);
+        java.util.HashSet<String> want = new java.util.HashSet<>();
+        for (Pile p : ps) { for (long id : p.stack) want.add(tplA + id + tplB); for (long id : p.single) want.add(tplA + id + tplB); }
+        java.util.HashMap<String, Integer> idx = new java.util.HashMap<>();
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            int miss = 0;
+            for (int i = 1; i < 0x300000 && miss < 40000 && idx.size() < want.size(); i++) {
+                String s = nm.name(m, i);
+                if (s == null) { miss++; continue; } miss = 0;
+                if (want.contains(s)) idx.put(s, i);
+            }
+        }
+        sb.append("；名字表找到 ").append(idx.size()).append("/").append(want.size());
+        for (int i = 0; i < ps.size(); i++) {
+            Pile p = ps.get(i);
+            java.util.ArrayList<Integer> ent = new java.util.ArrayList<>();
+            for (long id : p.single) { Integer k = idx.get(tplA + id + tplB); if (k != null) ent.add(k); }
+            for (long id : p.stack) { Integer k = idx.get(tplA + id + tplB); if (k != null) ent.add(k); }
+            if (ent.isEmpty()) { sb.append("\n· ").append(p.name).append(" 箱：一件都没在名字表找到，没投"); continue; }
+            int n = Math.min(ent.size(), 200);
+            for (int k = 0; k < n; k++) { cbuf.putInt(8 + 8 * k, ent.get(k)); cbuf.putInt(12 + 8 * k, 0); }
+            int used0 = cbuf.getInt(4);
+            cbuf.putInt(0, n);
+            float px = x0 + 400f * (i % 5) + 300f, py = y0 + (i < 5 ? 300f : 800f) + 220f;
+            long r = drop(b, sys, px, py, z0 + 3000f, type);
+            Thread.sleep(200);
+            boolean used = cbuf.getInt(4) != used0;
+            cbuf.putInt(0, 0);
+            sb.append("\n· ").append(p.name).append(" 箱：").append(n).append(" 样，").append(r == 0x5b0e ? (used ? "已投，内容换成我们的" : "已投，但内容补丁没走到") : "没调成");
+        }
+        return sb.toString();
     }
 }
