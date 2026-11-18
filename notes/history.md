@@ -761,3 +761,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 12:05 用户截图：加载页「正在检查更新」一直不走。原因：加载页日志连着几行 Browse StartupMap，守卫在 UI 线程外判断 → 叠了两层，关掉的是后一层。v2.69 服务端 (vc170)：AtomicBoolean 只弹一次、点一下就关、30 秒必关。未实测。
 - 12:25 用户问服务端毒圈/等待改了没：没改过（服务端是 v2.55 的逻辑）。v2.70 服务端 (vc171)：毒圈表同客户端 v2.74（第 0 项整图等 ≤60 秒后直接缩到第一圈，白圈一开始就显示）。等人时间没动，问用户要几秒。未实测。
 - v2.71 服务端 (vc172)：去掉在线内核连续 2 次没进大厅就退回（用户要求）。13:55 发现 jsdelivr @main 缓存还是 b1=169 → 云手机服务端一直拿不到 171；已手动 purge。以后每次推送后都要 purge jsdelivr。
+- v2.72 服务端 (vc173)：云手机「检查更新失败（网络）」→ NetCore 并发查 6 个镜像（ghfast.top / gh-proxy.com 代理 raw、testingcf/cdn/gcore jsdelivr、raw），取最大版本号下载；日志记各镜像版本。客户端 v2.86 (vc187) 同改。

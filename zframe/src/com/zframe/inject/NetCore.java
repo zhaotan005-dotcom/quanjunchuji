@@ -11,10 +11,29 @@ import java.io.*;
  *  只在游戏进程里联网（ZFrame App 没有联网权限）；下载只在大厅后台进行，启动阶段不联网。
  */
 final class NetCore {
+    // v2.72/v2.86：多个镜像一起查版本号，取最大的（jsdelivr @main 会缓存旧号；云手机直连 GitHub 常失败）
+    static final String RAW = "https://raw.githubusercontent.com/zhaotan005-dotcom/quanjunchuji/main/core/";
     static final String[] BASES = {
-        "https://cdn.jsdelivr.net/gh/zhaotan005-dotcom/quanjunchuji@main/core/",   // v2.68：国内 raw.githubusercontent 常连不上（卡在域名解析，超时管不到）→ jsdelivr 先
-        "https://raw.githubusercontent.com/zhaotan005-dotcom/quanjunchuji/main/core/",
+        "https://ghfast.top/" + RAW,
+        "https://gh-proxy.com/" + RAW,
+        "https://testingcf.jsdelivr.net/gh/zhaotan005-dotcom/quanjunchuji@main/core/",
+        "https://cdn.jsdelivr.net/gh/zhaotan005-dotcom/quanjunchuji@main/core/",
+        "https://gcore.jsdelivr.net/gh/zhaotan005-dotcom/quanjunchuji@main/core/",
+        RAW,
     };
+    /** 并发查各镜像的版本号，最多等 12 秒；返回 各镜像版本（-1 = 失败） */
+    static int[] vers(final String name, final StringBuilder err) {
+        final int[] v = new int[BASES.length]; java.util.Arrays.fill(v, -1);
+        Thread[] ts = new Thread[BASES.length];
+        for (int k = 0; k < BASES.length; k++) {
+            final int i = k;
+            ts[i] = new Thread(() -> { try { v[i] = Integer.parseInt(new String(get(BASES[i] + name + ".ver", 64)).trim()); } catch (Throwable t) { synchronized (err) { err.append(BASES[i].substring(8, Math.min(28, BASES[i].length()))).append("：").append(t.getMessage()).append("；"); } } }, "zf-ver" + i);
+            ts[i].setDaemon(true); ts[i].start();
+        }
+        long end = System.currentTimeMillis() + 12000;
+        for (Thread t : ts) { long w = end - System.currentTimeMillis(); if (w > 0) try { t.join(w); } catch (InterruptedException ignored) {} }
+        return v.clone();
+    }
     static volatile String status = "";
     static volatile int netVer;
 
@@ -87,10 +106,17 @@ final class NetCore {
         }, "zframe-netcore-wd").start();
         new Thread(() -> {
             String err = "";
-            for (String base : BASES) {
+            final String name0 = "b" + Ed.BUILD;
+            StringBuilder eb = new StringBuilder();
+            int[] vs = vers(name0, eb); err = eb.toString();
+            int best = -1; for (int x : vs) best = Math.max(best, x);
+            LogCap.note("在线更新：各镜像版本 " + java.util.Arrays.toString(vs));
+            for (int bi = 0; bi < BASES.length; bi++) {
+                if (vs[bi] < 0 || vs[bi] != best) continue;
+                String base = BASES[bi];
                 try {
-                    String name = "b" + Ed.BUILD;
-                    int v = Integer.parseInt(new String(get(base + name + ".ver", 64)).trim());
+                    String name = name0;
+                    int v = vs[bi];
                     netVer = v;
                     int have = ZInit.CORE_VER;
                     String[] hv = read(f(ctx, "zcore_net.ver")).split(" ");
