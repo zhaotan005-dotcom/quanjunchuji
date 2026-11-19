@@ -1190,3 +1190,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 18:01 用户截图（客户端包单机模式 v3.29）：加载页底部「游戏更新页：没开始」+ 我们自己的公告层；单机标点 3237m 不传送。
 - 更新页根因：UpdFlow 的保险文件 zf_updflow.try 只在进大厅删；v3.28 在更新页下好直接 NetCore.restart（没进大厅）→ 下次启动当成卡住不装 GATE。修：restart 前和 UpdPage 找到页面时删保险文件；状态行没启动 UpdPage 时显示 UpdFlow.state。
 - 标点：autoTp 不存档、默认关，更新后重启就变关（推断是没传的原因）。改成 prefs mark_tp 默认开；控制器 +a04 开关为 0 时从队伍列表 [0]+0x2c/+0x30 读标点；菜单副标题显示 MapMark.state；传送失败 toast。
+
+## v3.31（vc232/core232，2026-11-19 18:1x，未实测）
+- 18:06 用户：开车下车后人物消失，是把自己角色做成服务端（?listen）的后果；剩余人数的占位还在。Lan.fakeOnline 默认改 false（真单机）。占位那个不是真玩家（没控制器/没手机），不能当房主；隐藏空位仍待做。
