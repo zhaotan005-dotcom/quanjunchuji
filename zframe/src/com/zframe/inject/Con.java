@@ -472,7 +472,7 @@ public class Con {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
-                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
+                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); /* v3.21：每次进图按存的模式重打不上飞机/不刷圈 + 阶段守护 */ } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Gfx.unlite();
                     Lan.role = 0; Bots.auto = Bots.want;

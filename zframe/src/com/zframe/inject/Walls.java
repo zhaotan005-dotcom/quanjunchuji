@@ -168,7 +168,7 @@ public class Walls {
 
     /** 刷整个场地：外圈围墙（矩形、无缝、四角压角） + 场内掩体（长短墙、L 形、交错、箱子）。在后台线程调。 */
     static void build(float[] a, float[] c, java.util.List<float[]> avoid) {
-        if (busy) return; busy = true; ok = 0; fail = 0;
+        if (busy) return; busy = true; ok = 0; fail = 0; snapped = 0; snapTried = 0;
         long t0 = System.currentTimeMillis();
         try {
             long b = Mods.base(); if (b == 0) { state = "围墙：找不到游戏库"; return; }
@@ -219,10 +219,10 @@ public class Walls {
                 if (avoid != null) for (float[] p : avoid) if (p != null && Math.hypot(x - p[0], y - p[1]) - half < 150) onPlayer = true;
                 if (onPlayer || !A.inside(x, y, -300)) { skipped++; continue; }
                 double yaw = A.yawU() + (perp ? 90 : 0);
-                if (place(b, world, ms, x, y, A.gz(u), yaw, len) != 0) { ok++; inner++; } else fail++;
+                if (place(b, world, ms, x, y, snap(A, u, x, y), yaw, len) != 0) { ok++; inner++; } else fail++;
             }
             state = "围墙：外圈 " + perim + " 块、场内 " + inner + " 块（跳过 " + skipped + "，失败 " + fail + "），场地 " + Math.round((A.d + 2 * A.M) / 100) + "×" + Math.round(2 * A.H / 100)
-                + " 米，墙顶 ≥ 地面+" + Math.round(TOP / 100f * 10) / 10f + " 米，用时 " + (System.currentTimeMillis() - t0) / 1000 + " 秒；" + patchState;
+                + " 米，墙顶 ≥ 地面+" + Math.round(TOP / 100f * 10) / 10f + " 米，射线贴地 " + snapped + "/" + snapTried + " 块，用时 " + (System.currentTimeMillis() - t0) / 1000 + " 秒；" + patchState;
             LogCap.note("单挑" + state);
         } catch (Throwable e) { state = "围墙：出错 " + e; LogCap.note("单挑" + state); }
         finally { busy = false; }
@@ -236,9 +236,19 @@ public class Walls {
         int c = 0;
         for (int i = 0; i < n; i++) {
             float t = (i + 0.5f) / n, u = ua + (ub - ua) * t, v = va + (vb - va) * t;
-            if (place(b, world, ms, A.wx(u, v), A.wy(u, v), A.gz(u), yaw, pieceLen) != 0) { ok++; c++; } else fail++;
+            float x = A.wx(u, v), y = A.wy(u, v);
+            if (place(b, world, ms, x, y, snap(A, u, x, y), yaw, pieceLen) != 0) { ok++; c++; } else fail++;
         }
         return c;
+    }
+    /** v3.21：每块墙中心往下打射线贴地（只认地形，和两点插值差 4 米以上就不信），射线不能用就照旧按两个出生点插值 */
+    static volatile int snapped, snapTried;
+    static float snap(Arena A, float u, float x, float y) {
+        float f = A.gz(u); snapTried++;
+        if (Trace.fn == 0 && !Trace.init()) return f;
+        float g = Trace.ground(x, y, f + 3000, f - 3000);
+        if (Float.isNaN(g) || Math.abs(g - f) > 400) return f;
+        snapped++; return g;
     }
     static void reset() { synchronized (spawned) { spawned.clear(); } arena = null; ok = 0; state = "围墙：没刷"; }
     /** v3.20 再开一把：删掉这局刷过的墙（AActor::K2_DestroyActor 虚表 +0x164，游戏线程；服务端销毁复制的 actor，客户端跟着删），然后清状态 */

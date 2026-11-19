@@ -6,7 +6,7 @@ import java.nio.ByteOrder;
 
 /** v3.16 用户：两个人单挑，20 个头定胜负；雨林、海岛各一个；开局前自由选枪；被打死 5 秒复活、复活后 3 秒无敌；
  *  两把一样的枪 + 300 发子弹，配件放背包，3 级头 3 级甲，背包用喷气背包。
- *  v3.17：自定单挑点（prefs duel_e 海岛 / duel_s 雨林，没记过就第一局上飞机跳、落地 2.5 秒记下）、看不见的固定圈。
+ *  v3.17：自定单挑点（v3.21 删掉，改自动选）、看不见的固定圈。
  *  v3.18：车当掩体（v3.19 删掉，用户说太敷衍）、认手上的枪、开局被挪走拉回。
  *  v3.19 用户：
  *   - 掩体要真的墙：Walls.java 用地图里已加载的墙/集装箱/箱子模型刷 AStaticMeshActor（复制给客户端），外圈一圈无缝围墙 + 场内长短墙、L 形、交错墙、箱子，
@@ -27,6 +27,11 @@ import java.nio.ByteOrder;
  *     → 比分清零、每人的计时/标志清掉 → 活着的传回自己的点、补满血、原生出生保护；死着的立刻 RestartPlayer → 重新摆枪选枪（45 秒）→ 重刷围墙。
  *   - 身上的枪/头甲不删：v1.98 实测丢枪闪退过，没有安全的删枪路径 → 留着，新一把照常发新装备（日志写明）；选枪时只认这一把新捡的枪（记下重开时背包里已有的枪对象）。
  *   - 不调用游戏任何结束/重开对局的函数，不碰游戏流程（不上飞机、不刷圈照旧）；单挑开着时强制「只剩房主那队不结算」补丁（HostMatch.solo）。
+ *  v3.21 用户（12:08，生气）：不要让用户记录任何地点，程序自己选场地；服务端只开房什么都不做（房主人物隐藏冻结，不上飞机）。
+ *   - 删掉 记录单挑点/清除单挑点、prefs duel_e/duel_s、「第一局上飞机跳、落地记点」。单挑一律 setNoZone（不上飞机、不刷圈）。
+ *   - 玩家进来后在游戏放他的地方（出生岛）等；有人站稳就后台自动选场地（DuelArena.choose：地形块 + 射线检测平地、不在房子/水里）；
+ *     两个人都在、都活着、都站稳 → 一起传到两个点（相距 50 米），然后照旧：围墙（每块射线贴地）、选枪、发装备、出生保护、计分、再开一把。
+ *   - 选不到 → 用玩家 1 现在站的地方；同一进程同一张图沿用（围墙一块没刷成才换）。
  */
 public class Duel {
     static volatile boolean on;
@@ -38,7 +43,7 @@ public class Duel {
     static class P {
         long ctl, pawn; int kills, idx = -1; long gun; String gunName = "", ammo = "1";
         float[] home, last; long rowAt, deadAt, protectUntil, movedAt, hurtAt, tryAt, leashAt, respawnSince;
-        boolean dead, kitted, picked, placed, tele, present, reKit;
+        boolean dead, kitted, picked, placed, tele, present, reKit, ground; float[] gpos;
         final java.util.HashSet<Long> oldGuns = new java.util.HashSet<>(); long oldGunsPawn;   // v3.20：重开时背包里已有的枪（选枪不算）
     }
     static final java.util.LinkedHashMap<Long, P> ps = new java.util.LinkedHashMap<>();
@@ -49,33 +54,12 @@ public class Duel {
     static volatile Thread wallsTh; static volatile String lastReset = "";
 
     static volatile boolean savage;
-    static String key(boolean sv) { return sv ? "duel_s" : "duel_e"; }
-    static float[][] saved(boolean sv) {
-        try {
-            String v = Con.act.getSharedPreferences("zframe", 0).getString(key(sv), null); if (v == null) return null;
-            String[] t = v.split(","); if (t.length != 6) return null;
-            float[][] r = new float[2][3]; for (int i = 0; i < 6; i++) r[i / 3][i % 3] = Float.parseFloat(t[i]); return r;
-        } catch (Throwable e) { return null; }
-    }
-    static void save(boolean sv, float[] a, float[] c) {
-        try { Con.act.getSharedPreferences("zframe", 0).edit().putString(key(sv), a[0] + "," + a[1] + "," + a[2] + "," + c[0] + "," + c[1] + "," + c[2]).apply(); } catch (Throwable ignored) {}
-        LogCap.note("单挑：记下" + (sv ? "雨林" : "海岛") + "单挑点 " + java.util.Arrays.toString(a) + " / " + java.util.Arrays.toString(c));
-    }
-    static void clear(boolean sv) { try { Con.act.getSharedPreferences("zframe", 0).edit().remove(key(sv)).apply(); } catch (Throwable ignored) {} }
-    static String pts() {
-        return "单挑点：海岛" + (saved(false) == null ? "没记" : "已记") + "，雨林" + (saved(true) == null ? "没记（第一局上飞机自己跳，落地就记）" : "已记");
-    }
-    /** 开房页按钮：把现在两个加入玩家站的位置记成当前地图的单挑点 */
-    static String recordNow() {
-        if (!Con.inMatch) return "进对局后再按";
-        String mp = Con.brMap == null ? "" : Con.brMap; boolean sv = mp.contains("Savage") || mp.contains("4x4");
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-            Veh.Names nm = Veh.Names.get(); java.util.ArrayList<float[]> l = new java.util.ArrayList<>();
-            for (long[] e : players(m, nm)) { long p = Server.rd(m, e[0] + 0x2c0); if (live(m, nm, p)) { float[] q = pos(m, p); if (q != null) l.add(q); } }
-            if (l.size() < 2) return "要两个加入的玩家都活着站好（现在 " + l.size() + " 个）";
-            save(sv, l.get(0), l.get(1)); arena(l.get(0), l.get(1));
-            return "记好了" + (sv ? "雨林" : "海岛") + "的两个单挑点（下一局开始按这两个点刷围墙）";
-        } catch (Throwable t) { return "出错 " + t; }
+    /** v3.21 用户：不要让用户记录任何地点，服务端只开房什么都不做 → 场地由 DuelArena.choose 自动选（见 DuelArena.java），没有记点按钮、没有 prefs */
+    static volatile float[][] spots; static volatile Thread arenaTh; static volatile long arenaRetryAt; static volatile int mgen;
+    static String mapKey() { String mp = Con.brMap == null ? "" : Con.brMap; return mp.isEmpty() ? (savage ? "S" : "E") : mp; }
+    static boolean falling(RandomAccessFile m, long pawn) {
+        try { long cmc = Server.rd(m, pawn + Mods.P_CMC) & 0xffffffffL; if (cmc < 0x10000) return false; byte[] x = new byte[1]; m.seek(cmc + Mods.C_MODE); m.readFully(x); return x[0] == Mods.MOVE_FALLING; }
+        catch (Throwable t) { return false; }
     }
     static volatile float[] center; static volatile float radius;
     static void arena(float[] a, float[] c) {
@@ -92,11 +76,9 @@ public class Duel {
     static String open(boolean sv) {
         Training.off();
         on = true; reset(); savage = sv;
-        float[][] pt = saved(sv);
-        if (pt != null) { Mods.setNoZone(); arena(pt[0], pt[1]); }
-        else { Mods.setPlane(false); Mods.setPoison(true); }
-        Box.on = false;
-        state = "单挑：开" + (savage ? "雨林" : "海岛") + "，等两个人进来";
+        // v3.21：单挑一律不上飞机、不刷圈（v3.17~3.20 没记点时 setPlane(false) 让所有人上飞机 → 房主隐藏人物被飞机带走、视角进灰色虚空）
+        String z = Mods.setNoZone();
+        state = "单挑：开" + (savage ? "雨林" : "海岛") + "（不上飞机 " + z + "），等两个人进来，场地自动选";
         start();
         if (sv) return Lan.host(SAVAGE);
         return ModeProbe.host("Props", "单挑", RENEW);
@@ -106,6 +88,7 @@ public class Duel {
     static void reset() {
         synchronized (ps) { ps.clear(); }
         over = false; started = false; paused = false; winner = ""; center = null; wallsDone = false; protGs = 0; announced = false;
+        spots = null; arenaTh = null; arenaRetryAt = 0; mgen++; arenaInfo = "场地：等有人进来站稳后自动选";
         rematchReq = false; endAt = 0; round = 1; gen++; lastReset = "";
         Walls.reset();
     }
@@ -118,7 +101,7 @@ public class Duel {
         LogCap.note("单挑：房主按了「再开一把」（第 " + round + " 把" + (over ? "已结束" : started ? "打到一半" : "还没开始") + "）");
         return "马上重开：清墙、清地上的枪、比分归零，两人回到自己的点";
     }
-    static volatile boolean wallsDone, announced; static volatile long protGs;
+    static volatile boolean wallsDone, announced; static volatile long protGs; static volatile String arenaInfo = "场地：还没选";
 
     static void start() {
         if (th != null && th.isAlive()) return;
@@ -252,22 +235,15 @@ public class Duel {
                 long pawn = Server.rd(m, p.ctl + 0x2c0);
                 boolean alive = live(m, nm, pawn);
                 if (alive && now < p.protectUntil) heal(m, pawn);   // 后备：保护期内掉血就补满
-                // ---- 出生点：存过的点直接传过去；没存过等落地站稳 ----
+                // ---- v3.21 出生点：先等他落地站稳（不在下落、1.5 秒没怎么动），两个人都站稳且场地选好后一起传到自动选的两个点 ----
                 if (!p.placed) {
-                    if (!alive) continue;
+                    if (!alive) { p.ground = false; continue; }
                     p.pawn = pawn;
-                    float[][] pt = saved(savage);
                     float[] q = pos(m, pawn); if (q == null) continue;
-                    if (pt != null && p.idx >= 0 && p.idx < 2) {
-                        if (now - p.tryAt < 2000) continue; p.tryAt = now;
-                        p.home = pt[p.idx]; p.placed = true; p.tele = true; p.movedAt = now;
-                        tele(todo, pawn, p.home); LogCap.note("单挑：玩家 " + (p.idx + 1) + " 传到单挑点"); continue;
-                    }
-                    if (p.last == null || Math.abs(q[0] - p.last[0]) + Math.abs(q[1] - p.last[1]) + Math.abs(q[2] - p.last[2]) > 60f) { p.last = q; p.movedAt = now; continue; }
-                    if (Bots.readPhase(gm) < 4 || now - p.movedAt < 2500) continue;
-                    p.home = q; p.placed = true;
-                    LogCap.note("单挑：玩家 " + (p.idx + 1) + " 落地 " + java.util.Arrays.toString(q));
-                    if (all.size() >= 2 && all.get(0).placed && all.get(1).placed && saved(savage) == null) { save(savage, all.get(0).home, all.get(1).home); arena(all.get(0).home, all.get(1).home); }
+                    if (falling(m, pawn) || p.last == null || Math.abs(q[0] - p.last[0]) + Math.abs(q[1] - p.last[1]) + Math.abs(q[2] - p.last[2]) > 60f) { p.last = q; p.movedAt = now; p.ground = false; continue; }
+                    if (now - p.movedAt < 1500) continue;
+                    if (!p.ground) LogCap.note("单挑：玩家 " + (p.idx + 1) + " 站稳了 " + java.util.Arrays.toString(q));
+                    p.ground = true; p.gpos = q;
                     continue;
                 }
                 // ---- 等人 / 暂停：站在自己的点上，离开 5 米拉回，满血，不掉圈血，死了不算分 ----
@@ -356,29 +332,57 @@ public class Duel {
                     }
                 }
             }
-        }
-        // ---- 围墙：两个点都知道就刷（等人的时候就可以刷，后台线程） ----
-        if (!wallsDone) {
-            float[][] pt = saved(savage);
-            java.util.ArrayList<P> all = snapshot();
-            float[] a = null, c = null;
-            if (pt != null) { a = pt[0]; c = pt[1]; }
-            else if (all.size() >= 2 && all.get(0).placed && all.get(1).placed) { a = all.get(0).home; c = all.get(1).home; }
-            if (a != null && !pl.isEmpty()) {
-                wallsDone = true; final float[] fa = a, fc = c;
-                final java.util.ArrayList<float[]> avoid = new java.util.ArrayList<>();
-                try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { for (P p : all) { long pw = Server.rd(m, p.ctl + 0x2c0); if (pw >= 0x10000) avoid.add(pos(m, pw)); } } catch (Throwable ignored) {}
-                final int g0 = gen;
-                Thread wt = new Thread(() -> { if (g0 != gen) return; Walls.build(fa, fc, avoid); android.app.Activity ac = Con.act; if (ac != null) AvatarLog.export(ac, "duel-"); }, "zf-walls");
-                wallsTh = wt; wt.start();
+            // ---- v3.21 自动选场地：有人站稳了就开始选（后台线程，DuelArena.choose），选好前谁都不传 ----
+            if (spots == null && arenaTh == null && now >= arenaRetryAt) {
+                float[] fb = null; java.util.ArrayList<float[]> pp = new java.util.ArrayList<>();
+                for (P p : all) { if (p.gpos != null) pp.add(p.gpos); if (fb == null && p.present && p.ground && p.gpos != null) fb = p.gpos; }
+                if (fb != null) {
+                    final float[] f0 = fb; final int g0 = mgen; final String key = mapKey();
+                    arenaInfo = "场地：正在自动选…";
+                    Thread t = new Thread(() -> {
+                        float[][] s = null;
+                        try { s = DuelArena.choose(key, f0, pp); } catch (Throwable e) { LogCap.note("单挑：选场地出错 " + e); }
+                        if (g0 != mgen) return;
+                        arenaInfo = DuelArena.state;
+                        if (s != null) { spots = s; arena(s[0], s[1]); } else { arenaRetryAt = System.currentTimeMillis() + 10000; arenaTh = null; }
+                    }, "zf-arena");
+                    arenaTh = t; t.start();
+                }
+            }
+            // ---- 两个人都在、都活着、都站稳（或已经在点上），场地也选好了 → 一起传过去 ----
+            float[][] sp = spots;
+            if (sp != null && all.size() >= 2) {
+                boolean ready = true;
+                for (P p : all) if (!p.present || !(p.placed || p.ground) || !live(m, nm, Server.rd(m, p.ctl + 0x2c0))) ready = false;
+                if (ready) for (P p : all) {
+                    if (p.placed || p.idx < 0 || p.idx > 1) continue;
+                    long pawn = Server.rd(m, p.ctl + 0x2c0);
+                    p.home = sp[p.idx]; p.placed = true; p.tele = true; p.movedAt = now; p.leashAt = now;
+                    tele(todo, pawn, p.home); LogCap.note("单挑：玩家 " + (p.idx + 1) + " 传到自动选的单挑点 " + java.util.Arrays.toString(p.home));
+                }
             }
         }
+        // ---- 围墙：两个点都知道就刷（等人的时候就可以刷，后台线程） ----
+        if (!wallsDone && spots != null && !pl.isEmpty()) {
+            java.util.ArrayList<P> all = snapshot();
+            wallsDone = true; final float[] fa = spots[0], fc = spots[1]; final String key = mapKey();
+            final java.util.ArrayList<float[]> avoid = new java.util.ArrayList<>();
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { for (P p : all) { long pw = Server.rd(m, p.ctl + 0x2c0); if (pw >= 0x10000) avoid.add(pos(m, pw)); } } catch (Throwable ignored) {}
+            final int g0 = gen;
+            Thread wt = new Thread(() -> {
+                if (g0 != gen) return;
+                Walls.build(fa, fc, avoid);
+                if (Walls.ok == 0) { DuelArena.forget(key); LogCap.note("单挑：这个场地一块墙都没刷成，下一局换场地"); }
+                android.app.Activity ac = Con.act; if (ac != null) AvatarLog.export(ac, "duel-");
+            }, "zf-walls");
+            wallsTh = wt; wt.start();
+        }
         for (Runnable r : todo) r.run();
-        String wait = !started ? "等待对手加入（" + liveN + "/2）" : paused ? "暂停：等对手回来（" + liveN + "/2）" : "";
+        String wait = !started ? (liveN >= 2 && spots == null ? "两人都在，等场地选好" : liveN >= 2 ? "两人都在，等站稳/传送" : "等待对手加入（" + liveN + "/2）") : paused ? "暂停：等对手回来（" + liveN + "/2）" : "";
         if (!started && !announced && liveN == 1) { announced = true; LogCap.note("单挑：等待对手加入 (1/2)"); GameOverlay.toastAny("单挑：等待对手加入 (1/2)"); }
         String rn = "第 " + round + " 把，";
         state = over ? "单挑：" + rn + "结束，" + winner + "，比分 " + score() + (endAt > 0 ? "，" + Math.max(0, (10000 - (now - endAt)) / 1000) + " 秒后自动再开" : "")
-                     : "单挑：" + rn + (wait.isEmpty() ? "进行中" : wait) + "，比分 " + score() + "（" + WIN + " 个头赢）；" + Walls.state + (lastReset.isEmpty() ? "" : "；上次重开：" + lastReset);
+                     : "单挑：" + rn + (wait.isEmpty() ? "进行中" : wait) + "，比分 " + score() + "（" + WIN + " 个头赢）；" + arenaInfo + "；" + Walls.state + (lastReset.isEmpty() ? "" : "；上次重开：" + lastReset);
     }
     static java.util.ArrayList<P> snapshot() { synchronized (ps) { return new java.util.ArrayList<>(ps.values()); } }
     static String score() {

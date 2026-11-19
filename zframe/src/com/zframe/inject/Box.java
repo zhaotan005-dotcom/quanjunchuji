@@ -15,7 +15,7 @@ final class Box {
     static final long DISCARD = 0xcd6728L;
     static volatile String state = "空投：还没开局";
     static volatile boolean done, busy;
-    static volatile boolean on = true;
+    static volatile boolean on = false;   // v3.21 用户：出生岛空投删掉（开关和 HostMatch 里的 Box.tick 都去掉了；joinedPos/dropAll/DISCARD 还给单挑、刷东西用）
     static volatile int tries;
     static void newMatch() { done = false; tries = 0; }
 

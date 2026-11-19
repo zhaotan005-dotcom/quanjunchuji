@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.20";
+    static final String VER = "v3.21";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -177,7 +177,7 @@ public class GameOverlay {
                 }
             };
             mode.run();
-            refresher = () -> { mode.run(); paintStatus(status); fill(a, u, content); };
+            refresher = () -> { mode.run(); paintStatus(status); fill(a, u, content); TextView tt = titleRef; if (tt != null) tt.setText(titleText()); };
             paintStatus(status);
             fill(a, u, content);
             final Runnable[] tick = new Runnable[1];
@@ -1046,10 +1046,8 @@ public class GameOverlay {
             LinearLayout dr = row(a, hc); dr.setPadding(0, 0, 0, u.dp(6));
             fillBtn(a, u, dr, "单挑·海岛", () -> toast(a, Duel.open(false)));
             fillBtn(a, u, dr, "单挑·雨林", () -> toast(a, Duel.open(true)));
-            LinearLayout dr2 = row(a, hc); dr2.setPadding(0, 0, 0, u.dp(6));
-            fillBtn(a, u, dr2, "记录单挑点", () -> toast(a, Duel.recordNow()));
-            fillBtn(a, u, dr2, "清除单挑点", () -> { Duel.clear(false); Duel.clear(true); toast(a, "两张图的单挑点都清了，下次单挑先上飞机自己跳"); });
-            note(a, u, hc, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState) + "。" + Duel.pts());
+            // v3.21 用户：不要让用户记录任何地点 → 去掉「记录单挑点 / 清除单挑点」，场地程序自己选（DuelArena.java）
+            note(a, u, hc, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
             // v3.15 用户：删掉训练营和决胜五军（Training/ModeProbe.BFA 代码留着，不再有入口）
             // v3.03 用户：再找找别的地图 → 服务端进大厅自动扫名字表里的 /Game/Maps/…_Main（ModeProbe.maps），除了上面三张，扫到的都列出来（战术模式开）
             java.util.List<String> extra = ModeProbe.maps;
@@ -1063,64 +1061,70 @@ public class GameOverlay {
             }
             if (xr != null) while (xn % 3 != 0) { xr.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); xn++; }
             switchRow(a, u, hc, "去掉房主人物", "开局把房主自己的人物隐藏、关碰撞、冻住（看不到、打不到、挡不住人，也不和任何人一队），房主只当服务器", HostMatch.hideHost, v -> { HostMatch.hideHost = v; return "ok"; });
-            switchRow(a, u, hc, "出生岛空投", "每局开局在加入玩家前面放物资方块（枪、战术道具、子弹、投掷物、配件、药品、头甲包），身后排好车", Box.on, v -> { Box.on = v; return "ok"; });
+            // v3.21 用户：删掉「出生岛空投」（更新后出生岛根本没有空投，没用）。Box 开局放堆/排车不再跑（Box.on=false，HostMatch 不再调 Box.tick）
             note(a, u, hc, HostMatch.state);
             note(a, u, hc, ModeProbe.state);
             LinearLayout mr = row(a, root);
             // v2.22：房主也能选模式。房主自己没网络连接，游戏不让他上飞机；「不刷毒对局」= 大家都不上飞机，一起在出生岛开打
-            pick(a, u, mr, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> { toast(a, Mods.setNormal()); refreshAny(); });
-            pick(a, u, mr, "不刷毒对局", Mods.noPlane || Mods.noPoison, () -> { toast(a, Mods.setNoZone()); refreshAny(); });
-            LinearLayout lr = row(a, root);
-            pick(a, u, lr, "地图物资/门 关", !Loot.on, () -> { toast(a, Loot.set(false)); refreshAny(); });
-            pick(a, u, lr, "地图物资/门 开", Loot.on, () -> { toast(a, Loot.set(true)); refreshAny(); });
+            pick(a, u, mr, "正常对局", !Mods.zoneOff(), () -> { toast(a, Mods.setNormal()); refreshAny(); });
+            pick(a, u, mr, "不刷毒对局", Mods.zoneOff(), () -> { toast(a, Mods.setNoZone()); refreshAny(); });
+            // v3.21 用户：「地图物资/门」暂时没有用 → 删掉开关（Loot 默认关、不再有入口）
           } else {
             head(a, u, root, "加入房间");
-            LinearLayout jc = card(a, u, root);
-            // v3.10 用户：默认一个地址 frp-put.com:47937，按钮显示「加入艾挽服务器」；右边留一个能自己改的地址
-            if (ipBuf == null) ipBuf = Lan.lastIp != null && !AIWAN.equals(Lan.lastIp) ? Lan.lastIp : "";
-            LinearLayout jr = row(a, jc); jr.setPadding(0, u.dp(8), 0, u.dp(8)); jr.setGravity(Gravity.CENTER_VERTICAL);
-            fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
-            LinearLayout rc = new LinearLayout(a); rc.setOrientation(LinearLayout.VERTICAL);
-            LinearLayout.LayoutParams rcl = new LinearLayout.LayoutParams(0, -2, 1); rcl.leftMargin = u.dp(8);
-            jr.addView(rc, rcl);
-            final EditText ipEt = new EditText(a);
-            ipEt.setText(ipBuf); ipEt.setHint("自己填地址"); ipEt.setTextColor(TXT); ipEt.setHintTextColor(SUBT); ipEt.setTextSize(13);
-            ipEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI); ipEt.setSingleLine(true);
-            ipEt.setGravity(Gravity.CENTER);
-            ipEt.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); ipEt.setPadding(u.dp(8), u.dp(6), u.dp(8), u.dp(6));
-            rc.addView(ipEt, new LinearLayout.LayoutParams(-1, -2));
-            ipEt.setOnTouchListener((v, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_DOWN) focusable(v, true); return false; });
-            ipEt.setOnFocusChangeListener((v, f) -> { if (!f) focusable(v, false); });
-            ipEt.addTextChangedListener(new android.text.TextWatcher() {
-                public void beforeTextChanged(CharSequence x, int st, int c, int af) {}
-                public void onTextChanged(CharSequence x, int st, int b, int c) {}
-                public void afterTextChanged(android.text.Editable e) { ipBuf = e.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", ""); }
-            });
-            ipEt.setOnEditorActionListener((v, act, ev) -> { focusable(ipEt, false); ipEt.clearFocus(); return false; });
-            LinearLayout er = row(a, rc); er.setPadding(0, u.dp(4), 0, 0);
-            btn(a, u, er, "加入这个地址", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填地址"); return; } toast(a, Lan.join(ipBuf)); });
+            joinCard(a, u, root);
             note(a, u, root, "服务端先进图，再点加入。");
           }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         } else {
-            head(a, u, root, "游戏模式");
-            LinearLayout fl = row(a, root);
-            // v2.17 用户：只要两个模式；「不刷毒对局」= 不上飞机（直接在出生岛开打）+ 不刷圈。去掉清空仓库、日志
-            pick(a, u, fl, "正常对局", !Mods.noPlane && !Mods.noPoison, () -> result(a, Mods.setNormal()));
-            pick(a, u, fl, "不刷毒对局", Mods.noPlane || Mods.noPoison, () -> result(a, Mods.setNoZone()));
-            note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
-            // v2.56 用户：自动刷人机开关放大厅
-            switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
-            if (Ed.BUILD == 2) {   // v3.13 用户：客户端包也默认开自建服务端，大厅里照样能加入
+            // v3.21 用户：最上面一排「单机 | 联机」分段选择（不弹窗，记住选择）。单机 = 游戏模式 + 自动刷人机，点「匹配赛」本机开局；联机 = 加入艾挽服务器 + 自己填地址
+            LinearLayout seg = row(a, root); seg.setPadding(0, u.dp(2), 0, u.dp(6));
+            final boolean net = netTab();
+            pick(a, u, seg, "单机", !net, () -> setNetTab(false));
+            pick(a, u, seg, "联机", net, () -> setNetTab(true));
+            if (!net) {
+                head(a, u, root, "游戏模式");
+                LinearLayout fl = row(a, root);
+                // v2.17 用户：只要两个模式；「不刷毒对局」= 不上飞机（直接在出生岛开打）+ 不刷圈。去掉清空仓库、日志
+                pick(a, u, fl, "正常对局", !Mods.zoneOff(), () -> result(a, Mods.setNormal()));
+                pick(a, u, fl, "不刷毒对局", Mods.zoneOff(), () -> result(a, Mods.setNoZone()));
+                note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
+                // v2.56 用户：自动刷人机开关放大厅
+                switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
+            } else {
                 head(a, u, root, "加入房间");
-                LinearLayout jr = row(a, root); jr.setPadding(0, u.dp(6), 0, u.dp(6));
-                fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
-                final String last = Lan.lastIp;
-                if (last != null && !last.isEmpty() && !AIWAN.equals(last)) fillBtn(a, u, jr, "加入 " + last, () -> toast(a, Lan.join(last)));
+                joinCard(a, u, root);
+                note(a, u, root, "服务端先进图，再点加入。");
                 if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
             }
         }
         if (Ed.ED != 1) note(a, u, root, Server.state);
+    }
+    /** 加入房间卡片：「加入艾挽服务器」+ 自己填地址（v3.10；v3.21 单机版「联机」页也用） */
+    static void joinCard(final Activity a, final Ui u, final LinearLayout root) {
+        LinearLayout jc = card(a, u, root);
+        // v3.10 用户：默认一个地址 frp-put.com:47937，按钮显示「加入艾挽服务器」；右边留一个能自己改的地址
+        if (ipBuf == null) ipBuf = Lan.lastIp != null && !AIWAN.equals(Lan.lastIp) ? Lan.lastIp : "";
+        LinearLayout jr = row(a, jc); jr.setPadding(0, u.dp(8), 0, u.dp(8)); jr.setGravity(Gravity.CENTER_VERTICAL);
+        fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
+        LinearLayout rc = new LinearLayout(a); rc.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams rcl = new LinearLayout.LayoutParams(0, -2, 1); rcl.leftMargin = u.dp(8);
+        jr.addView(rc, rcl);
+        final EditText ipEt = new EditText(a);
+        ipEt.setText(ipBuf); ipEt.setHint("自己填地址"); ipEt.setTextColor(TXT); ipEt.setHintTextColor(SUBT); ipEt.setTextSize(13);
+        ipEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI); ipEt.setSingleLine(true);
+        ipEt.setGravity(Gravity.CENTER);
+        ipEt.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); ipEt.setPadding(u.dp(8), u.dp(6), u.dp(8), u.dp(6));
+        rc.addView(ipEt, new LinearLayout.LayoutParams(-1, -2));
+        ipEt.setOnTouchListener((v, e) -> { if (e.getActionMasked() == MotionEvent.ACTION_DOWN) focusable(v, true); return false; });
+        ipEt.setOnFocusChangeListener((v, f) -> { if (!f) focusable(v, false); });
+        ipEt.addTextChangedListener(new android.text.TextWatcher() {
+            public void beforeTextChanged(CharSequence x, int st, int c, int af) {}
+            public void onTextChanged(CharSequence x, int st, int b, int c) {}
+            public void afterTextChanged(android.text.Editable e) { ipBuf = e.toString().trim().replaceAll("^[a-zA-Z]+://", "").replaceAll("[\\s/]+$", ""); }
+        });
+        ipEt.setOnEditorActionListener((v, act, ev) -> { focusable(ipEt, false); ipEt.clearFocus(); return false; });
+        LinearLayout er = row(a, rc); er.setPadding(0, u.dp(4), 0, 0);
+        btn(a, u, er, "加入这个地址", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填地址"); return; } toast(a, Lan.join(ipBuf)); });
     }
     /** 最下面：日志 */
     static void logRow(final Activity a, final Ui u, final LinearLayout root) {
@@ -1139,7 +1143,6 @@ public class GameOverlay {
         if (Lan.role == 2 && Lan.lastIp != null) kv(a, u, c, "服务端", Lan.lastIp);
         note(a, u, root, Lan.role == 2 ? "你是加入的玩家：物资箱和车开局由服务端放在你身边；要别的东西让服务端刷，会刷在你脚下。" : "你是服务端：别人连你的 IP（UDP 7777）。服务端这边的刷物资、刷车照常能用。");
         note(a, u, root, Lan.state);
-        if (Ed.ED == 1) note(a, u, root, Loot.shortText());
         if (Lan.role == 1) { note(a, u, root, Crew.state); }
         // v2.26：联机版从游戏设置里退不出去 / 退了加入不进去 → 这里直接回大厅
         LinearLayout xr = row(a, root);
@@ -1202,7 +1205,6 @@ public class GameOverlay {
         if (Ed.ED == 1 || Lan.role == 1) {
             head(a, u, root, "单挑");
             LinearLayout dq = row(a, root);
-            btn(a, u, dq, "记录单挑点", () -> toast(a, Duel.recordNow()));
             btn(a, u, dq, "再开一把", () -> toast(a, Duel.rematch()));   // v3.20：同一张图马上重开（比分清零、清墙清枪、回到点上）
             note(a, u, root, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
         }
@@ -1664,7 +1666,29 @@ public class GameOverlay {
     // ---------------- v2.44 客户端包：加载页选「单机 / 联机」 ----------------
     static volatile TextView titleRef;
     static volatile View chooser; static volatile Activity chooserAct;
-    static String titleText() { return Ed.single() ? "全军出击单机版" : Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端"; }
+    /** v3.21 用户：单机版加入服务器后标题还是「单机版」。标题跟实际状态走：加入了别人的房间（Lan.role==2）= 联机版；
+     *  在本机对局里 = 单机版；在大厅按菜单顶上的「单机 | 联机」选择。 */
+    static String titleText() {
+        if (Ed.single()) {
+            if (Lan.role == 2) return "全军出击联机版";
+            if (Con.inMatch) return "全军出击单机版";
+            return netTab() ? "全军出击联机版" : "全军出击单机版";
+        }
+        return Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端";
+    }
+    /** v3.21 用户：单机/联机选择放在大厅菜单里（分段按钮），不要弹窗；记住（prefs lobby_net） */
+    static volatile Boolean netTabV;
+    static boolean netTab() {
+        Boolean v = netTabV;
+        if (v == null) { boolean x = false; try { Activity a = Con.act; if (a != null) x = a.getSharedPreferences("zframe", 0).getBoolean("lobby_net", false); } catch (Throwable ignored) {} netTabV = v = x; }
+        return v;
+    }
+    static void setNetTab(boolean v) {
+        netTabV = v;
+        try { Activity a = Con.act; if (a != null) a.getSharedPreferences("zframe", 0).edit().putBoolean("lobby_net", v).apply(); } catch (Throwable ignored) {}
+        LogCap.note("大厅菜单：选了「" + (v ? "联机" : "单机") + "」");
+        refreshAny();
+    }
     static void showChooser(final Activity a) {
         if (chooser != null) return;
         try {

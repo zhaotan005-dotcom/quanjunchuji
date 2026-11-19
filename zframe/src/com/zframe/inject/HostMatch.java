@@ -54,7 +54,7 @@ final class HostMatch {
         if (!hideHost) return;
         long p = Mods.myPawn(); if (p < 0x10000) return;
         long b = Mods.base(); if (b == 0) return;
-        if (Box.busy || !Box.done && Box.on) { /* 空投放完再冻住（放空投要挪这个人物） */ return; }
+        if (Box.busy) { /* 空投放完再冻住（放空投要挪这个人物） */ return; }
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             if (!Mods.isObj(m, b, p)) return;
             Mods.wf(m, p + 0x58, 0f);
@@ -74,7 +74,7 @@ final class HostMatch {
                 if (Lan.role != 1 || !Con.inMatch) continue;
                 solo();
                 try { hide(); } catch (Throwable t) { LogCap.note("藏房主人物出错 " + t); }
-                try { Box.tick(); } catch (Throwable t) { Box.state = "空投：出错 " + t; }
+                // v3.21 用户：删掉出生岛空投（Box 开局放物资堆、排车不再跑）
                 try { ghost(); } catch (Throwable t) { LogCap.note("房主人物冻结出错 " + t); }
                 Training.tick();
                 // v3.10 用户：道具只刷在玩家脚下（物资箱里每种 67），不再直接塞进背包（塞满后游戏会把多的丢出来）

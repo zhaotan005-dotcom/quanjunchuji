@@ -1106,3 +1106,34 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE（capstone）：K2_DestroyActor exec thunk 0x2e6f950 = `ldr r1,[r0]; ldr r1,[r1,#0x164]; bx r1`（和 SetActorHiddenInGame vt+0x160 相邻）；AStaticMeshActor 虚表 0x4f42690（构造 0x2d98764 写的）+0x164 = 0x1140af4 = `mov r1,#0; mov r2,#1; b 0x273e8d4`；0x273e8d4 = AActor::Destroy（查 +0x110 bit2、对象表 PendingKill，GetWorld vt+0xa0，bl 0x2aab2e8）；0x2aab2e8 = UWorld::DestroyActor（函数里 "UWorld::DestroyActor: World has no context!"、LevelActor.cpp）。没有新 cave、没有新补丁字节（走已有 ucall 'U' 路径，所以没做 unicorn）。
 - 日志（中文）：「单挑：房主按了「再开一把」」「单挑：第 n 把结束 … 10 秒后…」「单挑：结束 10 秒，在场的只有 n/2 人 → 清场回到等人」「单挑：再开一把（第 n 把，原因）：开始清场」「单挑：再开一把 第 n 把，…：丢掉子弹/投掷物 x 件；删墙 a/b；清地上东西：找到…删了…{类名=数}；活着传回 x 人、待复活 y 人，用时 s 秒」「单挑：玩家 n 重连回来…」。开房页/常用页状态行带「第 n 把」和「上次重开：…」。
 - 未实测：K2_DestroyActor 在手机上删墙/拾取物是否同步到客户端（看客户端「收到房主复制的墙 N 块」数字是否先变小再变回来）；拾取物类名过滤是否抓得到（看「清地上东西」的类名表，抓不到就按表改 PICK_IN）；丢子弹/投掷物是否正常；旧枪留在身上对选枪/发装备的影响。
+
+## v3.21（vc222/core222，2026-11-19 12:2x，三包，未实测）— 单挑自动选场地、不刷毒对局修飞机、单机版菜单单机/联机、删物资/门/出生岛空投
+- **用户规则（12:08，生气）：不要让用户记录任何地点，程序自己选场地；服务端只开房，什么都不做（房主人物隐藏冻结，不上飞机、不跳伞）。**
+- 用户截图：开房页还显示「记录单挑点」「清除单挑点」和「单挑点：海岛没记，雨林没记（第一局上飞机自己跳，落地就记）」；测试时房主视角进了灰色虚空，客户端落在海岛房子旁。
+### 单挑（Duel.java / 新 DuelArena.java / 新 Trace.java / Walls.java）
+- 删：记录单挑点/清除单挑点（开房页、对局常用页）、prefs duel_e/duel_s、saved/save/clear/pts/recordNow、「没记点第一局上飞机跳、落地静止记点」。
+- 单挑一律 Mods.setNoZone()（v3.17~3.20 没记点时调 setPlane(false) → 所有人上飞机，房主隐藏冻结的人物被飞机带走 → 房主视角灰色虚空）。房主人物照旧 HostMatch 隐藏+关碰撞+冻结，不跳伞。
+- 流程：加入玩家在游戏放他的地方（出生岛）等 → 有人「站稳」（CMC(人物+0x2f8)+0x138 MovementMode≠3 下落、1.5 秒内移动 <60 厘米）就后台选场地 → 两个人都在、都活着、都站稳（或已在点上）且场地选好 → 一起 K2_TeleportTo 到两个点 → 照旧：围墙、选枪、发装备、出生保护、计分、再开一把（重开沿用同一场地）。状态行：「单挑：第 n 把，等待对手加入（k/2）/两人都在，等场地选好/等站稳传送…；场地：自动选 x,y（两点相距 50 米，高 …）；围墙…」。
+- 选场地（DuelArena.choose）：
+  1. 候选 = GUObjectArray 里已加载的 LandscapeHeightfieldCollisionComponent（没有就 LandscapeComponent）位置（组件 +0x140 位置）。外框四边各去 8%；离在场玩家（出生岛）800 米内不要。海面 = 名字以 sea_/ocean 开头的 actor 根组件 Z 的最小值（游戏日志 CheckWaterBelow Actor = sea_1__11）。
+  2. 候选随机打乱，地形块位置再随机偏 ±40 米；中心往下打射线：要打到地形、比海面高 1.5 米以上。
+  3. 场地：A、C 相距 50 米、方向随机；围墙矩形 u∈[-12,62] 米、v∈±17.5 米里 5×3 个点：全部地形、高差 ≤1.5 米；外扩 20 米一圈 8 点：非地形（房子/树/石头）最多 1 个、地形高度和场内平均差 ≤4 米、不低于海面+1.5 米。
+  4. 第一个通过的就用；同进程同一张图（Con.brMap）记住，下一局先打一条射线确认还在就沿用；围墙一块都没刷成就忘掉、下局重选。最多 60 个候选 / 90 秒。
+  5. 没候选/射线不能用/全被拒 → 用玩家 1 站稳的位置沿随机方向 ±25 米（射线能用就贴地）。日志一行写：地形块数、海面、地图范围、可用候选数、第几个通过（中心、15 点高差、外圈非地形数）或拒绝原因计数（含打到的类名）、射线次数、用时。
+  - 出生点 Z = 地面 + 90（人物中心，和以前读人物 Z 一样；Walls 用 Z−90 当地面，传送再 +50）。
+  - 限制（没法解决、要实测看）：房主是 listen server，ServerOnly/WorldMeshes（房子碰撞）层默认不加载（见 v2.20），所以射线在房主这边多半只看得到地形，**房子不一定能被射线看到**；只能靠「打到非地形就拒」+ 平地 + 外圈检查。若用户反馈场地在房子里，下一步：选场地前临时把 ServerOnly WorldMeshes 层加进 CurrentLayers（Loot 的 SL cave 那套），或按地形块再加更严的筛选。
+- 射线（Trace.java，无新 cave、无补丁字节）：UKismetSystemLibrary::LineTraceSingle 通过 UObject::ProcessEvent（虚表 +0x100）调，走已有 ucall 'U' 虚表路径（r0=默认对象 Default__KismetSystemLibrary，r1=UFunction LineTraceSingle（外层 KismetSystemLibrary、类 Function，运行时扫 GUObjectArray 找），r2=参数块）。
+  - capstone 核对（game/re/trace_re.py，全部 assert 过）：0xe66908 RPC 包装 `ldr r5,[vt,#0x100]; bl 0x1bd3414(FindFunctionChecked); blx r5(this,func,&parms)` → ProcessEvent=vt+0x100；FFunctionParams 0x4fd05c4（名字 LineTraceSingle、参数块 0xe8、属性数组 0x4fd0588 共 14 个、函数标志 0x04c22401 = Native|Static|Final）：0 WorldContextObject、4 Start、0x10 End、0x1c TraceChannel、0x1d bTraceComplex（setter 0xe4a2bc）、0x20 ActorsToIgnore、0x2c DrawDebugType、0x30 OutHit、0xb8 bIgnoreSelf（setter 0xf1e44c）、0xbc/0xcc 颜色、0xdc DrawTime、0xe0 ReturnValue（setter 0x24319ac）。FHitResult（属性表 0x4f8d0xx~0x4f8d3xx）：+0x18 ImpactPoint、+0x3c TraceStart、+0x64 Actor 弱指针（对象序号）、+0x80 FaceIndex。
+  - 参数：World 当上下文、TraceChannel 0（Visibility）、不复杂、不忽略。打到的 actor 用对象序号查 GUObjectArray，类名/名字含 Landscape = 地面。World 10 秒问一次。找不到函数 30 秒内不重扫。诊断里「游戏模式」行下面两行：「地面射线：…（调用 n 次，打到 m，失败 k）」和「场地：…」。
+- 围墙每块中心射线贴地（Walls.snap：只认地形、和两点插值差 >4 米不信），状态行加「射线贴地 a/b 块」。
+### 「不刷毒对局」还上飞机（12:11 用户，单机版 v3.20）
+- 日志（ntfy，客户端包=用户说的单机版）：upd-1119-120323「启动时恢复「正常对局」」；12:03:22 SetGamePhase current[0] new[1]（钩子在 0xffc1e4 = 函数入口+0xc、日志前，钩子生效时日志会是 new[4]）→ 那局进图时模式还是正常，「不刷毒对局」是之后在菜单里选的（matchend-1119-121032「手动选「不刷毒对局」→ ok / ok」），读秒已经开始；补丁只拦以后的阶段切换。服务端日志：恢复不刷毒 ok 后「现在 不上飞机=false」= v3.17 起 Duel.open 没记点时 setPlane(false)，按钮高亮用 noPlane||noPoison 仍显示不刷毒。
+- 修：Mods.matchZone()——每次进对局图（Con 进图处；加入别人 role==2 不管）按存的模式（prefs zone_off）重打不上飞机/不刷圈；不刷毒时开 60 秒「阶段守护」：阶段已是 1（读秒）或 2（刚上飞机）就在游戏线程调 SetGamePhase(GameState=GM+0x2e0, 4)（0xffc1d8，NZBRGameState.cpp:73，r1=阶段，capstone 核对；钩子本来就是把 1/2 改 4），最多 6 次，日志「阶段守护（…）：阶段 1 → 调 SetGamePhase(4) …」；对局里点「不刷毒对局」也会立刻守护。菜单高亮改成按用户选的模式（Mods.zoneOff）。单挑不再 setPlane(false)。诊断「游戏模式」行后面带守护状态。
+### 单机版菜单（12:11/12:13 用户）
+- 大厅菜单（Ed.single()，单机包和客户端包都是）最上面加分段「单机 | 联机」（prefs lobby_net，记住，不弹窗）：单机 = 游戏模式 + 自动刷人机 +「选好后点匹配赛」；联机 = 「加入艾挽服务器」+ 自己填地址（GameOverlay.joinCard，和客户端包同一张卡片）。
+- 标题 titleText：加入了别人房间（Lan.role==2）=「全军出击联机版」；本机对局 =「全军出击单机版」；大厅按分段。refresher 每次刷新都更新标题。
+- 检查过：单机/联机弹窗早就没了（Ed.canChoose()=false，GameOverlay 加载页选择框不会出），没东西可删。加入后对局菜单 cliT（Lan.role==2）只剩「联机」页；Lan.join 设 Bots.auto=false；HostMatch/Duel/Box 只在 Ed.ED==1/role 1；Flow 进图 role 2 直接 return；matchZone role 2 不动 → 加入的单机版不会刷人机/改流程。
+### 删掉（12:14 用户）
+- 「地图物资/门 关/开」开关和开房页 Loot.shortText 行删掉（Loot 默认关，不再有入口；代码留着，Loot.line 关着时什么都不做）。
+- 「出生岛空投」开关删掉；Box.on 默认 false；HostMatch 不再调 Box.tick（开局物资堆、排车不跑）。Box.joinedPos/dropAll/DISCARD 留着（刷东西放加入玩家脚下、单挑清背包要用）。
+- 「正常对局」现在 = 游戏自己的流程（读秒、飞机、毒圈按 Flow），出生岛不再放任何东西。地图物资：现有代码里没有一个能用的「自动刷地图物资」——物资点在 ServerOnly 流式层，单机(NetMode 0)/房主(2)都不加载（v2.20 RE），唯一的办法就是刚删掉的 Loot（SL cave，从没实测成功过）。所以正常对局地图上目前没有物资，没新做系统（用户要的话下一步再议）。

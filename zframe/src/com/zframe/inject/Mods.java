@@ -302,7 +302,15 @@ public class Mods {
     }
     /** v3.04：用户选了不刷毒对局，重开（更新内核）后变回正常对局 → 进了图上飞机。记住选择，大厅加载完自动重新打上 */
     static volatile String zoneState = "游戏模式：还没设置";
+    static volatile Boolean zoneChoice;
+    /** v3.21：大厅/菜单高亮按用户选的（存的）模式，不再用 noPlane||noPoison（v3.20 单挑把 noPlane 改回 false 后按钮还亮着「不刷毒对局」，看不出飞机补丁没打上） */
+    static boolean zoneOff() {
+        Boolean c = zoneChoice;
+        if (c == null) { boolean on = false; try { android.app.Activity a = Con.act; if (a != null) on = a.getSharedPreferences("zframe", 0).getBoolean("zone_off", false); } catch (Throwable ignored) {} zoneChoice = c = on; }
+        return c;
+    }
     static void saveZone(boolean on) {
+        zoneChoice = on;
         try { android.app.Activity a = Con.act; if (a != null) a.getSharedPreferences("zframe", 0).edit().putBoolean("zone_off", on).apply(); } catch (Throwable ignored) {}
     }
     static void restoreZone() {
@@ -312,14 +320,62 @@ public class Mods {
         zoneState = "游戏模式：启动时恢复「" + (on ? "不刷毒对局" : "正常对局") + "」→ " + r + "（不上飞机=" + noPlane + " 不刷圈=" + noPoison + "）";
         LogCap.note(zoneState);
     }
-    static String zoneNow() { return zoneState + "；现在 不上飞机=" + noPlane + " 不刷圈=" + noPoison; }
+    static String zoneNow() { return zoneState + "；现在 不上飞机=" + noPlane + " 不刷圈=" + noPoison + "；" + guardState; }
     /** v2.17：不刷毒对局 = 不上飞机 + 不刷圈 */
     public static String setNoZone() {
         String r = setPlane(true);
         String r2 = setPoison(true);
         saveZone(true);
         zoneState = "游戏模式：手动选「不刷毒对局」→ " + r + " / " + r2;
+        if (Con.inMatch && Lan.role != 2) phaseGuard("对局里选了不刷毒对局");
         return "ok".equals(r) ? r2 : r;
+    }
+    /** v3.21 用户（单机 v3.20）：选了「不刷毒对局」还是出现「距离军事演习开始还有 9」读秒、然后上飞机。
+     *  查到的原因（日志 upd-1119-120323 / matchend-1119-121032，客户端包单机）：
+     *   ① 飞机补丁只在两个时机写：点按钮时、大厅第一次加载完 6 秒（restoreZone，每个进程一次）。那局进图时（12:03:13）存的模式还是正常对局，
+     *      「不刷毒对局」是之后才选的；进图后读秒（阶段 0→1，SetGamePhase 日志 new[1]，钩子没打时才会是 1）已经开始，
+     *      补丁只拦以后的 1/2 → 已经在读秒的这一局照样走完。
+     *   ② v3.17~3.20 单挑没记点时 Duel.open 调 setPlane(false)，把飞机补丁拿掉了但没改存的模式 → 按钮还亮「不刷毒对局」（高亮用 noPlane||noPoison），
+     *      之后同一进程里的不刷毒对局都会上飞机（服务端日志：恢复不刷毒 ok，后面「现在 不上飞机=false 不刷圈=true」）。
+     *  修：每次进对局图（本机单机 / 开房，加入别人时不管）按存的模式重新打一遍补丁（matchZone）；不刷毒时开一个 60 秒的守护：
+     *   阶段已经是 1（读秒）或 2（刚上飞机）就直接调游戏自己的 SetGamePhase(GameState, 4)（0xffc1d8，NZBRGameState.cpp:73 那个函数，
+     *   钩子本来就是把 1/2 改成 4，这里只是补一次），日志写「阶段守护」。单挑不再调 setPlane(false)。 */
+    static final long SET_PHASE = 0xffc1d8L;
+    static volatile String guardState = "阶段守护：没跑";
+    static volatile int guardGen;
+    static void matchZone() {
+        if (Lan.role == 2) return;
+        boolean off = zoneOff();
+        String r = off ? setPlane(true) + " / " + setPoison(true) : (noPlane || noPoison ? setPlane(false) + " / " + setPoison(false) : "正常对局不用改");
+        zoneState = "游戏模式：进图按存的模式「" + (off ? "不刷毒对局" : "正常对局") + "」重打 → " + r + "（不上飞机=" + noPlane + " 不刷圈=" + noPoison + "）";
+        LogCap.note(zoneState);
+        if (off) phaseGuard("进图");
+    }
+    static void phaseGuard(String why) {
+        final int g = ++guardGen;
+        new Thread(() -> {
+            long end = System.currentTimeMillis() + 60000; int fixed = 0;
+            guardState = "阶段守护（" + why + "）：在看";
+            while (System.currentTimeMillis() < end && g == guardGen) {
+                try { Thread.sleep(250); } catch (InterruptedException e) { return; }
+                if (!noPlane || !Con.inMatch || Lan.role == 2) continue;
+                double[] q; try { q = Veh.info(); } catch (InterruptedException e) { return; }
+                long gm = q != null ? (long) q[4] : 0; if (gm < 0x10000) continue;
+                int ph = Bots.readPhase(gm);
+                if (ph >= 4) { guardState = "阶段守护（" + why + "）：阶段 " + ph + "，不用管" + (fixed > 0 ? "（改过 " + fixed + " 次）" : ""); if (ph != 10) continue; return; }
+                if (ph != 1 && ph != 2) continue;
+                long b = base(); if (b == 0) continue;
+                try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                    long gs = Server.rd(m, gm + 0x2e0) & 0xffffffffL; if (gs < 0x10000) continue;
+                    long[] r = Veh.ucall(gs, 4, 0, 0, null, b + SET_PHASE);
+                    fixed++;
+                    guardState = "阶段守护（" + why + "）：阶段 " + ph + " → 调 SetGamePhase(4) 标记 " + Long.toHexString(r[0]) + "，现在 " + Bots.readPhase(gm);
+                    LogCap.note(guardState);
+                    if (fixed > 5) return;
+                    Thread.sleep(1000);
+                } catch (Throwable t) { guardState = "阶段守护出错 " + t; }
+            }
+        }, "zf-phase").start();
     }
     public static String setMale(boolean on) {
         String r = write(MALE, MALE_O, MALE_N, on);
