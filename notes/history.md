@@ -1228,3 +1228,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 改：Island.java（类名 Training 已被单挑/训练功能占用）：进训练岛 30 秒内每 2 秒扫 PlayerStart 实例和地形块（Landscape*），找到就 Veh.teleport 到第一个出生点上方 150；找不到弹黑框「30 秒没找到出生点（子关卡没加载）」。
 - 18:58 用户：不用发安装包（用不到）→ 以后只推 core 在线内核，不再 display_file APK。
 - 训练场（默认 Practice 模式）加载闪退：还没日志。
+
+## v3.36（vc237/core237，2026-11-19 19:0x，未实测）— 单机手动导出诊断
+- 用户 19:03：单机版没有导出诊断（logRow 只在联机页；AvatarLog.off 单机全关）。改：单机大厅「训练」下加「导出诊断」按钮；AvatarLog.export(a) 手动标 manual 绕过 off()，自动导出仍关；结果提示含「已自动上传」进 keepToast 白名单；诊断加 Island.state、训练岛模式。上传到 ntfy 主题（LogUp.TOPIC），从那里取。

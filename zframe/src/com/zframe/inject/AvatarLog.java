@@ -11,11 +11,13 @@ public class AvatarLog {
     static final String[] KEYS = { "GameMode", "Legion", "BFA", "PropBase", "evanlu", "PreUseItem", "FinishUsingItemCastTime", "StopPreUsingItem", "AbortPreUsingItem", "Recycle", "PlayerPropComponent", "SpawnScenePropItem", "CanUseThisItem", "UseThisItem", "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
             "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried", "AirSupply", "AirBox", "Flare", "FunctionalProp", "Legion", "FiveArmy" };
 
-    static String export(Activity a) { return export(a, "avatar-"); }
+    static String export(Activity a) { manual = true; try { return export(a, "avatar-"); } finally { manual = false; } }
+    /** v3.36 用户：单机没有导出诊断 → 手动点的照样导出（存手机 下载/ZFrame），自动的仍关 */
+    static volatile boolean manual;
     /** v3.22 用户：单机不需要记录日志，也别往手机里放东西 → 单机（ED 0 且没加入别人）不导出、不上传、不留队列 */
     static boolean off() { return Ed.ED == 0 && Lan.role != 2; }
     static String export(Activity a, String prefix) {
-        if (off()) return "";
+        if (off() && !manual) return "";
         try {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";
@@ -26,6 +28,7 @@ public class AvatarLog {
               .append("\n  最后一个人机：").append(Veh.botInfo).append("\n  装备：").append(Bots.equipState).append("\n  导航网格：").append(Con.navInfo).append("\n  服务器关卡：").append(Con.layerStatus())
               .append("\n  人机日志：\n  ").append(Con.botLog()).append("\n  ").append(Flow.state).append("\n  ").append(Flow.air).append("\n  上一局：").append(Flow.last).append("\n  ").append(Bots.countText()).append("\n  ").append(Bots.outfitState).append("\n  航线/毒圈日志：\n  ").append(Con.flowLog()).append("\n  画质：").append(Gfx.state).append("\n  联机：").append(Lan.roleText()).append("，").append(Lan.pre).append("，").append(Lan.state).append("，本机 ").append(Lan.ip()).append("\n  ").append(ModeProbe.state).append("\n  地图物资/门：").append(Loot.text()).append("\n  ").append(Alive.state).append("\n  ").append(Phantom.state).append("\n  ").append(Crew.state).append("\n  ").append(Crew.pullState).append("\n  ").append(Lan.ammoPatch).append("\n  ").append(Lan.adpPatch).append("\n  ").append(Crew.ammoState).append("\n  ").append(NetRate.state).append("\n  ").append(Crew.teamState).append("\n  ").append(Loot.flareState).append("\n  ").append(Flare.text()).append("\n  ").append(Jetpack.state).append("\n  ").append(Mods.zoneNow()).append("\n  ").append(Trace.text()).append("\n  ").append(DuelArena.state).append("\n  ").append(HostMatch.soloState).append("\n  ").append(Box.state).append("\n  ").append(HostMatch.state).append("\n  ").append(GameOverlay.attText()).append("\n  ").append(Give.state).append("\n  跟服务端：").append(Mods.syncState).append("\n  联机日志：\n  ").append(Lan.text()).append("\n  丢东西日志：\n  ").append(Con.dropLog()).append("\n  ").append(Fly.state).append("\n  ").append(MapMark.state).append("，").append(MapMark.inst).append("\n  标点日志：").append(MapMark.log).append("\n");
             long b = Mods.base();
+            sb.append(Island.state).append("\n").append("训练岛模式 ").append(Con.training).append("\n");
             sb.append("libUE4=").append(Long.toHexString(b)).append('\n');
             sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 1877bfc=").append(peek(b, 0x1877bfcL, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("\n").append(Mods.storeInfo()).append("\n").append(Mods.wearState).append("\n").append("  cave 171e610=").append(peek(b, 0x171e610L, 32))
               .append("\n风衣 1503680=").append(peek(b, 0x1503680L, 4)).append("  171e600=").append(peek(b, 0x171e600L, 16)).append("\n").append(Server.report()).append("\n");
