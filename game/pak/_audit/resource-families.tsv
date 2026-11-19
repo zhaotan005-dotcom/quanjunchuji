@@ -37,3 +37,7 @@ GrenadeTrajectoryBlueprints	PUBGM/Content/Paks/pakchunk_7ffd1e8a61bab0fd241c0acc
 GrenadeTrajectoryBlueprints	PUBGM/Content/Paks/pakchunk_7ffd1e8a61bab0fd241c0acc47d96a9b-Android_ETC1ETC2.pak	W204010002_StunGrenade/BP_NZStunGrenadeProjectile	.uasset;.uexp	.uasset;.uexp	complete
 GrenadeTrajectoryBlueprints	PUBGM/Content/Paks/pakchunk_111896effa478658264132c0e47a2ad0-Android_ETC1ETC2.pak	BattleRoyaleGame/Pickups/Weapon/20401000002_StunGrenade	.uasset;.uexp	.uasset;.uexp	complete
 GrenadeTrajectoryBlueprints	PUBGM/Content/Paks/pakchunk_111896effa478658264132c0e47a2ad0-Android_ETC1ETC2.pak	BattleRoyaleGame/Pickups/BornIsland/BornIsland_911_FragGrenade	.uasset;.uexp	.uasset;.uexp	complete
+TrainingHeightmapFourCoordinates	PUBGM/Content/Paks/pakchunk_c2afa52b1c2bf0f5e69ad87ad526c926-Android_ETC1ETC2.pak	Heightmap/Heightmap_x2_y0	.umap;.uexp;.ubulk	.umap;.uexp;.ubulk	complete
+TrainingHeightmapFourCoordinates	PUBGM/Content/Paks/pakchunk_c2afa52b1c2bf0f5e69ad87ad526c926-Android_ETC1ETC2.pak	Heightmap/Heightmap_x2_y1	.umap;.uexp;.ubulk	.umap;.uexp;.ubulk	complete
+TrainingHeightmapFourCoordinates	PUBGM/Content/Paks/pakchunk_c2afa52b1c2bf0f5e69ad87ad526c926-Android_ETC1ETC2.pak	Heightmap/Heightmap_x0_y2	.umap;.uexp;.ubulk	.umap;.uexp;.ubulk	complete
+TrainingHeightmapFourCoordinates	PUBGM/Content/Paks/pakchunk_c2afa52b1c2bf0f5e69ad87ad526c926-Android_ETC1ETC2.pak	Heightmap/Heightmap_x1_y2	.umap;.uexp;.ubulk	.umap;.uexp;.ubulk	complete
