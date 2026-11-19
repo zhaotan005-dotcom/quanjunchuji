@@ -1244,3 +1244,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 训练场补丁 PR 0x1084f2c：0080a0e1580596e5000050e35a00000a → 0080b0e158059615000050135a00000a（movs r8,r0/ldrne/cmpne/beq 0x10850a8，没队伍走原跳过分支），启动早装 Island.install。
   - 游戏线程调用槽 installTick 改为只要 !Server.hooked 就装（不再依赖 UpdFlow.on）。
 - 未知：块 0 的实例是否在原点附近；LoadBlock 的块数参数是否要 >1；Practice 没队伍后续是否还会崩。
+
+## v3.38（vc239/core239，2026-11-19 19:3x，未实测）— 菜单行为；更新页查找过程可见
+- 19:22 用户（v3.37）：开机仍是我们的层，底部「游戏更新页：没开始」（= UpdPage 已开始但 25 秒查找期间不改状态）；训练场能从游戏自己的「训练」入口进 → 菜单里不用做；进训练场掉到训练场旁边很远的海里然后闪退（等导出诊断，19:19 那份是进图前导出的）。
+- 用户菜单要求：大厅固定中上（收起那条，截图里「全军出击单机版」），不能拖；取消关闭按钮；进对局自动关；对局里不自动开，五指按屏幕才开；关闭只做收起；往上拖自动隐藏，再开要五指。
+- 改：GameOverlay：× 永远隐藏；lobbyPos（收起 + 中上 + 不能拖，标题只点按收起/展开）；placeFor：Con.inMatch → hidden + GONE，否则回中上；mapLeaving 40 秒兜底也走 placeFor；对局里拖标题松手时 y < -24dp → showPanel(false)。单机大厅「训练」组改名「诊断」，去掉训练营/训练场按钮。
+- UpdPage：查找时状态写「找页面 N 秒，对象数，带 Update 的实例类名（最多 8 个）」；诊断加 UpdFlow.state / UpdPage.state。

@@ -40,11 +40,14 @@ final class UpdPage {
             Veh.Names nm = Veh.Names.get();
             long v = 0;
             // 启动流程先问腾讯（约 12 秒失败），之后才进更新步骤建页面 → 最多等 25 秒
+            state = "游戏更新页：开始找页面";
             while (v == 0 && System.currentTimeMillis() - t0 < 25000) {
                 v = find(b, nm);
+                // v3.38 用户截图一直「没开始」→ 找的过程写出来：用了几秒、对象数、带 Update 的实例类名
+                state = "游戏更新页：找页面 " + (System.currentTimeMillis() - t0) / 1000 + " 秒，对象 " + lastNum + "，Update 类：" + lastCls;
                 if (v == 0) Thread.sleep(400);
             }
-            if (v == 0) { state = "游戏更新页：25 秒内没建出来，用我们自己的那层（失败）"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
+            if (v == 0) { state = "游戏更新页：25 秒内没找到（对象 " + lastNum + "，Update 类：" + lastCls + "），用我们自己的那层"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
             view = v;
             UpdFlow.lobby();   // v3.30：页面建出来了 = 没卡住，删保险文件
             state = "游戏更新页：找到 " + Long.toHexString(v);
@@ -79,11 +82,14 @@ final class UpdPage {
         finally { finished = true; }
     }
     /** 找类名带 UpdateUI 的实例（不是默认对象） */
+    static volatile long lastNum; static volatile String lastCls = "";
     static long find(long b, Veh.Names nm) {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             long g = Server.rd(m, b + 0x51250acL);
             long objs = Server.rd(m, g + 0x10), num = Server.rd(m, g + 0x18);
-            if (objs < 0x10000 || num <= 0 || num > 0x200000) return 0;
+            lastNum = num;
+            if (objs < 0x10000 || num <= 0 || num > 0x200000) { lastCls = "对象表不对"; return 0; }
+            java.util.LinkedHashSet<String> seen = new java.util.LinkedHashSet<>();
             byte[] raw = new byte[(int) num * 16];
             m.seek(objs); m.readFully(raw);
             ByteBuffer bb = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
@@ -94,14 +100,17 @@ final class UpdPage {
                 long c = Server.rd(m, o + 0xc);
                 if (c < 0x10000) continue;
                 Boolean h = hit.get(c);
-                if (h == null) { String n = Alive.objName(m, nm, c); h = n != null && n.startsWith("UpdateUI"); hit.put(c, h); }
+                if (h == null) { String n = Alive.objName(m, nm, c); h = n != null && n.startsWith("UpdateUI"); hit.put(c, h);
+                    if (n != null && n.contains("Update") && seen.size() < 8) seen.add(n); }
                 if (!h) continue;
                 if ((Server.rd(m, o + 4) & 0x10) != 0) continue;   // 类默认对象
                 String on = Alive.objName(m, nm, o);
                 if (on != null && on.startsWith("Default__")) continue;
+                lastCls = String.join(",", seen);
                 return o;
             }
-        } catch (Throwable ignored) {}
+            lastCls = seen.isEmpty() ? "无（类名 " + hit.size() + " 种）" : String.join(",", seen);
+        } catch (Throwable t) { lastCls = "出错 " + t; }
         return 0;
     }
     static void notice(long b, long v, ByteBuffer bb, long ba) {

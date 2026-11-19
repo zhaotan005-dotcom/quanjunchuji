@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.37";
+    static final String VER = "v3.38";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -187,7 +187,7 @@ public class GameOverlay {
             // v2.05 用户：不要「艾」悬浮球 → 「–」收起成只剩标题栏的小条，点标题栏或「+」展开
             final Runnable apply = () -> {
                 body.setVisibility(collapsed ? View.GONE : View.VISIBLE);
-                close.setVisibility(collapsed ? View.GONE : View.VISIBLE);
+                close.setVisibility(View.GONE);   // v3.38 用户：取消关闭按钮（大厅进对局自动关，对局里上拖隐藏）
                 fold.setText(collapsed ? "▶" : "▼");
                 ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
                 int nw = collapsed ? u.dp(150) : pw;   // v2.64 收起=只剩一小条标题
@@ -238,6 +238,8 @@ public class GameOverlay {
             if (hidden || !lobbySeen) panel.setVisibility(View.GONE);   // v2.19 用户：腾讯加载页不显示，到大厅才出来
             panelRef = panel;
             apply.run();
+            // v3.38 用户：大厅里菜单固定在中上（收起），不能拖
+            lobbyPos = () -> { collapsed = true; apply.run(); px = (sw - u.dp(150)) / 2f; py = u.dp(4); setXY(panel, px, py); };
 
             head.setOnTouchListener(new View.OnTouchListener() {
                 float dx, dy, sx, sy; boolean moved;
@@ -245,12 +247,15 @@ public class GameOverlay {
                     switch (e.getActionMasked()) {
                         case MotionEvent.ACTION_DOWN: dx = e.getRawX(); dy = e.getRawY(); sx = getX(panel); sy = getY(panel); moved = false; return true;
                         case MotionEvent.ACTION_MOVE:
+                            if (!Con.inMatch) return true;   // v3.38 用户：大厅里不能拖
                             float mx = e.getRawX() - dx, my = e.getRawY() - dy;
                             if (Math.abs(mx) + Math.abs(my) > u.dp(6)) moved = true;
                             if (moved) { setXY(panel, sx + mx, sy + my); clamp(panel, decor, u); }
                             return true;
                         case MotionEvent.ACTION_CANCEL: clamp(panel, decor, u); return true;
                         case MotionEvent.ACTION_UP:
+                            // v3.38 用户：对局里往上拖（顶到屏幕上边还继续拖）= 隐藏，五指再打开
+                            if (Con.inMatch && moved && sy + (e.getRawY() - dy) < -u.dp(24)) { clamp(panel, decor, u); showPanel(panel, false, u); return true; }
                             clamp(panel, decor, u);
                             if (!moved) { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); }
                             return true;
@@ -353,9 +358,15 @@ public class GameOverlay {
     }
     /** v2.35 用户：进大厅、进对局菜单出来时，也要和五指打开一样的过渡动画。切图（Browse）时先收起，图加载好再弹出来 */
     static volatile int mapGen;
+    static volatile Runnable lobbyPos;
+    /** v3.38 用户：大厅菜单固定中上（收起）；进对局自动关、对局里不自动开，五指按屏幕才开 */
+    static void placeFor(View p) {
+        if (Con.inMatch) { hidden = true; p.animate().cancel(); p.setVisibility(View.GONE); return; }
+        hidden = false; Runnable r = lobbyPos; if (r != null) r.run(); enterAnim(p);
+    }
     static void mapShown() {
         final int g = ++mapGen;
-        MAIN.post(() -> { View p = panelRef; if (p != null && !hidden && g == mapGen) enterAnim(p); });
+        MAIN.post(() -> { View p = panelRef; if (p != null && g == mapGen) placeFor(p); });
     }
     static void mapLeaving() {
         final int g = ++mapGen;
@@ -365,7 +376,7 @@ public class GameOverlay {
             p.animate().alpha(0f).scaleX(0.85f).scaleY(0.85f).setDuration(180)
                     .withEndAction(() -> { if (g == mapGen) p.setVisibility(View.GONE); }).start();
             // 加载失败没收到进图：40 秒后照样弹回来
-            MAIN.postDelayed(() -> { if (g == mapGen && !hidden) enterAnim(p); }, 40000);
+            MAIN.postDelayed(() -> { if (g == mapGen) placeFor(p); }, 40000);
         });
     }
     static void enterAnim(View pv) {
@@ -1099,10 +1110,7 @@ public class GameOverlay {
                 pick(a, u, fl, "不刷毒对局", Mods.zoneOff(), () -> result(a, Mods.setNoZone()));
                 note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
                 // v3.33 用户：训练营资源找到了（训练岛 BR-TrainingIsland_Mobile_Main）→ 单机直接进
-                head(a, u, root, "训练");
-                LinearLayout tr = row(a, root);
-                fillBtn(a, u, tr, "训练营", () -> { Training.off(); Duel.off(); toast(a, Con.goTraining(true)); });
-                fillBtn(a, u, tr, "训练场", () -> { Training.off(); Duel.off(); toast(a, Con.goTraining(false)); });
+                head(a, u, root, "诊断");   // v3.38 用户：训练营/训练场用游戏自己的入口，菜单里去掉
                 LinearLayout dgx = row(a, root);   // v3.36 用户：单机也要能导出诊断（训练场闪退要看）
                 btn(a, u, dgx, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
                 // v2.56 用户：自动刷人机开关放大厅
@@ -1831,7 +1839,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.37 更新内容\n" + "· 开机更新：去掉「上次没进大厅这次就不开游戏更新页」的保险，每次都走游戏自己的更新页\n" + "· 训练营/训练场：进岛后主动让游戏加载训练岛的地块（之前只有海），再传到出生点\n" + "· 训练场：修加载时闪退（没有队伍时游戏读空指针）\n" + "\n" + "v3.36 更新内容\n" + "· 单机大厅菜单「训练」下面加回「导出诊断」（手动点才导出，自动上传，不存手机）\n" + "\n" + "v3.35 更新内容\n" + "· 开机更新：我们的进度和公告一直显示，直到游戏自己的进度条真接上才收起（之前游戏页只有背景、什么都看不到）\n" + "· 训练营/训练场：进岛后自动找出生点并把你传过去（之前掉在海里）；找不到会弹提示\n" + "\n" + "v3.34 更新内容\n" + "· 开机更新页：之前只有背景没有进度条（进度条那块在游戏里默认是隐藏的），现在自己把它显示出来；没接上会弹提示\n" + "\n" + "v3.33 更新内容\n" + "· 训练营回来了：找到了真地图（训练岛），大厅「单机」下新增「训练营」「训练场」两个按钮；游戏自己选图里的训练场也能进了；训练岛里不自动刷人机、不改模式\n" + "\n" + "v3.32 更新内容\n" + "· 单机「剩余」多出来的那个占位人物：进图后找到它本人并删掉（不是硬改数字），剩余只算你和人机\n" + "\n"
+    static final String NOTICE = "v3.38 更新内容\n" + "· 菜单：大厅里固定在中上（收起），不能拖；去掉关闭按钮\n" + "· 菜单：进对局自动关，对局里不自动开，五指按屏幕才开；点标题收起，往上拖到顶隐藏\n" + "· 菜单「功能」里去掉训练营/训练场（用游戏自己的入口）\n" + "· 开机更新页：找游戏页面的过程显示在底部，导出诊断里也有\n" + "\n" + "v3.37 更新内容\n" + "· 开机更新：去掉「上次没进大厅这次就不开游戏更新页」的保险，每次都走游戏自己的更新页\n" + "· 训练营/训练场：进岛后主动让游戏加载训练岛的地块（之前只有海），再传到出生点\n" + "· 训练场：修加载时闪退（没有队伍时游戏读空指针）\n" + "\n" + "v3.36 更新内容\n" + "· 单机大厅菜单「训练」下面加回「导出诊断」（手动点才导出，自动上传，不存手机）\n" + "\n" + "v3.35 更新内容\n" + "· 开机更新：我们的进度和公告一直显示，直到游戏自己的进度条真接上才收起（之前游戏页只有背景、什么都看不到）\n" + "· 训练营/训练场：进岛后自动找出生点并把你传过去（之前掉在海里）；找不到会弹提示\n" + "\n" + "v3.34 更新内容\n" + "· 开机更新页：之前只有背景没有进度条（进度条那块在游戏里默认是隐藏的），现在自己把它显示出来；没接上会弹提示\n" + "\n" + "v3.33 更新内容\n" + "· 训练营回来了：找到了真地图（训练岛），大厅「单机」下新增「训练营」「训练场」两个按钮；游戏自己选图里的训练场也能进了；训练岛里不自动刷人机、不改模式\n" + "\n" + "v3.32 更新内容\n" + "· 单机「剩余」多出来的那个占位人物：进图后找到它本人并删掉（不是硬改数字），剩余只算你和人机\n" + "\n"
             + "v3.31 更新内容\n" + "· 单机默认不再伪装联机（之前会让下车后人物消失），回到真单机；菜单里「单机按联机方式进图」默认关\n" + "\n"
             + "v3.30 更新内容\n" + "· 修游戏自带更新页没开：上次更新下好自动重启（没进大厅）被当成「卡住」，下一次就把更新页关了；现在不会了\n" + "· 标点传送：开关会记住、默认开（之前重启就变回关）；控制器里没标点时从队伍信息读；菜单里显示标点和传送状态，传送失败会提示\n" + "\n"
             + "v3.29 更新内容\n" + "· 开机更新不再有时间上限：网络失败自动重试，直到查到结果或下完重启才进大厅\n" + "\n"
