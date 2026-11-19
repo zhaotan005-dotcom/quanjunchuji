@@ -255,3 +255,4 @@
 - 改：Island.join 调原生 Client Load Block(PC)；+0x400 仍 1 才读 PC vt+0x8bc 并直接调同一个 FirstLoad。诊断：层关卡数偏移改正（层 +0x10 是管理器弱指针，不是更新计数），+400 进时间线。
 - 待用户测：进训练岛脚下地形是否出来。看「分配位置」里 +400 是否变 0、游戏日志「FirstLoad called」、「坐标/地形块随时间」地形块/流对象载是否涨、「流式状态」world StreamingLevels。
 - device-tests：v3.43 两份（train-1119-210620、slot-1119-210730）从 ntfy 补下载进仓库；v3.41 附件 ntfy 已过期。
+- 23:2x 发布核对：jsDelivr @main 与 @e9cda24 的 b0-b2.ver=246，b0.dex sha1 与本地一致；raw.githubusercontent b0/b2.ver=246。purge @main 六个文件 finished。
