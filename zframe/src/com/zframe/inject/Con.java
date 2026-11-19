@@ -197,6 +197,7 @@ public class Con {
     static volatile int tweakDone; static volatile long waitAt, brAt;
     /** v1.49：当前是不是在对局地图里（大厅 = false）。加速/高跳/刷物品只在对局里用 */
     public static volatile boolean inMatch;
+    static volatile long quitAt;
     public static volatile String navInfo = "";
     static final java.util.ArrayList<String> botLog = new java.util.ArrayList<>();
     static String botLog() { synchronized (botLog) { return String.join("\n  ", botLog); } }
@@ -484,6 +485,8 @@ public class Con {
             earlySrv = true;
             new Thread(() -> { if (Lan.role != 0 || Lan.busy || inMatch) { earlySrv = false; return; } LogCap.note("大厅开始加载，提前开服务端 → " + Server.start()); }, "zf-srv0").start();
         }
+        // v3.39 用户：训练岛设置里点「退出」没反应 → 游戏日志出现退出对局就直接回大厅（只在训练岛，3 秒内只做一次）
+        if (training && inMatch && l.contains("QuitMatch") && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
         int tk = l.indexOf("LogLoad: Took");
         if (tk >= 0) {
             int lm = l.indexOf("LoadMap(", tk);

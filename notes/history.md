@@ -1255,3 +1255,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 19:32 用户截图（训练岛，游戏自带入口）：天和水正常，山全是黑色剪影、没有建筑；小地图/大地图正常（训练区都在）；人在岛东侧海湾外。点游戏「退出」没反应。用户问是不是没有地图资源。
 - 判断：pak 里训练岛资源齐（pak-files.tsv：TrainingIsland_Runtime 330 个文件，Heightmap_x0..3_y0..3、AlwaysLoad/Light/LogicLevel/block、地形材质都在）。黑剪影像是远景代理（OcHmp/hp_*），说明 Heightmap/AlwaysLoad 子关卡没流式加载进来（TileMode 要服务端发块号）——不是缺资源。等 train- 诊断看 Island.block 结果。
 - 改：常用页（Con.training）最上面「退出训练，回大厅」= Lan.leave()（open 大厅）；Island.matchLoaded → AvatarLog.autoTrain 50 秒后上传 train-*（绕过单机不导出）。
+
+## v3.40（vc241/core241，2026-11-19 19:4x，未实测）— 训练岛退出走游戏设置
+- 19:38 用户：「退出用在设置那个退出上，别乱做」→ 删 v3.39 常用页「退出训练，回大厅」按钮。
+- 改：Server 收 15003/15005（CS_ROOM_MATCH_QUIT_ALLOC/QUIT_MATCH_REQ）回成功，训练岛里就 Lan.leave()；Con 日志在训练岛出现 QuitMatch（3 秒一次）也 Lan.leave()。哪条真生效看 train- 诊断。
+- 19:38 用户等 50 秒没收到 train- 诊断：大概率还没更新到 v3.39。

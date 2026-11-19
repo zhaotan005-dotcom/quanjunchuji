@@ -333,6 +333,8 @@ public class Server {
             }
             // v1.78：15001 = 开始匹配。单机游戏发完就直接进图，回成功的话回到大厅会以为还在匹配（自动匹配、取消不了）→ 回失败
             case 15001: push(15002, seq, key, new PB().u(1, 1).bytes()); what = "开始匹配（回失败，单机直接进图）"; break;
+            // v3.39 用户：训练岛里设置的「退出」没反应 → 收到退出对局请求（15003/15005）就回成功并直接回大厅
+            case 15003: case 15005: push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "退出对局（回成功）"; if (Con.training && Con.inMatch) new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); break;
             case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
             // v2.48：军需（自选抽奖 CustomLottery）51001 列表 / 51003 提交 / 51005 抽 / 51007 重置
             case 51001: push(51002, seq, key, lotList()); what = "军需列表"; break;
