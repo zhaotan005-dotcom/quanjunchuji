@@ -1399,3 +1399,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v3.51 服务端 slot/train（notes/device-tests/v3.51）：所有人同一个位置 4 ok；ServerOnly/Pickups 层包住人物；原生 150 米内物资 0；训练桌放枪 4 把，但 74 个「桌面」命中全是 LandscapeStreamingProxy（地形）→ 枪在地上；射击训练区离人 60 米，全图靶子 0 → 训练设施（桌子/靶子/刷枪点）整套没生成。
 - 掉血：日志没有伤害来源（只有 02:14:05 车炸 InVehicleExplosion）。
 - 已问用户：发 grok 解开的 TrainingIsland 地图文件夹（ServerOnly、LogicLevel umap/uasset）；掉血是哪端、岸上还是水里。game/pak 已在 v3.44 删掉。
+
+## 2026-11-20 02:55 pak 对照（不用再找 grok：仓库历史 9a2d5ed/1db4a46 里就有 game/pak，v3.44 从工作区删了，用 `git archive 1db4a46 game/pak | tar -x -C /tmp/pak` 取）
+- 训练岛刷枪/靶子都在 AlwaysLoad/LogicLevel.umap（主图 BR-TrainingIsland_Mobile_Main 引用 AlwaysLoad/Light、LogicLevel、Ocean、ProceduralFoliageVolumes、block、cars）：
+  - 刷枪 = 2 个 BP_PickUpRefreshVolumn（导出 138/139，父类 C++ ANZBRPickUpRefreshTriggerVolume，靠 OnActorBeginOverlap 人走进区域才刷；配 GameState 里的 BP_PickUpRefreshInfoState：PickUpRefreshTime/PickUpDestroyTime；系统 APickUpRefreshSystem，SpawnOnePickUp/DestroyOnePickUp）。
+  - 靶子 Bp_First..FifthRound×、BP_FlyTarget/MobileTarget/MoveableTarget、BP_ShootPracticeBase、BP_VehiclePracticeBase、BP_Practice_ActualCombat、shootreturn/drivereturn/AIreturn、VehicleSpawnPoint1..12。
+- 设备诊断「刷物资区 0、全图靶子 0」→ LogicLevel 的 actor 在游戏里不存在或没被我们的扫描认出；TileMode 层列表 0..17 里没有 AlwaysLoad 层。下一步：诊断查 LogicLevel 有没有加载（world StreamingLevels 0 个），查 ANZBRPickUpRefreshTriggerVolume 实例数。
+- libUE4 字符串：PickUpRefreshVolumnDisable (0x47d2d54，某类的属性名，待查归属)；APickUpRefreshSystem::FetchPickUpRefreshInfoState 报错串 utf32 0x43b2170（设备日志没出现）。
