@@ -7,7 +7,8 @@
 #  遍历服务器层列表 +0x2e8/+0x2ec：跳过名字 == 静态名 N0(0x5173280) 的、名字 == N18(+0x18) 且 +0x2c9==0 的，
 #  再跳过 CurrentLayers 里已有同指针或同名（层 +8 FName）的 → 追加（满了 0xbc5580 扩容，共享引用 +1，同 0x115c1b0）。
 #  然后补回原指令（r0 = 0x51734e0 绝对地址由 Java 填）→ b 0x115c74c。
-#  缓冲区（Java 填地址）：+0 跑过次数（TileMode）+8 服务器层总数（追加了几层看诊断里当前层）
+#  v3.48：先处理 ServerOnly 层本身（+0x2d4/+0x2d8，r6=-1，不过名字过滤；专用服在 0x115c708 单独加它）。
+#  缓冲区（Java 填地址）：+8 服务器层总数（>0 即跑过）（追加了几层看诊断里当前层）
 #  空位：A 0x171e3f4..0x171e4af（GiveItem 废函数，islecave 后面），B 0x171e568..0x171e5fb（风衣 cave 0x171e4d0+0x98 之后、大厅 cave 0x171e600 之前）
 import sys, struct
 exec(open('asm.py').read())
@@ -16,31 +17,30 @@ HOOK=0x115c744
 SRC='''
   push {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, lr}
   ldr r4, [sp, #0x58]
-  cmp r4, #0
-  beq done
   ldr r0, [r4]
   ldr r1, [pc, #LVT]
   cmp r0, r1
   bne done
   ldr r10, [pc, #LBUF]
-  ldr r0, [r10]
-  add r0, r0, #1
-  str r0, [r10]
   ldr r9, [pc, #LN]
   ldr r7, [r4, #0x2e8]
   ldr r8, [r4, #0x2ec]
   str r8, [r10, #8]
-  mov r6, #0
+  mvn r6, #0
 loop:
   cmp r6, r8
   bge done
-  add r0, r7, r6, lsl #3
+  cmn r6, #1
+  addeq r0, r4, #0x2d4
+  addne r0, r7, r6, lsl #3
   ldr r5, [r0]
   ldr r11, [r0, #4]
   cmp r5, #0
   beq next
   ldr r2, [r5, #8]
   ldr r3, [r5, #12]
+  cmn r6, #1
+  beq chk
   ldr r0, [r9]
   ldr r1, [r9, #4]
   cmp r0, r2

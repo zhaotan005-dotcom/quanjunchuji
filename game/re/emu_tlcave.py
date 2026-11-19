@@ -54,6 +54,7 @@ out:
     mu.mem_write(MGR,struct.pack('<I',mvt))
     mu.mem_write(MGR+0x2e8,struct.pack('<2I',0x104000,len(srv)))
     mu.mem_write(MGR+0x2f4,struct.pack('<3I',0x103000,len(cur),2 if case=='grow' else 16))
+    so=mk(20,0x10); mu.mem_write(MGR+0x2d4,struct.pack('<2I',so,ctrl+0xf0) if case!='noso' else b'\0'*8)
     mu.mem_write(MGR+0x2c9,bytes([1 if case=='coll' else 0]))
     sp=0x30f000; mu.mem_write(sp+0x24,struct.pack('<I',MGR))
     for r,v in ((A.UC_ARM_REG_SP,sp),(A.UC_ARM_REG_R4,0x4444),(A.UC_ARM_REG_R5,0x5555),(A.UC_ARM_REG_R11,0xbbbb),(A.UC_ARM_REG_LR,0x1e1e)): mu.reg_write(r,v)
@@ -64,11 +65,12 @@ out:
     data,cnt=struct.unpack('<2I',mu.mem_read(MGR+0x2f4,8))
     names=[struct.unpack('<I',mu.mem_read(struct.unpack('<I',mu.mem_read(data+8*i,4))[0]+8,4))[0] for i in range(cnt)]
     b=struct.unpack('<3I',mu.mem_read(BUF,12))
-    rc=[struct.unpack('<I',mu.mem_read(ctrl+8*i+4,4))[0] for i in range(len(srv))]
+    rc=[struct.unpack('<I',mu.mem_read(ctrl+8*i+4,4))[0] for i in range(len(srv))]+[struct.unpack('<I',mu.mem_read(ctrl+0xf4,4))[0]]
     print(case,[hex(n) for n in names],b,rc)
     return names,b
-n,b=run('normal'); assert n==[0x30,0x31,0x40,0x41,0x42] and b==(1,0,7)
-n,b=run('coll'); assert n==[0x30,0x31,0x20,0x40,0x41,0x42] and True
-n,b=run('grow'); assert n==[0x30,0x31,0x40,0x41,0x42]
+n,b=run('normal'); assert n==[0x30,0x31,0x10,0x40,0x41,0x42] and b==(0,0,7)
+n,b=run('coll'); assert n==[0x30,0x31,0x10,0x20,0x40,0x41,0x42]
+n,b=run('grow'); assert n==[0x30,0x31,0x10,0x40,0x41,0x42]
+n,b=run('noso'); assert n==[0x30,0x31,0x40,0x41,0x42]
 n,b=run('other'); assert n==[0x30,0x31] and b==(0,0,0)
 print('ALL OK')

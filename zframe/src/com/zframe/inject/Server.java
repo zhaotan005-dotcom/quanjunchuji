@@ -317,7 +317,7 @@ public class Server {
             case 13003: {
                 push(13004, seq, key, equip(body)); saveProps(); what = "穿上";
                 long id = reqId(body);
-                if (id / 100000000L == 101 || id / 100000000L == 102) { syncWear(); pushStore(); what = "换角色/发型"; }
+                if (id / 100000000L == 101 || id / 100000000L == 102) { syncWear(); pushStore(); what = "换角色/发型"; followHairColor(id); }
                 else followPreview("ReqStoreEquipProp", id);
                 break;
             }
@@ -486,8 +486,8 @@ public class Server {
             return;
         }
         boolean male = Mods.male;
-        props.put(ROLE_F, new long[] { ROLE_F, male ? 0 : 1, 2 });
-        props.put(ROLE_M, new long[] { ROLE_M, male ? 1 : 0, 1 });
+        props.put(ROLE_F, new long[] { ROLE_F, male ? 0 : 1, 2, 0 });
+        props.put(ROLE_M, new long[] { ROLE_M, male ? 1 : 0, 1, 0 });
         // v1.73：初始不再带风衣（改成邮件领取），背包 30306000000 默认不穿
         long[][] wear = { { 30302000000L, 302 }, { 30301000001L, 301 }, { 30306000000L, 0 }, { 30303000006L, 303 },
                           { 30213000003L, male ? 0 : 213 } };
@@ -528,6 +528,44 @@ public class Server {
     }
     /** v1.76：游戏点「穿上/脱下」前会在日志里写一行 EquipItemsForHallRole（试穿后的整套，冲突已经由游戏处理好）。
      *  回包后读日志尾，按这一行重设穿着，再推一次 13002 让游戏的仓库缓存更新（13004 的列表游戏不拿来更新缓存）。 */
+    /** v3.48 大厅换发色不生效：游戏 13003 发 hairColor（日志 ReqStoreEquipProp ... hairColor = 4），我们回的角色属性
+     *  PropRoleAttr 只有 sex → 游戏 InitAvatarData HairColor 0。现在按角色记发色（存档第 5 列），回包带 hair_color(5)。
+     *  发色先从请求 protobuf 里找（Prop.role_attr(13).hair_color(5)），找不到就读日志这一行。 */
+    static void setHairColor(long role, long c, String from) {
+        synchronized (Server.class) {
+            initProps(); long[] v = props.get(role); if (v == null || v[2] == 0 || c < 0 || c > 64) return;
+            if (v.length < 4) { v = java.util.Arrays.copyOf(v, 4); props.put(role, v); }
+            if (v[3] == c) return;
+            v[3] = c; saveProps();
+        }
+        mark("发色 " + c + "（" + from + "）"); pushStore();
+    }
+    static long reqHairColor(byte[] body) {
+        try {
+            PB.R r = new PB.R(body);
+            while (r.next()) if ((r.field == 1 || r.field == 6) && r.wire == 2) {
+                PB.R p = r.sub();
+                while (p.next()) if (p.field == 13 && p.wire == 2) { PB.R a = p.sub(); while (a.next()) if (a.field == 5 && a.wire == 0) return a.val; }
+            }
+        } catch (Throwable ignored) {}
+        return -1;
+    }
+    static void followHairColor(final long role) {
+        new Thread(() -> {
+            for (int t = 0; t < 8; t++) {
+                try { Thread.sleep(250); } catch (Throwable ignored) {}
+                try {
+                    java.io.File f = Con.findUeLog(Con.act); if (f == null) continue;
+                    String txt = AvatarLog.readText(f, 128 * 1024);
+                    int k = txt.lastIndexOf("ReqStoreEquipProp   roleId = " + role);
+                    if (k < 0) continue;
+                    int nl = txt.indexOf('\n', k); String l = txt.substring(k, nl < 0 ? txt.length() : nl);
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("hairColor = (\\d+)").matcher(l);
+                    if (m.find()) { setHairColor(role, Long.parseLong(m.group(1)), "日志"); return; }
+                } catch (Throwable ex) { return; }
+            }
+        }, "zf-hair").start();
+    }
     static void followPreview(final String req, final long id) {
         new Thread(() -> {
             String set = null;
@@ -589,7 +627,7 @@ public class Server {
                 String[] x = l.trim().split(" "); if (x.length < 4) continue;
                 long id = Long.parseLong(x[1]), pos = Long.parseLong(x[2]), sex = Long.parseLong(x[3]);
                 if (sex == 0 && pos != 0) pos = slotOf(id);   // v1.75：旧存档的位置换成按类别
-                props.put(Long.parseLong(x[0]), new long[] { id, pos, sex });
+                props.put(Long.parseLong(x[0]), sex != 0 ? new long[] { id, pos, sex, x.length > 4 ? Long.parseLong(x[4]) : 0 } : new long[] { id, pos, sex });
             }
             if (!props.containsKey(ROLE_F) || !props.containsKey(ROLE_M)) { props.clear(); return false; }
             return true;
@@ -599,7 +637,7 @@ public class Server {
         try {
             java.io.File f = propsFile(); if (f == null || props == null) return;
             StringBuilder b = new StringBuilder();
-            for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) { long[] v = e.getValue(); b.append(e.getKey()).append(' ').append(v[0]).append(' ').append(v[1]).append(' ').append(v[2]).append('\n'); }
+            for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) { long[] v = e.getValue(); b.append(e.getKey()).append(' ').append(v[0]).append(' ').append(v[1]).append(' ').append(v[2]); if (v.length > 3) b.append(' ').append(v[3]); b.append('\n'); }
             java.io.File t = new java.io.File(f.getPath() + ".tmp");
             java.nio.file.Files.write(t.toPath(), b.toString().getBytes("UTF-8"));
             t.renameTo(f);
@@ -619,7 +657,7 @@ public class Server {
         // 现在：衣服穿着才 owner=角色；角色本身在用的 owner=1（和启动时假仓库一致），其余 0
         long owner = p[2] != 0 ? (p[1] != 0 ? 1 : 0) : (p[1] != 0 ? role() : 0);
         PB x = new PB().u(1, p[0]).u(2, gid).u(3, owner).u(4, 1).u(10, p[1]);
-        if (p[2] != 0) x.m(13, new PB().u(1, p[2]));
+        if (p[2] != 0) { PB at = new PB().u(1, p[2]); if (p.length > 3 && p[3] > 0) at.u(5, p[3]); x.m(13, at); }   // v3.48 发色 hair_color(5)
         return x;
     }
     static byte[] depositProps() { return depositProps(true); }
@@ -648,6 +686,8 @@ public class Server {
         PB.R r = new PB.R(body); while (r.next()) if (r.field == 2 && r.wire == 0) pos = (int) r.val;
         PB res = new PB().u(1, gid < 0 ? 1 : 0);
         if (gid >= 0 && props.get(gid)[2] != 0) {   // v1.72：仓库里点角色 = 换男/女，用游戏自己的切换
+            long hc = reqHairColor(body);
+            if (hc >= 0 && hc <= 64) { long[] rv = props.get(gid); if (rv.length < 4) { rv = java.util.Arrays.copyOf(rv, 4); props.put(gid, rv); } rv[3] = hc; }
             for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
                 if (e.getValue()[2] != 0) { e.getValue()[1] = e.getKey() == gid ? 1 : 0; res.m(2, prop(e.getKey(), e.getValue())); }
             final boolean m = props.get(gid)[2] == 1;

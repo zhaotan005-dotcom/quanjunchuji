@@ -1364,3 +1364,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 刷出的车满油：UVehicleFuelComponent（vt 0x4beb188，Max +0xa8 int，Current +0xb4 float），游戏线程调 vt+0x1e8 AddFuel 0xe1e6b8 加满。
 - 海岛服务端：加入玩家落地后投真空投箱；配置 0x1186a74 的箱子类 +0x32c/+0x330/+0x334/+0x338 为空时用 StaticLoadClass 0x1bf2c5c 加载 /Game/Blueprints/AirSupply/BP_NZBRAirSupplyBox… 填上；去掉地上假箱子堆；车照排、满油。HostMatch：Box.isle() 时 Box.tick()。
 - 雷：按用户说先不动。
+
+## 2026-11-20 00:53 用户（v3.47 实测）：训练岛还是没有枪；大厅换发色不生效
+- v3.47 诊断（notes/device-tests/v3.47/slot-1120-005137）：服务器层补丁 ok、位置 4 ok（人物在原岛出生点 53922,-48811）；当前层 13 = 原 11 + ServerOnlyMajority(关卡 0) + ServerOnlyGroundObjects(关卡 5)；地上物资 1；ServerOnly 本层没进（它在 +0x2d4，名字等于静态名 N0，专用服是 0x115c708 单独加的，+0x2e8 循环里被跳过）。
+- 发色：游戏 13003 日志 ReqStoreEquipProp ... hairColor = 4，回 13004 后 InitAvatarData HairColor 0 —— 我们回的角色属性 PropRoleAttr 只有 sex（hair_color 是字段 5）。
+
+## v3.48（vc249/core249，未实测）
+- tlcave：先追加 ServerOnly 本层（+0x2d4/+0x2d8，r6=-1 不过名字过滤），再按原规则加 +0x2e8 里的；去掉 +0 计数（+8>0 即跑过），A 缩到 0x171e3f4..0x171e4ab。emu_tlcave.py 五种情况过。
+- Server：角色按性别记发色（存档第 5 列），回包 PropRoleAttr 带 hair_color(5)；发色先从 13003 请求 Prop.role_attr(13).hair_color(5) 取，取不到读日志「hairColor = N」后推 13002。

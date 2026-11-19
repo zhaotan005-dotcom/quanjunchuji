@@ -264,3 +264,4 @@
 - RE 环境：game/re/*.pkl 从 /workspace/work/zf/game/re 拷；libUE4 在 /workspace/work/qjcj/x；dd.py 要 /workspace/work/qjcj-gh → qj2 软链。
 
 - v3.47（core248，15e8778 后，未实测）：训练营菜单去空白；训练岛服务器层进 CurrentLayers（刷枪点，0x115c744 cave）；FindSlot 从位置 4 开始（小地图）；单机刷车贴地+确认+「没刷出来」；皮卡/大脚车拆开；刷车满油（AddFuel）；海岛服务端真空投箱（StaticLoadClass）。雷未动。详见 notes/history.md。
+- v3.48（core249，未实测）：训练岛再加 ServerOnly 本层（v3.47 只进了 Majority/GroundObjects）；大厅发色回包带 hair_color。
