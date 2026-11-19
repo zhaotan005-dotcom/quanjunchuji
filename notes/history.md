@@ -1147,3 +1147,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 水里加速：RE 确认 NZ CMC GetMaxSpeed 0xd370f8 游泳时用实例 +0x16c，但 v2.74 写 MaxSwimSpeed 实测无效（原因未查清）→ 游泳模式(4)改用时间倍率（和走路一样，动画按 slowMo 放慢），MaxSwimSpeed 只还原原值。注意潜水时氧气会按倍率掉得快（用户 v2.73 提过）。
 - 标点：单机诊断「找队伍：PS+35c NZBRTeamInfo 成员 0」。RE：0x1020614 = 按队伍成员(+0x300/+0x304，步长 0xc)重建 TeamMemberInfoList(+0x2f4/+0x2f8，每项 0x50)，只被 OnTeamCharacterRep(exec 0x11eddf8，RepNotify，单机不触发) 调；0x102085c 每帧把控制器 +0xa04/+0xa0c 抄进列表(+0x30/+0x2c)。MapMark.fixTeam：单机列表 0 且成员>0 时用 Veh.ucall 在游戏线程调 0x1020614(队伍)，3 秒一次最多 40 次。
 - 游戏内更新/资源包：没做。游戏自带资源下载走腾讯 Dolphin/Puffer（服务器已停、要真 pak 资源），这个包启动不建更新页实例（v2.69 探测）；我们的内核已经是发到仓库 core/ 后游戏启动自动拿。
+
+## v3.23（vc224/core224，2026-11-19 16:2x，三包，未实测）
+- 16:11 用户：加载游戏那样的更新进度条，公告改成我们的（好知道更新了什么）。
+- RE：游戏更新页 UNZUpdateUIView（0x15d9d60 InitNoticeInfo 公告取 https://hy.pubgm.qq.com/UpdateInfo/UpdateInfo1.0.3.1.2.json，固定拷 0x3c 字符），真正的更新走 GCloud Dolphin(version_mgr, update_type 20)+Puffer，服务器停了，日志超时跳过；这个包不会建出更新页实例。
+- 做法：三个包都在 StartupMap 加载页盖一层（GameOverlay.srvUpdatePage）：上面「公告」= 仓库 core/notice.txt（各镜像，拿不到用包里 NOTICE），下面黄色进度条 = NetCore 下内核进度；最新/失败满 6 秒关，下好 2 秒后自动重启，点一下关，最多 40 秒。
+- 以后每次发版：改 core/notice.txt 和 GameOverlay.NOTICE（写这版更新了什么）。

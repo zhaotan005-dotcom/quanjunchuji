@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.22";
+    static final String VER = "v3.23";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1780,22 +1780,63 @@ public class GameOverlay {
      *  查 GitHub 有没有新内核；最新/失败 → 1.5 秒后关；下好了 → 2 秒后自动重启用新版。最多停 40 秒。 */
     static volatile View upd;
     static final java.util.concurrent.atomic.AtomicBoolean updShown = new java.util.concurrent.atomic.AtomicBoolean();
+    /** v3.22 用户：开机加载游戏那样的更新进度条，公告改成我们的（看得到每版更新了什么）。
+     *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
+     *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
+     *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
+    static final String NOTICE = "v3.23 更新内容\n"
+            + "· 开机显示更新进度条和公告（公告就是每版更新了什么）\n\n"
+            + "v3.22 更新内容\n"
+            + "· 黑框提示删掉了，只有出错才弹\n"
+            + "· 单机不再记录、上传日志，也不往手机里放文件\n"
+            + "· 删掉自制「道具」键（战术模式用游戏自己的道具栏）\n"
+            + "· 单机新海岛改成战术模式（和联机一样）\n"
+            + "· 水里加速修复（游泳也加速）\n"
+            + "· 单机地图标点修复";
+    static volatile String remoteNotice;
+    static void fetchNotice() {
+        new Thread(() -> {
+            for (String base : NetCore.BASES) {
+                try {
+                    String t = new String(NetCore.get(base + "notice.txt", 64 << 10), "UTF-8").trim();
+                    if (t.length() > 4 && !t.startsWith("<")) { remoteNotice = t; GameOverlay.MAIN.post(() -> { Runnable r = noticeSet; if (r != null) r.run(); }); return; }
+                } catch (Throwable ignored) {}
+            }
+        }, "zf-notice").start();
+    }
+    static volatile Runnable noticeSet;
     static void srvUpdatePage() {
         final Activity a = Con.act; if (a == null) return;
         if (!updShown.compareAndSet(false, true)) return;   // v2.69：加载页日志会连着来几行，以前会叠两层，关掉一层另一层一直挂着
         a.runOnUiThread(() -> {
             try {
                 Ui u = new Ui(a);
-                FrameLayout bg = new FrameLayout(a); bg.setBackgroundColor(0xF0000000);
-                LinearLayout box = new LinearLayout(a); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER);
-                box.setPadding(u.dp(22), u.dp(18), u.dp(22), u.dp(18)); box.setBackground(box(CARD2, u.dp(14)));
-                TextView t = new TextView(a); t.setText("全军出击 服务端 " + VER); t.setTextColor(TXT); t.setTextSize(16); t.setGravity(Gravity.CENTER);
-                box.addView(t, new LinearLayout.LayoutParams(u.dp(300), -2));
-                final TextView st = new TextView(a); st.setText("正在检查更新…"); st.setTextColor(SUBT); st.setTextSize(13); st.setGravity(Gravity.CENTER);
-                st.setPadding(0, u.dp(10), 0, 0);
-                box.addView(st, new LinearLayout.LayoutParams(u.dp(300), -2));
-                FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(-2, -2); blp.gravity = Gravity.CENTER;
-                bg.addView(box, blp);
+                FrameLayout bg = new FrameLayout(a); bg.setBackgroundColor(0xE6000000);
+                LinearLayout col = new LinearLayout(a); col.setOrientation(LinearLayout.VERTICAL); col.setGravity(Gravity.CENTER_HORIZONTAL);
+                col.setPadding(u.dp(40), u.dp(24), u.dp(40), u.dp(18));
+                // 公告
+                LinearLayout nb = new LinearLayout(a); nb.setOrientation(LinearLayout.VERTICAL);
+                nb.setPadding(u.dp(18), u.dp(12), u.dp(18), u.dp(12)); nb.setBackground(box(0xF2FFFFFF, u.dp(12)));
+                TextView nt = new TextView(a); nt.setText("公告"); nt.setTextColor(TXT); nt.setTextSize(16); nt.setTypeface(android.graphics.Typeface.DEFAULT_BOLD); nt.setGravity(Gravity.CENTER);
+                nb.addView(nt, new LinearLayout.LayoutParams(-1, -2));
+                ScrollView sv = new ScrollView(a);
+                final TextView body = new TextView(a); body.setText(NOTICE); body.setTextColor(TXT); body.setTextSize(13); body.setLineSpacing(u.dp(3), 1f);
+                body.setPadding(0, u.dp(8), 0, 0);
+                sv.addView(body);
+                nb.addView(sv, new LinearLayout.LayoutParams(-1, 0, 1));
+                col.addView(nb, new LinearLayout.LayoutParams(u.dp(520), 0, 1));
+                // 进度条
+                final TextView st = new TextView(a); st.setText("正在检查更新…"); st.setTextColor(0xFFFFFFFF); st.setTextSize(13); st.setGravity(Gravity.CENTER);
+                st.setPadding(0, u.dp(14), 0, u.dp(6));
+                col.addView(st, new LinearLayout.LayoutParams(-1, -2));
+                final ProgressBar pb = new ProgressBar(a, null, android.R.attr.progressBarStyleHorizontal);
+                pb.setMax(100); pb.setIndeterminate(true);
+                try { pb.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFF5C518)); pb.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xFFF5C518)); } catch (Throwable ignored) {}
+                col.addView(pb, new LinearLayout.LayoutParams(u.dp(520), u.dp(10)));
+                TextView ver = new TextView(a); ver.setText("全军出击 " + Ed.name() + " " + VER + "（内核 " + ZInit.CORE_VER + "）· 点任意处关闭"); ver.setTextColor(0x99FFFFFF); ver.setTextSize(11); ver.setGravity(Gravity.CENTER);
+                ver.setPadding(0, u.dp(6), 0, 0);
+                col.addView(ver, new LinearLayout.LayoutParams(-1, -2));
+                bg.addView(col, new FrameLayout.LayoutParams(-1, -1));
                 WindowManager.LayoutParams wl = new WindowManager.LayoutParams(-1, -1, WindowManager.LayoutParams.TYPE_APPLICATION,
                         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
                         PixelFormat.TRANSLUCENT);
@@ -1804,24 +1845,28 @@ public class GameOverlay {
                 a.getWindowManager().addView(bg, wl);
                 upd = bg;
                 bg.setOnClickListener(v -> closeUpd(a, bg));   // v2.69：点一下就关
+                noticeSet = () -> { String r = remoteNotice; if (r != null && bg.isAttachedToWindow()) body.setText(r); };
+                if (remoteNotice != null) noticeSet.run(); else fetchNotice();
                 final long t0 = System.currentTimeMillis();
                 final boolean[] restarting = { false };
+                final Runnable showPct = () -> { int p = NetCore.pct; if (p >= 0) { pb.setIndeterminate(false); pb.setProgress(p); } else if (NetCore.done) { pb.setIndeterminate(false); pb.setProgress(100); } };
                 NetCore.listener = (msg, ready) -> a.runOnUiThread(() -> {
-                    st.setText(msg);
-                    if (ready && !restarting[0]) { restarting[0] = true; st.setText("新版本已下好，2 秒后自动重启更新…"); bg.postDelayed(() -> NetCore.restart(a), 2000); }
+                    st.setText(msg); showPct.run();
+                    if (ready && !restarting[0]) { restarting[0] = true; pb.setIndeterminate(false); pb.setProgress(100); st.setText("更新已下好，2 秒后自动重启…"); bg.postDelayed(() -> NetCore.restart(a), 2000); }
                 });
                 NetCore.check(a);
-                { String s0 = NetCore.status; if (!s0.isEmpty()) st.setText(s0); if (NetCore.readyVer > ZInit.CORE_VER && !restarting[0]) { restarting[0] = true; bg.postDelayed(() -> NetCore.restart(a), 2000); } }
+                { String s0 = NetCore.status; if (!s0.isEmpty()) st.setText(s0); showPct.run(); if (NetCore.readyVer > ZInit.CORE_VER && !restarting[0]) { restarting[0] = true; st.setText("更新已下好，2 秒后自动重启…"); bg.postDelayed(() -> NetCore.restart(a), 2000); } }
                 final Runnable[] tick = new Runnable[1];
                 tick[0] = () -> {
                     if (!bg.isAttachedToWindow() || restarting[0]) return;
+                    showPct.run();
                     long el = System.currentTimeMillis() - t0;
-                    if ((NetCore.done && el > 1500) || el > 30000) { closeUpd(a, bg); return; }
-                    bg.postDelayed(tick[0], 500);
+                    if ((NetCore.done && el > 6000) || el > 40000) { closeUpd(a, bg); return; }
+                    bg.postDelayed(tick[0], 300);
                 };
-                bg.postDelayed(tick[0], 500);
-                LogCap.note("加载页查更新：已显示");
-            } catch (Throwable e) { LogCap.note("加载页查更新：显示失败 " + e); }
+                bg.postDelayed(tick[0], 300);
+                LogCap.note("加载页更新+公告：已显示");
+            } catch (Throwable e) { LogCap.note("加载页更新：显示失败 " + e); }
         });
     }
     static void closeUpd(Activity a, View v) {
