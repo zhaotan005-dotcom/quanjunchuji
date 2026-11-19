@@ -1283,7 +1283,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 删伪装联机：Con.startGame 的 ?listen 分支、Lan.fakeOnline。单机进图地图串不变（这开关 v3.31 起默认关），不影响单机进图。
 - 要看的日志行：slot-* 里「分配位置：…」「训练岛：…」「射击训练区：…」「原生刷车/刷物资（分配后 20 秒）：…」；para-* 里「抛物线检查（手里拿雷时）：…」；游戏日志 AddPlayerToSlot / Client Load Block / Load Block Out Of Index / OnAllDuplicateLevelLoaded。
 
-## v3.43（vc244/core244，2026-11-19 21:xx，只推内核，未实测）— 训练场出生点根修（原生摆人）；训练岛仓库衣服
+## v3.43（vc244/core244，2026-11-19 20:5x，只推内核，未实测）— 训练场出生点根修（原生摆人）；训练岛仓库衣服
 - 20:44 用户 v3.42 实测：进训练岛人在岛西南很远的海上/空中，1 分钟没传送，山是黑剪影；以前用标点传过去后训练场会加载 → 地形按人位置流式加载。衣服没穿（只有默认内衣）。用户要求：正式流程一进去就在位置上，不要用我们自己的传送当主方案。
 - train-1119-204331 诊断：v3.42 把自己排进 +a24 等 OnAllDuplicateLevelLoaded，但整份日志没有 OnLevelStreamingLayerLoadCompleted（人不在岛上，Landscape 层等不到）→ +a70 一直 0 → 死等；出生点读成 0,0,0（读错：位置 +4 是 PlayerStart 数组，不是坐标）；SetupPlayerStartActor 20:42:29 加了 9 个出生点但排法是 4×4（0..3 同 X）。「仓库衣服：还没发」。
 - RE（libUE4，只读）：
