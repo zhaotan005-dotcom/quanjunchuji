@@ -55,7 +55,7 @@ final class UpdPage {
             long fn;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { fn = Server.rd(m, Server.rd(m, v) + 0x240); }
             if (fn < b || fn > b + 0x5000000L) { state += "；OnUpdateProcess 地址不对 " + Long.toHexString(fn); finished = true; return; }
-            long doneAt = 0, end = t0 + 60000;
+            long doneAt = 0, end = t0 + 600000;   // v3.28：等下载走完（最多 10 分钟）
             while (System.currentTimeMillis() < end) {
                 boolean ready = NetCore.readyVer > ZInit.CORE_VER;
                 int p = NetCore.pct;

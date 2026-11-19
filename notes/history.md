@@ -1179,3 +1179,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v3.27（vc228/core228，2026-11-19 17:5x，未实测）
 - 17:48 用户：更新就走游戏更新页，别在腾讯 logo 页弹更新。GameDlg.updatePrompt 只在 lobbySeen 后弹；启动阶段下好由 UpdPage（或我们那层）自动重启。
+
+## v3.28（vc229/core229，2026-11-19 18:0x，未实测）
+- 17:52 用户：不是要走完更新进度条才进大厅吗。Con hold 改成：查更新没结果（NetCore.done 假且没下好）或游戏更新页没走完就不进大厅，兜底 10 分钟；UpdPage 进度循环上限 60 秒 → 10 分钟。下好 → 页里自动重启。
