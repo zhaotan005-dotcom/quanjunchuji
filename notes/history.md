@@ -1231,3 +1231,16 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v3.36（vc237/core237，2026-11-19 19:0x，未实测）— 单机手动导出诊断
 - 用户 19:03：单机版没有导出诊断（logRow 只在联机页；AvatarLog.off 单机全关）。改：单机大厅「训练」下加「导出诊断」按钮；AvatarLog.export(a) 手动标 manual 绕过 off()，自动导出仍关；结果提示含「已自动上传」进 keepToast 白名单；诊断加 Island.state、训练岛模式。上传到 ntfy 主题（LogUp.TOPIC），从那里取。
+
+## v3.37（vc238/core238，2026-11-19 19:2x，未实测）— 游戏更新页每次都开；训练岛加载地块；训练场不崩
+- 19:09 用户 v3.36 导出诊断（ntfy：avatar-1119-190745/190934、matchend-190938，客户端版）：
+  - 训练场 19:07:02 闪退：Game class BP_NZBRPracticeGameMode_C，「ChoosePlayerStart_Implementation level not prepared!!!」，GameThread SIGSEGV fault 0x14，pc 0x1084f6c（ANZBRPracticeGameMode::Login 0x1084c5c）：0x10845b0 找队伍（GM+0xa40 数组/+0xa44 个数，空）返回 0 → ldr r7,[r8,#0x14]。
+  - 训练营：天空/海里，有新手引导 UI；Island 45 秒没找到 PlayerStart，地形块 1。
+  - 截图：更新页是我们的（状态「游戏更新页：上次开了没进大厅，这次不开」——UpdFlow 保险因用户中途退出触发）。
+- RE：NZStreamingLevelsManagerActor_TileMode::LoadBlock(this, 块号, 块数) 0x1163f3c（+0x440 当前块，+0x43c 块数；NetMode==1 专用服直接退）。唯一调用者 0x1086960「Client Load Block」（Practice PC 的 RPC 实现，读 PC+0xbdc/+0xbe0，TActorIterator 找管理器）。FillLayersWithCacheData 0x11649bc，PostInitializeComponents 0x1164d90，TileLayer 0x116543c（%s_LevelInstance_%d）。正式服由服务端发块号，单机没人发 → 子关卡（LogicLevel 出生点、地形）不加载。
+- 改：
+  - UpdFlow 去掉 zf_updflow.try 保险（每次都开游戏更新页）。
+  - Island：扫到管理器（类名 NZStreamingLevelsManagerActor_TileMode）且没出生点 → 当前块为 0 时先写 -1，再 Server.gcall(LoadBlock, mgr, 0, 1)；之后继续找 PlayerStart 传送。诊断加 Island.block/fix。
+  - 训练场补丁 PR 0x1084f2c：0080a0e1580596e5000050e35a00000a → 0080b0e158059615000050135a00000a（movs r8,r0/ldrne/cmpne/beq 0x10850a8，没队伍走原跳过分支），启动早装 Island.install。
+  - 游戏线程调用槽 installTick 改为只要 !Server.hooked 就装（不再依赖 UpdFlow.on）。
+- 未知：块 0 的实例是否在原点附近；LoadBlock 的块数参数是否要 >1；Practice 没队伍后续是否还会崩。

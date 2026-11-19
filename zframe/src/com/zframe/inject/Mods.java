@@ -101,8 +101,9 @@ public class Mods {
         Lan.preinstall();
         LogCap.note("刷车钩子 → " + Veh.install());
         LogCap.note(PickAnim.install());   // v2.70 拾取两次动作
+        Island.install();   // v3.37 训练场空队伍不崩
         UpdFlow.install();   // v3.24 游戏自己的更新页（试验）
-        if (UpdFlow.on && !Server.hooked) LogCap.note("游戏线程调用槽（只装 TICK）→ " + Server.installTick());   // v3.25 联机两个包
+        if (!Server.hooked) LogCap.note("游戏线程调用槽（只装 TICK）→ " + Server.installTick());   // v3.25 联机两个包
         earlyDone = "ok".equals(r);
         earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + Veh.state + "，" + (System.currentTimeMillis() - t0) + " ms";
         LogCap.note(earlyState);

@@ -19,7 +19,8 @@ final class UpdFlow {
             java.io.File dir = c != null ? c.getFilesDir() : (Ed.file != null ? Ed.file.getParentFile() : null);
             if (dir == null) { state = "游戏更新页：没目录，不装"; return; }
             tryFile = new java.io.File(dir, "zf_updflow.try");
-            if (tryFile.exists()) { tryFile.delete(); state = "游戏更新页：上次开了没进大厅，这次不开（下次再试）"; LogCap.note(state); return; }
+            // v3.37 用户：更新页还是自制的 → 去掉「上次没进大厅这次不开」保险（中途退出就会触发），每次都走游戏自己的更新页
+            if (tryFile.exists()) tryFile.delete();
             String r = Mods.write(GATE, GATE_O, GATE_N, true);
             if ("ok".equals(r)) { on = true; try { tryFile.createNewFile(); } catch (Throwable ignored) {} state = "游戏更新页：已开（不让启动流程关更新步骤）"; }
             else state = "游戏更新页：没装上 " + r;
