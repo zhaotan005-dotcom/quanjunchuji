@@ -44,7 +44,7 @@ final class UpdPage {
                 v = find(b, nm);
                 if (v == 0) Thread.sleep(400);
             }
-            if (v == 0) { state = "游戏更新页：25 秒内没建出来，用我们自己的那层"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
+            if (v == 0) { state = "游戏更新页：25 秒内没建出来，用我们自己的那层（失败）"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
             view = v;
             UpdFlow.lobby();   // v3.30：页面建出来了 = 没卡住，删保险文件
             state = "游戏更新页：找到 " + Long.toHexString(v);
@@ -52,6 +52,7 @@ final class UpdPage {
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
             long ba = GameOverlay.bufAddr(bb);
             notice(b, v, bb, ba);
+            showPanel(b, v, nm);   // v3.34：UpdatePanel 蓝图里默认 Collapsed，游戏只在腾讯 Dolphin 开始时才显示 → 我们自己设成可见
             // 进度条
             long fn;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { fn = Server.rd(m, Server.rd(m, v) + 0x240); }
@@ -67,7 +68,7 @@ final class UpdPage {
                 bb.clear();
                 fstr(bb, ba, so, s);
                 long[] r = Server.gcall(fn, v, Float.floatToIntBits(f), ba + so, 0, 1500);
-                if (r[0] == 0) { state += "；游戏线程没跑到调用"; break; }
+                if (r[0] == 0) { state += "；游戏线程没跑到调用"; GameOverlay.toastAny("更新页进度条失败：游戏线程没跑到调用"); break; }
                 if ((ready || NetCore.done) && doneAt == 0) doneAt = System.currentTimeMillis();
                 if (doneAt != 0 && System.currentTimeMillis() - doneAt > (ready ? 1500 : 3000)) break;
                 Thread.sleep(300);
@@ -128,6 +129,28 @@ final class UpdPage {
                 state += q[0] == 1 ? "；公告已换成我们的" : "；公告：游戏线程没跑到";
             }
         } catch (Throwable t) { state += "；公告出错 " + t; }
+    }
+    /** v3.34 用户截图（v3.33）：只有更新页背景，没有进度条 → UpdateUI 蓝图里 UpdatePanel 是 Collapsed。
+     *  控件属性在页面 +0x200~+0x260（UpdateProgressBar +0x208 …），按对象名找 UpdatePanel / UpdateProgressBar / UpdateProcessText / UpdateProcessValue，
+     *  调 UWidget::SetVisibility（原生 thunk 0x25a6764 → 虚表 +0x124(控件, ESlateVisibility)），0 = Visible。 */
+    static void showPanel(long b, long v, Veh.Names nm) {
+        StringBuilder got = new StringBuilder();
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            for (int off = 0x200; off <= 0x260; off += 4) {
+                long w = Server.rd(m, v + off);
+                if (w < 0x10000 || !Mods.isObj(m, b, w)) continue;
+                String n = Alive.objName(m, nm, w);
+                if (n == null || !(n.equals("UpdatePanel") || n.equals("UpdateProgressBar") || n.equals("UpdateProcessText") || n.equals("UpdateProcessValue"))) continue;
+                long fn = Server.rd(m, Server.rd(m, w) + 0x124);
+                if (fn < b || fn > b + 0x5000000L) { got.append(n).append(" 函数不对 "); continue; }
+                long[] r = Server.gcall(fn, w, 0, 0, 0, 1500);
+                got.append(n).append(r[0] == 1 ? " 显示 " : " 没跑到 ");
+            }
+        } catch (Throwable t) { got.append("出错 ").append(t); }
+        String g = got.length() == 0 ? "没找到 UpdatePanel" : got.toString().trim();
+        state += "；面板：" + g;
+        LogCap.note(state);
+        if (!g.contains("UpdatePanel 显示")) GameOverlay.toastAny("更新页进度条失败：" + g);
     }
     static int b8(RandomAccessFile m, long a) { try { byte[] x = new byte[1]; m.seek(a); m.readFully(x); return x[0] & 0xff; } catch (Throwable e) { return -1; } }
 }

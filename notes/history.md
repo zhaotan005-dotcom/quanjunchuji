@@ -1215,3 +1215,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 18:50 用户：喷气背包音效算了，不加替代声音。
 - 18:52 用户（v3.33 实测）：训练营（BP_NZBRTrainingGameMode）进去掉水里、周围什么都没有；训练场（地图默认模式）加载时闪退。
   - pak 索引：训练岛是分块地图（AlwaysLoad/Light、LogicLevel、Ocean、block、cars、ProceduralFoliageVolumes + Heightmap x0..3_y0..3 + Grass 瓦片），推测子关卡没流式加载（只出海面），出生点在 LogicLevel 里没加载 → 落在原点海里。待：Main.umap/LogicLevel.umap 导入和 LevelStreaming 设置 + 闪退诊断。
+
+## v3.34（vc235/core235，2026-11-19 18:5x，未实测）— 更新页显示进度条
+- 18:53 用户截图（v3.33）：开机只有游戏更新页背景（试炼季图），没有进度条/文字，没走我们的更新。
+- RE：UpdateUI 蓝图里有 ESlateVisibility::Collapsed，UpdatePanel 默认隐藏，游戏只在腾讯 Dolphin 更新开始时显示 → 我们调 OnUpdateProcess 也看不见。UWidget::SetVisibility 原生 thunk 0x25a6764 → 虚表 +0x124(控件, 字节)，0=Visible。
+- 改动：UpdPage.showPanel：页面 +0x200~0x260 按对象名找 UpdatePanel/UpdateProgressBar/UpdateProcessText/UpdateProcessValue，Server.gcall 调 vt+0x124(w,0)；失败（没找到/没跑到）弹黑框「更新页进度条失败…」，游戏线程没跑到也弹。
+- 训练岛问题（掉海里/训练场闪退）等用户发 Grok 第四批（Main.umap、AlwaysLoad 子关卡）和导出诊断。
