@@ -4,3 +4,9 @@ zframe/build/
 zframe/ZFrame-v*-src.zip
 zframe/ZFrame-v*.apk
 game/proto/
+# v3.44：主仓库保持 < 50MB（jsDelivr 限制）。pak 资源在私有仓库 zhaotan005-dotcom/quanjunchuji-pak
+game/pak/
+game/x/
+game/re/*.pkl
+apk/
+releases/*.idsig

@@ -1,8 +1,0 @@
-group	source_entries	unique_destinations	bytes	families	existing_ubulk
-PracticeGameMode	2	2	10968	1	0
-PracticeControllerGameState	2	2	7559	1	0
-TrainingMaps	14	14	363812	7	0
-TrainingHeightmapFourCoordinates	12	12	3234220	4	4
-TrainingSpawnBlueprints	4	4	5907	2	0
-GrenadeTrajectoryBlueprints	54	54	124853	27	0
-ConfigINI	60	60	801145	0	0

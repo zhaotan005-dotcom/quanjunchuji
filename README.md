@@ -1,5 +1,6 @@
 # ZFrame + 全军出击单机版2.0 修复项目（交接文档）
 
+- **v3.44（vc245/core245，只更新内核）**：训练岛脚下的岛不加载：去掉 v3.42 起我们多加的「服务器层填充」（客户端原生不做，服务器层里也有 Landscape/AlwaysLoad，会把同一块地形再生成一遍同名实例），完全按游戏原生步骤加载块 0；等地形时只停重力不改时间；诊断加流式状态（层/关卡/加载可见数）。pak 资源改放私有仓库 zhaotan005-dotcom/quanjunchuji-pak，主仓库不再放 pak、旧 APK、解包游戏文件。未实测。
 - **v3.43（vc244/core244，只更新内核）**：训练场出生点根修：单机里管理器块数没按 9 写（专用服才写），出生点按 4×4 算、岛副本按 3×3 放 → 人在岛西南海上；补上这一步（0x10828b0），再用游戏原生 AddPlayerToSlot 把人摆到位置出生点（不再主用自己的传送），地形没到前先停住人；训练岛也发仓库衣服；诊断加坐标/地形块随时间和关键日志行。未实测。
 - **v3.42（vc243/core243，只更新内核）**：训练场按游戏原生流程把玩家分进训练位置（单机 Login 早于 BeginPlay 导致没位置），加载该位置的块和服务器层，传射击训练区；对局菜单条加「收起」键；删伪装联机；加手雷抛物线逐项诊断。未实测。
 - **v3.21（vc222）**：单挑场地程序自动选（地形 + 射线找平地、不在房子/水里，两点相距 50 米），删掉「记录/清除单挑点」，单挑一律不上飞机；修「不刷毒对局」还上飞机（进图重打补丁 + 阶段守护）；单机版大厅菜单顶上「单机 | 联机」分段选择，标题跟实际状态；删掉地图物资/门开关和出生岛空投。未实测。
@@ -60,7 +61,8 @@
   - `emu_*.py`：各个 code cave 的 unicorn 模拟测试。
   - `srv_cave.py`：服务端 SEND/TICK 两个 cave 的汇编。
   - `protoext.py` + `protodump.py`：从 libUE4 里提取内嵌的 protobuf schema，生成到 `game/proto/`（已在 .gitignore 里，需要时自己跑脚本生成）。
-- `game/x/`：游戏 APK 解包（lib/libUE4.so 等）。
+- `game/x/`：游戏 APK 解包（lib/libUE4.so 等）。v3.44 起不进 git（只在本地工作区 /workspace/work/quanjunchuji/game/x，.gitignore），主仓库要保持 < 50MB。
+- pak 资源：在私有仓库 zhaotan005-dotcom/quanjunchuji-pak（本地 /workspace/work/quanjunchuji-pak），只读；以后不往主仓库放 pak、旧 APK（releases/ 只留最新一版三个）、解包游戏文件。
 - `notes/history.md`：完整历史，最重要。
 - `releases/`：各版 APK（v1.46–v1.84，最新 `releases/ZFrame-v1.84.apk`）。游戏原包和 obb 太大，放在 GitHub Releases 里。
 

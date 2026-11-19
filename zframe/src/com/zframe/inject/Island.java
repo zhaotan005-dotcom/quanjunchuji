@@ -28,9 +28,25 @@ import java.util.HashMap;
  *    它不依赖 +a70（Login 在 +a70 已置时也是直接调它）。v3.42 排进 +a24 等 OnAllDuplicateLevelLoaded，但那要 Landscape 层先加载完，
  *    人不在岛上就等不到（本次日志没有 OnLevelStreamingLayerLoadCompleted）→ 死等。v3.43 改为位置建好就直接调 AddPlayerToSlot。
  *  - 射击训练区：LogicLevel（game/pak，只读解析）shootreturn=(47835,-48630,-15850)、BP_ShootPracticeBase 盒子 (47800,-48610)，
- *    出生模板离它约 61 米 → 原生出生点就在射击区边上，不用再传。只做诊断。全部未实测。 */
+ *    出生模板离它约 61 米 → 原生出生点就在射击区边上，不用再传。只做诊断。全部未实测。
+ *
+ *  v3.44（RE + 21:05 用户 v3.43 诊断 t3）：v3.43 LoadBlock(块 0, 块数 9) 之后整整 50 秒地形块一直 1。
+ *  - 三版对比：v3.41 只调 LoadBlock(0,1) → 块 0 正常流式加载（地形块 1→17、OnLevelStreamingLayerLoadCompleted）；
+ *    v3.42、v3.43 都在 LoadBlock 后多调了一次 FillLayersWithCacheData(管理器, +0x37c 服务器层, 块号) → 两版都一点都没加载。
+ *    冻结（时间缩放）只有 v3.43 有，v3.42 没冻也没加载 → 冻结不是主因。
+ *  - 服务器层不是客户端该填的：客户端原生只有 Client Load Block → LoadBlock → Fill(+0x370)。pak 只读解析 Main.umap：
+ *    ServerLayersSettings = Landscape, AlwaysLoad, Ocean, ServerOnly, ServerOnlyMajority, ServerOnlyGroundObjects ——
+ *    跟客户端层同名的 Landscape / AlwaysLoad 也在里面。FillLayers 0x11649bc 按「管理器当前层 +0x2f4 的名字」去缓存里找，
+ *    找到就 TileLayer 0x116543c → 同一个块号第二次给 Landscape/AlwaysLoad 层生成「%s_LevelInstance_%d」：实例名和第一次完全一样，
+ *    0x1165bf4（非 world+0x6d8==3 时不查旧的）再 NewObject 一个同名关卡流对象（UE 同名同 Outer 会在原地重建那个对象）、
+ *    层 vt+0x14 再 AddLevel 一次、+0x358 再追加一次（推断，静态读码）。→ 去掉服务器层填充，完全按客户端原生步骤。
+ *  - 冻结：管理器 Tick 0x115e7dc 用自己的 DeltaSeconds，Update 0x115eb7c 取 PC+0x2c0 人物根组件坐标 → 只改人物
+ *    CustomTimeDilation 本来不该卡流式，但用户要求不影响流式的冻结 → 改成只停重力：移动组件 GravityScale(+0x120)=0、速度清零，
+ *    地形到了再还原（不改时间缩放）。
+ *  - 诊断 stream：管理器 +0x400 首次加载标志 / +0x43c / +0x440 / +0x2c8 / 两份缓存层名、每层关卡数、包住人物的关卡数、
+ *    层更新计数（+0x10，看 Default 策略 Update 有没有在跑）、+0x358 关卡流对象数（重复指针数）、加载/可见数、world 流关卡数。 */
 final class Island {
-    static final long LOAD_BLOCK = 0x1163f3cL, FIND_SLOT = 0x10845b0L, ADD_TO_SLOT = 0x1083a98L, REALLOC = 0x1989d38L, FILL_LAYERS = 0x11649bcL;
+    static final long LOAD_BLOCK = 0x1163f3cL, FIND_SLOT = 0x10845b0L, ADD_TO_SLOT = 0x1083a98L, REALLOC = 0x1989d38L;
     /** 训练场（Practice 模式）登录时 0x10845b0 找队伍返回空，0x1084f6c ldr [r8,#0x14] 崩（fault 0x14，19:07 实测诊断）。
      *  改成 movs r8,r0 / ldrne / cmpne / beq 0x10850a8（没队伍就走原来的「跳过」分支）。空位置由 Island.join 事后补上。 */
     static final long PR = 0x1084f2cL;
@@ -51,15 +67,17 @@ final class Island {
     static volatile String spawn = "原生刷车/刷物资：没查";
     static volatile String setup = "出生点建立：没查";
     static volatile String track = "坐标/地形块随时间：-";
+    static volatile String stream = "流式状态：没查";
     static volatile String seenLog = "";
     static volatile boolean running;
     static final StringBuilder seen = new StringBuilder();
 
     /** Con 每行游戏日志都给这里（只在训练岛）：记关键行 */
     static void seen(String l) {
-        String[] keys = { "OnAllDuplicateLevelLoaded", "OnLevelStreamingLayerLoadCompleted", "AddPlayerToSlot", "Spawn Vehicle", "SpawnVehicle", "Load Block", "Client Load Block", "SetupPlayerStartActor Add Player Start 0 ", "LevelMgr is null", "level not prepared" };
+        String[] keys = { "OnAllDuplicateLevelLoaded", "OnLevelStreamingLayerLoadCompleted", "AddPlayerToSlot", "Spawn Vehicle", "SpawnVehicle", "Load Block", "Client Load Block", "SetupPlayerStartActor Add Player Start 0 ", "LevelMgr is null", "level not prepared",
+            "FillLayersWithCacheData", "TileLayer", "Already Load Block", "Out Of Index", "Streaming in level", "DirectSubmit", "NZStreamingRequestsManager", "Not Need", "FirstLoad", "StreamingLevelsManagerActor" };
         for (String k : keys) if (l.contains(k)) {
-            synchronized (seen) { if (seen.length() < 3000) seen.append(l.trim().length() > 200 ? l.trim().substring(0, 200) : l.trim()).append("\n  "); seenLog = seen.toString(); }
+            synchronized (seen) { if (seen.length() < 6000) seen.append(l.trim().length() > 200 ? l.trim().substring(0, 200) : l.trim()).append("\n  "); seenLog = seen.toString(); }
             return;
         }
     }
@@ -68,7 +86,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
-        block = "分配位置：没试"; range = "射击训练区：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-";
+        block = "分配位置：没试"; range = "射击训练区：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -100,6 +118,7 @@ final class Island {
             }
             break;
         }
+        state = "训练岛：GameMode 位置已建好，找地块管理器";
         // 2) 地块管理器
         long mgr = 0;
         for (int i = 0; i < 20 && mgr == 0; i++) {
@@ -109,13 +128,16 @@ final class Island {
         }
         if (mgr == 0) { state = "训练岛：20 秒没找到地块管理器"; note(state); outfit(); return; }
         // 3) 出生点按正确块数建好（块数补丁没赶上就让 Tick 重建）
+        state = "训练岛：管理器 " + Long.toHexString(mgr) + "，等出生点建好";
         if (!ensureSetup(b, gm, mgr)) { outfit(); return; }
+        state = "训练岛：出生点好了，原生摆人 + LoadBlock";
         // 4) 补进位置 → 原生 AddPlayerToSlot 摆人 → 按 PC+0xbdc/+0xbe0 LoadBlock
         double[] ps = join(b, gm, pc, mgr);
+        state = "训练岛：已摆人和 LoadBlock，跟踪地形加载";
         // 5) 衣服（训练岛不走 Bots.matchLoaded，以前从来没发过）
         outfit();
         // 6) 跟踪：坐标、地形块、+a70/+a21，最多 120 秒；人物等地形到了才放开
-        follow(b, nm, gm, pc, ps);
+        follow(b, nm, gm, pc, ps, mgr);
         // 7) 射击训练区（只诊断）
         rangeDiag(b, nm, mgr, pc);
         // 8) 原生刷车/刷物资情况
@@ -123,6 +145,7 @@ final class Island {
         if (!Con.training || !Con.inMatch) return;
         spawnDiag(b, nm, gm);
         android.app.Activity x = Con.act;
+        stream = streamDiag(b, nm, mgr, true); note(stream);
         if (x != null) { AvatarLog.manual = true; try { AvatarLog.export(x, "slot-"); } finally { AvatarLog.manual = false; } }
     }
 
@@ -214,7 +237,7 @@ final class Island {
         sb.append("摆人前人物 ").append(p3(before)).append("；");
         // 原生摆人：AddPlayerToSlot 自己写 PC+bdc/+be0、FindPlayerStart、SetActorLocation/Rotation
         long pawn = Mods.myPawn();
-        if (pawn >= 0x10000) freeze(pawn, true);   // 摆到岛上那一刻地形还没流进来，先停住不让掉下去（时间缩放 +0x58=0，和房主冻结同一招）
+        if (pawn >= 0x10000) hold(pawn, true);   // v3.44：摆到岛上那一刻地形还没流进来 → 只停重力、速度清零（不改时间缩放）
         if (bdc0 >= 0) sb.append("PC 已有块号 ").append(bdc0).append("，AddPlayerToSlot 会直接退（already has a index），不调；");
         else {
             long[] r = Server.gcall(b + ADD_TO_SLOT, gm, pc, 0, 0, 3000);
@@ -235,59 +258,143 @@ final class Island {
             sb.append("；");
         }
         // Client Load Block：块号/块数都用 AddPlayerToSlot 原生写进 PC 的值；没写就用位置块号 + GM 块数
-        int lb = bdc >= 0 ? bdc : blk, lc = be0 > 0 ? be0 : cnt, cur;
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { cur = (int) Server.rd(m, mgr + 0x440); }
+        int lb = bdc >= 0 ? bdc : blk, lc = be0 > 0 ? be0 : cnt, cur, curN, aft, aftN;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { cur = (int) Server.rd(m, mgr + 0x440); curN = (int) Server.rd(m, mgr + 0x43c); }
+        sb.append("LoadBlock 前 管理器 +440 当前块=").append(cur).append(" +43c 块数=").append(curN).append("；");
         if (cur != lb) {
+            // 和 Client Load Block 0x1086960 一样只调 LoadBlock（它里面 Fill 的是 +0x370 客户端层）。v3.42/v3.43 额外 Fill 的 +0x37c 服务器层已删（见类注释）
             long[] r = Server.gcall(b + LOAD_BLOCK, mgr, lb, lc, 0, 3000);
-            sb.append("LoadBlock(管理器 ").append(Long.toHexString(mgr)).append(", ").append(lb).append(", ").append(lc).append(") 原当前块 ").append(cur).append(r[0] != 0 ? " 已跑" : " 没跑");
-        } else sb.append("管理器当前块已是 ").append(lb).append("，不重复加载");
-        // ServerOnly 层（Main.umap ServerLayersSettings：ServerOnly/Pickups、WorldMeshTiles）：专用服在 0x1164d90 里
-        // 对每块调 FillLayersWithCacheData(管理器, +0x37c 服务器层, 块号)；客户端 LoadBlock 只填 +0x370。这里只给自己这块填一次。
-        int srv; try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { srv = rb(m, mgr + 0x2c8); }
-        if (srv != 0) {
-            long[] r = Server.gcall(b + FILL_LAYERS, mgr, mgr + 0x37c, lb, 0, 3000);
-            sb.append("；服务器层 FillLayersWithCacheData(+0x37c, ").append(lb).append(") ").append(r[0] != 0 ? "已跑" : "没跑");
-        } else sb.append("；管理器 +0x2c8=0（不带服务器层），没填");
+            sb.append("LoadBlock(管理器 ").append(Long.toHexString(mgr)).append(", ").append(lb).append(", ").append(lc).append(")").append(r[0] != 0 ? " 已跑" : " 没跑");
+        } else sb.append("管理器当前块已是 ").append(lb).append("（LoadBlock 会直接说 Already Load Block 退出），不重复调");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { aft = (int) Server.rd(m, mgr + 0x440); aftN = (int) Server.rd(m, mgr + 0x43c); }
+        sb.append("；之后 +440=").append(aft).append(" +43c=").append(aftN).append("；不填服务器层 +0x37c（v3.44 删）");
         block = sb.toString(); note(block);
         if (block.contains("没跑") || block.contains("退回传送")) GameOverlay.toastAny("训练岛" + block);
         return ps;
     }
 
-    static void freeze(long pawn, boolean on) {
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) { if (Mods.isObj(m, Mods.base(), pawn)) Mods.wf(m, pawn + 0x58, on ? 0f : 1f); } catch (Throwable ignored) {}
+    static long holdCmc; static float holdGrav = Float.NaN;
+    /** 停住人物但不碰时间缩放：移动组件（人物+0x2f8）GravityScale(+0x120)=0、Velocity(+0xb4..)=0；放开时还原重力 */
+    static void hold(long pawn, boolean on) {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            long b = Mods.base();
+            if (!Mods.isObj(m, b, pawn)) return;
+            long c = Server.rd(m, pawn + Mods.P_CMC); if (c < 0x10000 || !Mods.isObj(m, b, c)) return;
+            if (on) {
+                if (holdCmc != c || Float.isNaN(holdGrav)) { holdCmc = c; float g = Mods.f(m, c + Fly.C_GRAV); holdGrav = g == 0f ? 1f : g; }
+                Mods.wf(m, c + Fly.C_GRAV, 0f);
+                Mods.wf(m, c + Mods.C_VEL, 0f); Mods.wf(m, c + Mods.C_VEL + 4, 0f); Mods.wf(m, c + Mods.C_VEL + 8, 0f);
+            } else if (c == holdCmc && !Float.isNaN(holdGrav)) { Mods.wf(m, c + Fly.C_GRAV, holdGrav); holdGrav = Float.NaN; }
+        } catch (Throwable ignored) {}
     }
 
-    /** 摆人后跟 120 秒：每 5 秒记坐标/地形块/+a70/+a21；脚下射线打到地形（或 +a70 置了、或 60 秒）就放开冻结 */
-    static void follow(long b, Veh.Names nm, long gm, long pc, double[] ps) throws Exception {
+    /** 摆人后跟 120 秒：每 5 秒记坐标/地形块/+a70/+a21 和流式简况；人物停重力，每秒补一次速度清零；
+     *  脚下射线打到地形（或 +a70 置了、或 90 秒）就还原重力 */
+    static void follow(long b, Veh.Names nm, long gm, long pc, double[] ps, long mgr) throws Exception {
         StringBuilder tr = new StringBuilder("坐标/地形块随时间：");
-        long w0 = System.currentTimeMillis(), pawn = Mods.myPawn(); boolean frozen = pawn >= 0x10000, done = false; String why = "";
+        long w0 = System.currentTimeMillis(), pawn = Mods.myPawn(); boolean held = pawn >= 0x10000, done = false; String why = ""; long lastRec = -10;
         while (System.currentTimeMillis() - w0 < 120000) {
-            if (!Con.training || !Con.inMatch) { if (frozen) freeze(pawn, false); return; }
+            if (!Con.training || !Con.inMatch) { if (held) hold(pawn, false); return; }
+            long s = (System.currentTimeMillis() - w0) / 1000;
+            if (held) hold(pawn, true);
+            if (s - lastRec < 5) { Thread.sleep(1000); continue; }
+            lastRec = s;
             int a70, a21, bdc; try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { a70 = rb(m, gm + 0xa70); a21 = rb(m, gm + 0xa21); bdc = (int) Server.rd(m, pc + 0xbdc); }
-            int land = scan(b, nm).land; double[] p = me(); long s = (System.currentTimeMillis() - w0) / 1000;
+            int land = scan(b, nm).land; double[] p = me();
             float g = Float.NaN;
-            if (frozen && p != null) { Trace.Hit h = Trace.down((float) p[0], (float) p[1], (float) p[2] + 5000, (float) p[2] - 20000); if (h != null && h.land) g = h.z; }
-            tr.append(s).append("s ").append(p3(p)).append(" 地形块 ").append(land).append(" a70=").append(a70).append(" a21=").append(a21).append(" bdc=").append(bdc).append(Float.isNaN(g) ? "" : " 地面 " + (int) g).append("；");
+            if (held && p != null) { Trace.Hit h = Trace.down((float) p[0], (float) p[1], (float) p[2] + 5000, (float) p[2] - 20000); if (h != null && h.land) g = h.z; }
+            tr.append(s).append("s ").append(p3(p)).append(" 地形块 ").append(land).append(" a70=").append(a70).append(" a21=").append(a21).append(" bdc=").append(bdc).append(Float.isNaN(g) ? "" : " 地面 " + (int) g)
+              .append(" [").append(streamDiag(b, nm, mgr, false)).append("]；");
             track = tr.toString();
-            if (frozen) {
+            if (s <= 6 || s % 20 < 5) { stream = streamDiag(b, nm, mgr, true); }
+            if (held) {
                 if (!Float.isNaN(g)) why = "脚下射线打到地形";
                 else if (a70 != 0) why = "+a70 已置（Landscape 层加载完）";
-                else if (s >= 60) why = "60 秒到了，地形还没到也放开";
+                else if (s >= 90) why = "90 秒到了，地形还没到也放开";
                 if (why.length() > 0) {
                     if (!Float.isNaN(g) && p != null && p[2] < g + 50) { Veh.teleport(pawn, p[0], p[1], g + 120, 165); why += "，人物低于地面，抬到地面上"; }
-                    freeze(pawn, false); frozen = false; tr.append("【放开：").append(why).append("】");
+                    hold(pawn, false); held = false; tr.append("【放开：").append(why).append("】");
                     note("训练岛：放开人物（" + why + "）");
                 }
             }
             if (a21 != 0 && !done) { done = true; tr.append("【OnAllDuplicateLevelLoaded 已处理 +a21=1】"); }
-            if (!frozen && s >= 40) break;
-            Thread.sleep(5000);
+            if (!held && s >= 40) break;
+            Thread.sleep(1000);
         }
-        if (frozen) freeze(pawn, false);
+        if (held) hold(pawn, false);
         track = tr.toString(); note(track);
+        stream = streamDiag(b, nm, mgr, true); note(stream);
         double[] me = me();
         state = "训练岛：摆人后人物在 " + p3(me) + (ps == null ? "" : "，离位置出生点 " + (me == null ? "?" : (int) (Math.hypot(me[0] - ps[0], me[1] - ps[1]) / 100) + " 米"));
         note(state);
+    }
+
+    /** 缓存数组（TArray，每项 0x20：[0] 层名 FName，+8 关卡数组，+0xc 关卡数，+0x18 瓦片信息数）→ 「名字×关卡数」 */
+    static String cacheNames(RandomAccessFile m, Veh.Names nm, long arr) {
+        long d = Server.rd(m, arr); int n = (int) Server.rd(m, arr + 4);
+        if (d < 0x10000 || n <= 0 || n > 64) return n + " 个";
+        StringBuilder sb = new StringBuilder().append(n).append(" 个（");
+        for (int i = 0; i < n; i++) { long e = d + 0x20L * i; sb.append(Box.nameOf(m, nm, Server.rd(m, e))).append('×').append((int) Server.rd(m, e + 0xc)).append(i + 1 < n ? " " : ""); }
+        return sb.append("）").toString();
+    }
+
+    /** 流式状态（只读）。full=false 时只出一小段：层更新计数和、包住人物的关卡数、关卡流对象 已加载/可见/总数。
+     *  偏移（libUE4 静态读码，未实测）：管理器 +0x2f4/+0x2f8 当前层 TSharedPtr 数组（每项 8 字节）；层对象 +0x10 Update 计数、
+     *  +0x14/+0x18 关卡项 TSharedPtr 数组，关卡项 +8 minX、+0xc minY、+0x14 maxX、+0x18 maxY（TilesCollection::Update 0x117627c）；
+     *  管理器 +0x358/+0x35c TileLayer 建的关卡流对象；ULevelStreaming +0x110 LoadedLevel，ULevel +0x174 bit3 可见（IsLevelLoaded/IsLevelVisible 原生）；
+     *  world = 管理器 Outer(关卡) 的 Outer，+0x54/+0x58 StreamingLevels，+0x768 OriginLocation。 */
+    static String streamDiag(long b, Veh.Names nm, long mgr, boolean full) {
+        StringBuilder sb = new StringBuilder(full ? "流式状态：" : "");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            if (mgr < 0x10000 || !Mods.isObj(m, b, mgr)) return sb.append("管理器没了").toString();
+            double[] me = me(); float px = me == null ? Float.NaN : (float) me[0], py = me == null ? Float.NaN : (float) me[1];
+            long ld = Server.rd(m, mgr + 0x2f4); int ln = (int) Server.rd(m, mgr + 0x2f8);
+            long upd = 0; int lvTot = 0, lvIn = 0; StringBuilder per = new StringBuilder();
+            for (int i = 0; i < ln && i < 40 && ld >= 0x10000; i++) {
+                long L = Server.rd(m, ld + 8L * i); if (L < 0x10000) { per.append(" 空"); continue; }
+                long vt = Server.rd(m, L); int cntU = (int) Server.rd(m, L + 0x10); long ed = Server.rd(m, L + 0x14); int en = (int) Server.rd(m, L + 0x18);
+                upd += cntU; int in = 0; float x0 = Float.MAX_VALUE, y0 = Float.MAX_VALUE, x1 = -Float.MAX_VALUE, y1 = -Float.MAX_VALUE;
+                for (int j = 0; j < en && j < 400 && ed >= 0x10000; j++) {
+                    long E = Server.rd(m, ed + 8L * j); if (E < 0x10000) continue;
+                    float a = Mods.f(m, E + 8), c = Mods.f(m, E + 0xc), d = Mods.f(m, E + 0x14), e = Mods.f(m, E + 0x18);
+                    x0 = Math.min(x0, a); y0 = Math.min(y0, c); x1 = Math.max(x1, d); y1 = Math.max(y1, e);
+                    if (px >= a && px <= d && py >= c && py <= e) in++;
+                }
+                lvTot += Math.max(en, 0); lvIn += in;
+                if (full) per.append("\n    层").append(i).append(" vt+").append(Long.toHexString(vt - b)).append(" 更新计数 ").append(cntU).append(" 关卡 ").append(en).append(" 包住人物 ").append(in)
+                    .append(en > 0 && x0 < Float.MAX_VALUE ? " 范围 " + (int) x0 + ".." + (int) x1 + "," + (int) y0 + ".." + (int) y1 : "");
+            }
+            long sd = Server.rd(m, mgr + 0x358); int sn = (int) Server.rd(m, mgr + 0x35c);
+            int loaded = 0, vis = 0, dup = 0; java.util.HashSet<Long> uniq = new java.util.HashSet<>(); StringBuilder names = new StringBuilder();
+            for (int i = 0; i < sn && i < 600 && sd >= 0x10000; i++) {
+                long S = Server.rd(m, sd + 4L * i); if (S < 0x10000) continue;
+                if (!uniq.add(S)) { dup++; continue; }
+                long lvl = Server.rd(m, S + 0x110); boolean v = lvl >= 0x10000 && (rb(m, lvl + 0x174) & 8) != 0;
+                if (lvl >= 0x10000) loaded++; if (v) vis++;
+                if (full && names.length() < 1500 && (i < 12 || Alive.objName(m, nm, S).contains("Heightmap")))
+                    names.append(Alive.objName(m, nm, S)).append(lvl >= 0x10000 ? (v ? "(载+显)" : "(载)") : "(未载)").append(' ');
+            }
+            if (!full) return sb.append("层更新计数和 ").append(upd).append(" 包住人物关卡 ").append(lvIn).append("/").append(lvTot).append(" 流对象 载").append(loaded).append(" 显").append(vis).append("/").append(uniq.size()).append(dup > 0 ? " 重复" + dup : "").toString();
+            long lvl0 = Server.rd(m, mgr + 0x18), world = lvl0 >= 0x10000 ? Server.rd(m, lvl0 + 0x18) : 0;
+            int wn = -1, wl = 0; String wName = "?"; int ox = 0, oy = 0;
+            if (world >= 0x10000) {
+                wName = Alive.clsName(m, nm, world);
+                long wd = Server.rd(m, world + 0x54); wn = (int) Server.rd(m, world + 0x58);
+                for (int i = 0; i < wn && i < 1000 && wd >= 0x10000; i++) { long S = Server.rd(m, wd + 4L * i); if (S >= 0x10000 && Server.rd(m, S + 0x110) >= 0x10000) wl++; }
+                ox = (int) Server.rd(m, world + 0x768); oy = (int) Server.rd(m, world + 0x76c);
+            }
+            sb.append("管理器 ").append(Long.toHexString(mgr)).append(" +400 首次加载标志=").append(rb(m, mgr + 0x400)).append(" +409=").append(rb(m, mgr + 0x409))
+              .append(" +43c 块数=").append((int) Server.rd(m, mgr + 0x43c)).append(" +440 当前块=").append((int) Server.rd(m, mgr + 0x440)).append(" +2c8 服务器层=").append(rb(m, mgr + 0x2c8))
+              .append(" 块偏移 +468/+46c=").append((int) Mods.f(m, mgr + 0x468)).append(',').append((int) Mods.f(m, mgr + 0x46c))
+              .append(" 策略 +30c=").append(Long.toHexString(Server.rd(m, mgr + 0x30c))).append(" +314=").append(Long.toHexString(Server.rd(m, mgr + 0x314)))
+              .append("；人物 ").append(p3(me)).append("；world ").append(wName).append(" 原点 ").append(ox).append(',').append(oy)
+              .append("；客户端层缓存 +370 ").append(cacheNames(m, nm, mgr + 0x370)).append("；服务器层缓存 +37c ").append(cacheNames(m, nm, mgr + 0x37c))
+              .append("；当前层 ").append(ln).append(" 个，层更新计数和 ").append(upd).append("，关卡项 ").append(lvTot).append("，包住人物 ").append(lvIn).append(per)
+              .append("\n  TileLayer 关卡流对象 +358：").append(sn).append(" 个（不同 ").append(uniq.size()).append("，重复指针 ").append(dup).append("），已加载 ").append(loaded).append("，可见 ").append(vis)
+              .append("；world StreamingLevels ").append(wn).append(" 个，已加载 ").append(wl)
+              .append("\n  关卡流对象：").append(names);
+        } catch (Throwable t) { sb.append("读出错 ").append(t); }
+        return sb.toString();
     }
 
     /** 射击训练区：按 pak 里 LogicLevel 的 shootreturn + 本块偏移算出来，再数它 150 米内的靶子。只诊断，不传送（原生出生点离它约 61 米）。 */
