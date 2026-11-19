@@ -1176,3 +1176,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 真正原因：UpdFlow.install 在启动早装时 Con.act 还是 null，Ed.file 只有 canChoose() 才 init → dir 为空 →「没目录，不装」，UpdFlow.on 一直 false（v3.24/3.25 根本没试成）。修：Patches 里总是 Ed.init(ctx)。我们那层底部显示 UpdPage/UpdFlow 状态（单机不导日志，看截图）。
 - 无敌：单机伪装联机(listen)后控制台 God 要作弊权限 → 直接写 AActor::bCanBeDamaged = pawn+0x110 半字 bit1（RE：FBoolPropertyParams 0x4f5014c，SetBit 0x2e73790 `orr #2` at +0x110，SizeOfOuter 0x2b0），关时还原；仍补血。
 - 标点：打开自动传送开关时 tpNow，已有标点（+a0c 开）就马上传。
+
+## v3.27（vc228/core228，2026-11-19 17:5x，未实测）
+- 17:48 用户：更新就走游戏更新页，别在腾讯 logo 页弹更新。GameDlg.updatePrompt 只在 lobbySeen 后弹；启动阶段下好由 UpdPage（或我们那层）自动重启。

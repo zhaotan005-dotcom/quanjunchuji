@@ -111,6 +111,8 @@ final class GameDlg {
     static volatile boolean prompted; static volatile View upView;
     static void updatePrompt() {
         final Activity a = Con.act;
+        // v3.27 用户：别在腾讯 logo 页弹更新，更新只走游戏的更新页（那里下好了自动重启）；进了大厅才用这个框
+        if (!GameOverlay.lobbySeen) return;
         if (a == null || prompted || GameOverlay.chooser != null || NetCore.readyVer <= ZInit.CORE_VER) return;
         prompted = true;
         a.runOnUiThread(() -> {
