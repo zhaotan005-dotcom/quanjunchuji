@@ -186,7 +186,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
-        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
+        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -233,6 +233,7 @@ final class Island {
         state = "训练岛：出生点好了，原生摆人 + Client Load Block";
         // 4) 补进位置 → 原生 AddPlayerToSlot 摆人 → 原生 Client Load Block（LoadBlock + FirstLoad）
         double[] ps = join(b, gm, pc, mgr);
+        if (!GameOverlay.remote()) { try { logic = alwaysLoad(b, nm, mgr, pc); } catch (Throwable e) { logic = "常驻层 AlwaysLoad：出错 " + e; } note(logic); }
         // v3.50 用户：v3.49 枪要等 2 分多钟（跟踪 120 秒之后才摆）→ 进岛 15 秒就摆。
         //   v3.49 诊断：ServerOnly 本层进来后展开出 ServerOnly/Pickups 等子层（关卡 1，包住人物），但地上还是没枪 → 先看原生 150 米内有没有物资，不够 5 个才自己摆
         //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
@@ -267,6 +268,66 @@ final class Island {
     }
 
     static void outfit() { Bots.trainingOutfit(); }
+
+    /** v3.52 训练岛刷枪/靶子：刷物资区 BP_PickUpRefreshVolumn、五轮靶子、射击/驾驶训练台都在 AlwaysLoad/LogicLevel.umap。
+     *  v3.51 诊断：客户端层缓存 +370 里有 AlwaysLoad×6（Light/LogicLevel/Ocean/ProceduralFoliageVolumes/block/cars），
+     *  可当前层 18 个里没有 AlwaysLoad —— 显示层列表 +0x2dc 和服务器层列表 +0x2e8 都没建它 → LogicLevel 从来没加载（刷物资区 0、全图靶子 0）。
+     *  做法（只服务端/单机）：层工厂 0x1156e20(&FName AlwaysLoad 0x5173208) → 工厂 vt+0x10(out, 工厂) 建层（同构造里建 +0x2cc/+0x2d4 的写法）；
+     *  CurrentLayers(+0x2f4) 临时换成只有这一层 → FillLayersWithCacheData 0x11649bc(管理器, +0x370, 块号) 只给它建关卡流对象（别的层不重复 Tile）→
+     *  换回原数组，再把它追加到 CurrentLayers 尾部，之后 Tick 的 Update 正常流式加载。 */
+    static final long LAYER_FACTORY = 0x1156e20L, FILL_LAYERS = 0x11649bcL, NAME_ALWAYSLOAD = 0x5173208L;
+    static volatile String logic = "常驻层 AlwaysLoad：没跑";
+    static String alwaysLoad(long b, Veh.Names nm, long mgr, long pc) throws Exception {
+        StringBuilder sb = new StringBuilder("常驻层 AlwaysLoad（LogicLevel 刷枪/靶子）：");
+        long cur; int num, max, blk;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            cur = Server.rd(m, mgr + 0x2f4); num = (int) Server.rd(m, mgr + 0x2f8); max = (int) Server.rd(m, mgr + 0x2fc); blk = (int) Server.rd(m, pc + 0xbdc);
+            if (cur < 0x10000 || num <= 0 || num > 64) return sb.append("当前层数组不对 ").append(num).toString();
+            for (int i = 0; i < num; i++) {
+                long L = Server.rd(m, cur + 8L * i); if (L < 0x10000) continue;
+                if ("AlwaysLoad".equals(Box.nameOf(m, nm, Server.rd(m, L + 8)))) return sb.append("当前层里已有，不加").toString();
+            }
+        }
+        if (blk < 0) return sb.append("PC 没块号，不加").toString();
+        long[] r = Server.gcall(b + LAYER_FACTORY, b + NAME_ALWAYSLOAD, 0, 0, 0, 3000);
+        long fac = r[1];
+        if (r[0] == 0 || fac < 0x10000) return sb.append("层工厂没拿到（").append(r[0] == 0 ? "游戏线程没接" : Long.toHexString(fac)).append("）").toString();
+        long[] mem = Server.gcall(b + REALLOC, 0, 16, 0, 0, 3000);
+        if (mem[0] == 0 || mem[1] < 0x10000) return sb.append("分配内存失败").toString();
+        long out = mem[1], one = mem[1] + 8;
+        Mods.pokeInt(out, 0); Mods.pokeInt(out + 4, 0);
+        long vt10;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { vt10 = Server.rd(m, Server.rd(m, fac) + 0x10); }
+        if (vt10 < b || vt10 > b + 0x4000000L) return sb.append("工厂虚表不对 ").append(Long.toHexString(vt10)).toString();
+        r = Server.gcall(vt10, out, fac, 0, 0, 3000);
+        long layer, ref;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { layer = Server.rd(m, out); ref = Server.rd(m, out + 4); }
+        if (r[0] == 0 || layer < 0x10000) return sb.append("建层失败（").append(r[0] == 0 ? "游戏线程没接" : "空").append("）").toString();
+        String lname; try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { lname = Box.nameOf(m, nm, Server.rd(m, layer + 8)); }
+        sb.append("建层 ").append(lname).append(" vt+").append(Long.toHexString(rdq(layer) - b)).append("；");
+        // 临时只留这一层 → Fill
+        Mods.pokeInt(one, (int) layer); Mods.pokeInt(one + 4, (int) ref);
+        Mods.pokeInt(mgr + 0x2f4, (int) one); Mods.pokeInt(mgr + 0x2fc, 1); Mods.pokeInt(mgr + 0x2f8, 1);
+        long[] f = Server.gcall(b + FILL_LAYERS, mgr, mgr + 0x370, blk, 0, 3000);
+        Mods.pokeInt(mgr + 0x2f8, num); Mods.pokeInt(mgr + 0x2f4, (int) cur); Mods.pokeInt(mgr + 0x2fc, max);
+        sb.append("Fill(块 ").append(blk).append(") ").append(f[0] != 0 ? "已跑" : "没跑").append("；");
+        // 追加到 CurrentLayers（8 字节元素：层指针 + 引用计数块）
+        long data = cur; int nmax = max;
+        if (num >= max) {
+            nmax = Math.max(4, num * 2);
+            long[] a = Server.gcall(b + REALLOC, cur, nmax * 8, 0, 0, 3000);
+            if (a[0] == 0 || a[1] < 0x10000) return sb.append("追加时分配失败").toString();
+            data = a[1];
+        }
+        Mods.pokeInt(data + 8L * num, (int) layer); Mods.pokeInt(data + 8L * num + 4, (int) ref);
+        Mods.pokeInt(mgr + 0x2f4, (int) data); Mods.pokeInt(mgr + 0x2fc, nmax); Mods.pokeInt(mgr + 0x2f8, num + 1);
+        int lv = -1;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long coll = Server.rd(m, layer + 0x1c); if (coll >= 0x10000) lv = (int) Server.rd(m, coll + 0x18);
+        }
+        return sb.append("已加进当前层（第 ").append(num).append(" 层），关卡 ").append(lv).append(" 个").toString();
+    }
+    static long rdq(long a) { try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { return Server.rd(m, a); } catch (Throwable t) { return 0; } }
 
     static volatile String guns = "训练桌放枪：没跑";
     /** 人物周围 36×36 米、1.2 米一格，从人物中心上方 1 米往下打射线（低于棚顶）。

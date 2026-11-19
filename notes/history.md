@@ -1406,3 +1406,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 靶子 Bp_First..FifthRound×、BP_FlyTarget/MobileTarget/MoveableTarget、BP_ShootPracticeBase、BP_VehiclePracticeBase、BP_Practice_ActualCombat、shootreturn/drivereturn/AIreturn、VehicleSpawnPoint1..12。
 - 设备诊断「刷物资区 0、全图靶子 0」→ LogicLevel 的 actor 在游戏里不存在或没被我们的扫描认出；TileMode 层列表 0..17 里没有 AlwaysLoad 层。下一步：诊断查 LogicLevel 有没有加载（world StreamingLevels 0 个），查 ANZBRPickUpRefreshTriggerVolume 实例数。
 - libUE4 字符串：PickUpRefreshVolumnDisable (0x47d2d54，某类的属性名，待查归属)；APickUpRefreshSystem::FetchPickUpRefreshInfoState 报错串 utf32 0x43b2170（设备日志没出现）。
+
+## v3.52（core253，未实测，2026-11-20 03:10）训练岛常驻层 AlwaysLoad（LogicLevel 刷枪/靶子）
+- 根因（v3.51 服务端 slot 诊断）：客户端层缓存 +370 有 AlwaysLoad×6（Light/LogicLevel/Ocean/ProceduralFoliageVolumes/block/cars），但当前层 18 个没有 AlwaysLoad；
+  显示层 +0x2dc（工厂 vt+0x18 过滤）和服务器层 +0x2e8（工厂 vt+0x1c 过滤，0x11577a4）都没建它 → LogicLevel 里的 BP_PickUpRefreshVolumn×2、五轮靶子、训练台从没加载（刷物资区 0、全图靶子 0）。
+- 层工厂注册表 0x5173800（0x1156e20(&FName) 查/建，注册在 0x1157990..0x1158c00，AlwaysLoad 前缀 'AlwaysLoad/'，FName 静态 0x5173208）。
+- Island.alwaysLoad（只服务端/单机，join 后）：工厂 vt+0x10(out, 工厂) 建层 → CurrentLayers(+0x2f4) 临时只放这一层 → FillLayersWithCacheData 0x11649bc(管理器, +0x370, PC+bdc) → 换回原数组并把新层追加到尾部。诊断行「常驻层 AlwaysLoad（LogicLevel 刷枪/靶子）：…」。
+- 训练桌自摆枪保留（15 秒后原生 150 米内物资 <5 才摆）。
