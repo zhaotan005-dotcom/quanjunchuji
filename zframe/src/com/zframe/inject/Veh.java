@@ -388,6 +388,8 @@ public class Veh {
     public static volatile String botInfo = "";
     static final String[] DIFF = { "", "简单", "普通", "困难" };
 
+    /** v3.42：上一次 info() 填的本机玩家控制器（buf+4） */
+    static long lastPc() { ByteBuffer x = buf; return x == null ? 0 : x.getInt(4) & 0xffffffffL; }
     /** 读一次人物位置：{x, y, z, yaw(度), GameMode, World}；没人物返回 null */
     static synchronized double[] info() throws InterruptedException {
         if (!installed || !call(0) || buf.getInt(0) != 0x5b02 || buf.getInt(8) == 0) return null;

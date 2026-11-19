@@ -228,3 +228,9 @@
 - 刚问用户：要不要加只给测试用的开关，让一个人也能进场地看围墙（用户只有一个客户端）。未回复。
 - 以前没做完的：空投空、地图物资刷新（物资点在不加载的图层，目前没有能用的刷法）、单机门、双排/四排带人机队友、军需抽奖、电竞按钮、45 秒倒计时缩短、柜子里能捡、出生衣服开关、v3.15 重新登录修复未测。
 - 日志：ntfy.sh/zf-qj-k7r2p9m4x1；构建：cd zframe && bash build_all.sh <旧> <新> <旧vc> <新vc>（JDK 路径不对时临时 sed 成 /workspace/work/rkenv/jdk-21.0.12.1+1 再改回）。
+
+## v3.42（vc243/core243，2026-11-19 20:3x，只推内核，未实测）
+- 详见 history v3.42。训练场：Island 按 Login 原步骤补位置 → 原生 AddPlayerToSlot；LoadBlock(位置块号, 16)；服务器层 FillLayersWithCacheData(+0x37c)；传射击训练区；slot-* 自动诊断。
+- v3.41「第 9 块」是假象（块 1..15 全 Out Of Index）；「第 9 块对应哪个 Heightmap」这个问题不成立：块号是整座岛的第几份副本，不是 Heightmap 瓦片。
+- 待用户测：slot-* 四行；para-*（拿雷点「手雷抛物线检查」）。下一步按诊断：若 +a21 不来 → 查 Landscape 层完成条件；若车/物资仍 0 → 查 BP_VehiclePracticeBase / PickUpRefresh 触发（BP 在 game/pak）。
+- 日志：ntfy zf-qj-k7r2p9m4x1。构建：build_all.sh 一次跑三版可能超 120 秒，可按 history 拆成单版跑（/tmp/b1.sh 同逻辑）。

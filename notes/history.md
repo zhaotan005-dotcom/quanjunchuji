@@ -1264,3 +1264,21 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.41（vc242/core242，2026-11-19 19:5x，未实测）— 训练岛逐块加载
 - 19:45 train- 诊断（v3.40）：游戏更新页「找到；公告换成我们的；UpdatePanel/进度条/文字都显示；进度条已接上」（更新页成功！）。训练场（BP_NZBRPracticeGameMode_C）没闪退（空队伍补丁 ok，Login NZPlayerState error 1 只是报错）；Island 找到出生点 9 个、地形块 1，传到 -156080,-258810,-15900；加载块没试（先找到出生点）。
 - 改：传送后 Island.blocks：块 0..min(num,24) 逐个 LoadBlock（+0x440 先 -1），每次后数地形块，最后停在最多那块；完成后自动上传 block-* 诊断。
+
+## v3.42（vc243/core243，2026-11-19 20:3x，未实测）— 训练场按原生流程分位置；收起键；删伪装联机；抛物线诊断
+只更新在线内核（构建脚本仍会出三个 APK，照放 releases/，用户不用装）。
+- v3.41 block-1119-195412 诊断复核（ntfy）：
+  - 「第 9 块地形最全」是假象：v3.41 调的是 LoadBlock(管理器, i, 1)，第三个参数是块数，LoadBlock 0x1163f3c 先写 +0x43c=块数，再查 0≤块号<块数 → 块 1..15 全部「Load Block Out Of Index」（日志 15 行）。只有块 0 真加载了；地形块数 1→4→14→17 是块 0 随时间流式加载出来的。
+  - 「所有副本关卡加载完」这道检查 v3.41 已经通过：19:52:44 OnLevelStreamingLayerLoadCompleted Landscape → Tick OnAllDuplicateLevelLoaded（GM+0xa70 由 0x108233c 设，Tick 0x1082cb0 看 +0xa70 && !+0xa21 → 0x108357c）。之后照样没刷车/物资，所以卡点不在这里。
+- RE（libUE4）：
+  - 训练场 = 一个专用服开 16 份岛。BeginPlay 0x1081d70 建 GM+0xa40 位置数组（0x34 字节/个：[0] 块号，+4..+0xc 出生点，+0x10 玩家 TArray；+0xa44 个数，+0xa4c 块数默认 16）。SetupPlayerStartActor 0x1082868：出生点 = 块偏移 0x1163e2c + 模板出生点（GM+0xa64）。块偏移：边长 int(sqrt(N)+0.5)，(行-1.5)×W、(列-1.5)×H；日志出生点 X 间隔 140000 → 推断 W=H=140000，岛本身的出生点约 (53920,-48810)（推断）。
+  - Login 0x1084c5c：0x10845b0 挑位置 → 塞进位置玩家数组 → +0xa70 已置就 AddPlayerToSlot 0x1083a98，否则排进 GM+0xa24，由 0x108357c 处理。AddPlayerToSlot 写 PC+0xbdc 块号/+0xbe0 块数、传出生点（0x2eca4ac/0x274ca58）、GameState+0x284 登记。客户端 Client Load Block 实现 0x1086960 → LoadBlock(PC+0xbdc, PC+0xbe0)。
+  - 单机根因：玩家 Login（19:51:24）早于 GameMode BeginPlay（19:51:29）→ 位置数组空 → 挑不到位置（v3.37 补丁让它跳过）→ 玩家永远不进位置。
+  - 专用服 0x1164d90（NetMode==1 才跑）给每块 FillLayersWithCacheData 0x11649bc(管理器, +0x370 普通层, i)，+0x2c8 开着再填 +0x37c 服务器层；客户端 LoadBlock 只填 +0x370。Main.umap 的 ServerLayersSettings 引用 ServerOnly/Pickups、ServerOnly/MeshTiles → 单机地上物资在没加载的服务器层（推断，同 v2.20 Loot 对大地图的结论）。
+  - pak（game/pak，只读）：LogicLevel 有 BP_ShootPracticeBase、BP_VehiclePracticeBase、BP_Practice_ActualCombat、VehicleSpawnPoint1..12、PlayerStart2..11、BP_PickUpRefreshVolumn×2、靶子（BP_FlyTarget/MobileTarget/MoveableTarget、ShootRangeTarget Bp_First..FifthRound）。刷车相关属性 VehicleSpawnInfoArray/PracticeSlotIndex → 刷车按位置绑定。
+  - 手雷抛物线：画线 0xee9fe4 无联机判断。投掷组件（虚表 0x4c524d0，+0x1c 武器，+0xa8 ProjectileTrajectory）：每帧 0xefa98c（+0x148）、开始画 0xef9454、+0x120 0xef9354（ThrowWeaponTrace==1 调）、+0x128 0xef9994（==0 调）。检查项：武器+0x2b4≥1、人物 vt+0x34c==1、vt+0x350==1、WeaponManager(+0x888)+0x2d8==这把、设置对象 0xc9e8b8 的 ThrowWeaponTrace(+0xd5，配置属性)==0 时要 [武器+0x3e8]+0x24+0x20 ∈{5,6}；持续更新要人物 vt+0x918/0x4c4/0x4ac 都为 0。哪项挡住未定 → 只加诊断。
+- 改：
+  - Island 重写：等 GM+0xa44>0 → 0x10845b0 挑位置、把 PC 塞进位置玩家数组（数组不够用 FMemory::Realloc 0x1989d38 分配）→ +0xa21 已处理就直接 AddPlayerToSlot，否则排进 +0xa24 → LoadBlock(管理器, 位置块号, GM+0xa4c) → 管理器 +0x2c8 开着就 FillLayersWithCacheData(管理器, +0x37c, 块号) → 等 PC+0xbdc≥0 且 +0xa21（最多 150 秒）→ 射击训练区：人物 1.2 km 内靶子（父类链含 NZSceneItem_RangeTarget）按 50 m 连群，取最大群主轴较密的一端外 10 m、高 2 m → 20 秒后数车/地上物资/刷车点/刷物资区/系统 → 自动上传 slot-* 诊断。删 v3.41 逐块加载。不是 PracticeGameMode 就不做。
+  - GameOverlay：标题栏「收起」键只在对局里显示（= 隐藏，五指再开）；删「单机按联机方式进图」开关，换成「诊断 → 手雷抛物线检查」（Parabola.check + 上传 para-*）。
+  - 删伪装联机：Con.startGame 的 ?listen 分支、Lan.fakeOnline。单机进图地图串不变（这开关 v3.31 起默认关），不影响单机进图。
+- 要看的日志行：slot-* 里「分配位置：…」「训练岛：…」「射击训练区：…」「原生刷车/刷物资（分配后 20 秒）：…」；para-* 里「抛物线检查（手里拿雷时）：…」；游戏日志 AddPlayerToSlot / Client Load Block / Load Block Out Of Index / OnAllDuplicateLevelLoaded。

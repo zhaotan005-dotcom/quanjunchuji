@@ -428,8 +428,7 @@ public class Con {
     static void startGame(final int id) {
         // v3.22 用户：单机新海岛也用战术模式（和联机服务端开房一样：?game=战术模式蓝图）
         String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : id == 5 ? MAP_TRAINING : null;   // v3.33：5 训练场 = 训练岛默认模式
-        // v3.25 用户：抛物线（还有探测器视角、标点）联机状态正常 → 单机也按「开房」方式进图（listen，没人加入），骗过游戏当成联机
-        if (m0 != null && id != 5 && Lan.fakeOnline && Lan.role == 0) { String u = Lan.unlock(); m0 += "?listen"; LogCap.note("单机伪装联机：" + u); }
+        // v3.42 用户：删掉伪装联机（v3.25 加的单机 ?listen 进图；v3.31 起默认关），单机一律真单机进图
         final String m = m0;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);
         final Activity a = act;
