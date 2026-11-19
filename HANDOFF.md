@@ -262,3 +262,5 @@
 - 要看：avatar/slot 的「同帧摆人：… 阶段 4/5」和「分配位置」是否「在出生点」；进岛不再停在虚空。para- 里「光束：段数、段模板、段组件…」单机和联机各一份对比。
 - 下一步（还没查）：训练岛不刷枪（ds not prepared、地上物资 0）；实战区不自动进流程、没人机。
 - RE 环境：game/re/*.pkl 从 /workspace/work/zf/game/re 拷；libUE4 在 /workspace/work/qjcj/x；dd.py 要 /workspace/work/qjcj-gh → qj2 软链。
+
+- v3.47（core248，15e8778 后，未实测）：训练营菜单去空白；训练岛服务器层进 CurrentLayers（刷枪点，0x115c744 cave）；FindSlot 从位置 4 开始（小地图）；单机刷车贴地+确认+「没刷出来」；皮卡/大脚车拆开；刷车满油（AddFuel）；海岛服务端真空投箱（StaticLoadClass）。雷未动。详见 notes/history.md。
