@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.21";
+    static final String VER = "v3.22";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -231,7 +231,7 @@ public class GameOverlay {
                 panel.setX(px); panel.setY(py);
             }
             panelAct = a;
-            PropBtn.attach(a);   // v2.53 对局里的「道具」键
+            // v3.22 用户：删掉自制的「道具」键（战术模式用游戏原生道具栏）
             // v2.34：屏幕大小变了（云手机转屏/分辨率）或菜单变大变小，都重新夹回屏幕里
             panel.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> clamp(panel, decor, u));
             decor.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (r - l != or - ol || bt - t != ob - ot) panel.post(() -> clamp(panel, decor, u)); });
@@ -454,11 +454,17 @@ public class GameOverlay {
 
     static void cmd(Activity a, String c, String label) {
         boolean ok = Con.exec(c);
-        if (label != null) Toast.makeText(a, ok ? label : "执行失败", Toast.LENGTH_SHORT).show();
+        if (label != null && !ok) Toast.makeText(a, "执行失败", Toast.LENGTH_SHORT).show();
     }
 
     static void toastAny(String msg) { Activity a = Con.act; if (a != null) a.runOnUiThread(() -> toast(a, msg)); }
-    static void toast(Activity a, String msg) { Toast.makeText(a, msg, Toast.LENGTH_SHORT).show(); }
+    /** v3.22 用户：黑框提示直接删掉（不是精简），只有出错这类必须让人知道的才弹 */
+    static boolean keepToast(String msg) {
+        if (msg == null || msg.isEmpty()) return false;
+        for (String k : new String[]{"失败", "出错", "错误", "闪退", "没反应", "找不到", "没找到"}) if (msg.contains(k)) return true;
+        return false;
+    }
+    static void toast(Activity a, String msg) { if (!keepToast(msg)) { LogCap.note("提示(不显示)：" + msg); return; } Toast.makeText(a, msg, Toast.LENGTH_SHORT).show(); }
 
     /** v1.26：GiveItem 编号x数量（刷物品补丁里的代码会把 x 后面的数字当数量，最多 999） */
     // v1.27 诊断：传一块自己的内存地址给补丁代码，它把走到哪一步写进来（只写这块缓冲区，不碰游戏内存）

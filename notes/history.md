@@ -1137,3 +1137,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 「地图物资/门 关/开」开关和开房页 Loot.shortText 行删掉（Loot 默认关，不再有入口；代码留着，Loot.line 关着时什么都不做）。
 - 「出生岛空投」开关删掉；Box.on 默认 false；HostMatch 不再调 Box.tick（开局物资堆、排车不跑）。Box.joinedPos/dropAll/DISCARD 留着（刷东西放加入玩家脚下、单挑清背包要用）。
 - 「正常对局」现在 = 游戏自己的流程（读秒、飞机、毒圈按 Flow），出生岛不再放任何东西。地图物资：现有代码里没有一个能用的「自动刷地图物资」——物资点在 ServerOnly 流式层，单机(NetMode 0)/房主(2)都不加载（v2.20 RE），唯一的办法就是刚删掉的 Loot（SL cave，从没实测成功过）。所以正常对局地图上目前没有物资，没新做系统（用户要的话下一步再议）。
+
+## v3.22（vc223/core223，2026-11-19 16:0x，三包，未实测）
+- 15:42/15:44 用户：单机修成联机那样；新海岛用战术模式；删自制道具键；水里加速不生效；标点单机不行；游戏内更新改成从仓库拿资源；黑框提示直接删（不要精简，特定情况才要）；单机不记日志、不往手机放文件。
+- 黑框：GameOverlay.toast 只弹含 失败/出错/错误/闪退/没反应/找不到/没找到 的，其余只进 logcat；exec 成功不再弹。
+- 单机不记录：AvatarLog.off()（ED 0 且没加入别人）→ export 直接返回，不上传、不进 zf_logq；Server.autoCrashSave 单机直接返回。
+- 删自制「道具」键：GameOverlay 不再 PropBtn.attach（代码留着）。
+- 单机新海岛：Con.startGame 编号 3 → MAP_ERANGEL2 + "?game=" + 战术模式蓝图（ModeProbe.cache Props）。
+- 水里加速：RE 确认 NZ CMC GetMaxSpeed 0xd370f8 游泳时用实例 +0x16c，但 v2.74 写 MaxSwimSpeed 实测无效（原因未查清）→ 游泳模式(4)改用时间倍率（和走路一样，动画按 slowMo 放慢），MaxSwimSpeed 只还原原值。注意潜水时氧气会按倍率掉得快（用户 v2.73 提过）。
+- 标点：单机诊断「找队伍：PS+35c NZBRTeamInfo 成员 0」。RE：0x1020614 = 按队伍成员(+0x300/+0x304，步长 0xc)重建 TeamMemberInfoList(+0x2f4/+0x2f8，每项 0x50)，只被 OnTeamCharacterRep(exec 0x11eddf8，RepNotify，单机不触发) 调；0x102085c 每帧把控制器 +0xa04/+0xa0c 抄进列表(+0x30/+0x2c)。MapMark.fixTeam：单机列表 0 且成员>0 时用 Veh.ucall 在游戏线程调 0x1020614(队伍)，3 秒一次最多 40 次。
+- 游戏内更新/资源包：没做。游戏自带资源下载走腾讯 Dolphin/Puffer（服务器已停、要真 pak 资源），这个包启动不建更新页实例（v2.69 探测）；我们的内核已经是发到仓库 core/ 后游戏启动自动拿。

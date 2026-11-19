@@ -411,7 +411,8 @@ public class Con {
     static volatile long startAt;
     /** 地图编号来自日志：1 老海岛，3 新海岛（GameMapId=3），4 雨林（GameMapId=4），5 训练场 */
     static void startGame(final int id) {
-        final String m = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 : id == 4 ? MAP_SAVAGE : null;
+        // v3.22 用户：单机新海岛也用战术模式（和联机服务端开房一样：?game=战术模式蓝图）
+        final String m = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : null;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);
         final Activity a = act;
         if (a == null) return;

@@ -49,7 +49,7 @@ final class MapMark {
             if (ctl != lastCtl) {
                 Veh.Names nm = Veh.Names.get();
                 String cn = Alive.clsName(m, nm, ctl);
-                lastCtl = ctl; lastHex = "";
+                lastCtl = ctl; lastHex = ""; fixTry = 0;
                 state = "标点：控制器 " + Long.toHexString(ctl) + " " + cn;
                 // v2.80：记下控制器虚表里 删标点(0x3e8/0x3ec) 加标点(0x3f0 校验/0x3f4 实现) 的函数（减库基址），好离线看实现
                 long vt = Server.rd(m, ctl);
@@ -61,6 +61,7 @@ final class MapMark {
                 if (cn == null || !cn.contains("PlayerController")) { state += "（不是玩家控制器，不看）"; lastCtl = -1; }
             }
             if (lastCtl == -1) return;
+            fixTeam(m, b);
             int cnt = (int) Server.rd(m, b + MCAVE + DATA);
             if (inst.contains("已补") && cnt != lastCnt) {
                 if (lastCnt >= 0 || cnt != 0) {
@@ -143,6 +144,21 @@ final class MapMark {
         sb.append(" 成员 ").append(n);
         if (arr > 0x10000 && n > 0 && n <= 4) for (int i = 0; i < n; i++) sb.append("\n    [").append(i).append("] ").append(Server.bytesAt(m, arr + 0x50L * i, 0x50));
         note(sb.toString());
+    }
+    /** v3.22 用户：标点联机能用、单机不行。原因：单机（独立模式）里队伍的 TeamMemberInfoList 一直是 0 个成员（诊断「找队伍：PS+35c NZBRTeamInfo 成员 0」），
+     *  这个列表只在客户端收到同步时由 OnTeamCharacterRep → 0x1020614（按队伍成员 +0x300/+0x304 重建列表）建；每帧 0x102085c 再把控制器 MapSignInfo(+0xa04/+0xa0c) 抄进列表。
+     *  单机没人触发 OnRep → 列表空 → 地图上没有自己这一项，标点显示不出来。修：单机时列表是 0 而成员数 >0，就在游戏线程调一次 0x1020614(队伍)。 */
+    static final long REBUILD = 0x1020614L;
+    static long fixAt; static int fixTry;
+    static void fixTeam(RandomAccessFile m, long b) throws Exception {
+        if (team == 0 || Lan.role != 0 || Ed.ED == 2) return;
+        long now = System.currentTimeMillis();
+        if (now - fixAt < 3000 || fixTry >= 40) return;
+        int list = (int) Server.rd(m, team + 0x2f8), mem = (int) Server.rd(m, team + 0x304);
+        if (list != 0 || mem <= 0 || mem > 4) return;
+        fixAt = now; fixTry++;
+        long[] r = Veh.ucall(team, 0, 0, 0, null, b + REBUILD);
+        note("单机补队伍成员列表：成员 " + mem + "，调用 " + (r[0] == 0x5b0e ? "ok" : "没反应") + "，现在列表 " + Server.rd(m, team + 0x2f8) + " 个");
     }
     static void syncTeam(RandomAccessFile m, long ctl) throws java.io.IOException {
         if (team == 0) return;

@@ -547,13 +547,14 @@ public class Mods {
         // v2.36 客户端：位置由服务端说了算，空中切回 1 倍、起跳加水平速度服务端都对不上 → 拉回。客户端一直保持同一个倍数（和服务端一致）
         boolean air = Ed.ED != 2 && mode == MOVE_FALLING;
         // v2.73 用户：翻墙秒翻、水里开加速很快没氧气 → 只在「走路」模式（1）加速；游泳 4、飞/翻越等特殊模式 5/6 恢复 1 倍
-        boolean special = Ed.ED != 2 && mode != 1 && mode != MOVE_FALLING;
+        // v3.22 用户：水里加速不生效（v2.74 改 MaxSwimSpeed 实测没用）→ 游泳(4)也用时间倍率加速，和走路一样
+        boolean special = Ed.ED != 2 && mode != 1 && mode != 4 && mode != MOVE_FALLING;
         // v2.74 用户：水里别取消加速，只是别加快掉氧气 → 游泳时时间倍率仍是 1（氧气正常），改 MaxSwimSpeed(+0x16c) = 原值 × 倍数
         boolean swim = Ed.ED != 2 && mode == 4;
         float sw = f(m, c + C_SWIM);
         if (sw > 10f && sw < 2000f && Math.abs(sw - lastSwim) > 0.5f) baseSwim = sw;   // 不是我们写的值 = 游戏的原值
         if (baseSwim > 0) {
-            float wantSw = swim && speed > 1f ? Math.min(baseSwim * speed, 30000f) : baseSwim;
+            float wantSw = baseSwim;   // v3.22：游泳改用时间倍率，MaxSwimSpeed 只还原原值（不再叠乘）
             if (Math.abs(sw - wantSw) > 0.5f) { wf(m, c + C_SWIM, wantSw); }
             lastSwim = wantSw;
         }

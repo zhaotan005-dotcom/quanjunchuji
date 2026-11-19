@@ -12,7 +12,10 @@ public class AvatarLog {
             "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried", "AirSupply", "AirBox", "Flare", "FunctionalProp", "Legion", "FiveArmy" };
 
     static String export(Activity a) { return export(a, "avatar-"); }
+    /** v3.22 用户：单机不需要记录日志，也别往手机里放东西 → 单机（ED 0 且没加入别人）不导出、不上传、不留队列 */
+    static boolean off() { return Ed.ED == 0 && Lan.role != 2; }
     static String export(Activity a, String prefix) {
+        if (off()) return "";
         try {
             File f = Con.findUeLog(a);
             if (f == null) return "找不到游戏日志";

@@ -366,6 +366,7 @@ public class Server {
 
     /** v1.70 自动记录：上次运行用过服务端（留下了步骤文件），这次进大厅 6 秒后自动导出一份诊断到 下载/ZFrame/crash-*.txt，每份记录只存一次 */
     public static void autoCrashSave() {
+        if (AvatarLog.off()) return;   // v3.22 单机不记录
         try {
             // v2.17：任何闪退（Bugly 留了新的 tomb_*.txt）下次进大厅自动存一份 crash-*.txt，每个 tomb 只存一次（大厅已去掉「导出诊断」）
             try {
