@@ -230,6 +230,20 @@ final class Island {
         state = "训练岛：出生点好了，原生摆人 + Client Load Block";
         // 4) 补进位置 → 原生 AddPlayerToSlot 摆人 → 原生 Client Load Block（LoadBlock + FirstLoad）
         double[] ps = join(b, gm, pc, mgr);
+        // v3.50 用户：v3.49 枪要等 2 分多钟（跟踪 120 秒之后才摆）→ 进岛 15 秒就摆。
+        //   v3.49 诊断：ServerOnly 本层进来后展开出 ServerOnly/Pickups 等子层（关卡 1，包住人物），但地上还是没枪 → 先看原生 150 米内有没有物资，不够 5 个才自己摆
+        //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
+        if (!GameOverlay.remote()) { final long fb = b; final Veh.Names fnm = nm; new Thread(() -> {
+            try {
+                Thread.sleep(15000);
+                if (!Con.training || !Con.inMatch) return;
+                double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
+                if (me != null) for (float[] q : sc.pick) if (d2(q, me) < 15000.0 * 15000.0) near++;
+                if (near >= 5) { guns = "训练桌放枪：原生 150 米内已有物资 " + near + " 个，不摆"; note(guns); return; }
+                tableGuns();
+                guns = "原生 150 米内物资 " + near + " 个；" + guns;
+            } catch (Throwable e) { guns = "训练桌放枪：出错 " + e; note(guns); }
+        }, "zf-tablegun").start(); }
         state = "训练岛：已摆人和 Client Load Block，跟踪地形加载";
         // 5) 衣服（训练岛不走 Bots.matchLoaded，以前从来没发过）
         outfit();
@@ -240,7 +254,6 @@ final class Island {
         // 7b) v3.49 训练桌上的枪：这版客户端 pak 里训练岛根本没有 ServerOnly 关卡文件（pak 文件表 TrainingIsland_Runtime 只有
         //     AlwaysLoad/Grass/Heightmap/OcHmp/OcPolygons/Runtime/Tree，全包没有任何 ServerOnly 文件），v3.47/48 把层加进去也是空的 → 枪桌原来的刷枪点不存在。
         //     改成自己摆：射线找桌面，每张桌子放枪 + 子弹；找不到桌子就在人物前方地上摆一排。
-        if (!GameOverlay.remote()) try { tableGuns(); } catch (Throwable e) { guns = "训练桌放枪：出错 " + e; note(guns); }
         // 8) 原生刷车/刷物资情况
         Thread.sleep(20000);
         if (!Con.training || !Con.inMatch) return;

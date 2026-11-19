@@ -1380,3 +1380,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.49（vc250/core250，未实测）
 - Island.tableGuns()：rangeDiag 后，人物周围 36×36 m、1.2 m 格向下射线（起点人物中心+1 m，低于棚顶）；比 3 m 内最低点高 55–115 cm = 桌面；1.5 m 连桌；每桌一把枪（Bots.GUN 轮流）+ 3 份子弹（Veh.dropAt）；不足 3 张桌子则人物前方 4 m 起地上 2 排。诊断「训练桌放枪」行（含桌面命中的 actor/cls）。
 - Server：发型道具记颜色（props 第 5 列），prop() 对非角色带 role_attr{color(6)}；请求里 field5/6 都认；日志路径也写到穿着的发型（slot 213）。
+
+## 2026-11-20 01:53 用户（v3.49 实测）：还是没枪；发色好了；要服务端也能进训练营
+- v3.49 train-1120-015133（50 秒导出）：ServerOnly 本层进来后展开 ServerOnly/Door、Glass、Pickups（关卡 1，包住人物）、GrassMap —— 更正 v3.49 的说法：服务器关卡是有的（pak-files.tsv 只是没列全）。但地上仍没枪；训练桌放枪那时「没跑」（排在跟踪 120 秒之后）。
+
+## v3.50（vc251/core251，未实测）
+- Island：join 之后另起线程 15 秒检查原生 150 m 内物资，<5 才 tableGuns()（不再等跟踪 120 秒）。
+- GameOverlay：服务端大厅卡片第一行「进训练营」= Lan.host(MAP_TRAINING)（listen，训练岛默认模式，和单机同）；去掉旧「训练营/训练场」两个按钮。

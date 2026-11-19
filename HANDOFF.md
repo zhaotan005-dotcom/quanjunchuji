@@ -266,3 +266,4 @@
 - v3.47（core248，15e8778 后，未实测）：训练营菜单去空白；训练岛服务器层进 CurrentLayers（刷枪点，0x115c744 cave）；FindSlot 从位置 4 开始（小地图）；单机刷车贴地+确认+「没刷出来」；皮卡/大脚车拆开；刷车满油（AddFuel）；海岛服务端真空投箱（StaticLoadClass）。雷未动。详见 notes/history.md。
 - v3.48（core249，未实测）：训练岛再加 ServerOnly 本层（v3.47 只进了 Majority/GroundObjects）；大厅发色回包带 hair_color。
 - v3.49（core250，未实测）：训练桌自己摆枪（pak 没有 ServerOnly 关卡）；发色走 hair_prop.role_attr.color(6)。
+- v3.50（core251，未实测）：服务端「进训练营」；训练桌 15 秒检查原生物资，不够才自己摆。
