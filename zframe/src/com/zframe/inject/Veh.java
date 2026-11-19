@@ -138,19 +138,153 @@ public class Veh {
         if (!call('G', id / 10000) || buf.getInt(0) != 0x5b0a) return "补丁代码没反应";
         return null;
     }
-    /** v2.92 服务端替客户端刷车：在 (x,y,z) 前方 6 米、高 1.5 米刷第 gi 组车 */
-    static synchronized String spawnGroupAt(int gi, float x, float y, float z) throws InterruptedException {
+    /** v2.92 服务端替客户端刷车：在 (x,y,z) 前方（+x）6 米刷第 gi 组车。
+     *  v3.47：和菜单刷车同一条路 place()（贴地、挡住换位置、确认真刷出来、加满油）；不再持锁等结果（place 里自己分段加锁） */
+    static String spawnGroupAt(int gi, float x, float y, float z) throws InterruptedException {
         if (!installed) return state;
         if (!call(0)) return "补丁代码没反应";
-        if (buf.getInt(36) == 0) return "这局没有车表";
+        long dt = buf.getInt(36) & 0xffffffffL;
+        if (dt == 0) return "这局没有车表";
         ArrayList<Group> gs = groups;
         if (gs == null || gs.isEmpty() || gi < 0) return "车表里没读到车编号";
+        trucks(dt);
         Group g = gs.get(gi % gs.size());
         long id = g.ids.get(g.at++ % g.ids.size());
-        buf.putFloat(40, x + 600f); buf.putFloat(44, y); buf.putFloat(48, z + 230f);
-        buf.putFloat(52, 0f); buf.putFloat(56, 0f); buf.putFloat(60, 0f);
-        boolean ok = call(id) && buf.getInt(0) == 0x5b03;
-        return (ok ? "已刷 " : "没反应 ") + g.label + "（编号 " + id + "）";
+        return place(g.label, id, x, y, z, 0);
+    }
+
+    // ---------------- v3.47 刷车：落点、确认、满油 ----------------
+    /* 单机刷车「点了没车」的原因（静态 RE + v1.92/v1.93 设备日志）：
+     *  游戏 SpawnVehicle 0x1102ca4 → 0x100600c：FindRow → SpawnActor 0x2aa8ad4，生成参数碰撞处理写死 3（0x1006064 mov r0,#3 = AdjustIfPossibleButDontSpawnIfColliding），
+     *  被挡住就返回空，只打一行 Error「[VehicleSpawn] spawn vehicle failed … SpawnPoint=None」（v1.92/v1.93 日志 18:24:51~18:25:06 连续 6 次，全在同一个落点）。
+     *  我们以前的落点是「人物中心往前 6 米、再高 1.5 米」，不看地面：前面是上坡/墙/树/房子就生成失败；
+     *  而 vcave 调完 0x1102ca4 不管成没成都写 0x5b03，Java 就提示「已刷」——失败完全看不出来。
+     *  另外落点写在共用缓冲 buf+40..60，ahead() 和 call(id) 是两次加锁，中间人机自动刷（addBot）/传送（teleport）/刷地上东西（dropAt）会改这块，车就刷到别处去了（单机有自动人机，最容易撞上）。
+     *  修：落点 = 射线打到的地面 + 2 米；一次加锁写落点+调用；调完扫车（油箱组件）确认真的多了一辆，没有就换下一个落点（最多 5 个）。 */
+    /** UVehicleFuelComponent（/Script/NZGame，StaticClass 0xe9e7b0，构造 0xe1e61c，虚表 0x4beb188）：+0xa0 Owner（车），+0xa8 FuelAmountMax（int，默认 100），
+     *  +0xb4 FuelAmountCurrent（float，复制，OnRep_Fuel = vt+0x1ec 0xe1ef10）；BeginPlay vt+0x17c = 0xe1e6f0：权威端 Current = Max × 随机(RandMin +0xb8=0.1 .. RandMax +0xbc=1.0) × GM+0x340 VehicleFuelFactor；
+     *  vt+0x1e8 = 0xe1e6b8 AddFuel(this, float)：Current += min(数量, Max-Current)。 */
+    static final long FUEL_VT = 0x4beb188L, ADD_FUEL = 0xe1e6b8L;
+    static final int F_OWNER = 0xa0, F_MAX = 0xa8, F_CUR = 0xb4, F_ADD = 0x1e8;
+    public static volatile String fuelState = "满油：还没刷车";
+
+    /** 一次加锁：写落点和朝向，再调刷车。true = cave 调过了 0x1102ca4（不代表车一定生成了） */
+    static synchronized boolean spawnAt(long id, float x, float y, float z, float yaw) throws InterruptedException {
+        if (!installed) return false;
+        if (buf == null && !call(0)) return false;
+        buf.putFloat(40, x); buf.putFloat(44, y); buf.putFloat(48, z);
+        buf.putFloat(52, 0f); buf.putFloat(56, yaw); buf.putFloat(60, 0f);
+        return call(id) && buf.getInt(0) == 0x5b03;
+    }
+    /** 场上所有车的油箱组件 → {组件, 车}；扫一遍 GUObjectArray（只比虚表，跳过类默认对象）。出错返回 null */
+    static java.util.HashMap<Long, Long> fuelComps() {
+        long b = Mods.base(); if (b == 0) return null;
+        java.util.HashMap<Long, Long> out = new java.util.HashMap<>();
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            for (long c : Flare.byVt(m, b, b + FUEL_VT)) { long o = Server.rd(m, c + F_OWNER); if (o >= 0x10000) out.put(c, o); }
+        } catch (Throwable e) { return null; }
+        return out;
+    }
+    /** 刷之后：找 before 里没有的、车在 (x,y) 30 米内的那个油箱组件 → {组件, 车}；没有返回 null */
+    static long[] findNew(java.util.HashMap<Long, Long> before, float x, float y) {
+        java.util.HashMap<Long, Long> now = fuelComps(); if (now == null) return null;
+        long[] best = null; double bd = 3000 * 3000;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            for (java.util.Map.Entry<Long, Long> e : now.entrySet()) {
+                if (before.containsKey(e.getKey())) continue;
+                long root = Server.rd(m, e.getValue() + 0x128); if (root < 0x10000) continue;
+                double dx = Mods.f(m, root + 0x140) - x, dy = Mods.f(m, root + 0x144) - y, d = dx * dx + dy * dy;
+                if (d < bd) { bd = d; best = new long[] { e.getKey(), e.getValue() }; }
+            }
+        } catch (Throwable ignored) {}
+        return best;
+    }
+    /** v3.47 用户：刷出来的车默认满油。游戏线程调这辆车油箱组件自己的 AddFuel(上限)（vt+0x1e8，调之前核对虚表项 == 0xe1e6b8） */
+    static String fillFuel(long comp) throws InterruptedException {
+        long b = Mods.base(); if (b == 0) return "满油：找不到游戏库";
+        int max; float cur;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            if (Server.rd(m, comp) != b + FUEL_VT) return "满油：油箱组件不对";
+            if (Server.rd(m, Server.rd(m, comp) + F_ADD) != b + ADD_FUEL) return "满油：加油函数对不上，没加";
+            max = (int) Server.rd(m, comp + F_MAX); cur = Mods.f(m, comp + F_CUR);
+        } catch (Throwable e) { return "满油：读不到 " + e; }
+        if (max <= 0 || max > 100000) return "满油：上限不对 " + max;
+        if (cur >= max - 0.01f) return "油 " + max + "/" + max;
+        long[] r = ucall(comp, Float.floatToRawIntBits((float) max) & 0xffffffffL, F_ADD, 0, null);
+        float now = cur;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { now = Mods.f(m, comp + F_CUR); } catch (Throwable ignored) {}
+        if (r[0] != 0x5b0e) return "满油：加油没调成（" + Long.toHexString(r[0]) + "），油 " + Math.round(cur) + "/" + max;
+        return "油 " + Math.round(cur) + "→" + Math.round(now) + "/" + max;
+    }
+    /** 在 (px,py,pz)（人物中心）朝 yaw 方向找落点刷 id：贴地、挡住换位置、确认生成、加满油。返回给菜单看的一句话 */
+    static String place(String label, long id, double px, double py, double pz, double yawDeg) throws InterruptedException {
+        double r = Math.toRadians(yawDeg), fx = Math.cos(r), fy = Math.sin(r);
+        double[][] cand = { {600, 0}, {1000, 0}, {700, 450}, {700, -450} };   // 前方距离、左右（厘米）；最多 4 个落点（没确认到也不会多刷超过 4 辆）
+        java.util.HashMap<Long, Long> before = fuelComps();
+        StringBuilder tried = new StringBuilder();
+        for (int i = 0; i < cand.length; i++) {
+            float x = (float) (px + cand[i][0] * fx - cand[i][1] * fy), y = (float) (py + cand[i][0] * fy + cand[i][1] * fx);
+            float z = (float) pz + 150f; String how = "人物高度";
+            boolean boat = label.contains("艇") || label.contains("船");   // 船照旧按人物高度（射线可能穿过水面打到水底）
+            Trace.Hit h = boat ? null : Trace.down(x, y, (float) pz + 800f, (float) pz - 2500f);
+            if (h != null && !Float.isNaN(h.z)) {
+                if (h.z > pz + 300) { tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append(" 前面高出 ").append(Math.round((h.z - pz) / 100)).append(" 米（").append(h.cls).append("），跳过"); continue; }
+                if (h.z > pz - 500) { z = h.z + 200f; how = "地面"; }   // 比脚下低 4 米以上（坡下/水底）就还按人物高度，让车自己落
+            }
+            if (!spawnAt(id, x, y, z, (float) yawDeg)) return "没反应 " + label + "（编号 " + id + "，补丁代码没反应）";
+            if (before == null) return "已刷 " + label + "（编号 " + id + "，没法确认、没加油：扫车出错）";
+            long[] v = findNew(before, x, y);
+            if (v != null) {
+                String f = fillFuel(v[0]);
+                fuelState = "满油：" + label + " " + f;
+                return "已刷 " + label + "（编号 " + id + (i > 0 ? "，第 " + (i + 1) + " 个位置" : "") + "，" + how + "）" + f;
+            }
+            tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append("（").append(how).append("）没生成");
+        }
+        return "没刷出来 " + label + "（编号 " + id + "）：" + tried + "（游戏生成时被挡住，换个空地再刷）";
+    }
+
+    /** v3.47：皮卡/大脚车核对。车表行里有车的蓝图路径（FSoftObjectPath，FName）：/Game/Vehicles/Wheeled/MonsterTruck/… 或 /Game/Vehicles/Wheeled/PickUpTruck/…（pak 清单里的目录名） */
+    public static volatile String truckInfo = "皮卡/大脚车：还没核对（先按 31 皮卡、32 大脚车）";
+    static volatile long trucksDt;
+    static void trucks(long dt) {
+        if (dt == 0 || dt == trucksDt) return;
+        trucksDt = dt;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            Names n = Names.get();
+            if (n == null) { truckInfo = "皮卡/大脚车：名字表没找到，按 31 皮卡、32 大脚车"; return; }
+            String k31 = kind(m, dt, 31, n), k32 = kind(m, dt, 32, n);
+            boolean swap = "大脚车".equals(k31) || "皮卡".equals(k32);
+            if (swap) for (Group g : groups) { if ("皮卡".equals(g.label)) { g.ids.clear(); g.ids.add(32L); g.at = 0; } else if ("大脚车".equals(g.label)) { g.ids.clear(); g.ids.add(31L); g.at = 0; } }
+            truckInfo = "皮卡/大脚车：车表 31=" + (k31 == null ? "没认出" : k31) + "，32=" + (k32 == null ? "没认出" : k32) + (swap ? "，已对调" : "");
+        } catch (Throwable e) { truckInfo = "皮卡/大脚车：核对出错 " + e; }
+        note(truckInfo);
+    }
+    /** 车表里编号 id 那一行，行内 0x200 字节里找 FName / FString 含 MonsterTruck / PickUpTruck */
+    static String kind(RandomAccessFile m, long dt, long id, Names n) {
+        long data = Server.rd(m, dt + 0x20), num = Server.rd(m, dt + 0x24);
+        if (data == 0 || num <= 0 || num > 500) return null;
+        String want = Long.toString(id);
+        long end = data + Math.min(num * 128L, 0x10000);
+        for (long e = data; e + 16 <= end; e += 4) {
+            long idx = Server.rd(m, e), no = Server.rd(m, e + 4);
+            if (idx <= 0 || idx > 0x400000 || no != 0 || !want.equals(n.name(m, (int) idx))) continue;
+            for (int k = 8; k <= 12; k += 4) {
+                long row = Server.rd(m, e + k); if (row < 0x10000) continue;
+                for (int o = 0; o < 0x200; o += 4) {
+                    String s = null;
+                    long w = Server.rd(m, row + o), w2 = Server.rd(m, row + o + 4);
+                    if (w > 0 && w <= 0x400000 && w2 < 64) s = n.name(m, (int) w);
+                    if (s == null && w >= 0x10000 && w2 >= 8 && w2 <= 300) s = u32(m, w, (int) Math.min(w2, 160));
+                    if (s == null) continue;
+                    String l = s.toLowerCase(java.util.Locale.ROOT);
+                    if (l.contains("monstertruck")) return "大脚车";
+                    if (l.contains("pickuptruck")) return "皮卡";
+                }
+            }
+            return null;
+        }
+        return null;
     }
     /** v1.88 用游戏自己的分配器要一块内存（cave 'M'），失败返回 0 */
     static synchronized long malloc(int size) throws InterruptedException {
@@ -265,7 +399,8 @@ public class Veh {
         Object[][] t = { {"吉普", new long[]{1, 17, 20, 28}}, {"敞篷吉普", new long[]{4, 11, 21}}, {"篷布吉普", new long[]{5, 12, 22}},
             {"轿车", new long[]{2, 23}}, {"蹦蹦", new long[]{6, 14, 24}}, {"面包车", new long[]{10}}, {"跑车", new long[]{29, 30}},
             {"摩托", new long[]{9, 15, 25}}, {"三轮摩托", new long[]{8, 16, 26}}, {"快艇", new long[]{13, 18, 19}}, {"大船", new long[]{3, 27}},
-            {"皮卡（试）", new long[]{31, 32}} };   // v2.26：车表 31=car_007、32=car_008 两款没认过，按一次换一款，看哪个是皮卡
+            {"皮卡", new long[]{31}}, {"大脚车", new long[]{32}} };   // v3.47 用户：「皮卡」按钮里有两辆车，其中一辆是大脚车 → 拆成两个按钮。
+            // 车表 31=car_007、32=car_008（图标名），哪个是大脚车先按 31 皮卡 / 32 大脚车，第一次刷时 trucks() 读车表行里的蓝图路径（MonsterTruck / PickUpTruck）核对，反了就对调
         ArrayList<Group> out = new ArrayList<>();
         for (Object[] r : t) { Group g = new Group(); g.label = (String) r[0]; for (long id : (long[]) r[1]) g.ids.add(id); out.add(g); }
         return out;
@@ -345,16 +480,20 @@ public class Veh {
         busy = true;
         new Thread(() -> {
             try {
-                String e = ahead(600, 150);
-                if (e != null) { GameOverlay.toastAny(state = "刷车：" + e); return; }
-                if (buf.getInt(36) == 0) { GameOverlay.toastAny(state = "刷车：这局没有车表"); return; }
+                // v3.47：不再 ahead() 写落点后另一次加锁再调（中间会被人机/传送改掉落点）；info() 读人物，place() 一次加锁写落点+调用，并确认真生成
+                double[] p = info();
+                if (p == null) { GameOverlay.toastAny(state = "刷车：" + (installed ? "还没有人物（进对局、落地后再按）" : state)); return; }
+                long dt = buf.getInt(36) & 0xffffffffL;
+                if (dt == 0) { GameOverlay.toastAny(state = "刷车：这局没有车表"); return; }
                 ArrayList<Group> gs = groups;
                 if (gs == null || gs.isEmpty()) { GameOverlay.toastAny(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
                 if (gi < 0) { GameOverlay.toastAny(state = "刷车：读到 " + gs.size() + " 种车，菜单里点车名刷"); return; }
+                trucks(dt);
                 Group g = gs.get(gi % gs.size());
                 long id = g.ids.get(g.at++ % g.ids.size());
-                boolean ok = call(id) && buf.getInt(0) == 0x5b03;
-                String s = "刷车：" + (ok ? "已刷 " : "没反应 ") + g.label + "（编号 " + id + "）";
+                String r = place(g.label, id, p[0], p[1], p[2], p[3]);
+                boolean ok = r.startsWith("已刷");
+                String s = "刷车：" + r;
                 note(s); state = s;
                 if (!ok) GameOverlay.toastAny(s);
                 if (ok) carCheck();

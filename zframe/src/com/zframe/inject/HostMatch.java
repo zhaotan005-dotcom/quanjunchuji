@@ -75,6 +75,8 @@ final class HostMatch {
                 solo();
                 try { hide(); } catch (Throwable t) { LogCap.note("藏房主人物出错 " + t); }
                 // v3.21 用户：删掉出生岛空投（Box 开局放物资堆、排车不再跑）
+                // v3.47 用户：海岛服务端自动刷东西，用真空投箱（Box.isle：老/新海岛、不在单挑/训练营；不再放地上堆）
+                if (Box.isle()) Box.tick();
                 try { ghost(); } catch (Throwable t) { LogCap.note("房主人物冻结出错 " + t); }
                 Training.tick();
                 // v3.10 用户：道具只刷在玩家脚下（物资箱里每种 67），不再直接塞进背包（塞满后游戏会把多的丢出来）

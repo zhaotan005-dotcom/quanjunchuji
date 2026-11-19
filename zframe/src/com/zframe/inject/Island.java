@@ -99,10 +99,52 @@ final class Island {
     /** 回大厅时清掉缓冲区（不留上一局的 PC） */
     static void caveReset() { ByteBuffer x = ib; if (x != null) for (int o = 0; o < 32; o += 4) x.putInt(o, 0); }
     static String caveText() {
-        ByteBuffer x = ib; if (!caveOn || x == null) return "同帧摆人：没装";
+        ByteBuffer x = ib; if (!caveOn || x == null) return "同帧摆人：没装\n" + tlText();
         String[] st = { "没开始", "找位置", "已追加进位置", "已原生摆人", "Client Load Block 已跑", "FirstLoad 已补" };
         int s = x.getInt(8);
-        return "同帧摆人：Login 记录 " + x.getInt(16) + " 次，建出生点后调用 " + x.getInt(4) + " 次，阶段 " + s + "（" + (s >= 0 && s < st.length ? st[s] : "?") + "）";
+        return "同帧摆人：Login 记录 " + x.getInt(16) + " 次，建出生点后调用 " + x.getInt(4) + " 次，阶段 " + s + "（" + (s >= 0 && s < st.length ? st[s] : "?") + "）\n" + tlText();
+    }
+    /** v3.47 训练岛不刷枪：TileMode 流式管理器单机走客户端路径，服务器层（ServerOnly/ServerOnlyMajority/ServerOnlyGroundObjects）
+     *  不进 CurrentLayers → FillLayersWithCacheData 不给它们建关卡 → 刷枪点/地上物资不存在（v3.45：地上物资 0，客户端层缓存里这三层各 5 个关卡）。
+     *  钩子 BeginPlay 汇合点 0x115c744 → cave（game/re/tlcave.py，emu_tlcave.py 四种情况过）：只对 TileMode（vptr==0x4cada54）
+     *  照专用服规则把服务器层列表 +0x2e8 里缺的层追加进 CurrentLayers。A 0x171e3f4..0x171e4af，B 0x171e568..0x171e5fb。
+     *  字面量（Java 填绝对地址）：TileMode 虚表、静态层名 0x5173280、缓冲区、原指令的 r0=0x51734e0。 */
+    static final long TL_A = 0x171e3f4L, TL_B = 0x171e568L, TL_HOOK = 0x115c744L;
+    static final String TL_HOOK_O = "d4089fe5", TL_HOOK_N = "2a0717ea";
+    static final String TA = "ff4f2de958409de5000054e32300000a000094e590109fe5010050e11f00001a8ca09fe500009ae5010080e200008ae578909fe5e87294e5ec8294e508808ae50060a0e3080056e1140000aa860187e0005090e504b090e5000055e36700000a082095e50c3095e5000099e5041099e5020050e1030051016000000a180099e51c1099e5020050e1030051013800001ac902d4e5000050e35800000a340000eaff4fbde80c009fe5aaf8e8ea";
+    static final String TAO = "0010a0e3000058e30600000a010196e7000050e30300000a010189e7011081e2080051e1f8ffff3a010058e10300009a010189e0011048e00111a0e1473ac6eb0000a0e3070189e70d00a0e1040050e10e00000a000094e5000050e30000000a61ae09eb00009de5000084e50000a0e300008de504109de5041084e508109de5081084e504008de508008de5030000ea00009de5000050e30000000a52ae09eb0500a0e10410a0e16315d1eb63ffffea74c0b7027420d3024c1fd302";
+    static final String TB = "f4e294e5f8c294e50010a0e30c0051e10b0000aa81019ee7011081e2000050e3f9ffff0a050050e11700000a0ca090e5080090e5020050e103005a011200000af1ffffea01008ce2f80284e5fc0294e500005ce10ca0a0e1020000babd0f84e20a10a0e1eb9bd2ebf41294e58a1181e0005081e504b081e500005be30200000a04009be5010080e204008be5016086e28effffea";
+    static final String TBO = "efffff0abe52ddeb0c1094e55c2090e55c3091e5030052e1e9ffffca581091e5580080e2021191e7000051e1e4ffff1abf0debeb0c1094e55c2090e55c3091e5030052e1deffffca581091e5580080e2021191e7000051e1d9ffff1a347298e52c804be20060a0e30d00a0e32c600be50010a0e324600be528000be50800a0e1e458d1eb24129fe53420a0e32c001be501108fe0";
+    /** v3.47 小地图不对：训练岛 9 个位置是同一个岛复制成 3x3（块间距 1400 米），地图贴图只画中间那个原岛（块 4，偏移 0）。
+     *  FindSlot 0x10845b0 挑第一个空位置 → 单机总进块 0（-1400 米,-1400 米 偏移）→ 小地图/大地图看到的是原岛西南的海（推断）。
+     *  改空位置搜索起点：0x108464c mov r1,#0 / add r2,r0,#0x14 → mov r1,#4 / add r2,r0,#0xe8（从位置 4 开始找；训练场默认 9 个位置）。 */
+    static final long PS4 = 0x108464cL; static final String PS4_O = "0010a0e3142080e2", PS4_N = "0410a0e3e82080e2";
+    static ByteBuffer tb; static long tbAddr; static volatile String tlState = "服务器层补丁：没装";
+    static String tlWrite(RandomAccessFile m, long at, byte[] want, String orig, int cmpLen) throws Exception {
+        byte[] cur = new byte[want.length]; m.seek(at); m.readFully(cur);
+        boolean ours = java.util.Arrays.equals(java.util.Arrays.copyOf(cur, cmpLen), java.util.Arrays.copyOf(want, cmpLen));
+        if (!ours && !Patches.hexs(cur).equalsIgnoreCase(orig)) return "空位字节不符 " + Long.toHexString(at - Mods.base()) + " " + Patches.hexs(java.util.Arrays.copyOf(cur, 8));
+        return null;
+    }
+    static String tlInstall() {
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        if (tb == null) { tb = ByteBuffer.allocateDirect(16).order(ByteOrder.LITTLE_ENDIAN); tbAddr = GameOverlay.bufAddr(tb); }
+        if (tbAddr <= 0 || tbAddr > 0xffffffffL) return "缓冲区地址不对";
+        byte[] a = Patches.hex(TA + Server.w32((int) (b + 0x4cada54L)) + Server.w32((int) (b + 0x5173280L)) + Server.w32((int) tbAddr) + Server.w32((int) (b + 0x51734e0L)));
+        byte[] bb = Patches.hex(TB);
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            String e = tlWrite(m, b + TL_A, a, TAO, TA.length() / 2); if (e != null) return e;
+            e = tlWrite(m, b + TL_B, bb, TBO, bb.length); if (e != null) return e;
+            m.seek(b + TL_A); m.write(a); m.seek(b + TL_B); m.write(bb);
+            byte[] c1 = new byte[a.length], c2 = new byte[bb.length];
+            m.seek(b + TL_A); m.readFully(c1); m.seek(b + TL_B); m.readFully(c2);
+            if (!java.util.Arrays.equals(c1, a) || !java.util.Arrays.equals(c2, bb)) return "写入没生效";
+        } catch (Throwable t) { return "出错 " + t.getMessage(); }
+        return Mods.write(TL_HOOK, TL_HOOK_O, TL_HOOK_N, true);
+    }
+    static String tlText() {
+        ByteBuffer x = tb; if (x == null) return tlState;
+        return tlState + "；TileMode BeginPlay 跑过 " + x.getInt(0) + " 次，服务器层列表 " + x.getInt(8) + " 个（加了几层看流式状态的当前层）";
     }
     static void install() {
         caveReset();
@@ -113,6 +155,7 @@ final class Island {
             if (!caveOn) { Mods.write(PR, PR_O, PR_N2, false); r = Mods.write(PR, PR_O, PR_N, true); }
         } else r = Mods.write(PR, PR_O, PR_N, true);
         String r2 = Mods.write(PB, PB_O, PB_N, true);
+        tlState = "服务器层补丁（训练岛刷枪点）：" + tlInstall() + "；先进中间位置 4（小地图）：" + Mods.write(PS4, PS4_O, PS4_N, true);
         fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t; LogCap.note(fix);
     }
     static volatile String block = "分配位置：没试";

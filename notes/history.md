@@ -1354,3 +1354,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - (5) 传送残留：Island 删退回传送、抬到地面、hold()（停重力）；follow 只记录（地形出来 40 秒后停）。
 - (6) 手雷抛物线：v3.45 para 诊断所有画线前检查都过（+21=1、BP_ProjectileTrajectory_C、34c/350=1），卡在光束。画线 0xee9fe4 在抛物线物体上：段数 round(+2cc/+2d0)<1 不画；每段 0xeea4f0 用模板 +2d4 建组件存 +2d8/+2dc，SetVisibility 0x292041c、SetHiddenInGame(0) 0x2b6f01c、vt+0x420 SetStartAndEnd、vt+0x42c；终点 +2e4。Parabola.trajDiag 读这些 + 每段组件里 StaticMesh/材质/粒子指针 + 原始字节；Parabola.matchStart 每局拿雷 1.5 秒后自动跑一次传 para-（单机/服务端/客户端都跑，联机对比）。
 - 还没查：训练岛不刷枪（游戏日志 UPracticePlayerComponent::InitializeRecordInfo ds not prepared!，utf32 串 0x43769e8，xr.pkl 没扫到引用；地上物资 0）；实战区不自动进流程、没有人机。
+
+## v3.47（vc248/core248，未实测，2026-11-20 00:45）
+- 训练营菜单：训练营里隐藏左侧分页列和分隔线，内容区高度改为按内容（不再固定高），去掉 3 项菜单下面的大片空白（GameOverlay）。
+- 训练岛不刷枪：TileMode 流式管理器单机走客户端路径，服务器层（ServerOnly/ServerOnlyMajority/ServerOnlyGroundObjects）不进 CurrentLayers(+0x2f4)，FillLayersWithCacheData 0x11649bc 不建这些层 → 刷枪点/物资不存在（v3.45：地上物资 0）。钩子 BeginPlay 汇合点 0x115c744（d4089fe5 → 2a0717ea）→ cave A 0x171e3f4..4af / B 0x171e568..5fb（game/re/tlcave.py，emu_tlcave.py 四种情况过）：仅 vptr==TileMode 虚表 0x4cada54 时，按专用服规则（跳过静态名 0x5173280 的 N0、N18 且 +0x2c9==0、已有同指针/同名）把 +0x2e8 服务器层追加进 CurrentLayers，引用 +1，满了 0xbc5580 扩容。诊断行「服务器层补丁（训练岛刷枪点）」。
+- 训练岛小地图（推断）：岛复制成 3x3，贴图只对中间原岛；FindSlot 0x10845b0 从位置 0 找空位 → 单机进西南块。0x108464c 0010a0e3142080e2 → 0410a0e3e82080e2，从位置 4（中间）开始找。
+- 单机刷车：游戏碰撞处理 3 被挡就不生成（只打 spawn vehicle failed），以前总提示「已刷」；落点不贴地且和人机/传送共用缓冲。改：射线贴地 +2 米、写落点+调用一次加锁、扫油箱组件确认多了一辆，否则换位置（最多 4 个），都不行提示「没刷出来」。
+- 皮卡拆成 皮卡(31)/大脚车(32)；第一次刷读车表路径（MonsterTruck/PickUpTruck），反了自动对调。
+- 刷出的车满油：UVehicleFuelComponent（vt 0x4beb188，Max +0xa8 int，Current +0xb4 float），游戏线程调 vt+0x1e8 AddFuel 0xe1e6b8 加满。
+- 海岛服务端：加入玩家落地后投真空投箱；配置 0x1186a74 的箱子类 +0x32c/+0x330/+0x334/+0x338 为空时用 StaticLoadClass 0x1bf2c5c 加载 /Game/Blueprints/AirSupply/BP_NZBRAirSupplyBox… 填上；去掉地上假箱子堆；车照排、满油。HostMatch：Box.isle() 时 Box.tick()。
+- 雷：按用户说先不动。

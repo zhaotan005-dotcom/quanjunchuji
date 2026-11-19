@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.46";
+    static final String VER = "v3.47";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -161,10 +161,11 @@ public class GameOverlay {
             final View tabsLine = hr;
             // v2.05：对局里的分页按身份不同 —— 单机：常用/武器/装备/刷车/人机/画面；房主：人机换成联机；加入的客户端：只有联机/画面
             final Runnable mode = () -> {
-                int v = Con.inMatch ? View.VISIBLE : View.GONE; tsv.setVisibility(v); tabsLine.setVisibility(v);
+                boolean trainOnly = Con.training && Con.inMatch;   // v3.47 用户：训练营只剩一页 → 不要左边分页列、内容多高菜单多高（不留大片空白）
+                int v = Con.inMatch && !trainOnly ? View.VISIBLE : View.GONE; tsv.setVisibility(v); tabsLine.setVisibility(v);
                 // v2.19 用户：大厅菜单下面一大片空白 → 大厅里内容多高就多高
                 LinearLayout.LayoutParams sl = (LinearLayout.LayoutParams) sv.getLayoutParams();
-                int want = Con.inMatch ? svH : -2;
+                int want = Con.inMatch && !trainOnly ? svH : -2;
                 if (sl.height != want) { sl.height = want; sv.setLayoutParams(sl); }
                 int r = Lan.role;
                 for (TextView t : tv) {
@@ -1291,7 +1292,7 @@ public class GameOverlay {
             final int gi = i;
             btn(a, u, vr, vg.get(i).label, () -> { if (remote()) Give.askCar(gi, vg.get(gi).label); else Veh.spawnGroup(gi); });
         }
-        if (Veh.state.contains("没反应") || Veh.state.contains("出错") || Veh.state.contains("没有")) note(a, u, root, Veh.state);
+        if (Veh.state.contains("没反应") || Veh.state.contains("出错") || Veh.state.contains("没有") || Veh.state.contains("没刷出来")) note(a, u, root, Veh.state);   // v3.47 刷车确认真生成，没生成写「没刷出来」
     }
     /** v1.93 人机页 */
     static void botPage(final Activity a, final Ui u, final LinearLayout root) {
