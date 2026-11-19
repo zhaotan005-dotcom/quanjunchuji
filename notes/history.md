@@ -1211,3 +1211,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 喷气背包：30307000099_Jetpack 蓝图只有 NZItem_JetpackBag + 特效 P_EFX_Jetpack_01，不引用任何声音；声音属性 JetLaunchSoundEvent 在 C++ 类上（推测角色蓝图 BP_NZBRCharacter_BaseMan 填值）；Wwise 资源里没有名字带 jet/fly 的事件。
 - 沙漠：pak 里只有 4 张主图（老海岛/新海岛/雨林/训练岛），沙漠只有模式蓝图和贴图碎片。
 - 改动：Con.MAP_TRAINING/GM_TRAINING/goTraining；startGame 编号 5 → 训练岛（默认训练场模式，不加 ?listen）；Con.training 标记：训练岛里不跑 Phantom/Mods.matchZone/HostMatch/Bots.matchLoaded/Flow.matchLoaded，只跑标点和喷气背包；单机大厅「训练」两个按钮（训练营 = ?game=BP_NZBRTrainingGameMode，训练场 = 默认）；服务端开房页也加两个按钮（Lan.host）。
+- 18:49 第三批（/workspace/work/pakx3）：BP_NZBRCharacter_BaseMan 导入 235（Wwise 50）、BP_NZBRPlayerController 导入 73（Wwise 38），两者名字表/导入表都没有 Jet；libUE4 没有任何喷气背包声音的事件名或路径；DataTable/Lua/ini 也没有。结论：这个版本根本没有喷气背包音效资源，JetLaunchSoundEvent 没人填 → 不是「没加载」，是没有。可选替代：起飞时播跳板音效 /Game/WwiseAssets/Events/Item/Item_FangZhi_Mod/LaunchPad/Play_Lauchpad_Lauch（BaseMan 已导入，必定已加载）。已问用户。
