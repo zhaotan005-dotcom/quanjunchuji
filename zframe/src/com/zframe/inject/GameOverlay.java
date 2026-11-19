@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.34";
+    static final String VER = "v3.35";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1829,7 +1829,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.34 更新内容\n" + "· 开机更新页：之前只有背景没有进度条（进度条那块在游戏里默认是隐藏的），现在自己把它显示出来；没接上会弹提示\n" + "\n" + "v3.33 更新内容\n" + "· 训练营回来了：找到了真地图（训练岛），大厅「单机」下新增「训练营」「训练场」两个按钮；游戏自己选图里的训练场也能进了；训练岛里不自动刷人机、不改模式\n" + "\n" + "v3.32 更新内容\n" + "· 单机「剩余」多出来的那个占位人物：进图后找到它本人并删掉（不是硬改数字），剩余只算你和人机\n" + "\n"
+    static final String NOTICE = "v3.35 更新内容\n" + "· 开机更新：我们的进度和公告一直显示，直到游戏自己的进度条真接上才收起（之前游戏页只有背景、什么都看不到）\n" + "· 训练营/训练场：进岛后自动找出生点并把你传过去（之前掉在海里）；找不到会弹提示\n" + "\n" + "v3.34 更新内容\n" + "· 开机更新页：之前只有背景没有进度条（进度条那块在游戏里默认是隐藏的），现在自己把它显示出来；没接上会弹提示\n" + "\n" + "v3.33 更新内容\n" + "· 训练营回来了：找到了真地图（训练岛），大厅「单机」下新增「训练营」「训练场」两个按钮；游戏自己选图里的训练场也能进了；训练岛里不自动刷人机、不改模式\n" + "\n" + "v3.32 更新内容\n" + "· 单机「剩余」多出来的那个占位人物：进图后找到它本人并删掉（不是硬改数字），剩余只算你和人机\n" + "\n"
             + "v3.31 更新内容\n" + "· 单机默认不再伪装联机（之前会让下车后人物消失），回到真单机；菜单里「单机按联机方式进图」默认关\n" + "\n"
             + "v3.30 更新内容\n" + "· 修游戏自带更新页没开：上次更新下好自动重启（没进大厅）被当成「卡住」，下一次就把更新页关了；现在不会了\n" + "· 标点传送：开关会记住、默认开（之前重启就变回关）；控制器里没标点时从队伍信息读；菜单里显示标点和传送状态，传送失败会提示\n" + "\n"
             + "v3.29 更新内容\n" + "· 开机更新不再有时间上限：网络失败自动重试，直到查到结果或下完重启才进大厅\n" + "\n"
@@ -1866,7 +1866,7 @@ public class GameOverlay {
     static final java.util.concurrent.atomic.AtomicBoolean startupOnce = new java.util.concurrent.atomic.AtomicBoolean();
     static void startupUpdate() {
         if (!startupOnce.compareAndSet(false, true)) return;
-        if (UpdFlow.on) { fetchNotice(); UpdPage.start(); } else srvUpdatePage();
+        if (UpdFlow.on) { fetchNotice(); UpdPage.start(); } srvUpdatePage();   // v3.35 用户录屏：游戏页只有背景、什么都不显示 → 我们这层先一直显示进度，游戏的进度条真接上了才关
     }
     static void srvFallback() { MAIN.post(GameOverlay::srvUpdatePage); }
     static void srvUpdatePage() {
@@ -1897,7 +1897,7 @@ public class GameOverlay {
                 pb.setMax(100); pb.setIndeterminate(true);
                 try { pb.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFF5C518)); pb.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xFFF5C518)); } catch (Throwable ignored) {}
                 col.addView(pb, new LinearLayout.LayoutParams(u.dp(520), u.dp(10)));
-                TextView ver = new TextView(a); ver.setText("全军出击 " + Ed.name() + " " + VER + "（内核 " + ZInit.CORE_VER + "）· 点任意处关闭\n" + (UpdPage.started ? UpdPage.state : UpdFlow.state));   // v3.26：游戏更新页为什么没出来，直接显示（单机不导日志） ver.setTextColor(0x99FFFFFF); ver.setTextSize(11); ver.setGravity(Gravity.CENTER);
+                final TextView ver = new TextView(a); ver.setText("全军出击 " + Ed.name() + " " + VER + "（内核 " + ZInit.CORE_VER + "）· 点任意处关闭\n" + (UpdPage.started ? UpdPage.state : UpdFlow.state));   // v3.26：游戏更新页为什么没出来，直接显示（单机不导日志） ver.setTextColor(0x99FFFFFF); ver.setTextSize(11); ver.setGravity(Gravity.CENTER);
                 ver.setPadding(0, u.dp(6), 0, 0);
                 col.addView(ver, new LinearLayout.LayoutParams(-1, -2));
                 bg.addView(col, new FrameLayout.LayoutParams(-1, -1));
@@ -1927,7 +1927,9 @@ public class GameOverlay {
                     if (!bg.isAttachedToWindow() || restarting[0]) return;
                     showPct.run();
                     long el = System.currentTimeMillis() - t0;
-                    if ((NetCore.done && el > 6000) || el > 40000) { closeUpd(a, bg); return; }
+                    ver.setText("全军出击 " + Ed.name() + " " + VER + "（内核 " + ZInit.CORE_VER + "）· 点任意处关闭\n" + (UpdPage.started ? UpdPage.state : UpdFlow.state));
+                    if (UpdPage.panelOk) { closeUpd(a, bg); return; }
+                    if (NetCore.done && el > 6000 && (!UpdFlow.on || UpdPage.finished)) { closeUpd(a, bg); return; }   // v3.35：去掉 40 秒自动关，跟开机规则一致（走完才放行）
                     bg.postDelayed(tick[0], 300);
                 };
                 bg.postDelayed(tick[0], 300);
@@ -1935,6 +1937,7 @@ public class GameOverlay {
             } catch (Throwable e) { LogCap.note("加载页更新：显示失败 " + e); }
         });
     }
+    static void closeUpdAny() { Activity a = Con.act; View v = upd; if (a != null && v != null) a.runOnUiThread(() -> closeUpd(a, v)); }
     static void closeUpd(Activity a, View v) {
         if (upd == v) { upd = null; NetCore.listener = null; }
         if (v != null) try { a.getWindowManager().removeViewImmediate(v); } catch (Throwable ignored) {}

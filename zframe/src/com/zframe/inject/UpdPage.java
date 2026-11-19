@@ -13,7 +13,7 @@ import java.nio.ByteOrder;
  *  找不到这页（这包没有/没建出来）→ 照旧用我们自己的那层（GameOverlay.srvUpdatePage）。未实测。 */
 final class UpdPage {
     static volatile long view;
-    static volatile boolean finished, started;
+    static volatile boolean finished, started, panelOk;
     static volatile String state = "游戏更新页：没开始";
     static final long INFO_GET = 0xfb1be8L, SHOW_NOTICE = 0x15de914L;
 
@@ -151,6 +151,7 @@ final class UpdPage {
         state += "；面板：" + g;
         LogCap.note(state);
         if (!g.contains("UpdatePanel 显示")) GameOverlay.toastAny("更新页进度条失败：" + g);
+        else { panelOk = true; GameOverlay.closeUpdAny(); }
     }
     static int b8(RandomAccessFile m, long a) { try { byte[] x = new byte[1]; m.seek(a); m.readFully(x); return x[0] & 0xff; } catch (Throwable e) { return -1; } }
 }

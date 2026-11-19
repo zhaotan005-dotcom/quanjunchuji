@@ -1221,3 +1221,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE：UpdateUI 蓝图里有 ESlateVisibility::Collapsed，UpdatePanel 默认隐藏，游戏只在腾讯 Dolphin 更新开始时显示 → 我们调 OnUpdateProcess 也看不见。UWidget::SetVisibility 原生 thunk 0x25a6764 → 虚表 +0x124(控件, 字节)，0=Visible。
 - 改动：UpdPage.showPanel：页面 +0x200~0x260 按对象名找 UpdatePanel/UpdateProgressBar/UpdateProcessText/UpdateProcessValue，Server.gcall 调 vt+0x124(w,0)；失败（没找到/没跑到）弹黑框「更新页进度条失败…」，游戏线程没跑到也弹。
 - 训练岛问题（掉海里/训练场闪退）等用户发 Grok 第四批（Main.umap、AlwaysLoad 子关卡）和导出诊断。
+
+## v3.35（vc236/core236，2026-11-19 19:0x，未实测）— 更新层常显、训练岛出生点
+- 18:57 用户录屏（v3.34）：腾讯 logo → 游戏更新页背景约 8 秒，什么都没显示（用户退出）。原因：UpdFlow 开时我们那层不出，只等 UpdPage 25 秒找页面。改：开机总是显示我们的进度/公告层（游戏页出来后透明底），UpdPage.showPanel 成功（panelOk）才收起；去掉 40 秒自动关；状态行每 0.3 秒刷新 UpdPage.state。
+- 18:58 Grok 第四批（/workspace/work/pakx4）：Main.umap 导出 NZStreamingLevelsManagerActor_TileMode_2、NZWorldSettings、WorldComposition_0；导入 BP_NZBRPracticeGameMode（地图默认模式）；LogicLevel 有 10 个 PlayerStart（PlayerStart2_2…11）、12 个 VehicleSpawnPoint（Actor）、BP_PickUpRefreshVolumn×2。
+- 改：Island.java（类名 Training 已被单挑/训练功能占用）：进训练岛 30 秒内每 2 秒扫 PlayerStart 实例和地形块（Landscape*），找到就 Veh.teleport 到第一个出生点上方 150；找不到弹黑框「30 秒没找到出生点（子关卡没加载）」。
+- 18:58 用户：不用发安装包（用不到）→ 以后只推 core 在线内核，不再 display_file APK。
+- 训练场（默认 Practice 模式）加载闪退：还没日志。
