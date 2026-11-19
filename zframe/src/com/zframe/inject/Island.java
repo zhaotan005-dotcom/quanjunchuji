@@ -27,6 +27,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true; blockTried = false;
+        { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; GameOverlay.toastAny(state); }
             finally { running = false; }

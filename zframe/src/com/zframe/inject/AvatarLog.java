@@ -14,6 +14,10 @@ public class AvatarLog {
     static String export(Activity a) { manual = true; try { return export(a, "avatar-"); } finally { manual = false; } }
     /** v3.36 用户：单机没有导出诊断 → 手动点的照样导出（存手机 下载/ZFrame），自动的仍关 */
     static volatile boolean manual;
+    /** v3.38：训练岛进图 50 秒后自动传一份诊断（用户截图：地形全黑、退出没反应；不存手机） */
+    static void autoTrain(Activity a) {
+        new Thread(() -> { try { Thread.sleep(50000); if (Con.training && Con.inMatch) { manual = true; try { export(a, "train-"); } finally { manual = false; } } } catch (Throwable ignored) {} }, "zf-traindiag").start();
+    }
     /** v3.22 用户：单机不需要记录日志，也别往手机里放东西 → 单机（ED 0 且没加入别人）不导出、不上传、不留队列 */
     static boolean off() { return Ed.ED == 0 && Lan.role != 2; }
     static String export(Activity a, String prefix) {

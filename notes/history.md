@@ -1250,3 +1250,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户菜单要求：大厅固定中上（收起那条，截图里「全军出击单机版」），不能拖；取消关闭按钮；进对局自动关；对局里不自动开，五指按屏幕才开；关闭只做收起；往上拖自动隐藏，再开要五指。
 - 改：GameOverlay：× 永远隐藏；lobbyPos（收起 + 中上 + 不能拖，标题只点按收起/展开）；placeFor：Con.inMatch → hidden + GONE，否则回中上；mapLeaving 40 秒兜底也走 placeFor；对局里拖标题松手时 y < -24dp → showPanel(false)。单机大厅「训练」组改名「诊断」，去掉训练营/训练场按钮。
 - UpdPage：查找时状态写「找页面 N 秒，对象数，带 Update 的实例类名（最多 8 个）」；诊断加 UpdFlow.state / UpdPage.state。
+
+## v3.39（vc240/core240，2026-11-19 19:4x，未实测）— 训练岛退出按钮 + 自动诊断
+- 19:32 用户截图（训练岛，游戏自带入口）：天和水正常，山全是黑色剪影、没有建筑；小地图/大地图正常（训练区都在）；人在岛东侧海湾外。点游戏「退出」没反应。用户问是不是没有地图资源。
+- 判断：pak 里训练岛资源齐（pak-files.tsv：TrainingIsland_Runtime 330 个文件，Heightmap_x0..3_y0..3、AlwaysLoad/Light/LogicLevel/block、地形材质都在）。黑剪影像是远景代理（OcHmp/hp_*），说明 Heightmap/AlwaysLoad 子关卡没流式加载进来（TileMode 要服务端发块号）——不是缺资源。等 train- 诊断看 Island.block 结果。
+- 改：常用页（Con.training）最上面「退出训练，回大厅」= Lan.leave()（open 大厅）；Island.matchLoaded → AvatarLog.autoTrain 50 秒后上传 train-*（绕过单机不导出）。
