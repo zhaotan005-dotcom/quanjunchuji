@@ -1372,3 +1372,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.48（vc249/core249，未实测）
 - tlcave：先追加 ServerOnly 本层（+0x2d4/+0x2d8，r6=-1 不过名字过滤），再按原规则加 +0x2e8 里的；去掉 +0 计数（+8>0 即跑过），A 缩到 0x171e3f4..0x171e4ab。emu_tlcave.py 五种情况过。
 - Server：角色按性别记发色（存档第 5 列），回包 PropRoleAttr 带 hair_color(5)；发色先从 13003 请求 Prop.role_attr(13).hair_color(5) 取，取不到读日志「hairColor = N」后推 13002。
+
+## 2026-11-20 01:43 用户（v3.48 实测）：训练岛还是没枪（截图：枪桌全空，小地图已正常显示训练场）；发色还是变不了
+- 根因（训练岛枪）：pak 文件表里 TrainingIsland_Runtime 只有 AlwaysLoad/Grass/Heightmap/OcHmp/OcPolygons/Runtime/Tree，全包没有任何 ServerOnly 文件 → 客户端包剥掉了服务器关卡，层补丁加进去也是空的。v3.47/48 的 tlcave 保留（无害）。
+- 根因（发色）：mark 日志 13003 原包 0a0c0880ccdeff251080ccdeff25 320d08d396d7c67010c1086a0230043a00 → 发色在 hair_prop(6).role_attr(13).color(6)=4，不在角色 hair_color(5)。
+
+## v3.49（vc250/core250，未实测）
+- Island.tableGuns()：rangeDiag 后，人物周围 36×36 m、1.2 m 格向下射线（起点人物中心+1 m，低于棚顶）；比 3 m 内最低点高 55–115 cm = 桌面；1.5 m 连桌；每桌一把枪（Bots.GUN 轮流）+ 3 份子弹（Veh.dropAt）；不足 3 张桌子则人物前方 4 m 起地上 2 排。诊断「训练桌放枪」行（含桌面命中的 actor/cls）。
+- Server：发型道具记颜色（props 第 5 列），prop() 对非角色带 role_attr{color(6)}；请求里 field5/6 都认；日志路径也写到穿着的发型（slot 213）。

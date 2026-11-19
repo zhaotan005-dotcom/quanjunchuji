@@ -183,7 +183,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
-        block = "分配位置：没试"; range = "射击训练区：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
+        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -237,6 +237,10 @@ final class Island {
         follow(b, nm, gm, pc, ps, mgr);
         // 7) 射击训练区（只诊断）
         rangeDiag(b, nm, mgr, pc);
+        // 7b) v3.49 训练桌上的枪：这版客户端 pak 里训练岛根本没有 ServerOnly 关卡文件（pak 文件表 TrainingIsland_Runtime 只有
+        //     AlwaysLoad/Grass/Heightmap/OcHmp/OcPolygons/Runtime/Tree，全包没有任何 ServerOnly 文件），v3.47/48 把层加进去也是空的 → 枪桌原来的刷枪点不存在。
+        //     改成自己摆：射线找桌面，每张桌子放枪 + 子弹；找不到桌子就在人物前方地上摆一排。
+        if (!GameOverlay.remote()) try { tableGuns(); } catch (Throwable e) { guns = "训练桌放枪：出错 " + e; note(guns); }
         // 8) 原生刷车/刷物资情况
         Thread.sleep(20000);
         if (!Con.training || !Con.inMatch) return;
@@ -247,6 +251,70 @@ final class Island {
     }
 
     static void outfit() { Bots.trainingOutfit(); }
+
+    static volatile String guns = "训练桌放枪：没跑";
+    /** 人物周围 36×36 米、1.2 米一格，从人物中心上方 1 米往下打射线（低于棚顶）。
+     *  一格比周围 3 米内最低点高 55~115 厘米 = 桌面。桌面格按 1.5 米连成桌子，每张桌子一把枪（按枪表轮流）+ 子弹 3 份。 */
+    static void tableGuns() throws Exception {
+        double[] me = me(); if (me == null) { guns = "训练桌放枪：拿不到人物位置"; note(guns); return; }
+        final float step = 120f; final int R = 15;
+        int n = 2 * R + 1;
+        float[][] z = new float[n][n]; String[][] who = new String[n][n];
+        int ok = 0;
+        for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+            if (!Con.training || !Con.inMatch) return;
+            float x = (float) (me[0] + (i - R) * step), y = (float) (me[1] + (j - R) * step);
+            Trace.Hit h = Trace.down(x, y, (float) me[2] + 100f, (float) me[2] - 1500f);
+            z[i][j] = h == null || Float.isNaN(h.z) ? Float.NaN : h.z;
+            who[i][j] = h == null ? "" : h.actor + "/" + h.cls;
+            if (!Float.isNaN(z[i][j])) ok++;
+        }
+        ArrayList<float[]> top = new ArrayList<>(); java.util.TreeMap<String, Integer> names = new java.util.TreeMap<>();
+        for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
+            if (Float.isNaN(z[i][j])) continue;
+            float lo = z[i][j];
+            for (int a = Math.max(0, i - 2); a <= Math.min(n - 1, i + 2); a++) for (int c = Math.max(0, j - 2); c <= Math.min(n - 1, j + 2); c++) if (!Float.isNaN(z[a][c])) lo = Math.min(lo, z[a][c]);
+            float d = z[i][j] - lo;
+            if (d >= 55 && d <= 115) { top.add(new float[] { (float) (me[0] + (i - R) * step), (float) (me[1] + (j - R) * step), z[i][j] }); names.merge(who[i][j], 1, Integer::sum); }
+        }
+        // 连成桌子
+        int[] g = new int[top.size()]; for (int i = 0; i < g.length; i++) g[i] = i;
+        for (int i = 0; i < g.length; i++) for (int j = i + 1; j < g.length; j++)
+            if (d2(top.get(i), top.get(j)) < 150.0 * 150.0 && Math.abs(top.get(i)[2] - top.get(j)[2]) < 30) g[root(g, i)] = root(g, j);
+        java.util.LinkedHashMap<Integer, ArrayList<float[]>> tb = new java.util.LinkedHashMap<>();
+        for (int i = 0; i < g.length; i++) tb.computeIfAbsent(root(g, i), k -> new ArrayList<>()).add(top.get(i));
+        ArrayList<float[]> spots = new ArrayList<>();
+        for (ArrayList<float[]> t : tb.values()) {
+            float sx = 0, sy = 0, sz = -1e9f; for (float[] p : t) { sx += p[0]; sy += p[1]; sz = Math.max(sz, p[2]); }
+            spots.add(new float[] { sx / t.size(), sy / t.size(), sz + 10f });
+        }
+        spots.sort((p, q) -> Double.compare(Math.hypot(p[0] - me[0], p[1] - me[1]), Math.hypot(q[0] - me[0], q[1] - me[1])));
+        boolean onTable = spots.size() >= 3;
+        if (!onTable) {   // 找不到桌子：人物前方 4 米起地上一排，间隔 1.5 米
+            spots.clear();
+            for (int k = 0; k < Bots.GUN.length; k++) {
+                float x = (float) (me[0] + 400 + (k / 8) * 150), y = (float) (me[1] + ((k % 8) - 3.5) * 150);
+                Trace.Hit h = Trace.down(x, y, (float) me[2] + 300f, (float) me[2] - 1500f);
+                float gz = h == null || Float.isNaN(h.z) ? (float) me[2] - 80f : h.z + 10f;
+                spots.add(new float[] { x, y, gz });
+            }
+        }
+        int put = 0, fail = 0; String err = null;
+        int cnt = Math.min(spots.size(), onTable ? Math.max(Bots.GUN.length, Math.min(spots.size(), 40)) : Bots.GUN.length);
+        for (int k = 0; k < cnt; k++) {
+            if (!Con.training || !Con.inMatch) return;
+            float[] p = spots.get(k); String[] gun = Bots.GUN[k % Bots.GUN.length];
+            String e = Veh.dropAt(Long.parseLong(gun[0]), p[0], p[1], p[2]);
+            if (e == null) { put++; for (int a = 0; a < 3; a++) Veh.dropAt(Long.parseLong(gun[1]), p[0] + 30f, p[1] + (a - 1) * 25f, p[2]); }
+            else { fail++; err = e; }
+            Thread.sleep(40);
+        }
+        StringBuilder nb = new StringBuilder(); int c = 0;
+        for (java.util.Map.Entry<String, Integer> e : names.entrySet()) { if (c++ >= 6) break; nb.append(e.getKey()).append("×").append(e.getValue()).append(' '); }
+        guns = "训练桌放枪：射线 " + ok + "/" + (n * n) + "，桌面格 " + top.size() + "，桌子 " + tb.size() + "（" + (onTable ? "放桌上" : "不够 3 张，放人物前方地上") + "）；放了枪 " + put + " 把，失败 " + fail + (err == null ? "" : "（" + err + "）") + "；桌面命中：" + nb;
+        note(guns);
+        if (put > 0) GameOverlay.toastAny("训练枪已摆好 " + put + " 把");
+    }
 
     static void note(String s) { LogCap.note(s); }
     /** 读一个字节（Server.rd 只读 4 字节对齐） */

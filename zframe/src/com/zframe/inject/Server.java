@@ -535,8 +535,14 @@ public class Server {
         synchronized (Server.class) {
             initProps(); long[] v = props.get(role); if (v == null || v[2] == 0 || c < 0 || c > 64) return;
             if (v.length < 4) { v = java.util.Arrays.copyOf(v, 4); props.put(role, v); }
-            if (v[3] == c) return;
-            v[3] = c; saveProps();
+            boolean ch = v[3] != c; v[3] = c;
+            for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) {   // v3.49 穿着的发型道具也记上
+                long[] h = e.getValue(); if (h[2] != 0 || h[1] != 213) continue;
+                if (h.length < 4) { h = java.util.Arrays.copyOf(h, 4); e.setValue(h); }
+                if (h[3] != c) { h[3] = c; ch = true; }
+            }
+            if (!ch) return;
+            saveProps();
         }
         mark("发色 " + c + "（" + from + "）"); pushStore();
     }
@@ -545,7 +551,7 @@ public class Server {
             PB.R r = new PB.R(body);
             while (r.next()) if ((r.field == 1 || r.field == 6) && r.wire == 2) {
                 PB.R p = r.sub();
-                while (p.next()) if (p.field == 13 && p.wire == 2) { PB.R a = p.sub(); while (a.next()) if (a.field == 5 && a.wire == 0) return a.val; }
+                while (p.next()) if (p.field == 13 && p.wire == 2) { PB.R a = p.sub(); while (a.next()) if ((a.field == 5 || a.field == 6) && a.wire == 0) return a.val; }
             }
         } catch (Throwable ignored) {}
         return -1;
@@ -627,7 +633,7 @@ public class Server {
                 String[] x = l.trim().split(" "); if (x.length < 4) continue;
                 long id = Long.parseLong(x[1]), pos = Long.parseLong(x[2]), sex = Long.parseLong(x[3]);
                 if (sex == 0 && pos != 0) pos = slotOf(id);   // v1.75：旧存档的位置换成按类别
-                props.put(Long.parseLong(x[0]), sex != 0 ? new long[] { id, pos, sex, x.length > 4 ? Long.parseLong(x[4]) : 0 } : new long[] { id, pos, sex });
+                props.put(Long.parseLong(x[0]), x.length > 4 ? new long[] { id, pos, sex, Long.parseLong(x[4]) } : new long[] { id, pos, sex });
             }
             if (!props.containsKey(ROLE_F) || !props.containsKey(ROLE_M)) { props.clear(); return false; }
             return true;
@@ -658,6 +664,7 @@ public class Server {
         long owner = p[2] != 0 ? (p[1] != 0 ? 1 : 0) : (p[1] != 0 ? role() : 0);
         PB x = new PB().u(1, p[0]).u(2, gid).u(3, owner).u(4, 1).u(10, p[1]);
         if (p[2] != 0) { PB at = new PB().u(1, p[2]); if (p.length > 3 && p[3] > 0) at.u(5, p[3]); x.m(13, at); }   // v3.48 发色 hair_color(5)
+        else if (p.length > 3 && p[3] > 0) x.m(13, new PB().u(6, p[3]));   // v3.49 发型道具自己的颜色：游戏 13003 里是 hair_prop(6).role_attr(13).color(6)
         return x;
     }
     static byte[] depositProps() { return depositProps(true); }
@@ -701,7 +708,10 @@ public class Server {
             if (hg >= 0 && props.get(hg)[2] == 0) {
                 for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
                     if (e.getValue()[2] == 0 && e.getValue()[1] == slotOf(props.get(hg)[0]) && e.getKey() != hg) { e.getValue()[1] = 0; res.m(2, prop(e.getKey(), e.getValue())); }
-                props.get(hg)[1] = slotOf(props.get(hg)[0]); res.m(2, prop(hg, props.get(hg)));
+                props.get(hg)[1] = slotOf(props.get(hg)[0]);
+                // v3.49：00:49 日志 13003 = 0a0c..(角色) 320d 08<30213000019> 10<gid> 6a02 3004 → 发色在 hair_prop 的 role_attr.color(6)=4。记在发型道具上，回包原样带回
+                if (hc >= 0 && hc <= 64) { long[] hv = props.get(hg); if (hv.length < 4) { hv = java.util.Arrays.copyOf(hv, 4); props.put(hg, hv); } hv[3] = hc; }
+                res.m(2, prop(hg, props.get(hg)));
             }
             // v1.77：脸上涂装 facial_tattoos_prop(7)：有就穿上（同类替换），没有就脱掉所有涂装
             long tg = propGid(body, 7);
