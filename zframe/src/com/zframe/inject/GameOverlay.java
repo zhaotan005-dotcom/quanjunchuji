@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.32";
+    static final String VER = "v3.33";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1054,6 +1054,10 @@ public class GameOverlay {
             fillBtn(a, u, dr, "单挑·雨林", () -> toast(a, Duel.open(true)));
             // v3.21 用户：不要让用户记录任何地点 → 去掉「记录单挑点 / 清除单挑点」，场地程序自己选（DuelArena.java）
             note(a, u, hc, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
+            // v3.33 用户：训练营回来了（真地图找到了），服务端也能开房进训练岛
+            LinearLayout tr2 = row(a, hc); tr2.setPadding(0, 0, 0, u.dp(6));
+            fillBtn(a, u, tr2, "训练营", () -> { Training.off(); Duel.off(); toast(a, Lan.host(Con.MAP_TRAINING + "?game=" + Con.GM_TRAINING)); });
+            fillBtn(a, u, tr2, "训练场", () -> { Training.off(); Duel.off(); toast(a, Lan.host(Con.MAP_TRAINING)); });
             // v3.15 用户：删掉训练营和决胜五军（Training/ModeProbe.BFA 代码留着，不再有入口）
             // v3.03 用户：再找找别的地图 → 服务端进大厅自动扫名字表里的 /Game/Maps/…_Main（ModeProbe.maps），除了上面三张，扫到的都列出来（战术模式开）
             java.util.List<String> extra = ModeProbe.maps;
@@ -1094,6 +1098,11 @@ public class GameOverlay {
                 pick(a, u, fl, "正常对局", !Mods.zoneOff(), () -> result(a, Mods.setNormal()));
                 pick(a, u, fl, "不刷毒对局", Mods.zoneOff(), () -> result(a, Mods.setNoZone()));
                 note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
+                // v3.33 用户：训练营资源找到了（训练岛 BR-TrainingIsland_Mobile_Main）→ 单机直接进
+                head(a, u, root, "训练");
+                LinearLayout tr = row(a, root);
+                fillBtn(a, u, tr, "训练营", () -> { Training.off(); Duel.off(); toast(a, Con.goTraining(true)); });
+                fillBtn(a, u, tr, "训练场", () -> { Training.off(); Duel.off(); toast(a, Con.goTraining(false)); });
                 // v2.56 用户：自动刷人机开关放大厅
                 switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
             } else {
@@ -1820,7 +1829,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.32 更新内容\n" + "· 单机「剩余」多出来的那个占位人物：进图后找到它本人并删掉（不是硬改数字），剩余只算你和人机\n" + "\n"
+    static final String NOTICE = "v3.33 更新内容\n" + "· 训练营回来了：找到了真地图（训练岛），大厅「单机」下新增「训练营」「训练场」两个按钮；游戏自己选图里的训练场也能进了；训练岛里不自动刷人机、不改模式\n" + "\n" + "v3.32 更新内容\n" + "· 单机「剩余」多出来的那个占位人物：进图后找到它本人并删掉（不是硬改数字），剩余只算你和人机\n" + "\n"
             + "v3.31 更新内容\n" + "· 单机默认不再伪装联机（之前会让下车后人物消失），回到真单机；菜单里「单机按联机方式进图」默认关\n" + "\n"
             + "v3.30 更新内容\n" + "· 修游戏自带更新页没开：上次更新下好自动重启（没进大厅）被当成「卡住」，下一次就把更新页关了；现在不会了\n" + "· 标点传送：开关会记住、默认开（之前重启就变回关）；控制器里没标点时从队伍信息读；菜单里显示标点和传送状态，传送失败会提示\n" + "\n"
             + "v3.29 更新内容\n" + "· 开机更新不再有时间上限：网络失败自动重试，直到查到结果或下完重启才进大厅\n" + "\n"

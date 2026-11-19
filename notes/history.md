@@ -1205,3 +1205,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 训练营模式蓝图：/Game/Blueprints/TrainingGame/BP_NZBRTrainingGameMode.BP_NZBRTrainingGameMode_C（HUD BP_NZBRHUD_Training，人机 TrainingBot，HideXxx 开关、MaxBotCountPerTeam）。可试 open 地图?game=该类。
 - LuaSource 是明文 Lua（uexp 里直接是源码）：cs_lottery_pb（CustomLottery List/Commit/Rand/Reset）、cs_treasure_pb（TreasureInfo / TreasureExchange）= 军需协议字段。缺 cmd_pb（命令号）、common_pb（Prop/PlayerDataChange）、cs_pkg_pb、s_pkg_pb。LuaSource 全部 642 条约 2.1 MB，已向用户要全部。
 - 自建服务端仍需要：协议回包和更新文件都不在 pak 里。
+
+## v3.33（vc234/core234，2026-11-19 18:45，未实测）— 训练营/训练场
+- 第二批 pak（LuaSource 全部 321 个 lua，/workspace/work/pakx2/lua 已抽成明文）：cmd_pb 证实军需相关命令号 31001-31004（宝箱）、38003-38005（卡片抽奖）、51001-51008（自选抽奖），与 v2.48 一致；Lua 里没有军需 UI（Lua 只有成就/活动/邮件/房间 UI），军需页是蓝图 StoreUI。
+- 喷气背包：30307000099_Jetpack 蓝图只有 NZItem_JetpackBag + 特效 P_EFX_Jetpack_01，不引用任何声音；声音属性 JetLaunchSoundEvent 在 C++ 类上（推测角色蓝图 BP_NZBRCharacter_BaseMan 填值）；Wwise 资源里没有名字带 jet/fly 的事件。
+- 沙漠：pak 里只有 4 张主图（老海岛/新海岛/雨林/训练岛），沙漠只有模式蓝图和贴图碎片。
+- 改动：Con.MAP_TRAINING/GM_TRAINING/goTraining；startGame 编号 5 → 训练岛（默认训练场模式，不加 ?listen）；Con.training 标记：训练岛里不跑 Phantom/Mods.matchZone/HostMatch/Bots.matchLoaded/Flow.matchLoaded，只跑标点和喷气背包；单机大厅「训练」两个按钮（训练营 = ?game=BP_NZBRTrainingGameMode，训练场 = 默认）；服务端开房页也加两个按钮（Lan.host）。

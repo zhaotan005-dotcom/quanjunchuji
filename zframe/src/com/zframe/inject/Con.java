@@ -325,6 +325,16 @@ public class Con {
     public static final String MAP_ERANGEL2 = "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main";
     public static final String MAP_SAVAGE = "/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main";
     static volatile String pendingMap;
+    /** v3.33：用户发来的 pak 清单里训练营地图真名 BR-TrainingIsland_Mobile_Main（libUE4 里的 BR-Training_Mobile_Main 是旧名，所以 v1.12 报不存在）。
+     *  地图默认模式 = 训练场 BP_NZBRPracticeGameMode；训练营模式 = BP_NZBRTrainingGameMode（训练人机 TrainingBot、训练 HUD）。 */
+    public static final String MAP_TRAINING = "/Game/Maps/TrainingIsland_Runtime/BR-TrainingIsland_Mobile_Main";
+    public static final String GM_TRAINING = "/Game/Blueprints/TrainingGame/BP_NZBRTrainingGameMode.BP_NZBRTrainingGameMode_C";
+    static volatile boolean training;   // 当前对局在训练岛：不跑我们的刷人机/改模式/删占位
+    static String goTraining(boolean camp) {
+        String r = goMap(MAP_TRAINING + (camp ? "?game=" + GM_TRAINING : ""));
+        LogCap.note((camp ? "训练营" : "训练场") + " → " + r);
+        return r;
+    }
 
     /** 返回给用户看的提示 */
     public static String goMap(String m) {
@@ -416,9 +426,9 @@ public class Con {
     /** 地图编号来自日志：1 老海岛，3 新海岛（GameMapId=3），4 雨林（GameMapId=4），5 训练场 */
     static void startGame(final int id) {
         // v3.22 用户：单机新海岛也用战术模式（和联机服务端开房一样：?game=战术模式蓝图）
-        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : null;
+        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : id == 5 ? MAP_TRAINING : null;   // v3.33：5 训练场 = 训练岛默认模式
         // v3.25 用户：抛物线（还有探测器视角、标点）联机状态正常 → 单机也按「开房」方式进图（listen，没人加入），骗过游戏当成联机
-        if (m0 != null && Lan.fakeOnline && Lan.role == 0) { String u = Lan.unlock(); m0 += "?listen"; LogCap.note("单机伪装联机：" + u); }
+        if (m0 != null && id != 5 && Lan.fakeOnline && Lan.role == 0) { String u = Lan.unlock(); m0 += "?listen"; LogCap.note("单机伪装联机：" + u); }
         final String m = m0;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);
         final Activity a = act;
@@ -481,7 +491,7 @@ public class Con {
                 String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
-                if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); /* v3.21：每次进图按存的模式重打不上飞机/不刷圈 + 阶段守护 */ } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
+                if (m.startsWith("/Game/Maps/")) { training = m.contains("TrainingIsland"); } if (m.startsWith("/Game/Maps/") && training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); } else if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); /* v3.21：每次进图按存的模式重打不上飞机/不刷圈 + 阶段守护 */ } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Gfx.unlite();
                     Lan.role = 0; Bots.auto = Bots.want;
@@ -489,7 +499,7 @@ public class Con {
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;
-                    if (Lan.role == 0) { Bots.matchLoaded(); Flow.matchLoaded(m); }
+                    if (Lan.role == 0 && !training) { Bots.matchLoaded(); Flow.matchLoaded(m); }
                     else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（服务端：航线/毒圈照单机改；减负）"); }
                     else Lan.note("进图完成（客户端：航线/毒圈跟服务端）");   // v1.93 不再自动读车表（车编号写死）
                     if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
