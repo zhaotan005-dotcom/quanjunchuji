@@ -119,6 +119,9 @@ final class Island {
      *  FindSlot 0x10845b0 挑第一个空位置 → 单机总进块 0（-1400 米,-1400 米 偏移）→ 小地图/大地图看到的是原岛西南的海（推断）。
      *  改空位置搜索起点：0x108464c mov r1,#0 / add r2,r0,#0x14 → mov r1,#4 / add r2,r0,#0xe8（从位置 4 开始找；训练场默认 9 个位置）。 */
     static final long PS4 = 0x108464cL; static final String PS4_O = "0010a0e3142080e2", PS4_N = "0410a0e3e82080e2";
+    /** v3.51 用户：服务端开训练岛，加入的人被分到别的训练场副本（一局 9 个副本，FindSlot 找第一个空位置）→ 上不了岸。
+     *  空位置循环第一句 0x1084654 ldr r3,[r2] → b 0x10846c0（返回 r0+r1*0x34，r1=4）：所有人都进位置 4（中间原岛），同一个训练场。 */
+    static final long SAME4 = 0x1084654L; static final String SAME4_O = "003092e5", SAME4_N = "190000ea";
     static ByteBuffer tb; static long tbAddr; static volatile String tlState = "服务器层补丁：没装";
     static String tlWrite(RandomAccessFile m, long at, byte[] want, String orig, int cmpLen) throws Exception {
         byte[] cur = new byte[want.length]; m.seek(at); m.readFully(cur);
@@ -155,7 +158,7 @@ final class Island {
             if (!caveOn) { Mods.write(PR, PR_O, PR_N2, false); r = Mods.write(PR, PR_O, PR_N, true); }
         } else r = Mods.write(PR, PR_O, PR_N, true);
         String r2 = Mods.write(PB, PB_O, PB_N, true);
-        tlState = "服务器层补丁（训练岛刷枪点）：" + tlInstall() + "；先进中间位置 4（小地图）：" + Mods.write(PS4, PS4_O, PS4_N, true);
+        tlState = "服务器层补丁（训练岛刷枪点）：" + tlInstall() + "；先进中间位置 4（小地图）：" + Mods.write(PS4, PS4_O, PS4_N, true) + "；所有人同一个位置 4：" + Mods.write(SAME4, SAME4_O, SAME4_N, true);
         fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t; LogCap.note(fix);
     }
     static volatile String block = "分配位置：没试";

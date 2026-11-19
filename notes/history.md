@@ -1387,3 +1387,10 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.50（vc251/core251，未实测）
 - Island：join 之后另起线程 15 秒检查原生 150 m 内物资，<5 才 tableGuns()（不再等跟踪 120 秒）。
 - GameOverlay：服务端大厅卡片第一行「进训练营」= Lan.host(MAP_TRAINING)（listen，训练岛默认模式，和单机同）；去掉旧「训练营/训练场」两个按钮。
+
+## 2026-11-20 02:05 用户（v3.50）：服务端开训练岛，加入的人上不了岸（怀疑不在同一个训练场副本）；加速时动作变快，不放慢了
+- FindSlot 0x10845b0：先找已在的位置，再从第一个空位置（v3.47 起从 4）找，满了随机 → 第二个人进位置 5（别的副本）。
+
+## v3.51（vc252/core252，未实测）
+- Island SAME4：0x1084654 ldr r3,[r2] (003092e5) → b 0x10846c0 (190000ea)：空位置循环直接返回 r1=4，所有人进位置 4（中间原岛）。和 PS4 一起装。
+- Mods.dilation：加回骨骼网格 +0x7c4 播放速率 = 0.75/倍数（v2.74 行为，固定 0.75，不加菜单）。

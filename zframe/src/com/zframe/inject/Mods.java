@@ -588,7 +588,13 @@ public class Mods {
         int it = rd(m, c + C_ITER);
         if (baseIter == 0 && it >= 1 && it <= 25) baseIter = it;
         if (baseIter > 0) { int wantIt = wantDil > 2f ? Math.min(100, Math.max(baseIter, (int) Math.ceil(wantDil * 0.8f) + 2)) : baseIter; if (it != wantIt && it >= 1 && it <= 100) wi(m, c + C_ITER, wantIt); }
-        // v3.46 用户：删「动作放慢」，骨骼网格播放速率不再改，用游戏默认
+        // v3.51 用户（v3.46 删了放慢后）：「加速不会放慢动作，动作加快了」→ 加回自动放慢（不加菜单）：骨骼网格播放速率 = 0.75 / 倍数，
+        //   时间倍率只快在位移上，动作看起来比平时略慢（v2.74 行为）
+        long mesh = rp(m, pawn + P_MESH);
+        if (!isObj(m, b, mesh)) return;
+        float ar = f(m, mesh + M_RATE);
+        float wantR = wantDil == 1f ? 1f : Math.max(0.005f, 0.75f / wantDil);
+        if (ar > 0.001f && ar < 20f && Math.abs(ar - wantR) > 0.001f) wf(m, mesh + M_RATE, wantR);
     }
 
     // ---------- 枪械：人物 CurrWeapon(+0x890) ----------
