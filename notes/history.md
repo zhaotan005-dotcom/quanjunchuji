@@ -1413,3 +1413,14 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 层工厂注册表 0x5173800（0x1156e20(&FName) 查/建，注册在 0x1157990..0x1158c00，AlwaysLoad 前缀 'AlwaysLoad/'，FName 静态 0x5173208）。
 - Island.alwaysLoad（只服务端/单机，join 后）：工厂 vt+0x10(out, 工厂) 建层 → CurrentLayers(+0x2f4) 临时只放这一层 → FillLayersWithCacheData 0x11649bc(管理器, +0x370, PC+bdc) → 换回原数组并把新层追加到尾部。诊断行「常驻层 AlwaysLoad（LogicLevel 刷枪/靶子）：…」。
 - 训练桌自摆枪保留（15 秒后原生 150 米内物资 <5 才摆）。
+
+## v3.53（core254，未实测，2026-11-20 04:5x）训练岛物资链：服务端物资点放开 + 诊断
+- v3.52 实测（notes/device-tests/v3.52，单机 03:17 + 服务端 03:49）：常驻层生效——层18 AlwaysLoad 关卡 5，流对象 124→129、已载 65→69；
+  NZSceneItem_RangeTarget 日志 128 行（v3.51 没有）= 靶子出来了；原生刷车 BP_PickupTruck_B_01 在 57625,-38410（LogicLevel 刷车点）。枪还是没有。
+- RE：BP_PickUpRefreshVolumn（ANZBRPickUpRefreshTriggerVolume，vt 0x4c90614，ctor 0x10818a8）OnOverlapBegin 0x1081a90 只把 PC+0x5fd=1，OnOverlapEnd 0x1081b80 清 0 → 刷物资区只是「人在区里」标记，不生成枪。
+  枪应来自 ServerOnly/Pickups 的物资点组件 UNZBRPickupConfigComponent::BeginPlay 0x10c0b5c：要 (world+0x6d8)|2==3 且 NetMode∈{0,1}，GM 是 ANZBattleRoyaleGameMode → GM+0x90c PickupManager → 0xff1e88（[Pickup] SPAWN 日志）。
+  服务端 NetMode 2 被挡 → Island.install 装 Loot.PK（0x10c0ba4 三条，只排除 3）。单机 NetMode 0 本来就过，单机也没枪 → 另有原因，看诊断。
+- APickUpRefreshSystem ctor 0x119cd4c；系统附近 0x119d884 有「GridMap is not exist, add pickup gid=%d to GameMode->CachedS…」。
+- 诊断「物资链（进岛 15 秒）」：物资点组件个数/有 Owner、刷物资信息、刷物资区、地上物资对象、GM 是否 BR GameMode、PickupManager(+90c)、AlwaysLoad/ServerOnly/Pickups 层每层关卡已载/可见；
+  关键日志加 [Pickup]/PickUpRefresh/CachedPickupSPList/GridMap；训练桌放枪线程开头写状态（v3.52 两次都显示「没跑」，原因待看）。
+- 注：单机包其实也会把诊断发 ntfy（v3.52 03:17 客户端 train 就是单机）。

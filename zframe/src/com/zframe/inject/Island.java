@@ -159,7 +159,9 @@ final class Island {
         } else r = Mods.write(PR, PR_O, PR_N, true);
         String r2 = Mods.write(PB, PB_O, PB_N, true);
         tlState = "服务器层补丁（训练岛刷枪点）：" + tlInstall() + "；先进中间位置 4（小地图）：" + Mods.write(PS4, PS4_O, PS4_N, true) + "；所有人同一个位置 4：" + Mods.write(SAME4, SAME4_O, SAME4_N, true);
-        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t; LogCap.note(fix);
+        // v3.53 物资点组件 UNZBRPickupConfigComponent::BeginPlay 0x10c0b5c 只认 NetMode 0/1，服务端（listen，NetMode 2）训练岛的物资点不交给 PickupManager → 放开到「只排除客户端 3」（Loot 的 PK 那三条）
+        String pk = Mods.write(Loot.PK, Loot.PK_O, Loot.PK_N, true);
+        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t + "；物资点放开（服务端也交给 PickupManager）：" + pk; LogCap.note(fix);
     }
     static volatile String block = "分配位置：没试";
     static volatile String state = "训练岛：没进";
@@ -175,7 +177,7 @@ final class Island {
     /** Con 每行游戏日志都给这里（只在训练岛）：记关键行 */
     static void seen(String l) {
         String[] keys = { "OnAllDuplicateLevelLoaded", "OnLevelStreamingLayerLoadCompleted", "AddPlayerToSlot", "Spawn Vehicle", "SpawnVehicle", "Load Block", "Client Load Block", "SetupPlayerStartActor Add Player Start 0 ", "LevelMgr is null", "level not prepared",
-            "FillLayersWithCacheData", "TileLayer", "Already Load Block", "Out Of Index", "Streaming in level", "DirectSubmit", "NZStreamingRequestsManager", "Not Need", "FirstLoad", "StreamingLevelsManagerActor" };
+            "FillLayersWithCacheData", "TileLayer", "Already Load Block", "Out Of Index", "Streaming in level", "DirectSubmit", "NZStreamingRequestsManager", "Not Need", "FirstLoad", "StreamingLevelsManagerActor", "[Pickup]", "PickUpRefresh", "CachedPickupSPList", "CachedSpawnedPickupList", "GridMap" };
         for (String k : keys) if (l.contains(k)) {
             synchronized (seen) { if (seen.length() < 6000) seen.append(l.trim().length() > 200 ? l.trim().substring(0, 200) : l.trim()).append("\n  "); seenLog = seen.toString(); }
             return;
@@ -186,7 +188,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
-        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
+        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -239,8 +241,11 @@ final class Island {
         //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
         if (!GameOverlay.remote()) { final long fb = b; final Veh.Names fnm = nm; new Thread(() -> {
             try {
+                guns = "训练桌放枪：线程开始，等 15 秒";
                 Thread.sleep(15000);
-                if (!Con.training || !Con.inMatch) return;
+                if (!Con.training || !Con.inMatch) { guns = "训练桌放枪：15 秒后不在训练岛了（training " + Con.training + " inMatch " + Con.inMatch + "）"; return; }
+                try { pickup = pickDiag(fb, fnm); } catch (Throwable e) { pickup = "物资链：出错 " + e; } note(pickup);
+                guns = "训练桌放枪：扫物资";
                 double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
                 if (me != null) for (float[] q : sc.pick) if (d2(q, me) < 15000.0 * 15000.0) near++;
                 if (near >= 5) { guns = "训练桌放枪：原生 150 米内已有物资 " + near + " 个，不摆"; note(guns); return; }
@@ -685,6 +690,67 @@ final class Island {
         for (int i = 0; i < n; i++) { double[] s = c.computeIfAbsent(root(g, i), k -> new double[4]); s[0] += t.get(i)[0]; s[1] += t.get(i)[1]; s[2] += t.get(i)[2]; s[3]++; }
         StringBuilder sb = new StringBuilder("；靶子群："); int cntG = 0;
         for (double[] s : c.values()) { if (cntG++ >= 12) { sb.append("…"); break; } sb.append((int) (s[0] / s[3])).append(',').append((int) (s[1] / s[3])).append(',').append((int) (s[2] / s[3])).append('×').append((int) s[3]).append(' '); }
+        return sb.toString();
+    }
+
+    static volatile String pickup = "物资链：没查";
+    /** v3.53 训练岛枪从哪来：物资点组件个数、GameMode 是不是 BR GameMode、PickupManager(GM+0x90c)、刷物资信息、常驻层/Pickups 层的关卡加载了没有 */
+    static String pickDiag(long b, Veh.Names nm) throws Exception {
+        StringBuilder sb = new StringBuilder("物资链（进岛 15 秒）：");
+        double[] q = Veh.info(); long gm = q == null ? 0 : (long) q[4];
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long g = Server.rd(m, b + 0x51250acL);
+            long objs = Server.rd(m, g + 0x10), num = Server.rd(m, g + 0x18);
+            if (objs < 0x10000 || num <= 0 || num > 0x200000) return sb.append("对象表不对").toString();
+            byte[] raw = new byte[(int) num * 16]; m.seek(objs); m.readFully(raw);
+            ByteBuffer bb = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+            HashMap<Long, Integer> kind = new HashMap<>();
+            int comp = 0, compOwn = 0, info = 0, vol = 0, pick = 0; StringBuilder cn = new StringBuilder();
+            for (int i = 0; i < num; i++) {
+                long o = bb.getInt(i * 16) & 0xffffffffL; int fl = bb.getInt(i * 16 + 4);
+                if (o < 0x10000 || (fl & 0x20000000) != 0) continue;
+                long c = Server.rd(m, o + 0xc); if (c < 0x10000) continue;
+                Integer k = kind.get(c);
+                if (k == null) {
+                    String n = Alive.objName(m, nm, c), ch = (n.contains("ick") || n.contains("Refresh") || n.contains("Comp")) ? chain(m, nm, c) : "|" + n + "|";
+                    k = ch.contains("|NZBRPickupConfigComponent|") ? 1 : ch.contains("|PickUpRefreshInfoState|") ? 2 : ch.contains("|NZBRPickUpRefreshTriggerVolume|") ? 3
+                        : (ch.contains("|NZPickUpWrapperActor|") || ch.contains("|PickUpWrapperActor|") || ch.contains("|NZPickUp|") || ch.contains("|PickUp|")) ? 4 : 0;
+                    kind.put(c, k);
+                    if (k == 1 && cn.length() < 200) cn.append(n).append(' ');
+                }
+                if (k == 0 || (Server.rd(m, o + 4) & 0x10) != 0) continue;
+                if (k == 1) { comp++; long own = Server.rd(m, o + 0xa4); if (own >= 0x10000) compOwn++; }
+                else if (k == 2) info++; else if (k == 3) vol++; else pick++;
+            }
+            sb.append("物资点组件 ").append(comp).append(" 个（").append(cn.toString().trim()).append("，有 Owner ").append(compOwn).append("）；刷物资信息 ").append(info).append("；刷物资区 ").append(vol).append("；地上物资对象 ").append(pick);
+            if (gm >= 0x10000) {
+                String gc = chain(m, nm, Server.rd(m, gm + 0xc));
+                long pm = Server.rd(m, gm + 0x90c);
+                sb.append("；GameMode ").append(gc.contains("|NZBattleRoyaleGameMode|") ? "是" : "不是").append(" BR GameMode").append("，PickupManager(+90c) ")
+                  .append(pm >= 0x10000 && Mods.isObj(m, b, pm) ? Alive.clsName(m, nm, pm) : Long.toHexString(pm));
+            }
+            // 常驻层 / ServerOnly/Pickups 层的关卡流对象加载情况（关卡项 [0] = 流对象弱指针 index/serial）
+            long mgr = gm >= 0x10000 ? Server.rd(m, gm + 0xa3c) : 0;
+            if (mgr >= 0x10000 && Mods.isObj(m, b, mgr)) {
+                long ld = Server.rd(m, mgr + 0x2f4); int ln = (int) Server.rd(m, mgr + 0x2f8);
+                for (int i = 0; i < ln && i < 40 && ld >= 0x10000; i++) {
+                    long L = Server.rd(m, ld + 8L * i); if (L < 0x10000) continue;
+                    String lname = Box.nameOf(m, nm, Server.rd(m, L + 8));
+                    if (!lname.startsWith("AlwaysLoad") && !lname.contains("Pickups") && !lname.equals("ServerOnly")) continue;
+                    long coll = Server.rd(m, L + 0x1c); if (coll < 0x10000) continue;
+                    long ed = Server.rd(m, coll + 0x14); int en = (int) Server.rd(m, coll + 0x18);
+                    int ok = 0, vis = 0, bad = 0;
+                    for (int j = 0; j < en && j < 64 && ed >= 0x10000; j++) {
+                        long E = Server.rd(m, ed + 8L * j); if (E < 0x10000) continue;
+                        int idx = (int) Server.rd(m, E);
+                        if (idx < 0 || idx >= num) { bad++; continue; }
+                        long S = bb.getInt(idx * 16) & 0xffffffffL; if (S < 0x10000) { bad++; continue; }
+                        long lvl = Server.rd(m, S + 0x110); if (lvl >= 0x10000) { ok++; if ((rb(m, lvl + 0x174) & 8) != 0) vis++; }
+                    }
+                    sb.append("；层 ").append(lname).append(" 关卡 ").append(en).append(" 已载 ").append(ok).append(" 可见 ").append(vis).append(bad > 0 ? " 找不到 " + bad : "");
+                }
+            }
+        }
         return sb.toString();
     }
 
