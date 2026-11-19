@@ -249,3 +249,9 @@
 - 仓库瘦身（用户要求）：pak 资源在私有仓库 zhaotan005-dotcom/quanjunchuji-pak（本地 /workspace/work/quanjunchuji-pak），以后不往主仓库放。game/pak 已 git rm；releases/ 只留 v3.44 三个（rel.py 下一版用 releases/ZFrame-v3.44-单机.apk 作基底）；game/x、game/re/*.pkl、apk/、zframe/ZFrame-v1.*.apk、zframe/build/ 停止跟踪（本地文件还在，.gitignore）。main 当前文件约 22MB（<50MB），jsDelivr 应恢复。以后每版发完要 git rm 上一版三个 APK。
 - README 里那行「已接受解密 pak/绕保护/联网外挂」已按用户确认删除（2026-11-19）。规矩不变：不解密 pak、不绕保护、不做联网外挂。
 - 21:3x 发布核对：raw.githubusercontent / ghfast / gh-proxy 三个 b0-b2.ver 都是 245。jsDelivr 包大小问题已解决：钉提交 `@585c115` 的 b0-b2.ver=245、.dex 和本地 sha1 一致；无分支 `/gh/…/core/*`（默认分支）purge 成功，返回 245。但 `@main` 的 purge 一直 throttled（20:58 刚 purge 过），各节点缓存不一（cdn 245/243/243，testingcf/gcore/fastly 还有 221/243）——要等节点缓存过期或晚点再 purge @main；客户端取各镜像最大值，raw/ghfast/gh-proxy 已是 245，不影响更新。
+
+## v3.45（vc246/core246，2026-11-19 23:5x，只推内核，未实测）
+- 详见 history v3.45。根因（静态读码证实，设备未实测）：管理器 +0x400 bFirstUpdate=1 时客户端 Tick 0x115e7dc 不调 Update；只有 FirstLoad（vt+0x2f8，TileMode 0x1165e34）会清它；原生 Client Load Block 0x1086960 = LoadBlock + FirstLoad，v3.42~v3.44 只调了 LoadBlock。v3.44「服务器层重复填充」推断作废。资源不缺（训练岛 330 个文件同在 pakchunk_c2afa52b，资源清单 ×1 是 pak 挂载点计数）。
+- 改：Island.join 调原生 Client Load Block(PC)；+0x400 仍 1 才读 PC vt+0x8bc 并直接调同一个 FirstLoad。诊断：层关卡数偏移改正（层 +0x10 是管理器弱指针，不是更新计数），+400 进时间线。
+- 待用户测：进训练岛脚下地形是否出来。看「分配位置」里 +400 是否变 0、游戏日志「FirstLoad called」、「坐标/地形块随时间」地形块/流对象载是否涨、「流式状态」world StreamingLevels。
+- device-tests：v3.43 两份（train-1119-210620、slot-1119-210730）从 ntfy 补下载进仓库；v3.41 附件 ntfy 已过期。
