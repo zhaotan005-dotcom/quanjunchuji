@@ -1340,3 +1340,17 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 诊断：「分配位置」写 加载块前 +440/+43c/+400、Client Load Block 已跑、之后 +440/+43c/+400、PC+be4 是否=管理器、（必要时）vt+0x8bc 返回值和直接 FirstLoad 后 +400；「坐标/地形块随时间」每段 [+400=… 包住人物关卡 a/b 流对象 载/显/总]；「流式状态」每层 层名 + 集合偏移 + 关卡数 + 包住人物 + 范围，+400 带说明。
 - 要看的日志行：分配位置「…原生 Client Load Block 0x1086960(PC) 已跑；之后 +440=0 +43c=9 +400=0 PC+be4=…（=管理器）（FirstLoad 已跑：+400 清 0，Tick 开始 Update）」；游戏日志「ANZStreamingLevelsManagerActor::FirstLoad called, bFirstUpdate = 1」「Client Load Block」「FirstLoad--ViewLocation」「Streaming in level」「OnLevelStreamingLayerLoadCompleted Landscape」「Tick OnAllDuplicateLevelLoaded」；「坐标/地形块随时间」地形块是否从 1 涨上去、流对象 载 是否 >0、【放开：脚下射线打到地形】；「流式状态」world StreamingLevels 是否 >0。
 - 若 +400 已 0 但仍不加载：看各层「包住人物」是否 >0（包围盒偏移不对）→ 查 TilesCollection::Update 0x117627c 和策略 +0x30c/+0x314；若包住>0 但流对象 载 0 → 查 RequestsManager 0x117b4bc。
+
+## v3.46（vc247/core247，2026-11-20 00:xx，只推内核，未实测）— 同帧原生摆人；标点按地面高度；训练营菜单精简；删动作放慢；删传送残留；抛物线光束诊断
+- 23:55 用户交接（上一个智能体已查到原因、没改）。v3.45 实测（notes/device-tests/v3.45 六份：avatar/matchend/slot×2/train/para）：地形能出来（+400=0，FirstLoad 跑过），但进岛先在虚空停一下。
+- (1) 虚空：SetupPlayerStartActor 23:30:34.477（帧 5830）建好出生点，AddPlayerToSlot 到 36.106（帧 5985）才跑（Java 轮询 500ms + 3 次 gcall）。改：cave 0x171e2c0..0x171e3f3（GM 面板 GiveItem 0x171e1c8 死函数里，PickAnim 用到 0x171e28b；game/re/islecave.py 生成，emu_islecave.py unicorn 过：调用顺序、阶段 5、寄存器/栈恢复）。
+  - 入口 L：PR 补丁最后的 beq 0x10850a8（0x1084f38）→ beq L：Login 没找到位置时把 PC(r6) 记进缓冲区 +0、+16 计数，再回 0x10850a8。PR_N2=0080b0e15805961500005013e0641a0a。
+  - 入口 S：Tick 0x1082e84 bl 0x1082868 → bl S（136d1aeb）：原函数后同一帧 FindSlot 0x10845b0 → 追加进位置玩家数组（照 Login，满了 0xb74980）→ AddPlayerToSlot 0x1083a98 → bdc≥0&be0≥1 → Client Load Block 0x1086960(PC) → 管理器 +400 仍 1 且 +440≥0 → FirstLoad 0x1165e34。看过就清 +0（不留旧 PC）；回大厅 Island.caveReset。
+  - 缓冲区：+0 PC +4 S 调用次数 +8 阶段（1 找位置 2 追加 3 已摆人 4 CLB 已跑 5 FirstLoad 已补）+12 位置 +16 Login 记录次数。诊断行「同帧摆人：…」。
+  - Island.join：cave 阶段≥3 且 PC+bdc≥0 → 只记诊断；否则原 Java 线程补做（原生步骤）。
+- (2) 标点传送：MapMark 以前 Z=max(自己+3000, 20000)（绝对 200 米，训练岛地面 ≈-15800 → 离地约 358 米）。改 Trace.down(x,y,±5000 米) 打到 → 地面+2 米；没打到（目标没加载）→ 自己高度+30 米再 softLand。
+- (3) 训练营菜单：Con.training 时只显示「功能」页（id 8），只有加速/高跳/标点传送（诊断按钮不在训练营显示）。
+- (4) 删「动作放慢」：Mods.slowMo、骨骼网格 +0x7c4 播放速率写入、菜单卡片全删，用游戏默认。
+- (5) 传送残留：Island 删退回传送、抬到地面、hold()（停重力）；follow 只记录（地形出来 40 秒后停）。
+- (6) 手雷抛物线：v3.45 para 诊断所有画线前检查都过（+21=1、BP_ProjectileTrajectory_C、34c/350=1），卡在光束。画线 0xee9fe4 在抛物线物体上：段数 round(+2cc/+2d0)<1 不画；每段 0xeea4f0 用模板 +2d4 建组件存 +2d8/+2dc，SetVisibility 0x292041c、SetHiddenInGame(0) 0x2b6f01c、vt+0x420 SetStartAndEnd、vt+0x42c；终点 +2e4。Parabola.trajDiag 读这些 + 每段组件里 StaticMesh/材质/粒子指针 + 原始字节；Parabola.matchStart 每局拿雷 1.5 秒后自动跑一次传 para-（单机/服务端/客户端都跑，联机对比）。
+- 还没查：训练岛不刷枪（游戏日志 UPracticePlayerComponent::InitializeRecordInfo ds not prepared!，utf32 串 0x43769e8，xr.pkl 没扫到引用；地上物资 0）；实战区不自动进流程、没有人机。

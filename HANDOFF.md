@@ -256,3 +256,9 @@
 - 待用户测：进训练岛脚下地形是否出来。看「分配位置」里 +400 是否变 0、游戏日志「FirstLoad called」、「坐标/地形块随时间」地形块/流对象载是否涨、「流式状态」world StreamingLevels。
 - device-tests：v3.43 两份（train-1119-210620、slot-1119-210730）从 ntfy 补下载进仓库；v3.41 附件 ntfy 已过期。
 - 23:2x 发布核对：jsDelivr @main 与 @e9cda24 的 b0-b2.ver=246，b0.dex sha1 与本地一致；raw.githubusercontent b0/b2.ver=246。purge @main 六个文件 finished。
+
+## v3.46（vc247/core247，2026-11-20 00:xx，只推内核，未实测）
+- 详见 history v3.46。同帧原生摆人 cave（0x171e2c0，入口 Login beq + Tick 0x1082e84）；标点按目标地面高度；训练营只留加速/高跳/标点传送；删动作放慢；Island 删退回传送/抬到地面/停重力；拿雷自动 para- 光束诊断。
+- 要看：avatar/slot 的「同帧摆人：… 阶段 4/5」和「分配位置」是否「在出生点」；进岛不再停在虚空。para- 里「光束：段数、段模板、段组件…」单机和联机各一份对比。
+- 下一步（还没查）：训练岛不刷枪（ds not prepared、地上物资 0）；实战区不自动进流程、没人机。
+- RE 环境：game/re/*.pkl 从 /workspace/work/zf/game/re 拷；libUE4 在 /workspace/work/qjcj/x；dd.py 要 /workspace/work/qjcj-gh → qj2 软链。

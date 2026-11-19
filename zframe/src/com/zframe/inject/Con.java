@@ -496,11 +496,13 @@ public class Con {
                 if (m.startsWith("/Game/Maps/")) { training = m.contains("TrainingIsland"); } if (m.startsWith("/Game/Maps/") && training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); Island.matchLoaded(); } else if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); /* v3.21：每次进图按存的模式重打不上飞机/不刷圈 + 阶段守护 */ } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Gfx.unlite();
+                    Island.caveReset();   // v3.46 同帧摆人缓冲区不留上一局的 PC
                     Lan.role = 0; Bots.auto = Bots.want;
                     if (!Server.on && Ed.single()) new Thread(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;
+                    Parabola.matchStart();   // v3.46 拿雷自动查抛物线光束（单机/联机对比）
                     if (Lan.role == 0 && !training) { Bots.matchLoaded(); Flow.matchLoaded(m); }
                     else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（服务端：航线/毒圈照单机改；减负）"); }
                     else Lan.note("进图完成（客户端：航线/毒圈跟服务端）");   // v1.93 不再自动读车表（车编号写死）

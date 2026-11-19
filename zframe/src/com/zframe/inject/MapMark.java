@@ -98,9 +98,15 @@ final class MapMark {
         if (!autoTp || Ed.ED == 2 || Lan.role == 2) return;
         if (Float.isNaN(x) || Float.isNaN(y) || (x == 0 && y == 0) || Math.abs(x) > 2e6 || Math.abs(y) > 2e6) return;
         double[] me = Veh.info();
-        double z = Math.max((me == null ? 0 : me[2]) + 3000, 20000);   // 200 米高处落下，限速 10 米/秒（不摔伤）
+        // v3.46 用户：以前写死 200 米绝对高度（Z=20000），训练岛地面在 Z≈-15800，等于离地约 358 米。
+        // 改成按目标点的地面算：从上往下打射线，打到东西（地形/房顶）就落在它上面 2 米；
+        // 目标点还没加载打不到 → 落在「自己现在的高度 +30 米」，再慢慢落地。
+        Trace.Hit gh = Trace.down((float) x, (float) y, 500000f, -500000f);
+        double z; String how;
+        if (gh != null && !Float.isNaN(gh.z) && !gh.cls.contains("位置对不上")) { z = gh.z + 200; how = String.format("目标点地面 %.0f（%s）上方 2 米", gh.z, gh.land ? "地形" : gh.cls); }
+        else { z = (me == null ? 0 : me[2]) + 3000; how = "目标点地面没打到（可能还没加载），按自己高度 +30 米"; }
         boolean ok = Veh.teleport(pawn, x, y, z, me == null ? 0 : me[3]);
-        note("自动传送到标点 " + (ok ? "成功" : "失败"));
+        note("自动传送到标点 " + (ok ? "成功" : "失败") + "，Z=" + (int) z + "：" + how);
         state = String.format("标点：(%.0f, %.0f) 传送%s", x, y, ok ? "成功" : "失败");
         if (!ok) GameOverlay.toastAny("标点传送失败（传送功能没装上）");
         if (ok) Fly.softLand();

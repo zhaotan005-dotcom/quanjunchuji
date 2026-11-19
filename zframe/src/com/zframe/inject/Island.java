@@ -70,9 +70,50 @@ final class Island {
     /** BP_NZBRPracticeGameMode 默认 SpawnPointArray[0]；LogicLevel shootreturn（pak 解析，原始坐标，块偏移前） */
     static final double TPL_X = 53920, TPL_Y = -48810, TPL_Z = -15900, SHOOT_X = 47835, SHOOT_Y = -48630, SHOOT_Z = -15850;
     static volatile String fix = "训练场空队伍补丁：没装";
+    /** v3.46 同帧原生摆人（game/re/islecave.py 生成，emu_islecave.py unicorn 过）：v3.45 实测进岛先在虚空停约 1.3 秒——
+     *  SetupPlayerStartActor 在 23:30:34.477 建好出生点，我们的线程轮询 + 三次 gcall 到 36.106 才 AddPlayerToSlot。
+     *  改成游戏线程自己做：Login 没找到位置时（PR 补丁最后的 beq）把 PC 记进缓冲区；Tick 0x1082e84 调 SetupPlayerStartActor
+     *  之后同一帧按 Login 原步骤 FindSlot → 追加进位置玩家数组 → AddPlayerToSlot → Client Load Block(PC) →（+400 仍 1）FirstLoad。
+     *  cave 放在 GM 面板不用的 GiveItem 函数里 0x171e2c0..0x171e3f3（PickAnim 用 0x171e200..0x171e28b）。
+     *  缓冲区：+0 PC（Login 写，S 看过就清）+4 S 调用次数 +8 阶段（1 找位置 2 已追加 3 已摆人 4 Client Load Block 已跑 5 FirstLoad 已补）+12 位置 +16 Login 记录次数 */
+    static final long ICAVE = 0x171e2c0L, ICAVE_S = 0x171e2d8L, TICK_SETUP = 0x1082e84L;
+    static final String ICODE = "28019fe5006080e5101090e5011081e2101080e5739be5eaf0412de90040a0e16091e5eb04719fe5040097e5010080e2040087e5005097e5000055e33a00000a440a94e5000050e33500000adc0b95e5000050e3320000aa580595e5000050e32f00000a0100a0e3080087e50400a0e10510a0e19d98e5eb0060b0e12800000a0c6087e5148096e5010088e2140086e5181096e5010058e1020000ba100086e20810a0e18559d1eb100096e5085180e70200a0e3080087e50400a0e10510a0e1c495e5ebdc0b95e5000050e3140000bae00b95e5010050e3110000ba0300a0e3080087e50500a0e16ca1e5eb0400a0e3080087e53c0a94e5000050e30800000a0014d0e5000051e30500000a401490e5000051e3020000ba951ee9eb0500a0e3080087e50000a0e3000087e5f081bde8";
+    static final String IORIG = "58a0eaeb0c1095e55c2090e55c3091e5030052e1d6ffffca581091e5580080e2021191e7000051e1d1ffff1a0000a0e30c708de2f46298e50010a0e30c008de514008de50900a0e310008de50700a0e19a59d1eb90119fe52420a0e30c009de501108fe0c14509eb0600a0e10710a0e1ef1d37eb0c009de5000050e30000000aa6ae09eb040094e5000050e35000000a006094e50011a0e10020a0e30630a0e10270b3e75f0057e30300000a042082e2020051e1f8ffff1a450000ea061043e00020e0e3410152e14100000a017040e24121a0e1020057e10030a0e30270a0c1000051e3007000b3018087e2000057e30700a0e10800a01100308de508308de5010050e304008de51b0000ba0d00a0e10010a0e36959d1eb04009de5010050e3150000ba000056e300909d15000059131100000a";
+    static final String TICK_O = "77feffeb", TICK_N = "136d1aeb", PR_N2 = "0080b0e15805961500005013e0641a0a";
+    static ByteBuffer ib; static long ibAddr; static volatile boolean caveOn;
+    static String caveInstall() {
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        if (ib == null) { ib = ByteBuffer.allocateDirect(32).order(ByteOrder.LITTLE_ENDIAN); ibAddr = GameOverlay.bufAddr(ib); }
+        if (ibAddr <= 0 || ibAddr > 0xffffffffL) return "缓冲区地址不对";
+        byte[] want = Patches.hex(ICODE + Server.w32((int) ibAddr));
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            byte[] cur = new byte[want.length]; m.seek(b + ICAVE); m.readFully(cur);
+            boolean ours = java.util.Arrays.equals(java.util.Arrays.copyOf(cur, want.length - 4), java.util.Arrays.copyOf(want, want.length - 4));
+            if (!ours && !Patches.hexs(cur).equalsIgnoreCase(IORIG)) return "空位字节不符 " + Patches.hexs(java.util.Arrays.copyOf(cur, 8));
+            m.seek(b + ICAVE); m.write(want);
+            m.seek(b + ICAVE); m.readFully(cur);
+            if (!java.util.Arrays.equals(cur, want)) return "写入没生效";
+        } catch (Throwable e) { return "出错 " + e.getMessage(); }
+        return "ok";
+    }
+    /** 回大厅时清掉缓冲区（不留上一局的 PC） */
+    static void caveReset() { ByteBuffer x = ib; if (x != null) for (int o = 0; o < 32; o += 4) x.putInt(o, 0); }
+    static String caveText() {
+        ByteBuffer x = ib; if (!caveOn || x == null) return "同帧摆人：没装";
+        String[] st = { "没开始", "找位置", "已追加进位置", "已原生摆人", "Client Load Block 已跑", "FirstLoad 已补" };
+        int s = x.getInt(8);
+        return "同帧摆人：Login 记录 " + x.getInt(16) + " 次，建出生点后调用 " + x.getInt(4) + " 次，阶段 " + s + "（" + (s >= 0 && s < st.length ? st[s] : "?") + "）";
+    }
     static void install() {
-        String r = Mods.write(PR, PR_O, PR_N, true), r2 = Mods.write(PB, PB_O, PB_N, true);
-        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2; LogCap.note(fix);
+        caveReset();
+        String c = caveInstall(), t = "没装", r;
+        if ("ok".equals(c)) {
+            r = Mods.write(PR, PR_O, PR_N2, true);
+            if ("ok".equals(r)) { t = Mods.write(TICK_SETUP, TICK_O, TICK_N, true); caveOn = "ok".equals(t); }
+            if (!caveOn) { Mods.write(PR, PR_O, PR_N2, false); r = Mods.write(PR, PR_O, PR_N, true); }
+        } else r = Mods.write(PR, PR_O, PR_N, true);
+        String r2 = Mods.write(PB, PB_O, PB_N, true);
+        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t; LogCap.note(fix);
     }
     static volatile String block = "分配位置：没试";
     static volatile String state = "训练岛：没进";
@@ -232,6 +273,22 @@ final class Island {
             }
         }
         sb.append("位置 ").append(n).append(" 个，块数 ").append(cnt).append("，+a70=").append(allLoaded).append(" +a21=").append(handled).append("，PC+bdc=").append(bdc0).append("；");
+        // v3.46：游戏线程在建出生点的同一帧已经按原生步骤做完（cave 阶段 ≥3）→ 这里只记诊断，不再调任何东西
+        if (caveOn && bdc0 >= 0 && ib != null && ib.getInt(8) >= 3) {
+            int cur, curN, f1; long be4;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                if (in) ps = slotStart(m, slot);
+                cur = (int) Server.rd(m, mgr + 0x440); curN = (int) Server.rd(m, mgr + 0x43c); f1 = rb(m, mgr + 0x400); be4 = Server.rd(m, pc + 0xbe4);
+            }
+            double[] now = me();
+            sb.append(caveText()).append("；位置 ").append(in ? String.valueOf((slot - slots) / 0x34) : "?").append(" PlayerStart ").append(ps == null ? "没有" : p3(ps))
+              .append("；人物 ").append(p3(now)).append(ps != null && now != null && Math.hypot(now[0] - ps[0], now[1] - ps[1]) < 5000 ? "（在出生点）" : "（不在出生点）")
+              .append("；管理器 +440=").append(cur).append(" +43c=").append(curN).append(" +400=").append(f1).append(f1 == 0 ? "（FirstLoad 已跑）" : "（FirstLoad 没跑）")
+              .append(" PC+be4=").append(Long.toHexString(be4)).append(be4 == mgr ? "（=管理器）" : "（≠管理器）");
+            block = sb.toString(); note(block);
+            return ps;
+        }
+        sb.append(caveText()).append(" → 线程补做（原生步骤，晚几帧）；");
         if (!in) {
             long[] r = Server.gcall(b + FIND_SLOT, gm, pc, 0, 0, 3000);
             slot = r[1];
@@ -249,8 +306,6 @@ final class Island {
         double[] before = me();
         sb.append("摆人前人物 ").append(p3(before)).append("；");
         // 原生摆人：AddPlayerToSlot 自己写 PC+bdc/+be0、FindPlayerStart、SetActorLocation/Rotation
-        long pawn = Mods.myPawn();
-        if (pawn >= 0x10000) hold(pawn, true);   // v3.44：摆到岛上那一刻地形还没流进来 → 只停重力、速度清零（不改时间缩放）
         if (bdc0 >= 0) sb.append("PC 已有块号 ").append(bdc0).append("，AddPlayerToSlot 会直接退（already has a index），不调；");
         else {
             long[] r = Server.gcall(b + ADD_TO_SLOT, gm, pc, 0, 0, 3000);
@@ -262,14 +317,8 @@ final class Island {
         sb.append("之后 PC+bdc=").append(bdc).append(" +be0=").append(be0).append("，人物 ").append(p3(after));
         boolean placed = ps != null && after != null && Math.hypot(after[0] - ps[0], after[1] - ps[1]) < 5000;
         if (placed) sb.append("（原生摆到出生点了）；");
-        else {
-            // 原生没摆上（FindPlayerStart 没挑到 / 没跑）→ 退回传送到同一个 PlayerStart
-            sb.append("（原生没摆到出生点：").append(ps == null ? "位置没有 PlayerStart" : bdc < 0 ? "AddPlayerToSlot 没写块号（PlayerState 空或没找到位置）" : "FindPlayerStart 没挑到这个位置的 PlayerStart")
-              .append("）→ 退回传送 ");
-            if (ps != null && pawn >= 0x10000) sb.append(Veh.teleport(pawn, ps[0], ps[1], ps[2] + 100, 165) ? "ok" : "失败");
-            else sb.append("没法传（没出生点/人物）");
-            sb.append("；");
-        }
+        else   // v3.46 用户：不再退回传送，只记原因
+            sb.append("（原生没摆到出生点：").append(ps == null ? "位置没有 PlayerStart" : bdc < 0 ? "AddPlayerToSlot 没写块号（PlayerState 空或没找到位置）" : "FindPlayerStart 没挑到这个位置的 PlayerStart").append("）；");
         // v3.45：不再自己调 LoadBlock，直接调原生 Client Load Block 实现 0x1086960(PC)：
         //   TActorIterator 找地块管理器 → PC+0xbe4 = 管理器 → LoadBlock(PC+0xbdc, PC+0xbe0) → PC vt+0x8bc 非空就 管理器 vt+0x2f8 FirstLoad。
         //   FirstLoad（TileMode 0x1165e34 → 0x115f130）按人物位置做第一次 Update、RequestsManager 提交、最后把 +0x400 bFirstUpdate 清 0；
@@ -293,59 +342,33 @@ final class Island {
         } else if (f1 == 0) sb.append("（FirstLoad 已跑：+400 清 0，Tick 开始 Update）");
         sb.append("；不填服务器层 +0x37c");
         block = sb.toString(); note(block);
-        if (block.contains("没跑") || block.contains("退回传送")) GameOverlay.toastAny("训练岛" + block);
+        if (block.contains("没跑") || block.contains("没摆到")) GameOverlay.toastAny("训练岛：原生摆人没成功，已记诊断");
         return ps;
     }
 
-    static long holdCmc; static float holdGrav = Float.NaN;
-    /** 停住人物但不碰时间缩放：移动组件（人物+0x2f8）GravityScale(+0x120)=0、Velocity(+0xb4..)=0；放开时还原重力 */
-    static void hold(long pawn, boolean on) {
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-            long b = Mods.base();
-            if (!Mods.isObj(m, b, pawn)) return;
-            long c = Server.rd(m, pawn + Mods.P_CMC); if (c < 0x10000 || !Mods.isObj(m, b, c)) return;
-            if (on) {
-                if (holdCmc != c || Float.isNaN(holdGrav)) { holdCmc = c; float g = Mods.f(m, c + Fly.C_GRAV); holdGrav = g == 0f ? 1f : g; }
-                Mods.wf(m, c + Fly.C_GRAV, 0f);
-                Mods.wf(m, c + Mods.C_VEL, 0f); Mods.wf(m, c + Mods.C_VEL + 4, 0f); Mods.wf(m, c + Mods.C_VEL + 8, 0f);
-            } else if (c == holdCmc && !Float.isNaN(holdGrav)) { Mods.wf(m, c + Fly.C_GRAV, holdGrav); holdGrav = Float.NaN; }
-        } catch (Throwable ignored) {}
-    }
-
-    /** 摆人后跟 120 秒：每 5 秒记坐标/地形块/+a70/+a21 和流式简况；人物停重力，每秒补一次速度清零；
-     *  脚下射线打到地形（或 +a70 置了、或 90 秒）就还原重力 */
+    /** 摆人后跟 120 秒：每 5 秒记坐标/地形块/+a70/+a21 和流式简况，脚下射线看地形出来没有。
+     *  v3.46 用户：不冻重力、不抬人、不传送，只记录（地形出来 40 秒后停）。 */
     static void follow(long b, Veh.Names nm, long gm, long pc, double[] ps, long mgr) throws Exception {
         StringBuilder tr = new StringBuilder("坐标/地形块随时间：");
-        long w0 = System.currentTimeMillis(), pawn = Mods.myPawn(); boolean held = pawn >= 0x10000, done = false; String why = ""; long lastRec = -10;
+        long w0 = System.currentTimeMillis(); boolean ground = false, done = false; long lastRec = -10;
         while (System.currentTimeMillis() - w0 < 120000) {
-            if (!Con.training || !Con.inMatch) { if (held) hold(pawn, false); return; }
+            if (!Con.training || !Con.inMatch) return;
             long s = (System.currentTimeMillis() - w0) / 1000;
-            if (held) hold(pawn, true);
             if (s - lastRec < 5) { Thread.sleep(1000); continue; }
             lastRec = s;
             int a70, a21, bdc; try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { a70 = rb(m, gm + 0xa70); a21 = rb(m, gm + 0xa21); bdc = (int) Server.rd(m, pc + 0xbdc); }
             int land = scan(b, nm).land; double[] p = me();
             float g = Float.NaN;
-            if (held && p != null) { Trace.Hit h = Trace.down((float) p[0], (float) p[1], (float) p[2] + 5000, (float) p[2] - 20000); if (h != null && h.land) g = h.z; }
+            if (!ground && p != null) { Trace.Hit h = Trace.down((float) p[0], (float) p[1], (float) p[2] + 5000, (float) p[2] - 20000); if (h != null && h.land) g = h.z; }
             tr.append(s).append("s ").append(p3(p)).append(" 地形块 ").append(land).append(" a70=").append(a70).append(" a21=").append(a21).append(" bdc=").append(bdc).append(Float.isNaN(g) ? "" : " 地面 " + (int) g)
               .append(" [").append(streamDiag(b, nm, mgr, false)).append("]；");
             track = tr.toString();
             if (s <= 6 || s % 20 < 5) { stream = streamDiag(b, nm, mgr, true); }
-            if (held) {
-                if (!Float.isNaN(g)) why = "脚下射线打到地形";
-                else if (a70 != 0) why = "+a70 已置（Landscape 层加载完）";
-                else if (s >= 90) why = "90 秒到了，地形还没到也放开";
-                if (why.length() > 0) {
-                    if (!Float.isNaN(g) && p != null && p[2] < g + 50) { Veh.teleport(pawn, p[0], p[1], g + 120, 165); why += "，人物低于地面，抬到地面上"; }
-                    hold(pawn, false); held = false; tr.append("【放开：").append(why).append("】");
-                    note("训练岛：放开人物（" + why + "）");
-                }
-            }
+            if (!ground && !Float.isNaN(g)) { ground = true; tr.append("【脚下地形出来了，第 ").append(s).append(" 秒】"); }
             if (a21 != 0 && !done) { done = true; tr.append("【OnAllDuplicateLevelLoaded 已处理 +a21=1】"); }
-            if (!held && s >= 40) break;
+            if (ground && s >= 40) break;
             Thread.sleep(1000);
         }
-        if (held) hold(pawn, false);
         track = tr.toString(); note(track);
         stream = streamDiag(b, nm, mgr, true); note(stream);
         double[] me = me();

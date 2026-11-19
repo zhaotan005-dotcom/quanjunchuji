@@ -398,7 +398,6 @@ public class Mods {
     static volatile long cmc; static float baseJump, lastJump = Float.NaN;
     static Thread mover;
     /** 动作放慢系数：1 = 动作和平时一样快；越小越像「科技」那种滑步 */
-    public static volatile float slowMo = 0.75f;
     static volatile String moveState = "";
 
     static int rd(RandomAccessFile m, long a) throws java.io.IOException {
@@ -555,7 +554,7 @@ public class Mods {
         lastJump = want;
     }
 
-    /** 加速：人物自己的时间倍率 = 倍数（只快在位移上），动画按 slowMo 放慢；人在空中时恢复 1，跳跃才正常。
+    /** 加速：人物自己的时间倍率 = 倍数（只快在位移上），动画用游戏默认；人在空中时恢复 1，跳跃才正常。
      * v1.52：在空中时间恢复正常，起跳带出去的水平速度也就只有正常跑步那么快，看着像原地跳。
      * 所以起跳那一刻把水平速度 Velocity(+0xb4 X,+0xb8 Y) 也乘上倍数，落地后游戏自己会重算速度。 */
     static boolean wasAir;
@@ -589,12 +588,7 @@ public class Mods {
         int it = rd(m, c + C_ITER);
         if (baseIter == 0 && it >= 1 && it <= 25) baseIter = it;
         if (baseIter > 0) { int wantIt = wantDil > 2f ? Math.min(100, Math.max(baseIter, (int) Math.ceil(wantDil * 0.8f) + 2)) : baseIter; if (it != wantIt && it >= 1 && it <= 100) wi(m, c + C_ITER, wantIt); }
-        long mesh = rp(m, pawn + P_MESH);
-        if (!isObj(m, b, mesh)) return;
-        if (mesh != lastMesh) { lastMesh = mesh; LogCap.note(String.format("骨骼网格 %x", mesh)); }
-        float ar = f(m, mesh + M_RATE);
-        float want = wantDil == 1f ? 1f : Math.max(0.005f, slowMo / wantDil);   // v2.74 用户：67 倍动作也变快 → 以前最低 0.1 卡住了，67 倍时动作快 6.7 倍
-        if (ar > 0.001f && ar < 20f && Math.abs(ar - want) > 0.001f) wf(m, mesh + M_RATE, want);
+        // v3.46 用户：删「动作放慢」，骨骼网格播放速率不再改，用游戏默认
     }
 
     // ---------- 枪械：人物 CurrWeapon(+0x890) ----------

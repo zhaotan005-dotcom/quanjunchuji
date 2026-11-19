@@ -69,6 +69,7 @@ final class Parabola {
                 sb.append("设置对象 0xc9e8b8 ").append(st[0] == 0 ? "没跑" : set < 0x10000 ? "空" : Long.toHexString(set) + " " + Alive.clsName(m, nm, set) + " ThrowWeaponTrace+d5=" + Island.rb(m, set + 0xd5)).append("；");
                 sb.append("投掷模式 [武器+3e8]+24+20 = ").append(mode).append("（ThrowWeaponTrace=0 时要 5 或 6）；");
             }
+            if (traj >= 0x10000) sb.append(trajDiag(b, nm, traj));
             long[] op = vcall(cur, 0x430);
             sb.append("武器 vt+430 拥有者 ").append(op[0] == 0 ? "没跑" : Long.toHexString(op[1])).append(op[1] == pawn ? "(=我)" : "(≠我)").append("；");
             long who = op[1] >= 0x10000 ? op[1] : pawn;
@@ -81,6 +82,76 @@ final class Parabola {
         state = sb.toString(); LogCap.note(state);
         return state;
     }
+    /** v3.46：画线前检查都过了（已画+21=1、有抛物线物体），卡在光束显示。画线 0xee9fe4 在抛物线物体上：
+     *  段数 = round(+0x2cc / +0x2d0)，<1 一段都不画；每段 0xeea4f0 用模板 +0x2d4 建组件存进 +0x2d8/+0x2dc，
+     *  SetVisibility(1) 0x292041c、SetHiddenInGame(0) 0x2b6f01c、vt+0x420 SetStartAndEnd；终点组件 +0x2e4。
+     *  这里把这些全部读出来，并列出每段组件里指向 StaticMesh / 材质 / 粒子的指针，对比单机和联机哪里不一样。只读。 */
+    static String trajDiag(long b, Veh.Names nm, long t) {
+        StringBuilder sb = new StringBuilder("光束：");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            float len = Mods.f(m, t + 0x2cc), step = Mods.f(m, t + 0x2d0);
+            sb.append("长度+2cc=").append(len).append(" 每段+2d0=").append(step).append(" → 段数 ").append(step == 0 ? "除 0" : String.valueOf(Math.round(len / step)));
+            sb.append("；输入+2b0..2c8=");
+            for (int o = 0x2b0; o <= 0x2c8; o += 4) sb.append(String.format("%.0f ", Mods.f(m, t + o)));
+            sb.append("；物体标志+58..5f=").append(Server.bytesAt(m, t + 0x58, 8));
+            long tpl = Server.rd(m, t + 0x2d4);
+            sb.append("；段模板+2d4 ").append(tpl < 0x10000 ? "空" : Alive.clsName(m, nm, tpl) + " " + Alive.objName(m, nm, tpl));
+            long arr = Server.rd(m, t + 0x2d8); int n = (int) Server.rd(m, t + 0x2dc), mx = (int) Server.rd(m, t + 0x2e0);
+            sb.append("；段组件 ").append(n).append('/').append(mx);
+            for (int i = 0; i < n && i < 3 && arr >= 0x10000; i++) {
+                long c = Server.rd(m, arr + 4L * i);
+                sb.append("；段").append(i).append(' ').append(Long.toHexString(c)).append(' ').append(Alive.clsName(m, nm, c)).append(ptrs(m, b, nm, c));
+            }
+            long end = Server.rd(m, t + 0x2e4);
+            sb.append("；终点+2e4 ").append(end < 0x10000 ? "空" : Long.toHexString(end) + " " + Alive.clsName(m, nm, end) + ptrs(m, b, nm, end));
+        } catch (Throwable e) { sb.append("出错 ").append(e); }
+        return sb.append("；").toString();
+    }
+    /** 组件里 +0x80..+0x700 指向 StaticMesh/材质/粒子/纹理的指针 → 「+偏移=类:名字」，再带 +0x80..+0x100 的原始字节（看可见性位） */
+    static String ptrs(RandomAccessFile m, long b, Veh.Names nm, long c) throws java.io.IOException {
+        if (c < 0x10000 || !Mods.isObj(m, b, c)) return "（不是对象）";
+        StringBuilder sb = new StringBuilder("【");
+        int k = 0;
+        for (int o = 0x80; o < 0x700 && k < 8; o += 4) {
+            long p = Server.rd(m, c + o); if (p < 0x10000 || p == c) continue;
+            if (!Mods.isObj(m, b, p)) continue;
+            String cn = Alive.clsName(m, nm, p);
+            if (cn.contains("StaticMesh") && !cn.contains("Component") || cn.contains("Material") || cn.contains("Particle") && !cn.contains("Component") || cn.contains("Texture")) {
+                sb.append('+').append(Integer.toHexString(o)).append('=').append(cn).append(':').append(Alive.objName(m, nm, p)).append(' '); k++;
+            }
+        }
+        if (k == 0) sb.append("没有网格/材质指针 ");
+        return sb.append("字节+80..ff ").append(Server.bytesAt(m, c + 0x80, 0x80)).append("】").toString();
+    }
+
+    /** v3.46：自动跑（单机/服务端/客户端都跑，联机正常、单机不正常要对比）：对局里手上切到投掷物 1.5 秒后检查一次并上传 para-，每局一次 */
+    static volatile boolean watching;
+    static void matchStart() {
+        if (watching) return; watching = true;
+        new Thread(() -> {
+            try {
+                long t0 = System.currentTimeMillis();
+                while (System.currentTimeMillis() - t0 < 1800000) {
+                    Thread.sleep(2000);
+                    if (!Con.inMatch) { if (System.currentTimeMillis() - t0 > 60000) break; continue; }
+                    long pawn = Mods.myPawn(); if (pawn < 0x10000) continue;
+                    String cn;
+                    try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                        long wm = Server.rd(m, pawn + 0x888), cur = wm < 0x10000 ? 0 : Server.rd(m, wm + 0x2d8);
+                        cn = cur < 0x10000 ? "" : Alive.clsName(m, Veh.Names.get(), cur);
+                    }
+                    if (!cn.contains("Grenade") && !cn.contains("Throw") && !cn.contains("Molotov") && !cn.contains("Smoke") && !cn.contains("Flash")) continue;
+                    Thread.sleep(1500);
+                    check();
+                    android.app.Activity a = Con.act;
+                    if (a != null) { AvatarLog.manual = true; try { AvatarLog.export(a, "para-"); } finally { AvatarLog.manual = false; } }
+                    break;
+                }
+            } catch (Throwable ignored) {}
+            finally { watching = false; }
+        }, "zf-para").start();
+    }
+
     /** 在游戏线程调对象虚表 off 处的函数（只读取值函数） */
     static long[] vcall(long o, int off) throws Exception {
         long fn;
