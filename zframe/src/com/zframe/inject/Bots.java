@@ -137,6 +137,10 @@ public class Bots {
         }, "zf-outfit").start();
     }
 
+    /** v3.43：训练岛不走 matchLoaded（不刷人机），以前仓库衣服从来没发过（诊断「仓库衣服：还没发」）。
+     *  Island 原生摆好人后调这里，和普通对局同一条路（cave 'I' 发到身上）。 */
+    static void trainingOutfit() { giveOutfit(++gen); }
+
     static void matchLoaded() {
         usedNames.clear(); final int g = ++gen; spawned = 0; phase = -1; synchronized (live) { live.clear(); } killed = 0;
         unpatchEnd();

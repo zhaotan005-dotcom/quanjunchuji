@@ -1282,3 +1282,22 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - GameOverlay：标题栏「收起」键只在对局里显示（= 隐藏，五指再开）；删「单机按联机方式进图」开关，换成「诊断 → 手雷抛物线检查」（Parabola.check + 上传 para-*）。
   - 删伪装联机：Con.startGame 的 ?listen 分支、Lan.fakeOnline。单机进图地图串不变（这开关 v3.31 起默认关），不影响单机进图。
 - 要看的日志行：slot-* 里「分配位置：…」「训练岛：…」「射击训练区：…」「原生刷车/刷物资（分配后 20 秒）：…」；para-* 里「抛物线检查（手里拿雷时）：…」；游戏日志 AddPlayerToSlot / Client Load Block / Load Block Out Of Index / OnAllDuplicateLevelLoaded。
+
+## v3.43（vc244/core244，2026-11-19 21:xx，只推内核，未实测）— 训练场出生点根修（原生摆人）；训练岛仓库衣服
+- 20:44 用户 v3.42 实测：进训练岛人在岛西南很远的海上/空中，1 分钟没传送，山是黑剪影；以前用标点传过去后训练场会加载 → 地形按人位置流式加载。衣服没穿（只有默认内衣）。用户要求：正式流程一进去就在位置上，不要用我们自己的传送当主方案。
+- train-1119-204331 诊断：v3.42 把自己排进 +a24 等 OnAllDuplicateLevelLoaded，但整份日志没有 OnLevelStreamingLayerLoadCompleted（人不在岛上，Landscape 层等不到）→ +a70 一直 0 → 死等；出生点读成 0,0,0（读错：位置 +4 是 PlayerStart 数组，不是坐标）；SetupPlayerStartActor 20:42:29 加了 9 个出生点但排法是 4×4（0..3 同 X）。「仓库衣服：还没发」。
+- RE（libUE4，只读）：
+  - SetupPlayerStartActor 0x1082868：Tick 0x1082cb0 第一次拿到地块管理器（全局弱指针 → GM+0xa3c）时调一次。开头 bl 0x1164d90(管理器, GM+0xa4c)：只在 NetMode==1（专用服）时 str 块数到 管理器+0x43c（0x1164df4），单机/listen 直接退 → 管理器块数保持默认 16。出生点 = 0x1163e2c 块偏移（边长 floor(sqrt(管理器+0x43c)+0.01)，X=(行数-1)·-0.5·W+行·W，Y=(边长-1)·-0.5·H+列·H，W/H=管理器+0x41c/+0x420=140000）+ BP 模板。每个出生点 SpawnActor 成 PlayerStart，加进 位置+4 数组（位置结构：[0] 块号，+4/+8/+0xc PlayerStart TArray，+0x10/+0x14 玩家 TArray）。
+  - pak（game/pak 只读解析 uasset/umap 标签属性）：BP_NZBRPracticeGameMode 默认 SlotCount=9、SpawnPointArray[0]=(53920,-48810,-15900) 朝向约 165°；LogicLevel：shootreturn (47835,-48630,-15850)、BP_ShootPracticeBase 盒子 (47800,-48610)、drivereturn (57545,-39960)、AIreturn (49835,-59570)、刷车点 12 个在 (54450..72310,-42490..-32750)、刷物资区 2 个、PlayerStart2..11 在 (37955..59775,-79840..-62539)、靶子 Round 系列 (42668..45997,-48286..-46591)。→ 原生出生点离射击区约 61 米。
+  - 根因：块数 16 算出生点（位置 0 = 模板-1.5·140000 = (-156080,-258810)），LoadBlock(块,9) 把管理器块数改 9 → 岛副本按 3×3 放（块 0 偏移 -140000，岛在 (-86080,-188810) 一带）→ 出生点在岛西南约 1 公里海上。正式服专用服先写了 9，所以对得上。
+  - ChoosePlayerStart_Implementation（0x10847xx，日志 :343）：控制器是 PC 且 GM+0xa44≥1 → 0x10845b0 找到所在位置（先找玩家数组里有它的，否则第一个空位置，否则随机）→ 位置 PlayerStart 数≥1 → vt+0x64c 从中挑；否则 Super + 「level not prepared」。
+  - AddPlayerToSlot 0x1083a98：PC+0x558 有 PlayerState、PC+0xbdc<0、PC 在某位置玩家数组里 → 写 PC+0xbdc=位置[0] 块号、+0xbe0=GM+0xa4c → FindPlayerStart 0x2eca4ac → PC vt+0x30c 设初始位置 → StartSpot(+0x2dc) → 人物 SetActorLocation 0x274ca58 + SetActorRotation 0x274cd14。不依赖 +a70；Login 在 +a70 已置时就直接调它（"call client load directly"）。OnAllDuplicateLevelLoaded 0x108357c 只是把 +a24 队列逐个 AddPlayerToSlot。
+  - RestartPlayer 不选：人物已存在时 RestartPlayerAtPlayerStart 不挪人物（UE4 原逻辑）；AddPlayerToSlot 才是训练场自己「把已有人物摆到位置出生点」的函数。
+  - 衣服：Bots.giveOutfit 只在 Bots.matchLoaded 里调，Con 里训练岛是 `!training` 才调 matchLoaded → 训练岛从来不发仓库衣服（和出生时机无关）。
+- 改：
+  - Island.install 加补丁 0x10828b0：`bl 0x1164d90`(368903eb) → `str r1,[r0,#0x43c]`(3c1480e5)，即只做专用服那一步写块数（0x1164d90 其余部分单机本来就不跑）。启动早装。
+  - Island.run 重写：等位置 → 管理器（先读 GM+0xa3c）→ ensureSetup：位置 0 的 PlayerStart 要等于 模板+块偏移(GM 块数)，且 管理器+0x43c==GM+0xa4c；不对（补丁没赶上）→ 写 +0x43c、清各位置 PlayerStart 数、GM+0xa3c=0 让 Tick 重跑 Setup → join：补进位置玩家数组（不再排 +a24）→ 冻住人物（+0x58 时间缩放=0）→ 原生 AddPlayerToSlot → 读 PC+0xbdc/+0xbe0 → LoadBlock(管理器, bdc, be0) + 服务器层 Fill → 原生没摆到出生点（差 >50 米）才退回 Veh.teleport 到同一个 PlayerStart，并写原因 → follow：120 秒每 5 秒记坐标/地形块/+a70/+a21/bdc，脚下射线打到地形或 +a70 置或 60 秒就放开（低于地面就抬到地面上 1.2 米）→ 射击区只诊断（shootreturn+块偏移、150 米内靶子数），不传送 → 20 秒后刷车/物资诊断 → 上传 slot-*。
+  - Bots.trainingOutfit()：训练岛摆完人发仓库衣服（同普通对局 cave 'I'）。
+  - 诊断：slot-* 加「出生点建立：」「坐标/地形块随时间：」「仓库衣服：」「训练岛关键日志：」（Con 每行日志在训练岛时抓 OnAllDuplicateLevelLoaded / OnLevelStreamingLayerLoadCompleted / AddPlayerToSlot / Spawn Vehicle / Load Block / SetupPlayerStartActor 位置 0 / level not prepared）。
+- 要看的日志行：「训练场空队伍补丁：ok；块数补丁 0x10828b0：ok」；游戏日志 SetupPlayerStartActor Add Player Start 0 应为 (-86080,-188810,-15900)、1 应为 (-86080,-48810)（3×3）；「出生点建立：… → 对（块数补丁生效）」；「分配位置：…原生 AddPlayerToSlot 已跑；之后 PC+bdc=0 +be0=9，人物 -86080,-188810,…（原生摆到出生点了）」；「坐标/地形块随时间」地形块是否涨、何时放开；关键日志里有没有 OnLevelStreamingLayerLoadCompleted Landscape / Tick OnAllDuplicateLevelLoaded；「射击训练区：…算在 -92165,-188630…离它 N 米…150 米内靶子 N 个」；「原生刷车/刷物资（分配后 20 秒）」；「仓库衣服：进对局发了 N 件」。
+- 未知：AddPlayerToSlot 后 FindPlayerStart 是否真挑到位置的 PlayerStart（vt+0x64c 实现未看）；PlayerStart z=-15900 是否在地面上（射击区地面约 -15785..-15885，可能略低 → follow 里抬）；Landscape 层完成是否真跟人位置有关；刷车/物资是否会因 OnAllDuplicateLevelLoaded 自己出来。

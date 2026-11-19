@@ -9,36 +9,66 @@ import java.util.HashMap;
 /** 训练岛（训练场 = BP_NZBRPracticeGameMode_C，游戏自带「训练」入口）。
  *
  *  v3.42 根因（RE + v3.41 block-1119-195412 日志）：
- *  - 训练场是「一个 DS 开 16 份岛」的设计：GameMode BeginPlay 0x1081d70 建 16 个位置（GM+0xa40 数组，每个 0x34 字节，
- *    [0]=块号，+4..+0xc 出生点，+0x10 玩家数组；个数 +0xa44，块数 +0xa4c 默认 16）。玩家 Login 0x1084c5c 时
- *    0x10845b0 给他挑位置、塞进位置的玩家数组；所有副本关卡加载完（GM+0xa70）后 AddPlayerToSlot 0x1083a98
- *    写 PC+0xbdc 块号 / +0xbe0 块数、传到这个位置的出生点、发 Client Load Block（客户端 0x1086960 → LoadBlock(块号, 块数)），
- *    还没加载完就先排进 GM+0xa24，等 Tick 0x1082cb0 里 OnAllDuplicateLevelLoaded 0x108357c 统一处理。
- *  - 单机里玩家 Login（19:51:24）比 GameMode BeginPlay（19:51:29）早 → 那时位置数组是空的 → 找不到位置（v3.37 空队伍补丁让它跳过）
- *    → 玩家永远不进位置：不发 Client Load Block、不传出生点、练习组件（PracticeSlotIndex/刷车/靶子）都没绑到玩家。
- *  - 「所有副本关卡加载完」这道检查不是卡点：v3.41 日志 19:52:44 已经出现 OnLevelStreamingLayerLoadCompleted Landscape
- *    → OnAllDuplicateLevelLoaded（GM+0xa70=1、+0xa21=1），只是队列里没有玩家。
- *  - v3.41「第 9 块地形最全」是假象：LoadBlock 第三个参数传的是 1（块数），块号 ≥1 全部 Out Of Index（日志 15 行），
- *    只有块 0 真加载了，地形块数是随时间涨上来的（1→4→14→17）。
- *  做法：BeginPlay 建好位置后，按 Login 原来的步骤把自己补进位置（0x10845b0 挑位置 → 塞进位置玩家数组 → 排进 +0xa24 或直接 AddPlayerToSlot），
- *  再按 Client Load Block 的做法 LoadBlock(管理器, 位置块号, 块数)；之后传出生点、刷东西都走游戏原生。全部未实测。 */
+ *  - 训练场是「一个 DS 开 N 份岛」：GameMode BeginPlay 0x1081d70 建 N 个位置（GM+0xa40 数组，每个 0x34 字节，
+ *    [0]=块号，+4 本位置的 PlayerStart 数组 (data,num,max)，+0x10 玩家数组；个数 +0xa44，块数 +0xa4c，BP 默认 SlotCount=9）。
+ *  - 单机里玩家 Login 比 GameMode BeginPlay 早 → 位置数组空 → 不进位置（v3.37 空队伍补丁让它跳过）。
+ *
+ *  v3.43 根因补全（RE + train-1119-204331 日志）：
+ *  - SetupPlayerStartActor 0x1082868（Tick 里第一次拿到地块管理器 GM+0xa3c 时跑一次）先调 0x1164d90(管理器, GM+0xa4c)：
+ *    专用服（NetMode==1）在这里写 管理器+0x43c = 块数 9；单机/listen 直接退出 → 管理器块数还是默认 16。
+ *    出生点 = 块偏移 0x1163e2c(管理器+0x43c 算边长) + BP 模板 SpawnPointArray[0]=(53920,-48810,-15900)：
+ *    用 16（4×4）算 → 位置 0 出生点 (-156080,-258810)（日志 20:42:29 正是 4×4 排法：0..3 同 X）。
+ *    客户端 LoadBlock(块号, 9) 又把 +0x43c 改成 9（3×3）→ 岛副本放在 (-86080,-188810) 一带 → 出生点在岛西南约 1 公里海上。
+ *    这就是「人在岛西南很远的海上」。修：0x10828b0 的 bl 0x1164d90 换成 str r1,[r0,#0x43c]（只做专用服那一步写块数；
+ *    那个函数其余部分单机本来就不跑）。补丁没赶上时：写 +0x43c、清各位置 PlayerStart 数、GM+0xa3c 置 0 → Tick 按 9 重建。
+ *  - 出生点不是位置里的 3 个 float（v3.42 读成 0,0,0）：+4 是 PlayerStart 数组。
+ *  - 原生摆人：AddPlayerToSlot 0x1083a98 只要 PC+0x558 有 PlayerState、PC+0xbdc<0、PC 在某位置玩家数组里，就自己
+ *    写 PC+0xbdc 块号/+0xbe0 块数 → FindPlayerStart 0x2eca4ac（→ ChoosePlayerStart_Implementation 0x10847xx 从位置 PlayerStart 里挑）
+ *    → PC SetInitialLocation(vt+0x30c) → StartSpot → 人物 SetActorLocation 0x274ca58 / SetActorRotation 0x274cd14。
+ *    它不依赖 +a70（Login 在 +a70 已置时也是直接调它）。v3.42 排进 +a24 等 OnAllDuplicateLevelLoaded，但那要 Landscape 层先加载完，
+ *    人不在岛上就等不到（本次日志没有 OnLevelStreamingLayerLoadCompleted）→ 死等。v3.43 改为位置建好就直接调 AddPlayerToSlot。
+ *  - 射击训练区：LogicLevel（game/pak，只读解析）shootreturn=(47835,-48630,-15850)、BP_ShootPracticeBase 盒子 (47800,-48610)，
+ *    出生模板离它约 61 米 → 原生出生点就在射击区边上，不用再传。只做诊断。全部未实测。 */
 final class Island {
     static final long LOAD_BLOCK = 0x1163f3cL, FIND_SLOT = 0x10845b0L, ADD_TO_SLOT = 0x1083a98L, REALLOC = 0x1989d38L, FILL_LAYERS = 0x11649bcL;
     /** 训练场（Practice 模式）登录时 0x10845b0 找队伍返回空，0x1084f6c ldr [r8,#0x14] 崩（fault 0x14，19:07 实测诊断）。
-     *  改成 movs r8,r0 / ldrne / cmpne / beq 0x10850a8（没队伍就走原来的「跳过」分支）。v3.42 起空位置由 Island.join 事后补上。 */
+     *  改成 movs r8,r0 / ldrne / cmpne / beq 0x10850a8（没队伍就走原来的「跳过」分支）。空位置由 Island.join 事后补上。 */
     static final long PR = 0x1084f2cL;
     static final String PR_O = "0080a0e1580596e5000050e35a00000a", PR_N = "0080b0e158059615000050135a00000a";
+    /** v3.43：SetupPlayerStartActor 里 0x10828b0 bl 0x1164d90 → str r1,[r0,#0x43c]（r0=管理器 GM+0xa3c，r1=GM+0xa4c 块数）。 */
+    static final long PB = 0x10828b0L;
+    static final String PB_O = "368903eb", PB_N = "3c1480e5";
+    /** BP_NZBRPracticeGameMode 默认 SpawnPointArray[0]；LogicLevel shootreturn（pak 解析，原始坐标，块偏移前） */
+    static final double TPL_X = 53920, TPL_Y = -48810, TPL_Z = -15900, SHOOT_X = 47835, SHOOT_Y = -48630, SHOOT_Z = -15850;
     static volatile String fix = "训练场空队伍补丁：没装";
-    static void install() { String r = Mods.write(PR, PR_O, PR_N, true); fix = "训练场空队伍补丁：" + r; LogCap.note(fix); }
+    static void install() {
+        String r = Mods.write(PR, PR_O, PR_N, true), r2 = Mods.write(PB, PB_O, PB_N, true);
+        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2; LogCap.note(fix);
+    }
     static volatile String block = "分配位置：没试";
     static volatile String state = "训练岛：没进";
-    static volatile String range = "射击训练区：没找";
+    static volatile String range = "射击训练区：没查";
     static volatile String spawn = "原生刷车/刷物资：没查";
+    static volatile String setup = "出生点建立：没查";
+    static volatile String track = "坐标/地形块随时间：-";
+    static volatile String seenLog = "";
     static volatile boolean running;
+    static final StringBuilder seen = new StringBuilder();
+
+    /** Con 每行游戏日志都给这里（只在训练岛）：记关键行 */
+    static void seen(String l) {
+        String[] keys = { "OnAllDuplicateLevelLoaded", "OnLevelStreamingLayerLoadCompleted", "AddPlayerToSlot", "Spawn Vehicle", "SpawnVehicle", "Load Block", "Client Load Block", "SetupPlayerStartActor Add Player Start 0 ", "LevelMgr is null", "level not prepared" };
+        for (String k : keys) if (l.contains(k)) {
+            synchronized (seen) { if (seen.length() < 3000) seen.append(l.trim().length() > 200 ? l.trim().substring(0, 200) : l.trim()).append("\n  "); seenLog = seen.toString(); }
+            return;
+        }
+    }
+
+    static void clearSeen() { synchronized (seen) { seen.setLength(0); seenLog = ""; } }
 
     static void matchLoaded() {
         if (running) return; running = true;
-        block = "分配位置：没试"; range = "射击训练区：没找"; spawn = "原生刷车/刷物资：没查";
+        block = "分配位置：没试"; range = "射击训练区：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -46,14 +76,17 @@ final class Island {
         }, "zf-island").start();
     }
 
+    static String p3(double[] p) { return p == null ? "?" : (int) p[0] + "," + (int) p[1] + "," + (int) p[2]; }
+    static double[] me() throws InterruptedException { double[] q = Veh.info(); return q == null ? null : new double[] { q[0], q[1], q[2] }; }
+
     static void run() throws Exception {
         long t0 = System.currentTimeMillis();
         long b = 0, gm = 0, pc = 0; String gmName = "?";
         Veh.Names nm = null;
         // 1) 等 GameMode BeginPlay 建好位置
         while (true) {
-            if (System.currentTimeMillis() - t0 > 90000) { state = "训练岛：90 秒没等到 GameMode 建位置（GM " + Long.toHexString(gm) + " " + gmName + "）"; note(state); return; }
-            Thread.sleep(1000);
+            if (System.currentTimeMillis() - t0 > 90000) { state = "训练岛：90 秒没等到 GameMode 建位置（GM " + Long.toHexString(gm) + " " + gmName + "）"; note(state); outfit(); return; }
+            Thread.sleep(500);
             if (!Con.training || !Con.inMatch) return;
             b = Mods.base(); if (b == 0) continue;
             double[] q = Veh.info(); if (q == null) { state = "训练岛：等人物"; continue; }
@@ -61,7 +94,7 @@ final class Island {
             if (gm < 0x10000 || pc < 0x10000) { state = "训练岛：等 GameMode/控制器"; continue; }
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
                 gmName = Alive.clsName(m, nm, gm);
-                if (!gmName.contains("PracticeGameMode")) { state = "训练岛：模式是 " + gmName + "，不是训练场，不分配位置"; note(state); return; }
+                if (!gmName.contains("PracticeGameMode")) { state = "训练岛：模式是 " + gmName + "，不是训练场，不分配位置"; note(state); outfit(); return; }
                 int n = (int) Server.rd(m, gm + 0xa44);
                 if (n <= 0) { state = "训练岛：等 BeginPlay 建位置（现在 0 个）"; continue; }
             }
@@ -70,34 +103,22 @@ final class Island {
         // 2) 地块管理器
         long mgr = 0;
         for (int i = 0; i < 20 && mgr == 0; i++) {
-            Scan s = scan(b, nm); mgr = s.mgr;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { long a = Server.rd(m, gm + 0xa3c); if (a >= 0x10000 && Mods.isObj(m, b, a)) mgr = a; }
+            if (mgr == 0) mgr = scan(b, nm).mgr;
             if (mgr == 0) { state = "训练岛：没找到地块管理器（NZStreamingLevelsManagerActor_TileMode），再找"; Thread.sleep(1000); }
         }
-        if (mgr == 0) { state = "训练岛：20 秒没找到地块管理器"; note(state); return; }
-        // 3) 补进位置 + 加载这个位置的块
-        join(b, gm, pc, mgr);
-        // 4) 等原生 AddPlayerToSlot（OnAllDuplicateLevelLoaded 处理队列）
-        long w0 = System.currentTimeMillis(); boolean ok = false;
-        while (System.currentTimeMillis() - w0 < 150000) {
-            Thread.sleep(2000);
-            if (!Con.training || !Con.inMatch) return;
-            int slotBlk, allLoaded, handled; int land;
-            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-                slotBlk = (int) Server.rd(m, pc + 0xbdc);
-                allLoaded = rb(m, gm + 0xa70); handled = rb(m, gm + 0xa21);
-            }
-            land = scan(b, nm).land;
-            state = "训练岛：等原生分配 " + (System.currentTimeMillis() - w0) / 1000 + " 秒；副本加载完 +a70=" + allLoaded + " 已处理 +a21=" + handled + " PC 块号 +bdc=" + slotBlk + " 地形块 " + land;
-            if (slotBlk >= 0 && handled != 0) { ok = true; break; }
-        }
-        double[] me = Veh.info();
-        String pos = me == null ? "?" : (int) me[0] + "," + (int) me[1] + "," + (int) me[2];
-        if (!ok) { state = state + " → 150 秒没等到 AddPlayerToSlot；人物在 " + pos; note(state); GameOverlay.toastAny("训练岛：分配位置失败，看诊断"); }
-        else { state = "训练岛：原生分配完成，人物在 " + pos + "，地形块 " + scan(b, nm).land; note(state); }
-        // 5) 射击训练区
-        Thread.sleep(3000);
-        toRange(b, nm, gm, pc);
-        // 6) 原生刷车/刷物资情况
+        if (mgr == 0) { state = "训练岛：20 秒没找到地块管理器"; note(state); outfit(); return; }
+        // 3) 出生点按正确块数建好（块数补丁没赶上就让 Tick 重建）
+        if (!ensureSetup(b, gm, mgr)) { outfit(); return; }
+        // 4) 补进位置 → 原生 AddPlayerToSlot 摆人 → 按 PC+0xbdc/+0xbe0 LoadBlock
+        double[] ps = join(b, gm, pc, mgr);
+        // 5) 衣服（训练岛不走 Bots.matchLoaded，以前从来没发过）
+        outfit();
+        // 6) 跟踪：坐标、地形块、+a70/+a21，最多 120 秒；人物等地形到了才放开
+        follow(b, nm, gm, pc, ps);
+        // 7) 射击训练区（只诊断）
+        rangeDiag(b, nm, mgr, pc);
+        // 8) 原生刷车/刷物资情况
         Thread.sleep(20000);
         if (!Con.training || !Con.inMatch) return;
         spawnDiag(b, nm, gm);
@@ -105,59 +126,182 @@ final class Island {
         if (x != null) { AvatarLog.manual = true; try { AvatarLog.export(x, "slot-"); } finally { AvatarLog.manual = false; } }
     }
 
+    static void outfit() { Bots.trainingOutfit(); }
+
     static void note(String s) { LogCap.note(s); }
     /** 读一个字节（Server.rd 只读 4 字节对齐） */
     static int rb(RandomAccessFile m, long a) { return (int) ((Server.rd(m, a & ~3L) >>> ((a & 3) * 8)) & 0xff); }
 
-    /** 按 Login 0x1084f20..0x10851cc 的步骤把自己补进位置，再按 Client Load Block 0x1086a64 的做法加载这个位置的块。 */
-    static void join(long b, long gm, long pc, long mgr) throws Exception {
+    /** 位置 i 的第一个 PlayerStart 的坐标（+4 是 PlayerStart 数组）；没有 → null */
+    static double[] slotStart(RandomAccessFile m, long slot) throws java.io.IOException {
+        long d = Server.rd(m, slot + 4); int k = (int) Server.rd(m, slot + 8);
+        if (d < 0x10000 || k <= 0 || k > 64) return null;
+        long a = Server.rd(m, d); if (a < 0x10000) return null;
+        float[] p = pos(m, a); if (p == null) return null;
+        return new double[] { p[0], p[1], p[2], a };
+    }
+    /** 块偏移，和 0x1163e2c / LoadBlock 一样：边长 = floor(sqrt(N)+0.01)，行=块/边长，列=块%边长，
+     *  X = (行数-1)*-0.5*W + 行*W（W=管理器+0x41c），Y = (边长-1)*-0.5*H + 列*H（H=+0x420） */
+    static double[] offset(int n, int blk, int w, int h) {
+        if (n <= 0) return new double[] { 0, 0 };
+        int side = (int) Math.floor(Math.sqrt(n) + 0.01); if (side < 1) side = 1;
+        int rows = n / side, row = blk / side, col = blk % side;
+        return new double[] { (rows - 1) * -0.5 * w + (double) row * w, (side - 1) * -0.5 * h + (double) col * h };
+    }
+
+    /** 等 SetupPlayerStartActor 按 GM 块数建好每个位置的 PlayerStart。管理器块数不对（补丁没赶上）→ 改块数、清 PlayerStart 数、GM+0xa3c=0 让 Tick 重建。 */
+    static boolean ensureSetup(long b, long gm, long mgr) throws Exception {
+        StringBuilder sb = new StringBuilder("出生点建立：");
+        boolean redone = false; long w0 = System.currentTimeMillis();
+        while (System.currentTimeMillis() - w0 < 30000) {
+            if (!Con.training || !Con.inMatch) return false;
+            int n, cnt, mcnt, num0, w, h; long slots, a3c; double[] p0;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                slots = Server.rd(m, gm + 0xa40); n = (int) Server.rd(m, gm + 0xa44); cnt = (int) Server.rd(m, gm + 0xa4c);
+                mcnt = (int) Server.rd(m, mgr + 0x43c); a3c = Server.rd(m, gm + 0xa3c); w = (int) Server.rd(m, mgr + 0x41c); h = (int) Server.rd(m, mgr + 0x420);
+                num0 = (int) Server.rd(m, slots + 8); p0 = slotStart(m, slots);
+            }
+            if (num0 <= 0 || p0 == null) { setup = sb + "等 Tick 建 PlayerStart（GM+a3c=" + Long.toHexString(a3c) + "，管理器块数 " + mcnt + "，GM 块数 " + cnt + "）"; Thread.sleep(300); continue; }
+            double[] off = offset(cnt, 0, w, h);
+            double ex = TPL_X + off[0], ey = TPL_Y + off[1];
+            boolean good = mcnt == cnt && Math.abs(p0[0] - ex) < 100 && Math.abs(p0[1] - ey) < 100;
+            sb.append("位置 ").append(n).append(" 个，GM 块数 ").append(cnt).append("，管理器块数 +43c=").append(mcnt).append("，块宽 ").append(w).append('×').append(h)
+              .append("；位置 0 的 PlayerStart ").append(p3(p0)).append("（按块数 ").append(cnt).append(" 应在 ").append((int) ex).append(',').append((int) ey).append("）");
+            if (good) { setup = sb.append(redone ? " → 重建后对了" : " → 对（块数补丁生效）").toString(); note(setup); return true; }
+            if (redone) { setup = sb.append(" → 重建后还不对，照原生走").toString(); note(setup); GameOverlay.toastAny("训练岛：出生点和地块对不上，看诊断"); return true; }
+            // 补丁没赶上：照专用服写块数，清 PlayerStart 数，GM+0xa3c=0 → 下一帧 Tick 重新拿管理器、重跑 SetupPlayerStartActor
+            sb.append(" → 不对，重建：");
+            sb.append("写块数 ").append(Mods.pokeInt(mgr + 0x43c, cnt));
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { slots = Server.rd(m, gm + 0xa40); n = (int) Server.rd(m, gm + 0xa44); }
+            for (int i = 0; i < n && i < 64; i++) Mods.pokeInt(slots + 0x34L * i + 8, 0);
+            sb.append("，清 ").append(n).append(" 个位置的 PlayerStart 数，GM+a3c=0 ").append(Mods.pokeInt(gm + 0xa3c, 0)).append("；");
+            redone = true; Thread.sleep(500);
+        }
+        setup = sb.append("30 秒没等到 PlayerStart 建好").toString(); note(setup); GameOverlay.toastAny("训练岛：出生点没建好，看诊断");
+        return false;
+    }
+
+    /** 按 Login 0x1084f20.. 把自己补进位置，然后原生 AddPlayerToSlot 摆人，再按 Client Load Block 0x1086960 的做法
+     *  LoadBlock(管理器, PC+0xbdc, PC+0xbe0)。返回位置 PlayerStart 坐标（x,y,z）。 */
+    static double[] join(long b, long gm, long pc, long mgr) throws Exception {
         StringBuilder sb = new StringBuilder("分配位置：");
-        long slots, slot = 0; int n, cnt, blk, cur;
-        boolean in = false, queued = false; int allLoaded, handled;
+        long slots, slot = 0; int n, cnt, blk, bdc0;
+        boolean in = false; int allLoaded, handled; double[] ps = null;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             slots = Server.rd(m, gm + 0xa40); n = (int) Server.rd(m, gm + 0xa44); cnt = (int) Server.rd(m, gm + 0xa4c);
-            allLoaded = rb(m, gm + 0xa70); handled = rb(m, gm + 0xa21);
+            allLoaded = rb(m, gm + 0xa70); handled = rb(m, gm + 0xa21); bdc0 = (int) Server.rd(m, pc + 0xbdc);
             for (int i = 0; i < n && !in; i++) {
                 long s = slots + 0x34L * i, d = Server.rd(m, s + 0x10); int k = (int) Server.rd(m, s + 0x14);
                 for (int j = 0; j < k && j < 64; j++) if (Server.rd(m, d + 4L * j) == pc) { in = true; slot = s; }
             }
-            long q = Server.rd(m, gm + 0xa24); int qn = (int) Server.rd(m, gm + 0xa28);
-            for (int j = 0; j < qn && j < 64; j++) if (Server.rd(m, q + 4L * j) == pc) queued = true;
         }
-        sb.append("位置 ").append(n).append(" 个，块数 ").append(cnt).append("，+a70=").append(allLoaded).append(" +a21=").append(handled).append("；");
+        sb.append("位置 ").append(n).append(" 个，块数 ").append(cnt).append("，+a70=").append(allLoaded).append(" +a21=").append(handled).append("，PC+bdc=").append(bdc0).append("；");
         if (!in) {
             long[] r = Server.gcall(b + FIND_SLOT, gm, pc, 0, 0, 3000);
             slot = r[1];
-            if (r[0] == 0) { block = sb.append("挑位置 0x10845b0 没跑（游戏线程没接）").toString(); note(block); return; }
-            if (slot < slots || slot >= slots + 0x34L * n || (slot - slots) % 0x34 != 0) { block = sb.append("挑位置返回 ").append(Long.toHexString(slot)).append(" 不在位置数组里").toString(); note(block); return; }
+            if (r[0] == 0) { block = sb.append("挑位置 0x10845b0 没跑（游戏线程没接）").toString(); note(block); return null; }
+            if (slot < slots || slot >= slots + 0x34L * n || (slot - slots) % 0x34 != 0) { block = sb.append("挑位置返回 ").append(Long.toHexString(slot)).append(" 不在位置数组里").toString(); note(block); return null; }
             String a = append(b, slot + 0x10, pc);
             sb.append("塞进位置 ").append((slot - slots) / 0x34).append(" 玩家数组 ").append(a).append("；");
-            if (!"ok".equals(a)) { block = sb.toString(); note(block); return; }
+            if (!"ok".equals(a)) { block = sb.toString(); note(block); return null; }
         } else sb.append("已在位置 ").append((slot - slots) / 0x34).append("；");
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-            blk = (int) Server.rd(m, slot); cur = (int) Server.rd(m, mgr + 0x440);
-            sb.append("块号 ").append(blk).append(" 出生点 ").append((int) Mods.f(m, slot + 4)).append(',').append((int) Mods.f(m, slot + 8)).append(',').append((int) Mods.f(m, slot + 0xc)).append("；");
+            blk = (int) Server.rd(m, slot);
+            ps = slotStart(m, slot);
+            sb.append("块号 ").append(blk).append("（位置号 ").append((slot - slots) / 0x34).append("）PlayerStart ").append(ps == null ? "没有" : p3(ps) + "（" + Long.toHexString((long) ps[3]) + "）").append("；");
         }
-        if (handled != 0) {
+        double[] before = me();
+        sb.append("摆人前人物 ").append(p3(before)).append("；");
+        // 原生摆人：AddPlayerToSlot 自己写 PC+bdc/+be0、FindPlayerStart、SetActorLocation/Rotation
+        long pawn = Mods.myPawn();
+        if (pawn >= 0x10000) freeze(pawn, true);   // 摆到岛上那一刻地形还没流进来，先停住不让掉下去（时间缩放 +0x58=0，和房主冻结同一招）
+        if (bdc0 >= 0) sb.append("PC 已有块号 ").append(bdc0).append("，AddPlayerToSlot 会直接退（already has a index），不调；");
+        else {
             long[] r = Server.gcall(b + ADD_TO_SLOT, gm, pc, 0, 0, 3000);
-            sb.append("副本已处理过 → 直接 AddPlayerToSlot ").append(r[0] != 0 ? "已跑" : "没跑").append("；");
-        } else if (!queued) {
-            sb.append("排进 +a24 等 OnAllDuplicateLevelLoaded ").append(append(b, gm + 0xa24, pc)).append("；");
-        } else sb.append("已在 +a24 队列；");
-        if (cur != blk) {
-            long[] r = Server.gcall(b + LOAD_BLOCK, mgr, blk, cnt, 0, 3000);
-            sb.append("LoadBlock(管理器 ").append(Long.toHexString(mgr)).append(", ").append(blk).append(", ").append(cnt).append(") 原当前块 ").append(cur).append(r[0] != 0 ? " 已跑" : " 没跑");
-        } else sb.append("管理器当前块已是 ").append(blk).append("，不重复加载");
-        // ServerOnly 层（Main.umap ServerLayersSettings：ServerOnly/Pickups、WorldMeshTiles）：专用服在 0x1164d90（NetMode==1 才跑）里
-        // 对每块调 FillLayersWithCacheData(管理器, +0x37c 服务器层, 块号)；客户端 LoadBlock 只填 +0x370。单机两边都不跑 → 地上没物资。
-        // 这里按专用服的做法只给自己这块填一次（管理器 +0x2c8 开着才填，和 0x1164eac 一样）。
+            sb.append("原生 AddPlayerToSlot ").append(r[0] != 0 ? "已跑" : "没跑（游戏线程没接）").append("；");
+        }
+        int bdc, be0;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { bdc = (int) Server.rd(m, pc + 0xbdc); be0 = (int) Server.rd(m, pc + 0xbe0); }
+        double[] after = me();
+        sb.append("之后 PC+bdc=").append(bdc).append(" +be0=").append(be0).append("，人物 ").append(p3(after));
+        boolean placed = ps != null && after != null && Math.hypot(after[0] - ps[0], after[1] - ps[1]) < 5000;
+        if (placed) sb.append("（原生摆到出生点了）；");
+        else {
+            // 原生没摆上（FindPlayerStart 没挑到 / 没跑）→ 退回传送到同一个 PlayerStart
+            sb.append("（原生没摆到出生点：").append(ps == null ? "位置没有 PlayerStart" : bdc < 0 ? "AddPlayerToSlot 没写块号（PlayerState 空或没找到位置）" : "FindPlayerStart 没挑到这个位置的 PlayerStart")
+              .append("）→ 退回传送 ");
+            if (ps != null && pawn >= 0x10000) sb.append(Veh.teleport(pawn, ps[0], ps[1], ps[2] + 100, 165) ? "ok" : "失败");
+            else sb.append("没法传（没出生点/人物）");
+            sb.append("；");
+        }
+        // Client Load Block：块号/块数都用 AddPlayerToSlot 原生写进 PC 的值；没写就用位置块号 + GM 块数
+        int lb = bdc >= 0 ? bdc : blk, lc = be0 > 0 ? be0 : cnt, cur;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { cur = (int) Server.rd(m, mgr + 0x440); }
+        if (cur != lb) {
+            long[] r = Server.gcall(b + LOAD_BLOCK, mgr, lb, lc, 0, 3000);
+            sb.append("LoadBlock(管理器 ").append(Long.toHexString(mgr)).append(", ").append(lb).append(", ").append(lc).append(") 原当前块 ").append(cur).append(r[0] != 0 ? " 已跑" : " 没跑");
+        } else sb.append("管理器当前块已是 ").append(lb).append("，不重复加载");
+        // ServerOnly 层（Main.umap ServerLayersSettings：ServerOnly/Pickups、WorldMeshTiles）：专用服在 0x1164d90 里
+        // 对每块调 FillLayersWithCacheData(管理器, +0x37c 服务器层, 块号)；客户端 LoadBlock 只填 +0x370。这里只给自己这块填一次。
         int srv; try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { srv = rb(m, mgr + 0x2c8); }
         if (srv != 0) {
-            long[] r = Server.gcall(b + FILL_LAYERS, mgr, mgr + 0x37c, blk, 0, 3000);
-            sb.append("；服务器层 FillLayersWithCacheData(+0x37c, ").append(blk).append(") ").append(r[0] != 0 ? "已跑" : "没跑");
+            long[] r = Server.gcall(b + FILL_LAYERS, mgr, mgr + 0x37c, lb, 0, 3000);
+            sb.append("；服务器层 FillLayersWithCacheData(+0x37c, ").append(lb).append(") ").append(r[0] != 0 ? "已跑" : "没跑");
         } else sb.append("；管理器 +0x2c8=0（不带服务器层），没填");
         block = sb.toString(); note(block);
-        if (block.contains("没跑")) GameOverlay.toastAny("训练岛" + block);
+        if (block.contains("没跑") || block.contains("退回传送")) GameOverlay.toastAny("训练岛" + block);
+        return ps;
+    }
+
+    static void freeze(long pawn, boolean on) {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) { if (Mods.isObj(m, Mods.base(), pawn)) Mods.wf(m, pawn + 0x58, on ? 0f : 1f); } catch (Throwable ignored) {}
+    }
+
+    /** 摆人后跟 120 秒：每 5 秒记坐标/地形块/+a70/+a21；脚下射线打到地形（或 +a70 置了、或 60 秒）就放开冻结 */
+    static void follow(long b, Veh.Names nm, long gm, long pc, double[] ps) throws Exception {
+        StringBuilder tr = new StringBuilder("坐标/地形块随时间：");
+        long w0 = System.currentTimeMillis(), pawn = Mods.myPawn(); boolean frozen = pawn >= 0x10000, done = false; String why = "";
+        while (System.currentTimeMillis() - w0 < 120000) {
+            if (!Con.training || !Con.inMatch) { if (frozen) freeze(pawn, false); return; }
+            int a70, a21, bdc; try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { a70 = rb(m, gm + 0xa70); a21 = rb(m, gm + 0xa21); bdc = (int) Server.rd(m, pc + 0xbdc); }
+            int land = scan(b, nm).land; double[] p = me(); long s = (System.currentTimeMillis() - w0) / 1000;
+            float g = Float.NaN;
+            if (frozen && p != null) { Trace.Hit h = Trace.down((float) p[0], (float) p[1], (float) p[2] + 5000, (float) p[2] - 20000); if (h != null && h.land) g = h.z; }
+            tr.append(s).append("s ").append(p3(p)).append(" 地形块 ").append(land).append(" a70=").append(a70).append(" a21=").append(a21).append(" bdc=").append(bdc).append(Float.isNaN(g) ? "" : " 地面 " + (int) g).append("；");
+            track = tr.toString();
+            if (frozen) {
+                if (!Float.isNaN(g)) why = "脚下射线打到地形";
+                else if (a70 != 0) why = "+a70 已置（Landscape 层加载完）";
+                else if (s >= 60) why = "60 秒到了，地形还没到也放开";
+                if (why.length() > 0) {
+                    if (!Float.isNaN(g) && p != null && p[2] < g + 50) { Veh.teleport(pawn, p[0], p[1], g + 120, 165); why += "，人物低于地面，抬到地面上"; }
+                    freeze(pawn, false); frozen = false; tr.append("【放开：").append(why).append("】");
+                    note("训练岛：放开人物（" + why + "）");
+                }
+            }
+            if (a21 != 0 && !done) { done = true; tr.append("【OnAllDuplicateLevelLoaded 已处理 +a21=1】"); }
+            if (!frozen && s >= 40) break;
+            Thread.sleep(5000);
+        }
+        if (frozen) freeze(pawn, false);
+        track = tr.toString(); note(track);
+        double[] me = me();
+        state = "训练岛：摆人后人物在 " + p3(me) + (ps == null ? "" : "，离位置出生点 " + (me == null ? "?" : (int) (Math.hypot(me[0] - ps[0], me[1] - ps[1]) / 100) + " 米"));
+        note(state);
+    }
+
+    /** 射击训练区：按 pak 里 LogicLevel 的 shootreturn + 本块偏移算出来，再数它 150 米内的靶子。只诊断，不传送（原生出生点离它约 61 米）。 */
+    static void rangeDiag(long b, Veh.Names nm, long mgr, long pc) throws Exception {
+        int bdc, cnt, w, h;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { bdc = (int) Server.rd(m, pc + 0xbdc); cnt = (int) Server.rd(m, mgr + 0x43c); w = (int) Server.rd(m, mgr + 0x41c); h = (int) Server.rd(m, mgr + 0x420); }
+        double[] off = offset(cnt, Math.max(bdc, 0), w, h);
+        double rx = SHOOT_X + off[0], ry = SHOOT_Y + off[1];
+        double[] me = me();
+        Scan s = scan(b, nm);
+        int nearR = 0; for (float[] p : s.target) if ((p[0] - rx) * (p[0] - rx) + (p[1] - ry) * (p[1] - ry) < 15000.0 * 15000.0) nearR++;
+        range = "射击训练区：按 pak shootreturn + 块 " + bdc + " 偏移（块数 " + cnt + "）算在 " + (int) rx + "," + (int) ry + "," + (int) SHOOT_Z + "；人物 " + p3(me)
+            + (me == null ? "" : "，离它 " + (int) (Math.hypot(me[0] - rx, me[1] - ry) / 100) + " 米") + "；它 150 米内靶子 " + nearR + " 个（全图靶子 " + s.target.size() + "）" + clusters(s.target);
+        note(range);
     }
 
     /** 往 TArray<指针>（data,num,max）尾部加一个。空间不够用游戏的 FMemory::Realloc 0x1989d38（引擎以后用 FMemory 释放）。
@@ -178,50 +322,6 @@ final class Island {
         return Mods.pokeInt(arr + 4, num + 1);
     }
 
-    /** 射击训练区：游戏里的靶子是 NZSceneItem_RangeTarget（日志 NZSceneItem_RangeTarget.cpp）。
-     *  只认人物 1.2 公里内的靶子，按 50 米连成群，取最大的一群；靶子沿射击方向排开，近处的靶子挨得更密，
-     *  站在密的那一头往外 10 米、高 2 米落下。找不到不传，列出所有候选（出生点名字和坐标、靶子群）。 */
-    static void toRange(long b, Veh.Names nm, long gm, long pc) throws Exception {
-        double[] me = Veh.info();
-        if (me == null) { range = "射击训练区：没拿到人物位置"; note(range); return; }
-        Scan s = scan(b, nm);
-        StringBuilder cand = new StringBuilder();
-        cand.append("出生点 ").append(s.psName.size()).append(" 个：");
-        for (int i = 0; i < s.psName.size(); i++) { float[] p = s.psPos.get(i); cand.append(s.psName.get(i)).append('(').append((int) p[0]).append(',').append((int) p[1]).append(',').append((int) p[2]).append(") "); }
-        cand.append("；靶子共 ").append(s.target.size()).append(" 个");
-        ArrayList<float[]> near = new ArrayList<>();
-        for (float[] p : s.target) if (d2(p, me) < 120000.0 * 120000.0) near.add(p);
-        if (near.isEmpty()) {
-            range = "射击训练区：人物 " + (int) me[0] + "," + (int) me[1] + "," + (int) me[2] + " 1.2 公里内没有靶子，没传。" + cand + clusters(s.target);
-            note(range); GameOverlay.toastAny("训练岛：附近没找到射击训练区靶子，看诊断"); return;
-        }
-        // 50 米单链聚类
-        int n = near.size(); int[] grp = new int[n]; for (int i = 0; i < n; i++) grp[i] = i;
-        for (int i = 0; i < n; i++) for (int j = i + 1; j < n; j++) if (d2(near.get(i), near.get(j)) < 5000.0 * 5000.0) { int a = root(grp, i), c = root(grp, j); if (a != c) grp[a] = c; }
-        HashMap<Integer, ArrayList<float[]>> gs = new HashMap<>();
-        for (int i = 0; i < n; i++) gs.computeIfAbsent(root(grp, i), k -> new ArrayList<>()).add(near.get(i));
-        ArrayList<float[]> best = null; for (ArrayList<float[]> g : gs.values()) if (best == null || g.size() > best.size()) best = g;
-        double cx = 0, cy = 0; for (float[] p : best) { cx += p[0]; cy += p[1]; } cx /= best.size(); cy /= best.size();
-        float[] end;
-        if (best.size() == 1) end = best.get(0);
-        else {
-            // 主轴（xy 协方差）两头，取最近邻距离小的那头（近靶密）
-            double sxx = 0, sxy = 0, syy = 0;
-            for (float[] p : best) { double dx = p[0] - cx, dy = p[1] - cy; sxx += dx * dx; sxy += dx * dy; syy += dy * dy; }
-            double ang = 0.5 * Math.atan2(2 * sxy, sxx - syy), ux = Math.cos(ang), uy = Math.sin(ang);
-            float[] lo = null, hi = null; double pl = 1e18, ph = -1e18;
-            for (float[] p : best) { double t = (p[0] - cx) * ux + (p[1] - cy) * uy; if (t < pl) { pl = t; lo = p; } if (t > ph) { ph = t; hi = p; } }
-            end = nn(best, lo) <= nn(best, hi) ? lo : hi;
-        }
-        double ex = end[0] - cx, ey = end[1] - cy, el = Math.sqrt(ex * ex + ey * ey);
-        double tx = end[0] + (el > 1 ? ex / el * 1000 : 0), ty = end[1] + (el > 1 ? ey / el * 1000 : 0), tz = end[2] + 200;
-        long pawn = Mods.myPawn();
-        boolean ok = pawn >= 0x10000 && Veh.teleport(pawn, tx, ty, tz, Math.toDegrees(Math.atan2(cy - ty, cx - tx)));
-        range = "射击训练区：附近靶子 " + n + " 个分 " + gs.size() + " 群，最大一群 " + best.size() + " 个（中心 " + (int) cx + "," + (int) cy + "）→ 传到 "
-            + (int) tx + "," + (int) ty + "," + (int) tz + (ok ? "" : "（传送失败）") + "。" + cand + clusters(s.target);
-        note(range);
-        if (!ok) GameOverlay.toastAny("训练岛：传射击训练区失败");
-    }
     static int root(int[] g, int i) { while (g[i] != i) i = g[i] = g[g[i]]; return i; }
     static double d2(float[] a, double[] b) { double x = a[0] - b[0], y = a[1] - b[1]; return x * x + y * y; }
     static double d2(float[] a, float[] b) { double x = a[0] - b[0], y = a[1] - b[1]; return x * x + y * y; }

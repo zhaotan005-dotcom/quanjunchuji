@@ -509,6 +509,7 @@ public class Con {
                 }
             }
         }
+        if (training) Island.seen(l);   // v3.43 训练岛关键游戏日志行
         if (l.contains("AkAudio") || l.contains("Audiokinetic") || l.contains("Wwise(R)")) LogCap.note("声音日志: " + l.trim());
         int c = l.indexOf("BlueCircle: ");
         if (c >= 0) { try {
@@ -534,7 +535,7 @@ public class Con {
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
         if (i >= 0 && l.contains("/Game/Startup/StartupMap")) { GameOverlay.loadingPage(); GameOverlay.startupUpdate(); }   // v3.22 三个包都显示更新进度条+公告   // v2.70 探测已完成（更新页只有默认对象，没实例），不再跑 UpdProbe   // v2.59 游戏自己的加载页
-        if (i >= 0) { Flow.natPrepare(l); if (l.contains("/Game/Maps/") && !l.contains("FrontEnd") && !l.contains("RoleHall")) Prop.matchLoad(); Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
+        if (i >= 0) { Island.clearSeen(); Flow.natPrepare(l); if (l.contains("/Game/Maps/") && !l.contains("FrontEnd") && !l.contains("RoleHall")) Prop.matchLoad(); Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {
             String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();
