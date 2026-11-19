@@ -120,6 +120,8 @@ final class Lan {
     }
     /** 0 = 单机，1 = 房主（服务器），2 = 加入的客户端。回大厅清零。 */
     static volatile int role;
+    /** v3.25 单机按 listen server 进图（伪装联机）；菜单「功能」里可关 */
+    static volatile boolean fakeOnline = true;
     static volatile boolean busy;
     /** v2.06：开房后每秒把内存和进度写进持久的步骤文件（闪退后下次导出能看到死在哪、是不是内存爆了） */
     static void beat(String what) {

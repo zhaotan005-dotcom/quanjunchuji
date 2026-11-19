@@ -89,6 +89,21 @@ final class MapMark {
         boolean ok = Veh.teleport(pawn, x, y, z, me == null ? 0 : me[3]);
         note("自动传送到标点 " + (ok ? "成功" : "失败"));
         if (ok) Fly.softLand();
+        // v3.25 用户：服务端点标点传送，所有人跟着一起传。等房主落地（慢落，不摔），再把加入的玩家都拉到身边一圈（2 米）
+        if (ok && (Ed.ED == 1 || Lan.role == 1)) {
+            new Thread(() -> {
+                try {
+                    Thread.sleep(1500);
+                    for (int i = 0; i < 90 && Fly.busy(); i++) Thread.sleep(500);
+                    Crew.find();
+                    java.util.ArrayList<Long> ps = Crew.players;
+                    if (ps == null || ps.isEmpty()) { note("全员跟随传送：没找到加入的玩家"); return; }
+                    Crew.pullAll = true; Crew.doPull(ps);
+                    note("全员跟随传送：" + Crew.pullState);
+                    GameOverlay.toastAny("全员已传到你身边");
+                } catch (Throwable t) { note("全员跟随传送出错 " + t); }
+            }, "zf-tp-all").start();
+        }
     }
 
     /** v2.81：游戏里 ServerAddNewMapSign/ServerRemoveMapSign 的实现是空的（vt+0x3f4/+0x3ec = 0xb63518「return 1」），标点永远存不下来、落在地图左上角。

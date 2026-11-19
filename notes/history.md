@@ -1159,3 +1159,14 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE：UNZStartupFlowCheck 回调 0x1210ef8：配置标记([0x18576e8()] byte0)为 0 → FlowManager(+0x1c)->+0x18 对象 +0x348 = 0（0x12110d4 strb，日志 "FlowManager Disable Update"）→ 更新步骤被关；UNZStartupFlowUpdate::Begin 0x121244c 才 CreateWidget('/Game/Startup/UI/UpdateUI.UpdateUI_C') 存 +0x34。更新页 OnUpdateProcess = vt+0x240(this, float 进度(r1), const FString& 文字)，原生 thunk 0x16aa9f0。v2.69 实测启动阶段 ucall/Con.exec 不通。
 - 做法（UpdFlow.java）：启动早装把 0x12110d4 改 nop（4813c4e5→00f020e3）。保险 filesDir/zf_updflow.try：装前建、进大厅删；上次装了没进大厅 → 这次不装。日志见 "Begin Flow…Update" 时我们的加载页层去掉黑底。Con.tickAudio 开机进大厅在开了时等「查完更新且满 8 秒」（最多 40 秒）。
 - 下一步（看实测）：页出来了 → 找办法在游戏线程调 vt+0x240 喂我们的进度（启动阶段 ucall 不通，要挂每帧函数 cave）；公告 InitNoticeInfo 的 URL 59 字符可换成 GitHub Pages 地址（要知道 json 格式）。没出来/提示没蓝图 → 这包里更新页资源被删了（用户 v2.69 时说过「游戏自带更新页早就去掉了」）。
+
+## v3.25（vc226/core226，2026-11-19 17:3x，三包，未实测）
+- 17:07 用户（v3.24 实测，截图 notes 未存）：更新页还是我们的弹窗（游戏后面在加载）；探测器（飞的道具）视角还跟着自己；标点传送没修好；少了人偶；道具名没改中文（配件 04 2 / Extended / CrossBow）；删「恢复键位」「传送到地图中间」；服务端标点传送 → 所有人跟着传；高跳 67 倍；抛物线联机正常 → 单机伪装成联机。
+- v3.24 截图里我们那层是透明底 → 日志里看到了 Begin Flow…Update（gamePage 跑了），且没闪退 → CreateWidget 成功（Begin 0x12126f4 之后不判空直接用）、AddToViewport(0)、vt+0x23c/0x278/0x244。页面空白多半是没人喂进度（Dolphin 失败）。
+- 游戏线程调用槽：Server.tickCave 加 cb 段（FEngineLoop::Tick 开头每帧看 cb+0：非 0 就 blx(r0~r3=cb+4..+16)，返回值 +20，次数 +24），unicorn 测过（/tmp 脚本）。单机随 Server.install 装；联机两个包 Server.installTick 只装 TICK（连接器 0，不投包）。Server.gcall(fn,r0..r3,waitMs)。
+- UpdPage：GUObjectArray 找类名 UpdateUI* 实例（最多 25 秒，找不到 → GameOverlay.srvFallback 用我们那层）。公告：0xfb1be8() = UNZUpdateInfo，+0x3a8 公告数组（每条 0x34：+0 是否图片、+0x10 正文 FString、+0x1c 标题、+0x28 图片链接），临时换成我们一条 → 调 0x15de914(页面,0)（先查 +0x224/+0x228/+0x238/+0x240 控件非空、+0x4e8 为 0）→ 还原数组。进度：每 0.3 秒 vt+0x240(页面, float, FString*)（UTF-32）。Con hold = UpdFlow.on && !UpdPage.finished（最多 60 秒）。
+- 菜单：删两个按钮；高跳 0~67 步长 1；同步编码改 7700000 + 加速×2×1000 + 高跳×2。
+- 道具中文：SUB_CAT（20501 枪口/20502 握把/20503 瞄准镜/20504 弹匣/20505 枪托/20600 子弹/40100 回血药品/40101 能量药品/40200 道具，按 v3.21 日志名字推断）+ CN 关键词表；配件里的枪名 → 「XX 专用弹匣」；没名字 → 「分类 序号」。
+- 人偶：不再因缺资源/没模型删 402；zf_items_bad.v325 一次性把删掉的 402 放回。
+- 服务端标点传送：房主传送+慢落后（Fly.busy 结束），Crew.find + doPull 把加入的人拉到身边 2 米一圈。
+- 单机伪装联机：Con.startGame 单机（role 0）且 Lan.fakeOnline 时先 Lan.unlock()，地图加 ?listen（同开房，没人进）。功能页开关「单机按联机方式进图」。探测器视角没单独查，靠这个。

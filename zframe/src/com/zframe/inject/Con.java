@@ -383,7 +383,7 @@ public class Con {
     static volatile boolean startupLobby;
     static void tickAudio(long now) {
         // v3.24：开了游戏更新页时，多停一会儿让进度条和公告显示完（查完更新且满 8 秒，最多 40 秒）
-        boolean hold = UpdFlow.on && !(NetCore.done && now - engineSeenAt > 8000) && now - engineSeenAt < 40000;
+        boolean hold = UpdFlow.on && !UpdPage.finished && now - engineSeenAt < 60000;   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
         if (!startupLobby && !hold && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
             startupLobby = true;
             audioFix = "开机先进大厅加载声音";
@@ -414,7 +414,10 @@ public class Con {
     /** 地图编号来自日志：1 老海岛，3 新海岛（GameMapId=3），4 雨林（GameMapId=4），5 训练场 */
     static void startGame(final int id) {
         // v3.22 用户：单机新海岛也用战术模式（和联机服务端开房一样：?game=战术模式蓝图）
-        final String m = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : null;
+        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : null;
+        // v3.25 用户：抛物线（还有探测器视角、标点）联机状态正常 → 单机也按「开房」方式进图（listen，没人加入），骗过游戏当成联机
+        if (m0 != null && Lan.fakeOnline && Lan.role == 0) { String u = Lan.unlock(); m0 += "?listen"; LogCap.note("单机伪装联机：" + u); }
+        final String m = m0;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);
         final Activity a = act;
         if (a == null) return;
@@ -516,7 +519,7 @@ public class Con {
         if (l.contains("CalcAirLineByRestrictedAreaInfo StartLoc:")) Flow.airLog(l);   // v1.94：航线原始坐标，按值去内存里找
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
         int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0 && l.contains("/Game/Startup/StartupMap")) { GameOverlay.loadingPage(); GameOverlay.srvUpdatePage(); }   // v3.22 三个包都显示更新进度条+公告   // v2.70 探测已完成（更新页只有默认对象，没实例），不再跑 UpdProbe   // v2.59 游戏自己的加载页
+        if (i >= 0 && l.contains("/Game/Startup/StartupMap")) { GameOverlay.loadingPage(); GameOverlay.startupUpdate(); }   // v3.22 三个包都显示更新进度条+公告   // v2.70 探测已完成（更新页只有默认对象，没实例），不再跑 UpdProbe   // v2.59 游戏自己的加载页
         if (i >= 0) { Flow.natPrepare(l); if (l.contains("/Game/Maps/") && !l.contains("FrontEnd") && !l.contains("RoleHall")) Prop.matchLoad(); Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
         i = l.indexOf("StreamingServerLayer Add ");
         if (i >= 0) {

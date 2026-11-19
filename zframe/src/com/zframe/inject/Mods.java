@@ -102,6 +102,7 @@ public class Mods {
         LogCap.note("刷车钩子 → " + Veh.install());
         LogCap.note(PickAnim.install());   // v2.70 拾取两次动作
         UpdFlow.install();   // v3.24 游戏自己的更新页（试验）
+        if (UpdFlow.on && !Server.hooked) LogCap.note("游戏线程调用槽（只装 TICK）→ " + Server.installTick());   // v3.25 联机两个包
         earlyDone = "ok".equals(r);
         earlyState = "启动早装（等库 " + Patches.foundMs + " ms）：风衣 " + c + "，人物 " + r + "，服务端 " + Server.hookWhen + "，" + Veh.state + "，" + (System.currentTimeMillis() - t0) + " ms";
         LogCap.note(earlyState);
@@ -429,9 +430,10 @@ public class Mods {
         if (Ed.ED == 1) Crew.start();   // v2.26 房主：加给加入的玩家
     }
     /** v2.32 房主把 加速/高跳 编码进加入玩家的 PlayerState.Score（APlayerState+0x2b0，会同步给客户端）：
-     *  7700000 + 加速×2×100 + 高跳×2（滑条 0~10 步长 0.5）。客户端读自己 PlayerState（pawn+0x2c4）的 Score 解出来。 */
+     *  7700000 + 加速×2×100 + 高跳×2（滑条 0~10 步长 0.5）。客户端读自己 PlayerState（pawn+0x2c4）的 Score 解出来。
+     *  v3.25 高跳也到 67 倍 → 7700000 + 加速×2×1000 + 高跳×2（最大 7834134，float 精确） */
     static final int PS_SCORE = 0x2b0, SYNC_BASE = 7700000;
-    static float encode(float s, float j) { return SYNC_BASE + Math.round(s * 2) * 100 + Math.round(j * 2); }
+    static float encode(float s, float j) { return SYNC_BASE + Math.round(s * 2) * 1000 + Math.round(j * 2); }
     static volatile String syncState = "还没收到服务端的数";
     static float lastCode = Float.NaN;
     static long lastSyncAsk;
@@ -465,8 +467,8 @@ public class Mods {
                 if (sc == lastCode) return;
                 lastCode = sc;
                 int c = Math.round(sc) - SYNC_BASE;
-                if (c < 0 || c > 2120 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到服务端的数（Score=" + sc + "）"; return; }
-                float s = Math.max(1f, (c / 100) / 2f), j = Math.max(1f, (c % 100) / 2f);
+                if (c < 0 || c > 134999 || Math.abs(sc - Math.round(sc)) > 0.01f) { syncState = "还没收到服务端的数（Score=" + sc + "）"; return; }
+                float s = Math.max(1f, (c / 1000) / 2f), j = Math.max(1f, (c % 1000) / 2f);
                 speed = s; jump = j;
                 syncState = "加速 " + s + " 高跳 " + j;
                 LogCap.note("跟服务端：" + syncState);

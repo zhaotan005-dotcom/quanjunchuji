@@ -58,9 +58,17 @@ public class Server {
             + "005094e5026085e0086086e2087094e5070056e11500008a107084e2057087e0002087e5047087e20060a0e3020056e1030000aa06c0d1e706c0c7e7016086e2f9ffffea045085e2025085e0035085e20350c5e35bf07ff5005084e5046094e5016086e2046084e50200a0e1f081bde80c6094e5016086e20c6084e50200a0e1f081bde8";
     }
     /** TICK 段（v1.63）：挂在 FEngineLoop::Tick 开头。连接器对象（+12）找到前只记帧数，找到后把回包逐个交给 vt+0x164 */
-    static String tickCave(int buf, int ret) {
+    static String tickCave(int buf, int ret) { return tickCave(buf, ret, 0); }
+    /** v3.25：每帧先看「游戏线程调用槽」cb：+0 函数（非 0 才调，调前清 0）、+4..+16 r0~r3、+20 返回值、+24 调用次数。
+     *  启动阶段 Con.exec 还不能用（v2.69 实测），开机更新页要在游戏线程里调函数，就走这里。cb=0 时不加这段 */
+    static String tickCave(int buf, int ret, int cb) {
+        String call = cb == 0 ? "" : Mods.armMov(false, 5, cb & 0xffff) + Mods.armMov(true, 5, (cb >>> 16) & 0xffff)
+            + "00c095e5" + "00005ce3" + "0a00000a"                       // ldr ip,[r5]; cmp ip,#0; beq skip
+            + "040095e5" + "081095e5" + "0c2095e5" + "103095e5"          // r0..r3
+            + "0060a0e3" + "006085e5" + "3cff2fe1"                       // mov r6,#0; str r6,[r5]; blx ip
+            + "140085e5" + "186095e5" + "016086e2" + "186085e5";         // 返回值、次数+1
         return "f3412de9" + Mods.armMov(false, 4, buf & 0xffff) + Mods.armMov(true, 4, (buf >>> 16) & 0xffff)
-            + "100084e5146094e5016086e2146084e50c8094e5000058e31a00000a045094e5006094e55bf07ff5060055e1150000aa086094e51c2094e5020056e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e4ffffeaf341bde8f04f2de91cb08de204f01fe5"
+            + "100084e5146094e5016086e2146084e5" + call + "0c8094e5000058e31a00000a045094e5006094e55bf07ff5060055e1150000aa086094e51c2094e5020056e1110000aa207084e2057087e0002097e5041087e2045085e2025085e0035085e20350c5e3045084e5086094e5016086e2086084e50800a0e10030a0e300c098e564c19ce53cff2fe1e4ffffeaf341bde8f04f2de91cb08de204f01fe5"
             + w32(ret);
     }
     static String hook(int target) { return "04f01fe5" + w32(target); }
@@ -91,7 +99,7 @@ public class Server {
                 return "游戏代码和预期不一样";
             long sc = b + SLACK, tc = b + SLACK + 0x100, gc = b + SLACK + 0x200;
             m.seek(sc); m.write(Patches.hex(sendCave((int) qa)));
-            m.seek(tc); m.write(Patches.hex(tickCave((int) ra, (int) (b + TICK_AT + 8))));
+            m.seek(tc); m.write(Patches.hex(tickCave((int) ra, (int) (b + TICK_AT + 8), (int) callBuf())));
             m.seek(gc); m.write(Patches.hex(sendGate((int) ra, (int) (b + SEND_AT + 8), (int) sc)));
             req = q; rpl = r; reqAddr = qa; rplAddr = ra;
             m.seek(b + TICK_AT); m.write(Patches.hex(hook((int) tc)));
@@ -99,6 +107,47 @@ public class Server {
         } catch (Throwable e) { return "出错 " + e.getMessage(); }
         hooked = true; hookWhen = when;
         return "ok";
+    }
+    /** v3.25 游戏线程调用槽（tick cave 每帧看一次） */
+    static ByteBuffer cb; static long cbAddr;
+    static synchronized long callBuf() {
+        if (cb == null) { cb = ByteBuffer.allocateDirect(64).order(ByteOrder.LITTLE_ENDIAN); cbAddr = GameOverlay.bufAddr(cb); }
+        return cbAddr;
+    }
+    static volatile boolean tickOnly;
+    /** v3.25：联机两个包不装服务端，但开机更新页要「游戏线程调用槽」→ 只装 TICK 段（连接器一直是 0，不投递任何包） */
+    static synchronized String installTick() {
+        if (hooked || tickOnly) return "ok";
+        long b = Mods.base();
+        if (b == 0) return "找不到游戏库";
+        if (!slackIsCode(b)) return "代码段空隙不可用";
+        ByteBuffer r = ByteBuffer.allocateDirect(RH + 64).order(ByteOrder.LITTLE_ENDIAN);
+        long ra = GameOverlay.bufAddr(r), ca = callBuf();
+        if (ra <= 0 || ca <= 0 || ra > 0xffffffffL || ca > 0xffffffffL) return "拿不到内存地址";
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            if (!bytesAt(m, b + TICK_AT, 8).equals(TICK_ORIG)) return "游戏代码和预期不一样";
+            long tc = b + SLACK + 0x100;
+            m.seek(tc); m.write(Patches.hex(tickCave((int) ra, (int) (b + TICK_AT + 8), (int) ca)));
+            tickRpl = r;
+            m.seek(b + TICK_AT); m.write(Patches.hex(hook((int) tc)));
+        } catch (Throwable e) { return "出错 " + e.getMessage(); }
+        tickOnly = true;
+        return "ok";
+    }
+    static ByteBuffer tickRpl;
+    static boolean callReady() { return (hooked || tickOnly) && cb != null; }
+    /** 在游戏线程调 fn(r0,r1,r2,r3)，等下一帧跑完（最多 waitMs）；返回 {调了没有(1/0), 返回值} */
+    static synchronized long[] gcall(long fn, long r0, long r1, long r2, long r3, int waitMs) throws InterruptedException {
+        if (!callReady()) return new long[] { 0, 0 };
+        int n0 = cb.getInt(24);
+        cb.putInt(4, (int) r0); cb.putInt(8, (int) r1); cb.putInt(12, (int) r2); cb.putInt(16, (int) r3);
+        cb.putInt(0, (int) fn);
+        for (int t = 0; t < waitMs; t += 10) {
+            Thread.sleep(10);
+            if (cb.getInt(24) != n0) return new long[] { 1, cb.getInt(20) & 0xffffffffL };
+        }
+        if (cb.getInt(0) != 0) cb.putInt(0, 0);   // 一直没跑到（游戏线程卡住）→ 撤销，免得以后突然调
+        return new long[] { cb.getInt(24) != n0 ? 1 : 0, cb.getInt(20) & 0xffffffffL };
     }
     /** 启动时调用：只装钩子，不开服务端 */
     public static void preinstall() {

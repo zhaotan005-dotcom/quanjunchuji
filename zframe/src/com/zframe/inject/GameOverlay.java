@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.24";
+    static final String VER = "v3.25";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1215,9 +1215,7 @@ public class GameOverlay {
             note(a, u, root, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
         }
         if (Ed.ED == 1 || Lan.role == 1) switchRow(a, u, oc, "全员无敌", "房间里所有人都不掉血（服务端这边算伤害）", Con.allGod, v -> Con.setAllGod(v));
-        LinearLayout tr = row(a, root);
-        btn(a, u, tr, "传送到地图中间", () -> toast(a, Con.tpCenter()));
-        btn(a, u, tr, "恢复键位", () -> new Thread(() -> { String r = Jet.off(true); toastAny("ok".equals(r) ? "已恢复键位" : r); AvatarLog.export(a, "jet-"); }, "zf-jet").start());
+        // v3.25 用户：「传送到地图中间」「恢复键位」删掉（有点地图标点传送了；恢复键位没用了）
         if (Ed.ED == 1) { onGround = true; note(a, u, root, "服务端：刷的东西都放在脚下，自己捡。"); }
         else {
         head(a, u, root, "刷物资放在");
@@ -1239,19 +1237,23 @@ public class GameOverlay {
         if (Ed.ED == 2 && Lan.role == 2) {
             // v2.92 用户：客户端也要加速 → 拉条发给服务端，服务端只给你一个人改，再同步回来
             slider(a, u, root, "加速", "发给服务端，只改你自己；几秒后生效。现在：" + Mods.hostSyncText(), 0f, 67f, 1f, Give.mySpeed == 1f ? 0f : Give.mySpeed, true, v -> Give.askMove(v, Give.myJump));
-            slider(a, u, root, "高跳", "发给服务端，只改你自己", 0f, 10f, 0.5f, Give.myJump == 1f ? 0f : Give.myJump, true, v -> Give.askMove(Give.mySpeed, v));
+            slider(a, u, root, "高跳", "发给服务端，只改你自己", 0f, 67f, 1f, Give.myJump == 1f ? 0f : Give.myJump, true, v -> Give.askMove(Give.mySpeed, v));
         } else if (Ed.ED == 2) {
             // v2.32 客户端：不再自己拉，跟房主的数
             LinearLayout cc = card(a, u, root);
             note(a, u, cc, "加速、高跳跟服务端走，服务端拉多少你就是多少。现在：" + Mods.hostSyncText());
         } else {
         slider(a, u, root, "加速", cl ? "要和服务端拉到同一个数才不被拉回去" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跑得更快，拖到最左边是关（最大 67 倍；游泳、翻墙时自动恢复正常）", 0f, 67f, 1f, Mods.speed == 1f ? 0f : Mods.speed, true, v -> Mods.setMove(v, Mods.jump));
-        slider(a, u, root, "高跳", cl ? "要和服务端拉到同一个数" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关", 0f, 10f, 0.5f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
+        slider(a, u, root, "高跳", cl ? "要和服务端拉到同一个数" : Ed.ED == 1 ? "服务端拉的数会自动同步给加入的玩家" : "跳得更高，拖到最左边是关（最大 67 倍）", 0f, 67f, 1f, Mods.jump == 1f ? 0f : Mods.jump, true, v -> Mods.setMove(Mods.speed, v));
         }
         if (Ed.ED != 2 && Lan.role != 2) {   // v2.73 用户：参考弹射板做「飞天」，高度可调
             // v3.03 用户：飞天去掉（客户端本来就没有）。传送落地还用 Fly.softLand
             head(a, u, root, "传送");
-            switchRow(a, u, root, "点地图标点自动传送", "在大地图上标点后，自动传到那个点上空 200 米，再慢慢落下来", MapMark.autoTp, v -> { MapMark.autoTp = v; MapMark.start(); return "ok"; });
+            switchRow(a, u, root, "点地图标点自动传送", Ed.ED == 1 || Lan.role == 1 ? "标点后你先传过去慢慢落地，落地后加入的人全部传到你身边" : "在大地图上标点后，自动传到那个点上空 200 米，再慢慢落下来", MapMark.autoTp, v -> { MapMark.autoTp = v; MapMark.start(); return "ok"; });
+            if (Ed.ED == 0 && Lan.role == 0) {
+                head(a, u, root, "单机");
+                switchRow(a, u, root, "单机按联机方式进图", "让游戏当成联机（开房没人进），手雷抛物线、探测器视角、标点按联机那样走；下一局生效", Lan.fakeOnline, v -> { Lan.fakeOnline = v; return "ok"; });
+            }
         }
         LinearLayout fc = card(a, u, root);
         LinearLayout fr = row(a, fc); fr.setPadding(0, u.dp(9), 0, u.dp(9)); fr.setGravity(Gravity.CENTER_VERTICAL);
@@ -1395,11 +1397,50 @@ public class GameOverlay {
         {"20101", "步枪"}, {"20102", "机枪"}, {"20103", "喷子"}, {"20104", "狙击枪"}, {"20105", "冲锋枪"}, {"20106", "特殊武器"},
         {"202", "手枪"}, {"203", "近战"}, {"204", "投掷物"}, {"205", "配件"}, {"206", "子弹"},
         {"30304", "头盔"}, {"30305", "防弹衣"}, {"30307", "背包"}, {"401", "药品/饮料"}, {"40201", "战术道具"}, {"402", "道具"}};
+    /** v3.25 用户：道具名字全改中文。小分类（5 位）→ 中文 */
+    static final String[][] SUB_CAT = {
+        {"20201", "手枪"}, {"20301", "近战武器"}, {"20401", "投掷物"}, {"20501", "枪口"}, {"20502", "握把"}, {"20503", "瞄准镜"},
+        {"20504", "弹匣"}, {"20505", "枪托"}, {"20600", "子弹"}, {"20601", "子弹"}, {"40100", "回血药品"}, {"40101", "能量药品"}, {"40200", "道具"}};
     static String itemCat(long cat) {
         String c = String.valueOf(cat);
+        for (String[] x : SUB_CAT) if (c.equals(x[0])) return x[1];
         for (String[] x : ITEM_CAT) if (c.equals(x[0])) return x[1];
         for (String[] x : ITEM_CAT) if (x[0].length() == 3 && c.startsWith(x[0])) return x[1] + " " + c.substring(3);
         return "其他 " + c;
+    }
+    /** v3.25：英文类名片段 → 中文（找不到就「分类 序号」，不再显示英文） */
+    static final String[][] CN = {
+        {"suppress", "消音器"}, {"silenc", "消音器"}, {"ompensat", "补偿器"}, {"flashhid", "消焰器"}, {"flash_h", "消焰器"}, {"choke", "收束器"}, {"hoke", "收束器"}, {"duckbill", "鸭嘴枪口"},
+        {"extended", "扩容弹匣"}, {"quickdraw", "快速弹匣"}, {"quick", "快速弹匣"}, {"extquick", "快速扩容弹匣"},
+        {"tactical", "战术枪托"}, {"stockuzi", "UZI 枪托"}, {"cheek", "托腮板"}, {"bulletlo", "子弹袋"}, {"bulletloop", "子弹袋"},
+        {"angled", "直角握把"}, {"vertical", "垂直握把"}, {"halfgrip", "半截式握把"}, {"thumb", "拇指握把"}, {"lightgrip", "轻型握把"}, {"laser", "激光瞄准器"},
+        {"reddot", "红点瞄准镜"}, {"holo", "全息瞄准镜"}, {"2x", "2 倍镜"}, {"3x", "3 倍镜"}, {"4x", "4 倍镜"}, {"6x", "6 倍镜"}, {"8x", "8 倍镜"}, {"15x", "15 倍镜"},
+        {"crossbow", "十字弩"}, {"bolt", "弩箭"}, {"arrow", "弩箭"},
+        {"grenade", "手雷"}, {"frag", "手雷"}, {"smoke", "烟雾弹"}, {"molotov", "燃烧瓶"}, {"burn", "燃烧瓶"}, {"stun", "震爆弹"}, {"flashbang", "震爆弹"},
+        {"bandage", "绷带"}, {"firstaid", "急救包"}, {"first", "急救包"}, {"medkit", "医疗箱"}, {"medic", "医疗箱"}, {"drink", "能量饮料"}, {"energy", "能量饮料"},
+        {"painkill", "止痛药"}, {"pill", "止痛药"}, {"adrenal", "肾上腺素"}, {"syringe", "肾上腺素"},
+        {"pan", "平底锅"}, {"machete", "砍刀"}, {"crowbar", "撬棍"}, {"sickle", "镰刀"},
+        {"helmet", "头盔"}, {"armor", "防弹衣"}, {"vest", "防弹衣"}, {"bag", "背包"}, {"backpack", "背包"},
+        {"ghillie", "吉利服"}, {"doll", "人偶"}, {"dummy", "人偶"}, {"chara", "人偶"}, {"shrub", "草丛"}, {"camou", "伪装岩"}, {"rock", "伪装岩"}, {"shield", "护盾"}, {"shiled", "护盾"},
+        {"jetpack", "喷气背包"}, {"flare", "信号枪"}, {"lift", "升降台"}, {"trampol", "弹射板"}, {"detect", "探测器"}, {"drone", "无人机"}, {"radar", "雷达"}, {"mine", "地雷"}, {"trap", "陷阱"},
+        {"gas", "汽油桶"}, {"fuel", "汽油桶"}, {"556", "5.56 子弹"}, {"762", "7.62 子弹"}, {"9mm", "9mm 子弹"}, {"45acp", ".45 子弹"}, {"acp", ".45 子弹"}, {"12g", "12 号霰弹"}, {"gauge", "12 号霰弹"}, {"300", ".300 马格南"}, {"magnum", ".300 马格南"}};
+    /** 枪名（M416 这种）在配件分类里 → 「M416 专用」+分类；枪本身保留型号（M416、AKM 本来就这么叫） */
+    static String cnName(long id, String raw, String cat, int idx) {
+        String c3 = String.valueOf(id / 1000000);
+        boolean att = c3.startsWith("205") || c3.startsWith("206");
+        if (raw != null && !raw.isEmpty()) {
+            String r = raw.toLowerCase(java.util.Locale.US).replace(" ", "");
+            for (String[] x : CN) if (r.contains(x[0])) {
+                String z = x[1];
+                if (att && (x[0].equals("crossbow"))) return "十字弩" + cat;
+                if (c3.startsWith("20504") && !z.contains("弹匣") && !z.contains("弩")) return z + "弹匣";
+                return z;
+            }
+            boolean gun = c3.startsWith("201") || c3.startsWith("202");
+            if (att && raw.matches("[A-Za-z0-9\\-]{2,10}")) return raw.toUpperCase(java.util.Locale.US) + " 专用" + cat;
+            if (gun && raw.matches("[A-Za-z0-9\\-\\.]{2,10}")) return raw;   // 枪的型号（M416、AKM）
+        }
+        return cat + " " + idx;
     }
     static boolean useful(long cat) {
         int c3 = (int) (cat / 100);
@@ -1427,6 +1468,8 @@ public class GameOverlay {
             if (!mk.exists()) { for (long v : all) if (v / 100000000L != 402) cleared.add(v); all.removeAll(cleared); }
             itemBad.addAll(all);
             if (!mk.exists()) { saveBad(); java.nio.file.Files.write(mk.toPath(), cleared.toString().getBytes()); }
+            java.io.File mk2 = new java.io.File(f.getParentFile(), "zf_items_bad.v325");   // v3.25：以前因缺模型删掉的战术道具（人偶等）放回来一次
+            if (!mk2.exists()) { java.util.ArrayList<Long> c2 = new java.util.ArrayList<>(); for (long v : all) if (v / 100000000L == 402) c2.add(v); all.removeAll(c2); itemBad.removeAll(c2); saveBad(); java.nio.file.Files.write(mk2.toPath(), c2.toString().getBytes()); }
             StringBuilder b205 = new StringBuilder(); for (long v : all) if (v / 100000000L == 205) b205.append(v).append(' ');
             String old = mk.exists() ? new String(java.nio.file.Files.readAllBytes(mk.toPath())) : "";
             badState = "坏编号：" + all.size() + " 个，其中配件 " + (b205.length() == 0 ? "0" : b205.toString().trim()) + "；v3.00 清掉过的误删：" + (cleared.isEmpty() ? old : cleared.toString());
@@ -1497,8 +1540,7 @@ public class GameOverlay {
         for (int k = itemPage * per, j = 0; k < Math.min(l.size(), (itemPage + 1) * per); k++, j++) {
             final long id = l.get(k);
             if (j % 4 == 0) ir = row(a, root);
-            String nm = itemName.get(id);
-            String lb = (nm != null ? nm : itemCat(itemCatSel) + " " + (k + 1)) + "\n" + id;
+            String lb = cnName(id, itemName.get(id), itemCat(itemCatSel), k + 1) + "\n" + id;
             btn(a, u, ir, lb, () -> giveItem(a, id));
         }
         LinearLayout pr = row(a, root);
@@ -1533,13 +1575,7 @@ public class GameOverlay {
             else if (!itemName.containsKey(id)) new Thread(() -> { String nb = Prop.nameInBag(id); if (nb != null) { itemName.put(id, nb); saveNames(); refreshAny(); } }, "zf-name").start();   // v2.54
             // v2.56 用户：用不了的还在 → 刷出来但缺模型/资源的也删掉（地上只能显示替身箱子的那种）
             // v3.00：缺资源只对功能道具（402）算数；配件等缺个图标/特效也能用，以前被误删（快扩就是这样没的）
-            if (id / 100000000L == 402 && Prop.missAt >= t0) { itemBad.add(id); saveBad(); LogCap.note("删掉 " + id + "：缺资源 " + Prop.lastMiss); toast(a, "这个缺资源用不了，已从列表删掉"); refreshAny(); return; }
-            if (id / 100000000L == 402) new Thread(() -> {
-                try { Thread.sleep(800); } catch (InterruptedException ignored) {}
-                Prop.scanUse(true);
-                for (Prop.It it : Prop.useList) if (it.target == null && it.cls != null && it.cls.contains(String.valueOf(id))) {
-                    itemBad.add(id); saveBad(); toastAny("这个道具手机上没有模型，用不了，已从列表删掉"); refreshAny(); return; }
-            }, "zf-chk").start();
+            // v3.25 用户：少了人偶 → 战术模式用游戏自己的道具栏，缺模型的道具也能用，不再因为「缺资源/没模型」删战术道具
         }, 1200);
     }
 
@@ -1784,7 +1820,8 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.24 更新内容\n"
+    static final String NOTICE = "v3.25 更新内容\n" + "· 开机直接用游戏自己的更新页：进度条走的是我们仓库的下载进度，公告也换成我们的（建不出来才用我们自己的那层）\n" + "· 「传送到地图中间」「恢复键位」删掉\n" + "· 高跳最大 67 倍\n" + "· 道具名字改成中文（枪口/握把/瞄准镜/弹匣/枪托，消音器、扩容弹匣这些）\n" + "· 人偶等战术道具放回列表（以前因为缺模型被删了）\n" + "· 服务端点地图标点传送：你落地后，加入的人全部传到你身边\n" + "· 单机按联机方式进图（伪装联机），手雷抛物线、探测器视角、标点按联机那样走；功能页可关\n" + "\n"
+            + "v3.24 更新内容\n"
             + "· 试着打开游戏自己的更新页（启动流程不再关掉更新步骤）；万一卡在更新页，下次启动会自动不开\n\n"
             + "v3.23 更新内容\n"
             + "· 开机显示更新进度条和公告（公告就是每版更新了什么）\n\n"
@@ -1809,6 +1846,13 @@ public class GameOverlay {
     static volatile Runnable noticeSet, gameMode;
     /** v3.24：游戏自己的更新页出来了 → 我们这层去掉黑底，只留公告和进度（不挡游戏的页） */
     static void gamePage() { Runnable r = gameMode; if (r != null) MAIN.post(r); }
+    /** v3.25：开了游戏自己的更新页（UpdFlow）→ 用游戏的页（UpdPage），建不出来再用我们这层 */
+    static final java.util.concurrent.atomic.AtomicBoolean startupOnce = new java.util.concurrent.atomic.AtomicBoolean();
+    static void startupUpdate() {
+        if (!startupOnce.compareAndSet(false, true)) return;
+        if (UpdFlow.on) { fetchNotice(); UpdPage.start(); } else srvUpdatePage();
+    }
+    static void srvFallback() { MAIN.post(GameOverlay::srvUpdatePage); }
     static void srvUpdatePage() {
         final Activity a = Con.act; if (a == null) return;
         if (!updShown.compareAndSet(false, true)) return;   // v2.69：加载页日志会连着来几行，以前会叠两层，关掉一层另一层一直挂着
