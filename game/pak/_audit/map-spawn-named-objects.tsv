@@ -1,0 +1,16 @@
+source_map	export_index	object_name	actual_class	status
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	4	VehicleSpawnPoint1	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	5	VehicleSpawnPoint10	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	6	VehicleSpawnPoint11	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	7	VehicleSpawnPoint12	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	8	VehicleSpawnPoint2	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	9	VehicleSpawnPoint3_8	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	10	VehicleSpawnPoint4_10	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	11	VehicleSpawnPoint5_12	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	12	VehicleSpawnPoint6_14	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	13	VehicleSpawnPoint7_16	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	14	VehicleSpawnPoint8_18	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	15	VehicleSpawnPoint9_20	Actor	object-name-only-not-source-blueprint-proof
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	138	BP_PickUpRefreshVolumn2	BP_PickUpRefreshVolumn_C	actual-export-class-and-object-name
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/LogicLevel.umap	139	BP_PickUpRefreshVolumn_2	BP_PickUpRefreshVolumn_C	actual-export-class-and-object-name
+PUBGM/Content/Maps/TrainingIsland_Runtime/AlwaysLoad/ProceduralFoliageVolumes.umap	10	ProceduralFoliageSpawner12_1	ProceduralFoliageVolume	actual-export-class-and-object-name
