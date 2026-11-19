@@ -117,6 +117,7 @@ final class NetCore {
     static void lobby(final Context ctx) {
         if (ctx == null) return;
         f(ctx, "zcore_net.try").delete();
+        UpdFlow.lobby();
         File j = f(ctx, "zcore_net.just");
         if (j.exists()) { j.delete(); GameOverlay.toastAny("已更新到 " + GameOverlay.VER + "（内核 " + ZInit.CORE_VER + "）"); }
         if (readyVer > ZInit.CORE_VER) GameDlg.updatePrompt();

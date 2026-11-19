@@ -382,7 +382,9 @@ public class Con {
     // v1.23：开机在 StartupMap 上就直接进大厅（只一次），声音在大厅里初始化好，之后从艾挽选图直接进，不再来回跳
     static volatile boolean startupLobby;
     static void tickAudio(long now) {
-        if (!startupLobby && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
+        // v3.24：开了游戏更新页时，多停一会儿让进度条和公告显示完（查完更新且满 8 秒，最多 40 秒）
+        boolean hold = UpdFlow.on && !(NetCore.done && now - engineSeenAt > 8000) && now - engineSeenAt < 40000;
+        if (!startupLobby && !hold && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
             startupLobby = true;
             audioFix = "开机先进大厅加载声音";
             LogCap.note("声音: 开机直接进大厅 " + LOBBY);
@@ -430,6 +432,7 @@ public class Con {
         Prop.line(l);
         Flare.line(l);
         if (l.contains("Game class is '")) ModeProbe.gameClass(l);
+        if (l.contains("Flow") || l.contains("UpdateUI")) UpdFlow.line(l);
         if (l.contains("BP_NZWeap_") || l.contains("WeaponBase/W")) {
             java.util.regex.Matcher m = WEAP.matcher(l);
             if (m.find()) { String w = m.group(1) != null ? m.group(1) : m.group(2); if (!"EmptyHand".equals(w)) { lastWeap = w; lastWeapAt = System.currentTimeMillis(); } }

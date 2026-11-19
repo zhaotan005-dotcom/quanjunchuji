@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.23";
+    static final String VER = "v3.24";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1784,7 +1784,9 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.23 更新内容\n"
+    static final String NOTICE = "v3.24 更新内容\n"
+            + "· 试着打开游戏自己的更新页（启动流程不再关掉更新步骤）；万一卡在更新页，下次启动会自动不开\n\n"
+            + "v3.23 更新内容\n"
             + "· 开机显示更新进度条和公告（公告就是每版更新了什么）\n\n"
             + "v3.22 更新内容\n"
             + "· 黑框提示删掉了，只有出错才弹\n"
@@ -1804,7 +1806,9 @@ public class GameOverlay {
             }
         }, "zf-notice").start();
     }
-    static volatile Runnable noticeSet;
+    static volatile Runnable noticeSet, gameMode;
+    /** v3.24：游戏自己的更新页出来了 → 我们这层去掉黑底，只留公告和进度（不挡游戏的页） */
+    static void gamePage() { Runnable r = gameMode; if (r != null) MAIN.post(r); }
     static void srvUpdatePage() {
         final Activity a = Con.act; if (a == null) return;
         if (!updShown.compareAndSet(false, true)) return;   // v2.69：加载页日志会连着来几行，以前会叠两层，关掉一层另一层一直挂着
@@ -1845,6 +1849,8 @@ public class GameOverlay {
                 a.getWindowManager().addView(bg, wl);
                 upd = bg;
                 bg.setOnClickListener(v -> closeUpd(a, bg));   // v2.69：点一下就关
+                gameMode = () -> { if (bg.isAttachedToWindow()) bg.setBackgroundColor(0x00000000); };
+                if (UpdFlow.pageSeen) gameMode.run();
                 noticeSet = () -> { String r = remoteNotice; if (r != null && bg.isAttachedToWindow()) body.setText(r); };
                 if (remoteNotice != null) noticeSet.run(); else fetchNotice();
                 final long t0 = System.currentTimeMillis();

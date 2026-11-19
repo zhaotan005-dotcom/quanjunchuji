@@ -1153,3 +1153,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE：游戏更新页 UNZUpdateUIView（0x15d9d60 InitNoticeInfo 公告取 https://hy.pubgm.qq.com/UpdateInfo/UpdateInfo1.0.3.1.2.json，固定拷 0x3c 字符），真正的更新走 GCloud Dolphin(version_mgr, update_type 20)+Puffer，服务器停了，日志超时跳过；这个包不会建出更新页实例。
 - 做法：三个包都在 StartupMap 加载页盖一层（GameOverlay.srvUpdatePage）：上面「公告」= 仓库 core/notice.txt（各镜像，拿不到用包里 NOTICE），下面黄色进度条 = NetCore 下内核进度；最新/失败满 6 秒关，下好 2 秒后自动重启，点一下关，最多 40 秒。
 - 以后每次发版：改 core/notice.txt 和 GameOverlay.NOTICE（写这版更新了什么）。
+
+## v3.24（vc225/core225，2026-11-19 16:4x，三包，未实测，试验）
+- 16:14 用户：为什么建不出来？大厅自建服务端都可以，这个肯定也可以，再试试。
+- RE：UNZStartupFlowCheck 回调 0x1210ef8：配置标记([0x18576e8()] byte0)为 0 → FlowManager(+0x1c)->+0x18 对象 +0x348 = 0（0x12110d4 strb，日志 "FlowManager Disable Update"）→ 更新步骤被关；UNZStartupFlowUpdate::Begin 0x121244c 才 CreateWidget('/Game/Startup/UI/UpdateUI.UpdateUI_C') 存 +0x34。更新页 OnUpdateProcess = vt+0x240(this, float 进度(r1), const FString& 文字)，原生 thunk 0x16aa9f0。v2.69 实测启动阶段 ucall/Con.exec 不通。
+- 做法（UpdFlow.java）：启动早装把 0x12110d4 改 nop（4813c4e5→00f020e3）。保险 filesDir/zf_updflow.try：装前建、进大厅删；上次装了没进大厅 → 这次不装。日志见 "Begin Flow…Update" 时我们的加载页层去掉黑底。Con.tickAudio 开机进大厅在开了时等「查完更新且满 8 秒」（最多 40 秒）。
+- 下一步（看实测）：页出来了 → 找办法在游戏线程调 vt+0x240 喂我们的进度（启动阶段 ucall 不通，要挂每帧函数 cave）；公告 InitNoticeInfo 的 URL 59 字符可换成 GitHub Pages 地址（要知道 json 格式）。没出来/提示没蓝图 → 这包里更新页资源被删了（用户 v2.69 时说过「游戏自带更新页早就去掉了」）。
