@@ -1199,3 +1199,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户同时问：真单机抛物线/标点能不能用 → 回：标点能（自己的代码）；抛物线不能，下一步查单机下抛物线被哪里关掉。
 - 18:19 用户要一劳永逸（从根上不生成占位）。字符串扫描：没有 Phantom/FillBot；有 SpawnDollCharacter（Doll 本来就不算剩余）、MinPlayers、bIgnorePlayerControllerInStandalone、bUseAIStartFireInStandalone。占位是谁刷的还没定位。
 - 18:20 用户：Grok 解开了 pak（assets/main.obb.png 里 PUBGM/Content/Paks 321 个，83436 条），会发 pak-files.tsv；我们只读用户给的资源，不自己解密。下一步：从清单挑 GameMode/出生/投掷物蓝图让 Grok 单独提取。
+
+## 2026-11-19 18:35 用户发来 Grok 解出的部分 pak 资源（本地 /workspace/work/pakx，不进 git）
+- 训练营地图真名：/Game/Maps/TrainingIsland_Runtime/BR-TrainingIsland_Mobile_Main（.umap 在 pakchunk_c2afa52b…，不是 libUE4 里的 BR-Training_Mobile_Main，所以 v1.12 open 报不存在）。地图默认 GameMode = BP_NZBRPracticeGameMode（训练场）。
+- 训练营模式蓝图：/Game/Blueprints/TrainingGame/BP_NZBRTrainingGameMode.BP_NZBRTrainingGameMode_C（HUD BP_NZBRHUD_Training，人机 TrainingBot，HideXxx 开关、MaxBotCountPerTeam）。可试 open 地图?game=该类。
+- LuaSource 是明文 Lua（uexp 里直接是源码）：cs_lottery_pb（CustomLottery List/Commit/Rand/Reset）、cs_treasure_pb（TreasureInfo / TreasureExchange）= 军需协议字段。缺 cmd_pb（命令号）、common_pb（Prop/PlayerDataChange）、cs_pkg_pb、s_pkg_pb。LuaSource 全部 642 条约 2.1 MB，已向用户要全部。
+- 自建服务端仍需要：协议回包和更新文件都不在 pak 里。
