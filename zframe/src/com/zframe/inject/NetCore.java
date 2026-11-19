@@ -129,6 +129,8 @@ final class NetCore {
         if (ctx == null || started) return; started = true;
         say("正在检查更新…", false);
         new Thread(() -> {
+          // v3.29 用户：联网了就该能更新 → 失败不放行，自动重试直到查到结果（跟游戏一样卡在更新页）
+          for (int attempt = 1; ; attempt++) {
             String err = "";
             final String name0 = "b" + Ed.BUILD;
             StringBuilder eb = new StringBuilder();
@@ -166,8 +168,13 @@ final class NetCore {
                     return;
                 } catch (Throwable t) { err += base.substring(8, 20) + "：" + t.getMessage() + "；"; }
             }
-            pct = -1; say("检查更新失败（网络）", false);
-            LogCap.note("在线更新失败：" + err);
+            pct = -1;
+            LogCap.note("在线更新失败（第 " + attempt + " 次）：" + err);
+            int wait = Math.min(30, 3 * attempt);
+            say("更新失败（网络），" + wait + " 秒后重试（第 " + attempt + " 次）", false);
+            try { Thread.sleep(wait * 1000L); } catch (InterruptedException ie) { return; }
+            say("正在重新检查更新…", false);
+          }
         }, "zframe-netcore").start();
     }
 

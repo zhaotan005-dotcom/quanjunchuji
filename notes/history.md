@@ -1182,3 +1182,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v3.28（vc229/core229，2026-11-19 18:0x，未实测）
 - 17:52 用户：不是要走完更新进度条才进大厅吗。Con hold 改成：查更新没结果（NetCore.done 假且没下好）或游戏更新页没走完就不进大厅，兜底 10 分钟；UpdPage 进度循环上限 60 秒 → 10 分钟。下好 → 页里自动重启。
+
+## v3.29（vc230/core230，2026-11-19，未实测）
+- 17:55 用户：已经联网了，应该能修。NetCore.check 失败不再 done（不放行），3/6/9…最多 30 秒间隔自动重试；Con hold 和 UpdPage 去掉 10 分钟上限，只有「已是最新」或下好重启才结束。

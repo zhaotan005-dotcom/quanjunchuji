@@ -385,7 +385,7 @@ public class Con {
         // v3.24：开了游戏更新页时，多停一会儿让进度条和公告显示完（查完更新且满 8 秒，最多 40 秒）
         // v3.28 用户：要走完更新进度条才进大厅 → 查更新没结果（没「已是最新/失败/下好」）就一直停在更新页，最多 10 分钟兜底
         boolean upd = !NetCore.done && NetCore.readyVer <= ZInit.CORE_VER;
-        boolean hold = engineSeenAt > 0 && now - engineSeenAt < 600000 && (upd || (UpdFlow.on && !UpdPage.finished));   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
+        boolean hold = engineSeenAt > 0 && (upd || (UpdFlow.on && !UpdPage.finished));   // v3.29：不设时间上限，失败自动重试   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
         if (!startupLobby && !hold && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
             startupLobby = true;
             audioFix = "开机先进大厅加载声音";
