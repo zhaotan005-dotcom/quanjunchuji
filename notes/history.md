@@ -1185,3 +1185,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v3.29（vc230/core230，2026-11-19，未实测）
 - 17:55 用户：已经联网了，应该能修。NetCore.check 失败不再 done（不放行），3/6/9…最多 30 秒间隔自动重试；Con hold 和 UpdPage 去掉 10 分钟上限，只有「已是最新」或下好重启才结束。
+
+## v3.30（vc231/core231，2026-11-19 18:1x，未实测）
+- 18:01 用户截图（客户端包单机模式 v3.29）：加载页底部「游戏更新页：没开始」+ 我们自己的公告层；单机标点 3237m 不传送。
+- 更新页根因：UpdFlow 的保险文件 zf_updflow.try 只在进大厅删；v3.28 在更新页下好直接 NetCore.restart（没进大厅）→ 下次启动当成卡住不装 GATE。修：restart 前和 UpdPage 找到页面时删保险文件；状态行没启动 UpdPage 时显示 UpdFlow.state。
+- 标点：autoTp 不存档、默认关，更新后重启就变关（推断是没传的原因）。改成 prefs mark_tp 默认开；控制器 +a04 开关为 0 时从队伍列表 [0]+0x2c/+0x30 读标点；菜单副标题显示 MapMark.state；传送失败 toast。

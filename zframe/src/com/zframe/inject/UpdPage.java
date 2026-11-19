@@ -46,6 +46,7 @@ final class UpdPage {
             }
             if (v == 0) { state = "游戏更新页：25 秒内没建出来，用我们自己的那层"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
             view = v;
+            UpdFlow.lobby();   // v3.30：页面建出来了 = 没卡住，删保险文件
             state = "游戏更新页：找到 " + Long.toHexString(v);
             LogCap.note(state);
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);

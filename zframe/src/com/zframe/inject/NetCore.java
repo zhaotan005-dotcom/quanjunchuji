@@ -203,6 +203,7 @@ final class NetCore {
 
     /** 重启游戏：3.5 秒后用闹钟重新打开，自己退出 */
     static void restart(android.app.Activity a) {
+        UpdFlow.lobby();   // v3.30：更新页里下好就重启（没进大厅）不算「卡住」，否则下次启动游戏更新页被保险关掉（用户截图：游戏更新页没开始）
         try {
             android.content.Intent i = a.getPackageManager().getLaunchIntentForPackage(a.getPackageName());
             i.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK);

@@ -12,7 +12,10 @@ import java.io.RandomAccessFile;
  */
 final class MapMark {
     static final int MI = 0xa04;
-    static volatile boolean autoTp, tpNow;
+    static volatile boolean autoTp = true, tpNow;
+    // v3.30 用户截图：单机标点了不传 → 开关没存，重启（更新后自动重启）就变回关。改成记住，默认开
+    static void load(android.content.Context c) { try { autoTp = c.getSharedPreferences("zframe", 0).getBoolean("mark_tp", true); } catch (Throwable ignored) {} }
+    static void save(boolean v) { autoTp = v; try { android.app.Activity a = Con.act; if (a != null) a.getSharedPreferences("zframe", 0).edit().putBoolean("mark_tp", v).apply(); } catch (Throwable ignored) {} }
     static volatile String state = "标点：还没看到", log = "";
     static Thread th;
     static long lastCtl, lastUp; static String lastHex = "";
@@ -74,11 +77,19 @@ final class MapMark {
             }
             hex = Server.bytesAt(m, ctl + MI, 12);
             x = Mods.f(m, ctl + MI); y = Mods.f(m, ctl + MI + 4);
+            // v3.30：控制器 +a04 没写上（全 0）但地图上有标点 → 从队伍列表自己那项读（MapSignLocation +0x30、开关 +0x2c）
+            if (team != 0 && hex.substring(16, 18).equals("00")) {
+                long arr = Server.rd(m, team + 0x2f4); int n = (int) Server.rd(m, team + 0x2f8);
+                if (arr > 0x10000 && n >= 1 && n <= 4 && (Mods.rd(m, arr + 0x2c) & 0xff) != 0) {
+                    float tx = Mods.f(m, arr + 0x30), ty = Mods.f(m, arr + 0x34);
+                    if (!(tx == 0 && ty == 0)) { x = tx; y = ty; hex = "队伍" + Server.bytesAt(m, arr + 0x2c, 12); }
+                }
+            }
         }
-        if (lastHex.isEmpty()) { lastHex = hex; note("标点信息起始 +a04=" + hex); return; }
+        if (lastHex.isEmpty()) { lastHex = hex; note("标点信息起始 +a04=" + hex); if (!hex.startsWith("队伍")) return; }
         // v3.26 用户：标点传送要下局才生效 → 打开开关时已经有标点，就马上传过去（不等标点再变）
         boolean now = tpNow; tpNow = false;
-        if (hex.equals(lastHex) && !(now && autoTp && !hex.substring(16, 18).equals("00"))) return;
+        if (hex.equals(lastHex) && !(now && autoTp && (hex.startsWith("队伍") || !hex.substring(16, 18).equals("00")))) return;
         lastHex = hex;
         note(String.format("标点变了 +a04=%s → (%.0f, %.0f)", hex, x, y));
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) { syncTeam(m, ctl); } catch (Throwable t) { note("队伍信息写入出错 " + t); }
@@ -90,6 +101,8 @@ final class MapMark {
         double z = Math.max((me == null ? 0 : me[2]) + 3000, 20000);   // 200 米高处落下，限速 10 米/秒（不摔伤）
         boolean ok = Veh.teleport(pawn, x, y, z, me == null ? 0 : me[3]);
         note("自动传送到标点 " + (ok ? "成功" : "失败"));
+        state = String.format("标点：(%.0f, %.0f) 传送%s", x, y, ok ? "成功" : "失败");
+        if (!ok) GameOverlay.toastAny("标点传送失败（传送功能没装上）");
         if (ok) Fly.softLand();
         // v3.25 用户：服务端点标点传送，所有人跟着一起传。等房主落地（慢落，不摔），再把加入的玩家都拉到身边一圈（2 米）
         if (ok && (Ed.ED == 1 || Lan.role == 1)) {
