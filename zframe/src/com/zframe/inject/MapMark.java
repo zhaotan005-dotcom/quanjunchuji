@@ -12,7 +12,7 @@ import java.io.RandomAccessFile;
  */
 final class MapMark {
     static final int MI = 0xa04;
-    static volatile boolean autoTp;
+    static volatile boolean autoTp, tpNow;
     static volatile String state = "标点：还没看到", log = "";
     static Thread th;
     static long lastCtl, lastUp; static String lastHex = "";
@@ -76,7 +76,9 @@ final class MapMark {
             x = Mods.f(m, ctl + MI); y = Mods.f(m, ctl + MI + 4);
         }
         if (lastHex.isEmpty()) { lastHex = hex; note("标点信息起始 +a04=" + hex); return; }
-        if (hex.equals(lastHex)) return;
+        // v3.26 用户：标点传送要下局才生效 → 打开开关时已经有标点，就马上传过去（不等标点再变）
+        boolean now = tpNow; tpNow = false;
+        if (hex.equals(lastHex) && !(now && autoTp && !hex.substring(16, 18).equals("00"))) return;
         lastHex = hex;
         note(String.format("标点变了 +a04=%s → (%.0f, %.0f)", hex, x, y));
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) { syncTeam(m, ctl); } catch (Throwable t) { note("队伍信息写入出错 " + t); }

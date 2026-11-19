@@ -39,7 +39,8 @@ public class Patches {
             LogCap.note("补丁: libUE4 基址 0x" + Long.toHexString(base) + " 用时" + (System.currentTimeMillis() - t0) + "ms");
             ueBase = base; foundMs = System.currentTimeMillis() - t0;
             Mods.early = true;   // v1.72：启动早装固定开，不再给开关
-            if (Ed.canChoose()) { Ed.init(ctx); Ed.choose(Ed.saved(), "启动按上次"); }   // v2.59：不在腾讯 logo 时等人选；先按上次的装，加载页再问，换模式就重启
+            Ed.init(ctx);   // v3.26：v3.24/3.25 UpdFlow 拿不到目录（Ed.file 只有能选模式时才建）→ 一直「没目录，不装」，游戏更新页根本没开
+            if (Ed.canChoose()) { Ed.choose(Ed.saved(), "启动按上次"); }   // v2.59：不在腾讯 logo 时等人选；先按上次的装，加载页再问，换模式就重启
             if (Mods.early) Mods.preinstall();               // v1.65：代码还没跑之前装钩子
             if (!MEM) {
                 LogCap.note("安全模式: 不写游戏内存（v1.19 只读一次 Wwise 标志）");

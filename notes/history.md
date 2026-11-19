@@ -1170,3 +1170,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 人偶：不再因缺资源/没模型删 402；zf_items_bad.v325 一次性把删掉的 402 放回。
 - 服务端标点传送：房主传送+慢落后（Fly.busy 结束），Crew.find + doPull 把加入的人拉到身边 2 米一圈。
 - 单机伪装联机：Con.startGame 单机（role 0）且 Lan.fakeOnline 时先 Lan.unlock()，地图加 ?listen（同开房，没人进）。功能页开关「单机按联机方式进图」。探测器视角没单独查，靠这个。
+
+## v3.26（vc227/core227，2026-11-19 17:5x，三包，未实测）
+- 17:40 用户（v3.25 实测，截图）：单机开无敌还是摔死；标点传送要下局才生效；更新页还是我们的（客户端包加载页显示我们的公告+「已是最新」）。用户猜是以前关更新失败弹窗改掉的（Patcher UPD_OFF 0x15de030 ShowUpdateError→bx lr，只关报错，不影响建页）。
+- 真正原因：UpdFlow.install 在启动早装时 Con.act 还是 null，Ed.file 只有 canChoose() 才 init → dir 为空 →「没目录，不装」，UpdFlow.on 一直 false（v3.24/3.25 根本没试成）。修：Patches 里总是 Ed.init(ctx)。我们那层底部显示 UpdPage/UpdFlow 状态（单机不导日志，看截图）。
+- 无敌：单机伪装联机(listen)后控制台 God 要作弊权限 → 直接写 AActor::bCanBeDamaged = pawn+0x110 半字 bit1（RE：FBoolPropertyParams 0x4f5014c，SetBit 0x2e73790 `orr #2` at +0x110，SizeOfOuter 0x2b0），关时还原；仍补血。
+- 标点：打开自动传送开关时 tpNow，已有标点（+a0c 开）就马上传。

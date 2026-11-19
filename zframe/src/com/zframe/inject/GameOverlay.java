@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.25";
+    static final String VER = "v3.26";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1249,7 +1249,7 @@ public class GameOverlay {
         if (Ed.ED != 2 && Lan.role != 2) {   // v2.73 用户：参考弹射板做「飞天」，高度可调
             // v3.03 用户：飞天去掉（客户端本来就没有）。传送落地还用 Fly.softLand
             head(a, u, root, "传送");
-            switchRow(a, u, root, "点地图标点自动传送", Ed.ED == 1 || Lan.role == 1 ? "标点后你先传过去慢慢落地，落地后加入的人全部传到你身边" : "在大地图上标点后，自动传到那个点上空 200 米，再慢慢落下来", MapMark.autoTp, v -> { MapMark.autoTp = v; MapMark.start(); return "ok"; });
+            switchRow(a, u, root, "点地图标点自动传送", Ed.ED == 1 || Lan.role == 1 ? "标点后你先传过去慢慢落地，落地后加入的人全部传到你身边" : "在大地图上标点后，自动传到那个点上空 200 米，再慢慢落下来", MapMark.autoTp, v -> { MapMark.autoTp = v; MapMark.tpNow = v; MapMark.start(); return "ok"; });
             if (Ed.ED == 0 && Lan.role == 0) {
                 head(a, u, root, "单机");
                 switchRow(a, u, root, "单机按联机方式进图", "让游戏当成联机（开房没人进），手雷抛物线、探测器视角、标点按联机那样走；下一局生效", Lan.fakeOnline, v -> { Lan.fakeOnline = v; return "ok"; });
@@ -1820,7 +1820,8 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.25 更新内容\n" + "· 开机直接用游戏自己的更新页：进度条走的是我们仓库的下载进度，公告也换成我们的（建不出来才用我们自己的那层）\n" + "· 「传送到地图中间」「恢复键位」删掉\n" + "· 高跳最大 67 倍\n" + "· 道具名字改成中文（枪口/握把/瞄准镜/弹匣/枪托，消音器、扩容弹匣这些）\n" + "· 人偶等战术道具放回列表（以前因为缺模型被删了）\n" + "· 服务端点地图标点传送：你落地后，加入的人全部传到你身边\n" + "· 单机按联机方式进图（伪装联机），手雷抛物线、探测器视角、标点按联机那样走；功能页可关\n" + "\n"
+    static final String NOTICE = "v3.26 更新内容\n" + "· 修游戏自带更新页一直没开的原因：启动时拿不到存档目录，开关根本没装上（v3.24、v3.25 都是这样）。没开成时，加载页最下面会写原因\n" + "· 无敌改成直接关「能受伤」标记 + 补血，伪装联机下也生效（之前单机开无敌照样摔死）\n" + "· 标点传送：打开开关时已经有标点，马上传过去，不用等下局\n" + "\n"
+            + "v3.25 更新内容\n" + "· 开机直接用游戏自己的更新页：进度条走的是我们仓库的下载进度，公告也换成我们的（建不出来才用我们自己的那层）\n" + "· 「传送到地图中间」「恢复键位」删掉\n" + "· 高跳最大 67 倍\n" + "· 道具名字改成中文（枪口/握把/瞄准镜/弹匣/枪托，消音器、扩容弹匣这些）\n" + "· 人偶等战术道具放回列表（以前因为缺模型被删了）\n" + "· 服务端点地图标点传送：你落地后，加入的人全部传到你身边\n" + "· 单机按联机方式进图（伪装联机），手雷抛物线、探测器视角、标点按联机那样走；功能页可关\n" + "\n"
             + "v3.24 更新内容\n"
             + "· 试着打开游戏自己的更新页（启动流程不再关掉更新步骤）；万一卡在更新页，下次启动会自动不开\n\n"
             + "v3.23 更新内容\n"
@@ -1881,7 +1882,7 @@ public class GameOverlay {
                 pb.setMax(100); pb.setIndeterminate(true);
                 try { pb.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFF5C518)); pb.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(0xFFF5C518)); } catch (Throwable ignored) {}
                 col.addView(pb, new LinearLayout.LayoutParams(u.dp(520), u.dp(10)));
-                TextView ver = new TextView(a); ver.setText("全军出击 " + Ed.name() + " " + VER + "（内核 " + ZInit.CORE_VER + "）· 点任意处关闭"); ver.setTextColor(0x99FFFFFF); ver.setTextSize(11); ver.setGravity(Gravity.CENTER);
+                TextView ver = new TextView(a); ver.setText("全军出击 " + Ed.name() + " " + VER + "（内核 " + ZInit.CORE_VER + "）· 点任意处关闭\n" + (UpdPage.state.startsWith("游戏更新页") ? UpdPage.state : UpdFlow.state));   // v3.26：游戏更新页为什么没出来，直接显示（单机不导日志） ver.setTextColor(0x99FFFFFF); ver.setTextSize(11); ver.setGravity(Gravity.CENTER);
                 ver.setPadding(0, u.dp(6), 0, 0);
                 col.addView(ver, new LinearLayout.LayoutParams(-1, -2));
                 bg.addView(col, new FrameLayout.LayoutParams(-1, -1));

@@ -496,7 +496,7 @@ public class Mods {
     static void tickMove() throws Exception {
         if (!Con.inMatch) { vehPawn = 0; if (cmc != 0) { cmc = 0; GameOverlay.forgetPawn(); vehPawn = 0; } moveState = "进图后生效"; return; }
         if (Ed.ED == 2) syncFromHost();
-        if (Con.godOn && Ed.ED != 2) godTick();
+        if (Con.godOn && Ed.ED != 2) godTick(); else if (godPawn != 0) godOff();
         if (!active()) return;
         long b = base(); if (b == 0) return;
         long pawn = myPawn();
@@ -519,10 +519,23 @@ public class Mods {
     }
 
     /** v2.36 无敌：刷人机后 God（只关 bCanBeDamaged）挡不住人机打死。房主/单机是服务器，直接把自己的血 Health(+0x5a0) 补到 HealthMax(+0x5a4) */
+    static volatile long godPawn;
+    static void godOff() {
+        long b = base(), p = godPawn; godPawn = 0; if (b == 0 || p == 0) return;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            if (!isObj(m, b, p)) return;
+            int cb = rd(m, p + 0x110) & 0xffff;
+            if ((cb & 2) == 0) { m.seek(p + 0x110); m.write(new byte[]{(byte) (cb | 2), (byte) (cb >> 8)}); }
+        } catch (Throwable ignored) {}
+    }
     static void godTick() {
         long b = base(), pawn = myPawn(); if (b == 0 || pawn == 0) return;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
             if (!isObj(m, b, pawn)) return;
+            // v3.26 用户：单机开无敌还是摔死 → 伪装联机（listen）下控制台 God 要作弊权限、不生效。直接关 AActor::bCanBeDamaged（+0x110 半字 bit1，RE：属性 SetBit 函数 0x2e73790）
+            int cb = rd(m, pawn + 0x110) & 0xffff;
+            if ((cb & 2) != 0) { m.seek(pawn + 0x110); m.write(new byte[]{(byte) (cb & ~2), (byte) (cb >> 8)}); }
+            godPawn = pawn;
             float hp = f(m, pawn + 0x5a0), mx = f(m, pawn + 0x5a4);
             if (mx > 1f && mx < 1000f && hp > 0f && hp < mx) wf(m, pawn + 0x5a0, mx);
         } catch (Throwable ignored) {}
