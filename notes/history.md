@@ -1197,3 +1197,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.32（vc233/core233，2026-11-19 18:2x，未实测）
 - 18:09 用户：去掉剩余人数里的占位（要作用到那个人身上，不是改数字）。新 Phantom.java：真单机进图 20/60/120 秒，用 Alive.collect 拿被数进剩余的人物，排除我、Bots.live、玩家控制器、+5a0<1，隔 4 秒两次都在 → K2_DestroyActor（ucall vt+0x164）。状态进诊断（单机不导出）。
 - 用户同时问：真单机抛物线/标点能不能用 → 回：标点能（自己的代码）；抛物线不能，下一步查单机下抛物线被哪里关掉。
+- 18:19 用户要一劳永逸（从根上不生成占位）。字符串扫描：没有 Phantom/FillBot；有 SpawnDollCharacter（Doll 本来就不算剩余）、MinPlayers、bIgnorePlayerControllerInStandalone、bUseAIStartFireInStandalone。占位是谁刷的还没定位。
+- 18:20 用户：Grok 解开了 pak（assets/main.obb.png 里 PUBGM/Content/Paks 321 个，83436 条），会发 pak-files.tsv；我们只读用户给的资源，不自己解密。下一步：从清单挑 GameMode/出生/投掷物蓝图让 Grok 单独提取。
