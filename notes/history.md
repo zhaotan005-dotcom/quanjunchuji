@@ -1260,3 +1260,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 19:38 用户：「退出用在设置那个退出上，别乱做」→ 删 v3.39 常用页「退出训练，回大厅」按钮。
 - 改：Server 收 15003/15005（CS_ROOM_MATCH_QUIT_ALLOC/QUIT_MATCH_REQ）回成功，训练岛里就 Lan.leave()；Con 日志在训练岛出现 QuitMatch（3 秒一次）也 Lan.leave()。哪条真生效看 train- 诊断。
 - 19:38 用户等 50 秒没收到 train- 诊断：大概率还没更新到 v3.39。
+
+## v3.41（vc242/core242，2026-11-19 19:5x，未实测）— 训练岛逐块加载
+- 19:45 train- 诊断（v3.40）：游戏更新页「找到；公告换成我们的；UpdatePanel/进度条/文字都显示；进度条已接上」（更新页成功！）。训练场（BP_NZBRPracticeGameMode_C）没闪退（空队伍补丁 ok，Login NZPlayerState error 1 只是报错）；Island 找到出生点 9 个、地形块 1，传到 -156080,-258810,-15900；加载块没试（先找到出生点）。
+- 改：传送后 Island.blocks：块 0..min(num,24) 逐个 LoadBlock（+0x440 先 -1），每次后数地形块，最后停在最多那块；完成后自动上传 block-* 诊断。

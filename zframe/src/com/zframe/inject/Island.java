@@ -68,10 +68,36 @@ final class Island {
             state = "训练岛：出生点 " + cnt[0] + " 个，地形块 " + land + "，传到 " + (int) x + "," + (int) y + "," + (int) z + (ok ? "" : "（传送失败）");
             LogCap.note(state);
             if (!ok) GameOverlay.toastAny(state);
+            if (mgr[0] != 0) blocks(b, nm, mgr[0]);   // v3.41：出生点在（LogicLevel 已载），但地形/建筑块没载（黑山）→ 每个块试一次，留地形最多的
             return;
         }
         state = "训练岛：45 秒没找到出生点（子关卡没加载），地形块 " + land + "；" + block;
         LogCap.note(state); GameOverlay.toastAny(state);
+    }
+    /** v3.41 train 诊断：传到出生点了，地形块只有 1（Heightmap/建筑子关卡没流式加载）。
+     *  LoadBlock(mgr, 块号, 1) 对每个块调一次（先把当前块 +0x440 设 -1），记每次后的地形块数，最后停在最多的那块。 */
+    static void blocks(long b, Veh.Names nm, long mgr) {
+        StringBuilder sb = new StringBuilder("加载块：");
+        try {
+            int num;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { num = (int) Server.rd(m, mgr + 0x43c); }
+            sb.append("块数 ").append(num).append("；");
+            int best = -1, bestLand = -1;
+            for (int i = 0; i < Math.min(num, 24); i++) {
+                if (!Con.training || !Con.inMatch) return;
+                Mods.pokeInt(mgr + 0x440, -1);
+                long[] r = Server.gcall(b + LOAD_BLOCK, mgr, i, 1, 0, 3000);
+                Thread.sleep(1500);
+                long[] ps = new long[1]; int[] cnt = new int[2]; long[] mg = new long[1];
+                scan(b, nm, ps, cnt, mg);
+                sb.append(i).append(r[0] != 0 ? "→" : "没跑→").append(cnt[1]).append(' ');
+                if (cnt[1] > bestLand) { bestLand = cnt[1]; best = i; }
+                block = sb.toString();
+            }
+            if (best >= 0) { Mods.pokeInt(mgr + 0x440, -1); Server.gcall(b + LOAD_BLOCK, mgr, best, 1, 0, 3000); sb.append("；停在 ").append(best); }
+        } catch (Throwable t) { sb.append("出错 ").append(t); }
+        block = sb.toString(); LogCap.note(block);
+        android.app.Activity x = Con.act; if (x != null) { AvatarLog.manual = true; try { AvatarLog.export(x, "block-"); } finally { AvatarLog.manual = false; } }
     }
     /** ps[0] = 第一个 PlayerStart；cnt[0] PlayerStart 数，cnt[1] 地形块数 */
     static volatile boolean blockTried;
