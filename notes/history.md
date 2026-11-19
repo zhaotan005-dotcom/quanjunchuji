@@ -1394,3 +1394,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.51（vc252/core252，未实测）
 - Island SAME4：0x1084654 ldr r3,[r2] (003092e5) → b 0x10846c0 (190000ea)：空位置循环直接返回 r1=4，所有人进位置 4（中间原岛）。和 PS4 一起装。
 - Mods.dilation：加回骨骼网格 +0x7c4 播放速率 = 0.75/倍数（v2.74 行为，固定 0.75，不加菜单）。
+
+## 2026-11-20 02:21 用户（v3.51 实测）：还是不刷装备；人物掉血。建议对照 grok 解密的 pak。
+- v3.51 服务端 slot/train（notes/device-tests/v3.51）：所有人同一个位置 4 ok；ServerOnly/Pickups 层包住人物；原生 150 米内物资 0；训练桌放枪 4 把，但 74 个「桌面」命中全是 LandscapeStreamingProxy（地形）→ 枪在地上；射击训练区离人 60 米，全图靶子 0 → 训练设施（桌子/靶子/刷枪点）整套没生成。
+- 掉血：日志没有伤害来源（只有 02:14:05 车炸 InVehicleExplosion）。
+- 已问用户：发 grok 解开的 TrainingIsland 地图文件夹（ServerOnly、LogicLevel umap/uasset）；掉血是哪端、岸上还是水里。game/pak 已在 v3.44 删掉。
