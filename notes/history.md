@@ -1430,3 +1430,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 09:55：更新到最新、训练场还是不刷枪，日志已传（train-1120-091545 服务端 / 091614 客户端 / slot-091835）。
 - 09:15 服务端诊断：训练岛 GridMap「CachedPickupSPList.Num()=0」「Add 229 SceneItems」、无 [Pickup] SPAWN → 物资点组件没把刷点交给 GM（服务端 NetMode 2 被 0x10c0ba4 挡，v3.53 的 Loot.PK 正是放开这个）；「训练桌放枪：没跑」原因待 v3.53 诊断看。
 - 本次：bash build_all.sh 3.53 3.53 254 254，core/b0-2 = 254，notice.txt 换成 v3.53 内容。
+
+## v3.54（core255，未实测，2026-11-20 10:2x）
+- 用户规则（09:59）：训练场的枪必须游戏自己刷，位置完全由游戏决定，不许我们摆（tableGuns 删调用，只统计原生 150 米内物资写诊断）。服务端物资点 NetMode 门放开（Loot.PK 0x10c0ba4）保留——那是让游戏自己的刷点逻辑跑。
+- 用户 09:59：联机服务端开、客户端开车开着开着被拉回。线索（v3.52 服务端日志）：NZVehicleSyncPhysicStateComponent.cpp:90「Vehicle=%s GetRigidBodyState failed」刷屏（Van/Uaz/Mirado/Buggy 各上百行）。打印点在 0xdf43cc，函数 0xdf3e08（开头 GetNetMode 0x28a4250 ≤2 才跑 = 服务端侧；[this+0xf4] 车，vt+0x2c 取根组件 → GetRigidBodyState 0x2c74c1c 失败）；同族串：ServerAdjustRigidBodyStateByClient 0xdbe500、OnRep_SyncToDSLocation 0xe01c38、TickCorrectVehicleLocation 0xe1c814（客户端纠正位置）。还没定根因，下一步查 0x2c74c1c 返回 0 的条件（物理体没建/没模拟？）和客户端纠正阈值。
+- 环境：libUE4.so 从 git show 585c115^:game/x/lib/armeabi-v7a/libUE4.so 恢复；ue.py 的 xr.pkl/calls.pkl 改成可缺省。

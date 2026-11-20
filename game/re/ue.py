@@ -63,7 +63,8 @@ def disf(start,limit=4000):
 def pf(a,limit=4000):
     for i in disf(a,limit): print('%08x: %-9s %s %s'%(i.address,i.bytes.hex(),i.mnemonic,i.op_str))
 import pickle as _p
-XR=_p.load(open('/workspace/work/qjcj-gh/game/re/xr.pkl','rb'))
+import os
+XR=_p.load(open('xr.pkl','rb')) if os.path.exists('xr.pkl') else {}
 _REV={}
 for t,l in XR.items():
     for a,k in l: _REV[a]=t
@@ -92,7 +93,7 @@ def wfind32(s):
         if i%4==0: out.append(f2v(i))
         i=D.find(b,i+1)
     return out
-CALLS=_p.load(open('/workspace/work/qjcj-gh/game/re/calls.pkl','rb'))
+CALLS=_p.load(open('calls.pkl','rb')) if os.path.exists('calls.pkl') else {}
 def callers(t):
     s0,e0=func_of(t)
     return sorted(set(func_of(a)[0] for a in CALLS.get(t,[]) if not (s0<=a<e0)))

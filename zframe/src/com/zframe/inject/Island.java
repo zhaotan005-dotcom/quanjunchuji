@@ -241,16 +241,15 @@ final class Island {
         //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
         if (!GameOverlay.remote()) { final long fb = b; final Veh.Names fnm = nm; new Thread(() -> {
             try {
-                guns = "训练桌放枪：线程开始，等 15 秒";
+                guns = "训练桌（只看不摆）：线程开始，等 15 秒";
                 Thread.sleep(15000);
                 if (!Con.training || !Con.inMatch) { guns = "训练桌放枪：15 秒后不在训练岛了（training " + Con.training + " inMatch " + Con.inMatch + "）"; return; }
                 try { pickup = pickDiag(fb, fnm); } catch (Throwable e) { pickup = "物资链：出错 " + e; } note(pickup);
-                guns = "训练桌放枪：扫物资";
+                guns = "训练桌（只看不摆）：扫物资";
                 double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
                 if (me != null) for (float[] q : sc.pick) if (d2(q, me) < 15000.0 * 15000.0) near++;
-                if (near >= 5) { guns = "训练桌放枪：原生 150 米内已有物资 " + near + " 个，不摆"; note(guns); return; }
-                tableGuns();
-                guns = "原生 150 米内物资 " + near + " 个；" + guns;
+                // v3.54 用户：枪必须游戏自己刷，不许我们摆 → 只统计原生物资，不再调 tableGuns()
+                guns = "训练桌（只看不摆）：原生 150 米内物资 " + near + " 个"; note(guns);
             } catch (Throwable e) { guns = "训练桌放枪：出错 " + e; note(guns); }
         }, "zf-tablegun").start(); }
         state = "训练岛：已摆人和 Client Load Block，跟踪地形加载";
