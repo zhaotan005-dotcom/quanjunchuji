@@ -1446,3 +1446,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 改动：Island.soLoad 把 vt 0x4caee2c+0x18 从 base+0xb63a30 改成 base+0x11555f0（install 早装 + matchLoaded 再补一次，防重定位前写）；诊断「物资链」行开头写结果。大地图客户端路径没有 ServerOnly 层在当前层，不受影响（推断）。
 - 要看：物资链「ServerOnly/Pickups 已载 1」、关键日志里「Direct spawn」、「训练桌（只看不摆）原生 150 米内物资」>0。附带可能出门/玻璃（ServerOnly/Door、Glass 同类）。
 - 另：12:27:25 有一次闪退（libUE4 0x19bb448 无限递归栈），是 12:27:32 这次启动之前的那次运行，原因没查。
+- v3.56 (core257, 未实测)：v3.55 实测（train-1120-124346）：虚表补丁 ok，但 ServerOnly/Pickups 仍「已载 0」，SPAWN Total=0；玩一会闪退（崩溃栈还没传上来）。原因推测：集合 0x1175304 拿不到距离表（[r2+4]==0）直接返回。v3.56 撤掉虚表补丁；进岛 15 秒后对 ServerOnly/Pickups 层各关卡项的流对象置 +0xa0 bit5(bShouldBeLoaded)|bit6(bShouldBeVisible)（0x11529dc 读写同两位，RequestsManager 0x117b4bc vt+8 发请求），6 秒后再置一次，诊断「Pickups 关卡：」+ 物资链。用户另说加载页少了 TiMi 那页，未查。

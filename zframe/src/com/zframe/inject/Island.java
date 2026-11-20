@@ -162,7 +162,7 @@ final class Island {
         // v3.53 物资点组件 UNZBRPickupConfigComponent::BeginPlay 0x10c0b5c 只认 NetMode 0/1，服务端（listen，NetMode 2）训练岛的物资点不交给 PickupManager → 放开到「只排除客户端 3」（Loot 的 PK 那三条）
         String pk = Mods.write(Loot.PK, Loot.PK_O, Loot.PK_N, true);
         fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t + "；物资点放开（服务端也交给 PickupManager）：" + pk
-            + "；ServerOnly 层按视野加载（Pickups 刷枪点关卡）：" + soLoad(); LogCap.note(fix);
+            + "；ServerOnly 层：v3.56 不再改虚表（v3.55 无效）"; LogCap.note(fix);
     }
     /** v3.55 ServerOnly 层类（vt 0x4caee2c：ServerOnly、/Door、/Glass、/Pickups、/GrassMap）的 vt+0x18「按视野更新」是空函数 bx lr 0xb63a30，
      *  客户端策略 Update 0x11671bc 轮到它什么也不加载 → ServerOnly/Pickups 关卡一直「已载 0」→ 物资点组件不存在、[Pickup] SPAWN Total=0。
@@ -178,6 +178,42 @@ final class Island {
         if (cur != ((b + SO_NOP) & 0xffffffffL)) return "原值不符 " + Long.toHexString(cur - b);
         String w = Mods.pokeInt(a, (int) (b + SO_UPD));
         return (rdq(a) & 0xffffffffL) == ((b + SO_UPD) & 0xffffffffL) ? "ok" : "写入没生效 " + w;
+    }
+    /** v3.56：v3.55 改虚表后 Pickups 还是「已载 0」（集合 0x1175304 拿不到距离表就直接返回）。
+     *  改走流对象本身：ULevelStreaming +0xa0 半字 bit5 = bShouldBeLoaded、bit6 = bShouldBeVisible（NZCustomLevelStreamingHelper 0x11529dc 读写的就是这两位）。
+     *  对 ServerOnly/Pickups 层的每个关卡项（[0] 流对象弱指针 → GUObjectArray）置这两位，关卡和里面的物资点组件是游戏自己的，
+     *  组件 BeginPlay 后 PickupManager 见已开刷 → 「Direct spawn」按游戏自己的物品表刷。只置位，不摆东西。返回「置位前→后，已载」。 */
+    static String soForce(long b, Veh.Names nm) throws Exception {
+        double[] q = Veh.info(); long gm = q == null ? 0 : (long) q[4];
+        if (gm < 0x10000) return "没有 GameMode";
+        StringBuilder sb = new StringBuilder(); int set = 0, loaded = 0, tot = 0;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long g = Server.rd(m, b + 0x51250acL), objs = Server.rd(m, g + 0x10); int num = (int) Server.rd(m, g + 0x18);
+            long mgr = Server.rd(m, gm + 0xa3c);
+            if (mgr < 0x10000 || !Mods.isObj(m, b, mgr) || objs < 0x10000) return "没有管理器";
+            long ld = Server.rd(m, mgr + 0x2f4); int ln = (int) Server.rd(m, mgr + 0x2f8);
+            for (int i = 0; i < ln && i < 40 && ld >= 0x10000; i++) {
+                long L = Server.rd(m, ld + 8L * i); if (L < 0x10000) continue;
+                if (Server.rd(m, L) - b != 0x4caee2cL) continue;   // 只看 ServerOnly 类层
+                long coll = Server.rd(m, L + 0x1c); if (coll < 0x10000) continue;
+                long ed = Server.rd(m, coll + 0x14); int en = (int) Server.rd(m, coll + 0x18);
+                // 只要范围包住训练桌一带的 Pickups 层：按名字筛
+                String lname = nm == null ? "?" : Box.nameOf(m, nm, Server.rd(m, L + 8));
+                if (!lname.contains("Pickups")) continue;
+                for (int j = 0; j < en && j < 64 && ed >= 0x10000; j++) {
+                    long E = Server.rd(m, ed + 8L * j); if (E < 0x10000) continue;
+                    int idx = (int) Server.rd(m, E); if (idx < 0 || idx >= num) continue;
+                    long S = Server.rd(m, objs + 16L * idx); if (S < 0x10000) continue;
+                    tot++;
+                    int w = (int) Server.rd(m, S + 0xa0);
+                    if ((w & 0x60) != 0x60) { Mods.pokeInt(S + 0xa0, w | 0x60); set++; }
+                    int w2 = (int) Server.rd(m, S + 0xa0);
+                    if (Server.rd(m, S + 0x110) >= 0x10000) loaded++;
+                    if (sb.length() < 200) sb.append(" [").append(Integer.toHexString(w & 0xffff)).append("→").append(Integer.toHexString(w2 & 0xffff)).append("]");
+                }
+            }
+        }
+        return "Pickups 流对象 " + tot + " 个，置位 " + set + "，已载 " + loaded + sb;
     }
     static volatile String block = "分配位置：没试";
     static volatile String state = "训练岛：没进";
@@ -204,7 +240,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
-        soState = soLoad();   // 启动早装时库可能还没重定位，进岛再补一次
+        soState = "进岛 15 秒后直接让游戏加载 Pickups 关卡";
         block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
@@ -261,6 +297,9 @@ final class Island {
                 guns = "训练桌（只看不摆）：线程开始，等 15 秒";
                 Thread.sleep(15000);
                 if (!Con.training || !Con.inMatch) { guns = "训练桌放枪：15 秒后不在训练岛了（training " + Con.training + " inMatch " + Con.inMatch + "）"; return; }
+                try { soState = soForce(fb, fnm); } catch (Throwable e) { soState = "出错 " + e; } note("Pickups 关卡：" + soState);
+                Thread.sleep(6000);
+                try { soState += "；6 秒后 " + soForce(fb, fnm); } catch (Throwable e) { soState += "；出错 " + e; }
                 try { pickup = pickDiag(fb, fnm); } catch (Throwable e) { pickup = "物资链：出错 " + e; } note(pickup);
                 guns = "训练桌（只看不摆）：扫物资";
                 double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
