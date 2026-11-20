@@ -1491,3 +1491,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 其它（v3.60 日志）：PracticePlayerComponent「InitializeRecordInfo ds not prepared!」每帧一行（0x10313e8，GM+0x4f8 空）→ 0x103152c 24059fe5 → 680000ea（b 0x10316d4 同函数出口，只去掉日志）。Island.install 里装。
 - 没动的：毒圈底层 cave（SLACK+0x990）一直「空位被占」（那段是数据段副本，v2.85 就知道），用户没提，这版不动；LogRHI EPixelFormat 28 引擎层不动。
 - 构建：bash build_all.sh 3.60 3.61 261 262，core/b0-2.ver = 262，notice.txt 加 v3.61 段。APK 在 releases/（不进 git）。
+- v3.61 实测（14:59，notes/device-tests/v3.61）：训练岛刷车 ✅ 游戏自己的驾驶训练台刷出 12 辆（含 2 艘快艇、1 个摩托艇）。TiMi「放完整动画 ok」，Logo 流程 4.6 秒。更新页仍收到 107（已忽略报错分支）。枪：仍没有（客户端无原版刷点数据，用户确认）。15:07 用户要求把最新版推到仓库并交付：releases/ 加入 v3.61 三个 APK（单机/客户端/服务端）。
