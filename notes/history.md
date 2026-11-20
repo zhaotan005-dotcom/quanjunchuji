@@ -1492,3 +1492,17 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 没动的：毒圈底层 cave（SLACK+0x990）一直「空位被占」（那段是数据段副本，v2.85 就知道），用户没提，这版不动；LogRHI EPixelFormat 28 引擎层不动。
 - 构建：bash build_all.sh 3.60 3.61 261 262，core/b0-2.ver = 262，notice.txt 加 v3.61 段。APK 在 releases/（不进 git）。
 - v3.61 实测（14:59，notes/device-tests/v3.61）：训练岛刷车 ✅ 游戏自己的驾驶训练台刷出 12 辆（含 2 艘快艇、1 个摩托艇）。TiMi「放完整动画 ok」，Logo 流程 4.6 秒。更新页仍收到 107（已忽略报错分支）。枪：仍没有（客户端无原版刷点数据，用户确认）。15:07 用户要求把最新版推到仓库并交付：releases/ 加入 v3.61 三个 APK（单机/客户端/服务端）。
+
+## v3.62（core263，全部未实测，2026-11-20 23:3x）训练岛防摔 + 枪桌摆枪
+- 用户：训练营会被摔死；另外（23:24 明确放开 09:59「不许自己摆」）射击区枪桌要像原版训练营一样有枪和子弹、捡走会补。
+- 日志证据：v3.60/v3.61 三份诊断（train-1120-132833、slot-1120-132934、train-1120-145938）没有任何死亡/伤害行，人物 Z 一直 -15734..-15768（地面 -15860），这几局没摔。游戏的摔伤日志「this=%s, GetVelocity()=%s, FallDamage=%f」（0x42e44ec）只在 verbose 级别打（0xd1409c `cmp #5`），所以就算摔死诊断里也看不到。根因靠静态读码定的。
+- 摔伤路径（capstone）：ANZCharacter 虚表 0x4bddb48 +0x3e4 Landed = 0xd14030：|Vz| → vt+0x7e8；BR 人物虚表（0x4c9c4dc/0x4c9e068/0x4ca2828/0x4ca49d0/0x4ce23ac）+0x3e4 = 0x10d3d04（先调 0xd14030），+0x7e8 = 0x10e8f00（车上等返回 0，否则尾跳 0xd149a4）。
+  0xd149a4：+0xa78 FallVelocityThreshold_High ≤ s < +0xa7c VeryHigh → HealthMax(+0x5a4)×FallDamagePercent_High(+0xa84)；VeryHigh ≤ s < +0xa80 Kill → ×VeryHigh(+0xa88)；s ≥ Kill → HealthMax（直接死）；否则 0（常量 0xd14b30=0.0）。伤害>0 且 Role(+0xe8)==3 才 vt+0x2a0 TakeDamage → 只有单机/房主算。偏移用反射表核对（offname）。
+  vt+0x7ec = 0xd1445c 只是落地动作档位（+0xa74 Low/+0xa78，写 +0xa68），不扣血。
+  另：bEnableWorldBoundsChecks=False（Main.umap NZWorldSettings，uasset.py 只读）→ KillZ 不生效，不是掉出世界判死。
+- 推断的触发：训练营菜单「高跳」（JumpZ 最高 67 倍）落地速度远超 Kill 阈值；「标点传送」目标点地面没加载时落在自己高度 +30 米再慢落。阈值默认值没读（本局诊断会写「原值」）。
+- 改（NoFall.java，不改代码字节，不需要新 cave/emu）：训练岛 join 后，单机/服务端（客户端不跑）每 2 秒把所有人物的 +0xa78/+0xa7c/+0xa80 写成 1e9（只在原值像阈值 0~1e8 或已是 1e9 时写）；人物 = 实例虚表 +0x7e8 是 base+0xd149a4 或 base+0x10e8f00；每 10 秒扫 GUObjectArray（按类缓存）找新人物（复活/新加入）。诊断「训练岛防摔：ok（人物 N 个，原值 a/b/c → 1e9）」或原因。
+- 标点传送（训练岛）：目标点地面没打到时每 0.5 秒再打 3 次射线，再兜底自己高度 +30 米（原逻辑）。
+- 枪桌（Island.tableGuns 重写 + restockLoop）：中心 = pak shootreturn + 本块偏移（shootCenter），±19.8 米 0.9 米格往下射线（起点射击区地面 +1.9 米）；只认非地形命中（类/对象名含 Landscape/Character/Vehicle/Pick/Target 不算，修 v3.51 的 74 个地形假桌面）；比 2.7 米内最低点高 55–115 cm；1.5 m 连桌、至少 2 格、最长 6 m；每桌每 1.2 m 一个点最多 4 个；每点 1 把枪 + 3 份对应子弹（TRAIN_GUNS 18 种，编号/子弹来自 GameOverlay.CATS 已实测表）；没桌子就射击区前地上一排。刷法用现有 cave 'G'（Veh.dropAt，服务器生成、客户端同步）。SpawnOnePickUp 0x119d884 要 APickUpRefreshSystem 对象 + 物品结构体，没在模拟器验证，没用。倍镜编号没核实，没摆。
+  补货：每 15 秒 scan 地上物资（类型 6），点位 70 cm 内少于摆下件数、连续两次 → 补枪 + 缺的子弹；第一次扫不到自己摆的东西就停（防越摆越多）。诊断「训练岛枪桌：N 桌 M 把…」「训练岛补枪：…」。
+- 构建：bash build_all.sh 3.61 3.62 262 263（JDK 临时 sed 成 jdk-21.0.12.1+1 后改回），core/b0-2.ver=263。releases/ 只留 v3.62 三个（git rm v3.53/v3.54/v3.61）。

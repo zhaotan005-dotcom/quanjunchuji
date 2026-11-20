@@ -102,6 +102,8 @@ final class MapMark {
         // 改成按目标点的地面算：从上往下打射线，打到东西（地形/房顶）就落在它上面 2 米；
         // 目标点还没加载打不到 → 落在「自己现在的高度 +30 米」，再慢慢落地。
         Trace.Hit gh = Trace.down((float) x, (float) y, 500000f, -500000f);
+        // v3.62 训练岛：目标点地面可能刚开始流式加载，多试 3 次（每次隔 0.5 秒）再按自己高度兜底（训练岛另有防摔 NoFall）
+        for (int t = 0; Con.training && t < 3 && (gh == null || Float.isNaN(gh.z) || gh.cls.contains("位置对不上")); t++) { Thread.sleep(500); gh = Trace.down((float) x, (float) y, 500000f, -500000f); }
         double z; String how;
         if (gh != null && !Float.isNaN(gh.z) && !gh.cls.contains("位置对不上")) { z = gh.z + 200; how = String.format("目标点地面 %.0f（%s）上方 2 米", gh.z, gh.land ? "地形" : gh.cls); }
         else { z = (me == null ? 0 : me[2]) + 3000; how = "目标点地面没打到（可能还没加载），按自己高度 +30 米"; }
