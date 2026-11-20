@@ -149,7 +149,13 @@ final class Island {
         ByteBuffer x = tb; if (x == null) return tlState;
         return tlState + "；TileMode BeginPlay " + (x.getInt(8) > 0 ? "跑过" : "没跑") + "，服务器层列表 " + x.getInt(8) + " 个（另加 ServerOnly 本层；加了几层看流式状态的当前层）";
     }
+    /** v3.59 用户：单机训练场移动靶不动。ANZSceneItem_RangeTarget::Tick 0xcf544c 开头 ldrb r0,[r4,#0xe8](Role); cmp r0,#2; pophi
+     *  → Role=Authority(3) 直接返回，移动（状态 2 → 0xcf5654 → 0xcf66c8 按 MovingHorizontalVelocity +0x334 来回走）只在客户端本地算。
+     *  单机/开房的人都是 Authority → 靶子永远不动。把 0xcf5464 pophi 改 nop：Authority 也跑本地移动（蓝图里 Mobile/Moveable 靶的速度、范围不改）。 */
+    static final long RT_TICK = 0xcf5464L; static final String RT_O = "108cbd88", RT_N = "00f020e3";
+    static volatile String rtState = "移动靶补丁：没装";
     static void install() {
+        rtState = "移动靶补丁（Authority 也走本地移动）：" + Mods.write(RT_TICK, RT_O, RT_N, true); LogCap.note(rtState);
         caveReset();
         String c = caveInstall(), t = "没装", r;
         if ("ok".equals(c)) {
@@ -162,7 +168,7 @@ final class Island {
         // v3.53 物资点组件 UNZBRPickupConfigComponent::BeginPlay 0x10c0b5c 只认 NetMode 0/1，服务端（listen，NetMode 2）训练岛的物资点不交给 PickupManager → 放开到「只排除客户端 3」（Loot 的 PK 那三条）
         String pk = Mods.write(Loot.PK, Loot.PK_O, Loot.PK_N, true);
         fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t + "；物资点放开（服务端也交给 PickupManager）：" + pk
-            + "；ServerOnly 层：v3.56 不再改虚表（v3.55 无效）"; LogCap.note(fix);
+            + "；ServerOnly 层：v3.56 不再改虚表（v3.55 无效）；" + rtState; LogCap.note(fix);
     }
     /** v3.55 ServerOnly 层类（vt 0x4caee2c：ServerOnly、/Door、/Glass、/Pickups、/GrassMap）的 vt+0x18「按视野更新」是空函数 bx lr 0xb63a30，
      *  客户端策略 Update 0x11671bc 轮到它什么也不加载 → ServerOnly/Pickups 关卡一直「已载 0」→ 物资点组件不存在、[Pickup] SPAWN Total=0。

@@ -1456,3 +1456,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 训练岛刷枪：v3.56 置 +0xa0 位无效原因——这几位是请求状态，实际加载靠 RequestsManager；0x11529dc 见位已相等就不发请求。改成 Server.gcall 游戏线程调 0x1174180(集合, 1, 可见1)（集合内逐关卡 0x11742c4 加载=1、不阻塞），进岛后每 0.5 秒找 ServerOnly/Pickups 层，一出现就调（PickupManager 约在摆人后 2.4 秒开始 SPAWN，可能赶不上——看诊断「Pickups 关卡（早）」和 SPAWN Total）。
 - 仓库：allSkins 加 PARA（pak 里 Items/Parachute/<编号> 有资源的 56 把伞）。
 - 移动靶：原生 NZSceneItem_RangeTarget 里没有移动逻辑，在 BP_MobileTarget/BP_MoveableTarget/BP_FlyTarget（蓝图）里，pak 解包里没有这几个文件，待用户发。
+
+## v3.60（core261，未实测）
+- 移动靶：用户发来 RangeTarget 蓝图（/workspace/work/pakx5），蓝图里只有参数（Moveable：MovingHorizontalVelocity +0x334、HorizontalOffset +0x32c），移动在原生 ANZSceneItem_RangeTarget::Tick 0xcf544c：Role(+0xe8)>2 即 Authority 直接 pophi 返回，移动只在客户端本地算。单机/房主是 Authority → 不动。补丁 0xcf5464 pophi(108cbd88)→nop，Island.install 早装（Island.rtState）。站起/倒下动画 0xcf549c 里另有三处 Role 判断没改。
