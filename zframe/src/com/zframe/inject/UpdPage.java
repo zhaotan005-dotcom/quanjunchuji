@@ -21,7 +21,9 @@ final class UpdPage {
      *  启动 GameMode +0x33c StartupFlowTypes（反射表 0x4d8b0f4）里有哪几步。只读。 */
     static final StringBuilder flowSb = new StringBuilder();
     static volatile String flows = "启动步骤：没看到";
+    static volatile boolean logoDone;
     static void flowLine(String l) {
+        if (l.contains("End Flow NZStartupFlowLogo")) logoDone = true;
         synchronized (flowSb) { if (flowSb.length() < 2500) flowSb.append("\n  ").append(l.trim().length() > 180 ? l.trim().substring(0, 180) : l.trim()); flows = "启动步骤日志：" + flowSb; }
     }
     static volatile String flowTypes = "StartupFlowTypes：没查";

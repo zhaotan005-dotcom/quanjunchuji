@@ -183,10 +183,16 @@ final class Island {
      *  改走流对象本身：ULevelStreaming +0xa0 半字 bit5 = bShouldBeLoaded、bit6 = bShouldBeVisible（NZCustomLevelStreamingHelper 0x11529dc 读写的就是这两位）。
      *  对 ServerOnly/Pickups 层的每个关卡项（[0] 流对象弱指针 → GUObjectArray）置这两位，关卡和里面的物资点组件是游戏自己的，
      *  组件 BeginPlay 后 PickupManager 见已开刷 → 「Direct spawn」按游戏自己的物品表刷。只置位，不摆东西。返回「置位前→后，已载」。 */
+    /** v3.59：v3.56 直接置 +0xa0 位没用（那几位只是「当前请求状态」，实际加载靠 RequestsManager；位已相等时 0x11529dc 反而不再发请求）。
+     *  改成在游戏线程调游戏自己的「整组加载」0x1174180(集合, LOD 上限, 可见)：它对集合里每个关卡调 0x11742c4(集合, i, LOD, 加载=1, 可见, 不阻塞)
+     *  → 0x11529dc → RequestsManager 发加载请求（和别的层按视野加载走同一条路）。只读找集合，调用只在游戏线程。未实测。 */
+    static final long LOAD_ALL = 0x1174180L;
+    static final java.util.HashSet<Long> soCalled = new java.util.HashSet<>();
     static String soForce(long b, Veh.Names nm) throws Exception {
         double[] q = Veh.info(); long gm = q == null ? 0 : (long) q[4];
         if (gm < 0x10000) return "没有 GameMode";
-        StringBuilder sb = new StringBuilder(); int set = 0, loaded = 0, tot = 0;
+        StringBuilder sb = new StringBuilder(); int called = 0, loaded = 0, tot = 0, colls = 0;
+        java.util.ArrayList<Long> todo = new java.util.ArrayList<>();
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             long g = Server.rd(m, b + 0x51250acL), objs = Server.rd(m, g + 0x10); int num = (int) Server.rd(m, g + 0x18);
             long mgr = Server.rd(m, gm + 0xa3c);
@@ -196,24 +202,27 @@ final class Island {
                 long L = Server.rd(m, ld + 8L * i); if (L < 0x10000) continue;
                 if (Server.rd(m, L) - b != 0x4caee2cL) continue;   // 只看 ServerOnly 类层
                 long coll = Server.rd(m, L + 0x1c); if (coll < 0x10000) continue;
-                long ed = Server.rd(m, coll + 0x14); int en = (int) Server.rd(m, coll + 0x18);
-                // 只要范围包住训练桌一带的 Pickups 层：按名字筛
                 String lname = nm == null ? "?" : Box.nameOf(m, nm, Server.rd(m, L + 8));
                 if (!lname.contains("Pickups")) continue;
+                colls++;
+                long ed = Server.rd(m, coll + 0x14); int en = (int) Server.rd(m, coll + 0x18);
                 for (int j = 0; j < en && j < 64 && ed >= 0x10000; j++) {
                     long E = Server.rd(m, ed + 8L * j); if (E < 0x10000) continue;
                     int idx = (int) Server.rd(m, E); if (idx < 0 || idx >= num) continue;
                     long S = Server.rd(m, objs + 16L * idx); if (S < 0x10000) continue;
                     tot++;
-                    int w = (int) Server.rd(m, S + 0xa0);
-                    if ((w & 0x60) != 0x60) { Mods.pokeInt(S + 0xa0, w | 0x60); set++; }
-                    int w2 = (int) Server.rd(m, S + 0xa0);
                     if (Server.rd(m, S + 0x110) >= 0x10000) loaded++;
-                    if (sb.length() < 200) sb.append(" [").append(Integer.toHexString(w & 0xffff)).append("→").append(Integer.toHexString(w2 & 0xffff)).append("]");
+                    if (sb.length() < 200) sb.append(" [").append(Integer.toHexString((int) Server.rd(m, S + 0xa0) & 0xffff)).append("]");
                 }
+                synchronized (soCalled) { if (soCalled.add(coll)) todo.add(coll); }
             }
         }
-        return "Pickups 流对象 " + tot + " 个，置位 " + set + "，已载 " + loaded + sb;
+        for (long coll : todo) {
+            long[] r = Server.gcall(b + LOAD_ALL, coll, 1, 1, 0, 2000);
+            if (r[0] == 1) { called++; sb.append(" 整组加载→").append(r[1]); }
+            else { synchronized (soCalled) { soCalled.remove(coll); } sb.append(" 游戏线程没跑到"); }
+        }
+        return "Pickups 集合 " + colls + " 个，关卡 " + tot + " 个，这次调整组加载 " + called + "，已载 " + loaded + sb;
     }
     static volatile String block = "分配位置：没试";
     static volatile String state = "训练岛：没进";
@@ -294,7 +303,14 @@ final class Island {
         //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
         if (!GameOverlay.remote()) { final long fb = b; final Veh.Names fnm = nm; new Thread(() -> {
             try {
-                guns = "训练桌（只看不摆）：线程开始，等 15 秒";
+                guns = "训练桌（只看不摆）：线程开始，尽早加载刷枪点关卡";
+                synchronized (soCalled) { soCalled.clear(); }
+                // v3.59：进岛后每 0.5 秒找 Pickups 层，一出现就让游戏整组加载（越早越好，赶在 PickupManager 刷物资之前）
+                for (int k = 0; k < 30 && Con.training && Con.inMatch; k++) {
+                    try { soState = soForce(fb, fnm); } catch (Throwable e) { soState = "出错 " + e; }
+                    if (soState.contains("整组加载→")) { note("Pickups 关卡（早）：" + soState); break; }
+                    Thread.sleep(500);
+                }
                 Thread.sleep(15000);
                 if (!Con.training || !Con.inMatch) { guns = "训练桌放枪：15 秒后不在训练岛了（training " + Con.training + " inMatch " + Con.inMatch + "）"; return; }
                 try { soState = soForce(fb, fnm); } catch (Throwable e) { soState = "出错 " + e; } note("Pickups 关卡：" + soState);

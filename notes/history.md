@@ -1450,3 +1450,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v3.57 (core258, 未实测)：用户说开机一直没有 TiMi 页（LogoUI，含 timistart 帧和 Timi_Logo_SoundCue，资源在 pakchunk_base）。UNZStartupFlowTimi（NZStartupFlowTimi.cpp，0x1211a24 一段是 Get Device Level）。已存日志里从没出现过 "Get Device Level" → Timi 步骤可能没进流程。StartupFlowTypes 反射在 0x4d8b0f4，偏移 +0x33c（推测在启动 GameMode 上）。v3.57 只加诊断：UpdPage.flowTypes 列出启动 GameMode +0x33c 的步骤类和 NZStartupFlow*/LogoUI 对象；Con 收 [FlowManager]/NZStartupFlow/LogoUI 日志行到 UpdPage.flows。
 - v3.57 实测（train-1120-130015）：StartupFlowTypes = Timi/Update/LoadLogin（C++ 构造 0x121af90 推三个 StaticClass 0x16807b8/0x16808f8/0x1680518）。Timi 步骤 Begin 0x1211940 只做设备档位，0.15 秒结束。放 LogoUI 的是另一个类（vt 0x4cf1600，Begin 0x121166c CreateWidget LogoUI_C→AddToViewport，静态已显示标志 0x517a5a1，构造 0x1211628 载 LogoUI_C 到 +0x28），不在列表里 → TiMi 页是这包代码里拿掉的。Pickups：v3.56 置位后 6 秒内游戏清掉，仍 0 加载。
 - v3.58 (core259, 未实测)：GfxOpt.java 画面细项（阴影/抗锯齿/泛光后期/特效/草植被/视距/贴图/清晰度，控制台命令即时发，prefs gfx_*，每次 LogLoad: Took 后 2.5 秒重发；Gfx 档位切换后也重发）。入口：大厅单机页、对局功能页末尾、画面页。
+
+## v3.59（core260，未实测）
+- TiMi 开机页：启动 GameMode 构造 0x121b0c0 原来推 Timi 流程（只做设备分级，0.15 秒结束），改推 Logo 流程（LogoUI_C，timistart 帧 + Timi_Logo_SoundCue，3.6 秒自动结束）；LogoUI 结束 0x1211914 改跳 0x1211a24 让 Timi 的 End（设备分级）照跑。我们的更新黑底层等日志 "End Flow NZStartupFlowLogo"（最多 7 秒）再盖，免得挡住 TiMi。
+- 训练岛刷枪：v3.56 置 +0xa0 位无效原因——这几位是请求状态，实际加载靠 RequestsManager；0x11529dc 见位已相等就不发请求。改成 Server.gcall 游戏线程调 0x1174180(集合, 1, 可见1)（集合内逐关卡 0x11742c4 加载=1、不阻塞），进岛后每 0.5 秒找 ServerOnly/Pickups 层，一出现就调（PickupManager 约在摆人后 2.4 秒开始 SPAWN，可能赶不上——看诊断「Pickups 关卡（早）」和 SPAWN Total）。
+- 仓库：allSkins 加 PARA（pak 里 Items/Parachute/<编号> 有资源的 56 把伞）。
+- 移动靶：原生 NZSceneItem_RangeTarget 里没有移动逻辑，在 BP_MobileTarget/BP_MoveableTarget/BP_FlyTarget（蓝图）里，pak 解包里没有这几个文件，待用户发。

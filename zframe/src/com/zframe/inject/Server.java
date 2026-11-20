@@ -996,6 +996,8 @@ public class Server {
             final int min = 1;   // v1.76：只出现 1 次的也算（之前门槛 2 漏了口罩等）
             java.util.TreeMap<Long, Integer> cats = new java.util.TreeMap<>();
             ArrayList<long[]> l = new ArrayList<>();
+            // v3.59 用户：大厅降落伞对照 pak 改 → 物品表里有、pak 里有资源文件夹的 56 把伞直接入库（没资源的不放）
+            for (long pid : PARA) hit.merge(pid, 1, Integer::sum);
             synchronized (Server.class) {
                 initProps();
                 for (java.util.Map.Entry<Long, Integer> e : hit.entrySet()) {
@@ -1017,6 +1019,8 @@ public class Server {
         } catch (Throwable e) { return skinState = "全部皮肤：出错 " + e; }
     }
     static volatile String skinState = "", skinCats = "";
+    /** v3.59：pak 里有资源（Items/Parachute/<编号>/）的降落伞编号，名字由游戏物品表 CommonItemDataTable 自己显示 */
+    static final long[] PARA = { 40500000001L, 40500000002L, 40500000003L, 40500000004L, 40500000005L, 40500000006L, 40500000010L, 40500000011L, 40500000012L, 40500000013L, 40500000014L, 40500000015L, 40500000016L, 40500000017L, 40500000018L, 40500000019L, 40500000020L, 40500000021L, 40500000029L, 40500000030L, 40500000031L, 40500000032L, 40500000033L, 40500000034L, 40500000035L, 40500000036L, 40500000037L, 40500000038L, 40500000039L, 40500000040L, 40500000041L, 40500000042L, 40500000043L, 40500000044L, 40500000045L, 40500000046L, 40500000047L, 40500000049L, 40500000050L, 40500000051L, 40500000052L, 40500000053L, 40500000054L, 40500000055L, 40500000056L, 40500000057L, 40500000058L, 40500000059L, 40500000060L, 40500000061L, 40500000062L, 40500000063L, 40500000064L, 40500000065L, 40500000066L, 40500000068L };
     /** v1.77：内存里所有 11 位编号按分类计数（找降落伞/口罩等在哪个分类，诊断用） */
     static final java.util.TreeMap<Long, Integer> other = new java.util.TreeMap<>();
     static String otherCats() {
