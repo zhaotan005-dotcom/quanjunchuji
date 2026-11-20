@@ -154,8 +154,12 @@ final class Island {
      *  单机/开房的人都是 Authority → 靶子永远不动。把 0xcf5464 pophi 改 nop：Authority 也跑本地移动（蓝图里 Mobile/Moveable 靶的速度、范围不改）。 */
     static final long RT_TICK = 0xcf5464L; static final String RT_O = "108cbd88", RT_N = "00f020e3";
     static volatile String rtState = "移动靶补丁：没装";
+    /** v3.61（v3.60 日志）：单机训练岛每帧打一行「UPracticePlayerComponent::InitializeRecordInfo ds not prepared!」（50 秒 2550 行、slot 导出 6568 行）。
+     *  0x10313e8 里 GM+0x4f8（训练记录对象，专用服才有）空 → 0x103152c 打这行日志后返回。把这句换成 b 0x10316d4（同一个函数出口），
+     *  行为一样只是不写日志（每帧少一次格式化+写日志，Con 也少解析一行）。未实测。 */
+    static final long REC_LOG = 0x103152cL; static final String REC_LOG_O = "24059fe5", REC_LOG_N = "680000ea";
     static void install() {
-        rtState = "移动靶补丁（Authority 也走本地移动）：" + Mods.write(RT_TICK, RT_O, RT_N, true); LogCap.note(rtState);
+        rtState = "移动靶补丁（Authority 也走本地移动）：" + Mods.write(RT_TICK, RT_O, RT_N, true) + "；训练记录刷屏日志去掉：" + Mods.write(REC_LOG, REC_LOG_O, REC_LOG_N, true); LogCap.note(rtState);
         caveReset();
         String c = caveInstall(), t = "没装", r;
         if ("ok".equals(c)) {
@@ -255,8 +259,8 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
-        soState = "进岛 15 秒后直接让游戏加载 Pickups 关卡";
-        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
+        soState = "v3.61 不再请求加载 Pickups 关卡（客户端包里没有）";
+        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; vehicles = "训练岛刷车（游戏自己的驾驶训练台）：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -304,24 +308,24 @@ final class Island {
         // 4) 补进位置 → 原生 AddPlayerToSlot 摆人 → 原生 Client Load Block（LoadBlock + FirstLoad）
         double[] ps = join(b, gm, pc, mgr);
         if (!GameOverlay.remote()) { try { logic = alwaysLoad(b, nm, mgr, pc); } catch (Throwable e) { logic = "常驻层 AlwaysLoad：出错 " + e; } note(logic); }
+        // v3.61 训练岛刷车：游戏自己的驾驶训练台（LogicLevel 的 BP_VehiclePracticeBase）在它的 Tick 里按 VehicleSpawnInfoArray 的 12 个刷车点刷车，
+        //   前提是「本训练位置有人」列表里有自己的位置号 —— 那是 AddPlayerToSlot 末尾广播 OnPlayerAddToSlot 给它的。单机里摆人比 LogicLevel 加载早，广播时训练台还不存在 → 永远不刷。
+        if (!GameOverlay.remote()) { final long fb = b, fgm = gm, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
+            try { vehicles = vehPractice(fb, fnm, fgm, fpc); } catch (Throwable e) { vehicles = "训练岛刷车：出错 " + e; }
+            note(vehicles);
+        }, "zf-vehprac").start(); }
         // v3.50 用户：v3.49 枪要等 2 分多钟（跟踪 120 秒之后才摆）→ 进岛 15 秒就摆。
         //   v3.49 诊断：ServerOnly 本层进来后展开出 ServerOnly/Pickups 等子层（关卡 1，包住人物），但地上还是没枪 → 先看原生 150 米内有没有物资，不够 5 个才自己摆
         //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
         if (!GameOverlay.remote()) { final long fb = b; final Veh.Names fnm = nm; new Thread(() -> {
             try {
-                guns = "训练桌（只看不摆）：线程开始，尽早加载刷枪点关卡";
-                synchronized (soCalled) { soCalled.clear(); }
-                // v3.59：进岛后每 0.5 秒找 Pickups 层，一出现就让游戏整组加载（越早越好，赶在 PickupManager 刷物资之前）
-                for (int k = 0; k < 30 && Con.training && Con.inMatch; k++) {
-                    try { soState = soForce(fb, fnm); } catch (Throwable e) { soState = "出错 " + e; }
-                    if (soState.contains("整组加载→")) { note("Pickups 关卡（早）：" + soState); break; }
-                    Thread.sleep(500);
-                }
+                // v3.61：pak 文件表（321 个 pak、83436 个文件）里训练岛没有任何 ServerOnly 关卡文件，刷枪点（物资点组件）在这个客户端里不存在，
+                //   v3.55~v3.60 的各种「让游戏加载 Pickups 关卡」都不可能成功 → 不再请求加载（只留诊断）。
+                //   训练场自己的 APickUpRefreshSystem 只会在人在刷物资区里捡走东西后按原位置重刷（OnPlayerPickUp 0x119cf9c 记 {时间,物品,位置} → Tick 0x119d478 → 0x119d884），没有初始刷点表。
+                guns = "训练桌（只看不摆）：线程开始";
+                soState = "v3.61 不再请求加载（客户端包里没有 ServerOnly/Pickups 关卡文件）";
                 Thread.sleep(15000);
                 if (!Con.training || !Con.inMatch) { guns = "训练桌放枪：15 秒后不在训练岛了（training " + Con.training + " inMatch " + Con.inMatch + "）"; return; }
-                try { soState = soForce(fb, fnm); } catch (Throwable e) { soState = "出错 " + e; } note("Pickups 关卡：" + soState);
-                Thread.sleep(6000);
-                try { soState += "；6 秒后 " + soForce(fb, fnm); } catch (Throwable e) { soState += "；出错 " + e; }
                 try { pickup = pickDiag(fb, fnm); } catch (Throwable e) { pickup = "物资链：出错 " + e; } note(pickup);
                 guns = "训练桌（只看不摆）：扫物资";
                 double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
@@ -410,6 +414,69 @@ final class Island {
         return sb.append("已加进当前层（第 ").append(num).append(" 层），关卡 ").append(lv).append(" 个").toString();
     }
     static long rdq(long a) { try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { return Server.rd(m, a); } catch (Throwable t) { return 0; } }
+
+    /** v3.61 训练岛刷车（RE，libUE4 file offset = vaddr）：
+     *  - AVehiclePracticeBase（BP_VehiclePracticeBase_C，LogicLevel 里 1 个）：+0x2f4 PracticeSlotIndex（BeginPlay 0x1036fdc 末尾按自己坐标 GM 0x1086180 算），
+     *    +0x300 VehicleSpawnInfoArray（12 项 {VehicleResId, SpawnPointActor}，pak 只读解析 LogicLevel：32/19/12/29/24/23/10/25/26/20/27/27 → VehicleSpawnPoint1..12），
+     *    +0x33c/+0x340「有人的训练位置」int 数组，+0x348 已刷标志。
+     *  - Tick 0x10387ec：+0x348==0、数组里有 +0x2f4、GM 是训练场、GM+0x524(GridMap)+0x48 和 GM+0xa70(关卡好了) 都非 0 → SpawnAllVehicle 0x1038a34（日志「Start to SpawnAllVehicle」，
+     *    按 GM+0x914 车表和刷车点 Actor 的位置刷，就是 v3.51 服务端日志里客户端加入时刷出来的那 12 辆：MonsterTruck/AquaRail/PickupTruck/Mirado/Buggy/Decia/Van/MotoBike/MotorCycle/Uaz/SpeedBoat×2）。
+     *  - 数组只由 OnPlayerAddToSlot 实现 0x1037604(this, 参数*) 填：读 [参数+0x10] 位置号，不在就追加。它是 BeginPlay 绑在 0xc73834(this)+0x284 上的，
+     *    广播只在 AddPlayerToSlot 0x1083a98 末尾（参数 {.., +0xc PC, +0x10 PC+0xbdc}）。单机摆人（join）在 LogicLevel 加载（alwaysLoad）之前 → 训练台还没 BeginPlay，收不到。
+     *  - 做法：训练台出现后，在游戏线程直接调游戏自己的 0x1037604(训练台, PC+0xbcc)（[PC+0xbcc+0x10] = PC+0xbdc = 自己的位置号），
+     *    只在位置号和训练台的 +0x2f4 相同、数组里还没有时调一次；刷不刷、刷什么、刷在哪全由游戏 Tick 决定，我们不摆车。未实测。 */
+    static final long VP_ADD_SLOT = 0x1037604L;
+    static volatile String vehicles = "训练岛刷车（游戏自己的驾驶训练台）：没查";
+    static String vehPractice(long b, Veh.Names nm, long gm, long pc) throws Exception {
+        long t0 = System.currentTimeMillis();
+        java.util.HashSet<Long> called = new java.util.HashSet<>();
+        String last = "没找到驾驶训练台（BP_VehiclePracticeBase）";
+        HashMap<Long, Boolean> isVp = new HashMap<>();
+        while (System.currentTimeMillis() - t0 < 60000 && Con.training && Con.inMatch) {
+            Thread.sleep(1000);
+            java.util.ArrayList<Long> found = new java.util.ArrayList<>();
+            int pcSlot; int a70; long grid, gridOk, v914;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                long g = Server.rd(m, b + 0x51250acL);
+                long objs = Server.rd(m, g + 0x10), num = Server.rd(m, g + 0x18);
+                if (objs < 0x10000 || num <= 0 || num > 0x200000) continue;
+                byte[] raw = new byte[(int) num * 16]; m.seek(objs); m.readFully(raw);
+                ByteBuffer bb = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+                for (int i = 0; i < num; i++) {
+                    long o = bb.getInt(i * 16) & 0xffffffffL; int fl = bb.getInt(i * 16 + 4);
+                    if (o < 0x10000 || (fl & 0x20000000) != 0) continue;
+                    long c = Server.rd(m, o + 0xc); if (c < 0x10000) continue;
+                    Boolean k = isVp.get(c);
+                    if (k == null) { String n = Alive.objName(m, nm, c); k = n.contains("VehiclePractice") && chain(m, nm, c).contains("|VehiclePracticeBase|"); isVp.put(c, k); }
+                    if (!k || (Server.rd(m, o + 4) & 0x10) != 0) continue;
+                    found.add(o);
+                }
+                pcSlot = (int) Server.rd(m, pc + 0xbdc); a70 = rb(m, gm + 0xa70);
+                grid = Server.rd(m, gm + 0x524); gridOk = grid >= 0x10000 ? rb(m, grid + 0x48) : -1; v914 = Server.rd(m, gm + 0x914);
+                if (found.isEmpty()) { last = "没找到驾驶训练台（LogicLevel 还没加载？），PC 位置 " + pcSlot; continue; }
+                StringBuilder sb = new StringBuilder();
+                boolean allDone = true;
+                for (long o : found) {
+                    int slot = (int) Server.rd(m, o + 0x2f4), n = (int) Server.rd(m, o + 0x340), done = rb(m, o + 0x348);
+                    long d = Server.rd(m, o + 0x33c); boolean has = false; StringBuilder lst = new StringBuilder();
+                    for (int j = 0; j < n && j < 16 && d >= 0x10000; j++) { int v = (int) Server.rd(m, d + 4L * j); lst.append(v).append(j + 1 < n ? "," : ""); if (v == pcSlot) has = true; }
+                    int spawnN = (int) Server.rd(m, o + 0x304);
+                    sb.append("训练台 ").append(Long.toHexString(o)).append(" 位置号 ").append(slot).append(" 刷车点 ").append(spawnN).append(" 有人位置[").append(lst).append("] ").append(done != 0 ? "已刷车（游戏自己）" : "未刷");
+                    if (done == 0) allDone = false;
+                    if (done == 0 && !has && pcSlot >= 0 && slot == pcSlot && !called.contains(o)) {
+                        called.add(o);
+                        long[] r = Server.gcall(b + VP_ADD_SLOT, o, pc + 0xbcc, 0, 0, 2000);
+                        sb.append(r[0] == 1 ? "；已调游戏自己的 OnPlayerAddToSlot" : "；游戏线程没跑到");
+                        if (r[0] != 1) called.remove(o);
+                    } else if (done == 0 && slot != pcSlot) sb.append("；位置号和自己的（").append(pcSlot).append("）不同，不调");
+                    sb.append("；");
+                }
+                last = sb.append("GM+a70=").append(a70).append(" GridMap+48=").append(gridOk).append(" 车表+914=").append(v914 >= 0x10000 ? "有" : "空").toString();
+                if (allDone) break;
+            }
+        }
+        return "训练岛刷车（游戏自己的驾驶训练台，" + (System.currentTimeMillis() - t0) / 1000 + " 秒）：" + last;
+    }
 
     static volatile String guns = "训练桌放枪：没跑";
     /** 人物周围 36×36 米、1.2 米一格，从人物中心上方 1 米往下打射线（低于棚顶）。

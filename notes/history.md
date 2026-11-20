@@ -1462,3 +1462,32 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - v3.60 实测（13:28，notes/device-tests/v3.60）：移动靶会动了 ✅（用户确认）。TiMi：Logo 流程 4.8 秒（13:26:54.6→59.4），用户觉得一闪而过——是 Logo 流程自身时长，没加速。更新页：StepApp 开始后马上收到 lb#OnResUpdateResult 107「更新中(100)」，没走我们的内核下载进度。训练岛：Pickups 集合关卡 1 个，流对象 +0xa0=0x6d（加载/可见位已置），+0x110 关卡仍空，SPAWN Total=0，也没车。
 - 根因更正（训练岛枪/车/门）：pakx/pak-files.tsv 全 321 个 pak、83436 个文件，**没有任何 ServerOnly 文件**（TrainingIsland_Runtime 只有 AlwaysLoad/Grass/Heightmap/OcHmp/OcPolygons/Runtime/Tree + Main）。v3.49 那条「更正」是错的：层元数据里有 ServerOnly/Pickups，但关卡包本身被客户端包剥掉了，请求加载也加载不出来。所以「游戏自己刷」在这个客户端里没有数据可刷（刷枪点、车点都在 ServerOnly）。v3.55/56/59 的加载办法都不可能成功。等用户决定：有没有服务端文件，或放宽「不许自己摆」。
 - 14:00 用户问能否用自制服务端跑：不行（同一套客户端文件，没有 ServerOnly 关卡）。客户端仍有：AlwaysLoad/LogicLevel 里 BP_PickUpRefreshVolumn×2（=诊断「刷物资区 2」，有 BoxExtent）、BP_ShootPracticeBase、BP_VehiclePracticeBase、靶子；AlwaysLoad/cars.umap 只有一个 BoxComponent（推测车区）。已问用户是否允许用游戏物品表/刷车函数在这些区域内刷（位置与原版略有偏差）。TiMi：用户说可见不到 3 秒，下版让 LogoUI 播完整（Logo 流程 vt 段 0x4cf1720：Begin 0x121166c、End 0x12118c8、ctor 0x1211628）。
+
+## v3.61（core262，全部未实测，2026-11-20 14:xx）
+- 工具：game/re/uasset.py（UE4.18 无版本号 cooked 包只读解析：名字/导入/导出表 + tagged 属性），game/re/logo_cave.py + emu_logo_cave.py（unicorn 三条路径过）。xr.pkl/calls.pkl 用 xref.py/bl.py 重新生成（不进 git）。
+- 训练岛车（根因 + 改）：
+  - pak 只读解析 LogicLevel：BP_VehiclePracticeBase_2（C++ AVehiclePracticeBase）VehicleSpawnInfoArray 12 项 {VehicleResId 32/19/12/29/24/23/10/25/26/20/27/27, SpawnPointActor VehicleSpawnPoint1..12}，ReturnPoint=drivereturn。
+  - 偏移：+0x2f4 PracticeSlotIndex、+0x2f8/+0x2fc 起止区域、+0x300 VehicleSpawnInfoArray（元素 8 字节）、+0x30c AllRangeTargetArray、+0x324 RankArray、+0x33c/+0x340「有人的位置」int 数组、+0x348 已刷标志。
+  - Tick 0x10387ec（虚表 0x4c8a538+0x204）：+0x348==0 且数组含 +0x2f4、GM IsA 训练场（0x11e68d4）、GM+0x524(GridMap)+0x48≠0、GM+0xa70≠0 → 0x1038a34 SpawnAllVehicle（日志「bHasLandscapeLevelLoadDone = true, Start to SpawnAllVehicle!」verbose 不打），用 GM+0x914 车表 0x1005400 按 ResId 取车类、刷在刷车点 Actor 上。没有 NetMode/Role 判断。
+  - 数组只由 OnPlayerAddToSlot（原生表 0x4cf0654，thunk 0x1201b10 → 实现 0x1037604(this, 参数*)，读 [参数+0x10]，-1 跳过，不重复追加）填；BeginPlay 0x1036fdc 把它绑到 0xc73834(this)+0x284，PracticeSlotIndex 在 BeginPlay 末尾 = GM 0x1086180(坐标)。
+  - 广播只在 AddPlayerToSlot 0x1083a98 末尾（0x10843f4..：参数 {0,0,0, PC, PC+0xbdc} → 0xbe7680）。Login 0x1084c5c：Uin(PS+0x3b0/0x3b4)=0 → 「NZPlayerState error」不进位置（单机就是这条，靠 Island.join 自己调 AddPlayerToSlot）。
+  - 证据：v3.51 服务端日志——房主自己摆进位置时没刷，客户端 Login「Add player to slot 2 4」0.3 秒后游戏刷出 12 辆（Loc 57625,-38410 等）= 这 12 个刷车点；v3.60 单机 slot 诊断 PC+bdc=4、+a70=1、AlwaysLoad 关卡 5/5 已载，车 0。
+  - 根因：单机 join（AddPlayerToSlot）比 LogicLevel 加载（Island.alwaysLoad）早，广播时驾驶训练台还不存在，之后再也没广播。
+  - 改：Island.vehPractice（join+alwaysLoad 之后另起线程，60 秒内每秒）：找 VehiclePracticeBase 实例，位置号 == PC+0xbdc 且数组里没有时，Server.gcall 调游戏自己的 0x1037604(训练台, PC+0xbcc)（[+0x10]=PC+0xbdc）。不挑位置、不用 Veh.dropAt。诊断行「训练岛刷车（游戏自己的驾驶训练台）」：位置号、刷车点数、有人位置、已刷/未刷、GM+a70、GridMap+48、车表+914。服务端（房主）同样跑（幂等），客户端不跑。
+- 训练岛枪（结论：做不到，不造假）：
+  - 刷枪点 = ServerOnly/Pickups 关卡里的 UNZBRPickupConfigComponent；pak 文件表（pakx4/pak-files.tsv，321 pak/83436 文件）训练岛没有任何 ServerOnly 文件。
+  - LogicLevel 只有 2 个 BP_PickUpRefreshVolumn（只有盒子，无点表）；BP_ShootPracticeBase 只有 AllRangeTargetMap/TotalLimitTime/ReturnPoint；BP_PickUpRefreshVolumn 蓝图没有图表；BP_NZBRPracticeGameMode 只引用 BP_PickUpRefreshInfoState（PickUpRefreshTime/PickUpDestroyTime，本地没有这个文件，按属性名只有时间）。
+  - APickUpRefreshSystem（ctor 0x119cd4c，虚表 0x4cb06c8；BeginPlay 0x119cd84 绑 OnPlayerPickUp/OnPlayerDiscard）：OnPlayerPickUp 0x119cf9c 只在 PC+0x5fd（人在刷物资区）时把 {时间, Uin, 物品, 位置, 朝向} 记进 +0x2c8，Tick 0x119d478 过了 +0x2c0 秒用 0x119d884(SpawnOnePickUp 实现) 原地重刷；+0x2d4 是丢弃物定时删。SpawnOnePickUp(物品, 位置, 朝向) 位置由调用者给。→ 没有初始刷点数据，游戏自己刷不出第一批枪。
+  - 改：去掉 v3.55~v3.60 那些不可能成功的「加载 Pickups 关卡」请求（soForce 不再调），只留物资链诊断。
+- TiMi 页：
+  - UNZStartupFlowLogo 虚表 0x4cf2600：+0x120 Begin 0x121166c、+0x124 End 0x12118c8（RemoveFromViewport → v3.59 改跳 0x1211a24）、+0x130 超时 0x1211368 = 3.6f（Timi 类 0x4cf24b8+0x130 也指它）、+0x134 Tick = 基类 0x120f460（+0x20 累加 dt > 超时 → End）、+0x13c 0x1211628 = 载 LogoUI_C 类到 +0x28（不是构造）。结束条件只有超时。
+  - LogoUI.uasset（pakx/pakchunk_base）：LogoAnim PlaybackRange 0~4.0015 秒，音效段 1.1~4.0 秒 → 3.6 秒本来就截掉尾巴；开机 Begin 在第 0 帧、窗口要到 GEngineLoop.Init 之后才起来，第一帧 Slate dt 大，动画开头被跳过（推断）。
+  - 改：cave 0x171e690..0x171e6df（GM 面板废函数空地，商店 cave 0x630..0x68f 和 Lan NQ 0x700 之间，装前比对原字节）：虚表 +0x120 → bx lr；+0x134 → 控件(+0x24)没建时只累计 dt，满 0.5 秒清 +0x20 再尾调原 Begin，建好后跳基类 Tick；+0x130 → 4.5f。UpdFlow.logoFull（installTimi 里装，虚表写之前核对原值，写失败还原）。
+  - GameOverlay.startupUpdate：等「End Flow NZStartupFlowLogo」最多 15 秒（原 7 秒）；游戏更新页面板已显示（UpdPage.panelOk）就不再盖黑底层。
+- 更新页：
+  - v3.60 日志：StepApp 开始 → GCloud 开 apk 里 nzres.png IFS 失败 → [lb#OnResUpdateResult] 107「更新中(100)」。
+  - UNZStartupFlowUpdateStep::OnResUpdateResult 0x1212a9c：错误码+0x1b39 ∈0..5（-6969..-6964 成功/跳过/取消/SkipStep）走跳转表；其余进默认 0x1212b6c：GI(world+0xc4)+0x3b8 弹错误框 0x10b5d9c、父流程(+0x1c→+0x18 Update 流程→+0x34 UpdateUI) vt+0x25c(信息) 切出错显示，步骤不 End（之后进大厅是我们 Con.tickAudio 在 NetCore 完成+UpdPage 结束后 open 大厅）。
+  - 改：0x1212b6c 74079fe5 → b10100ea（b 0x1213238 函数出口），错误结果忽略；UpdFlow.install 里和 GATE 一起装。进度仍是 UpdPage 每 0.3 秒 vt+0x240 OnUpdateProcess。
+- 其它（v3.60 日志）：PracticePlayerComponent「InitializeRecordInfo ds not prepared!」每帧一行（0x10313e8，GM+0x4f8 空）→ 0x103152c 24059fe5 → 680000ea（b 0x10316d4 同函数出口，只去掉日志）。Island.install 里装。
+- 没动的：毒圈底层 cave（SLACK+0x990）一直「空位被占」（那段是数据段副本，v2.85 就知道），用户没提，这版不动；LogRHI EPixelFormat 28 引擎层不动。
+- 构建：bash build_all.sh 3.60 3.61 261 262，core/b0-2.ver = 262，notice.txt 加 v3.61 段。APK 在 releases/（不进 git）。
