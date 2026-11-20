@@ -1424,3 +1424,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 诊断「物资链（进岛 15 秒）」：物资点组件个数/有 Owner、刷物资信息、刷物资区、地上物资对象、GM 是否 BR GameMode、PickupManager(+90c)、AlwaysLoad/ServerOnly/Pickups 层每层关卡已载/可见；
   关键日志加 [Pickup]/PickUpRefresh/CachedPickupSPList/GridMap；训练桌放枪线程开头写状态（v3.52 两次都显示「没跑」，原因待看）。
 - 注：单机包其实也会把诊断发 ntfy（v3.52 03:17 客户端 train 就是单机）。
+
+## 2026-11-20 10:1x 补发 v3.53 内核（core254）
+- 发现：4b23614 v3.53 提交没更新 core/（b*.ver 仍 253、notice.txt 停在 v3.46）→ 用户手机实际一直是 v3.52（ntfy 09:15 诊断标题 v3.52，没有「物资链」行）。
+- 用户 09:55：更新到最新、训练场还是不刷枪，日志已传（train-1120-091545 服务端 / 091614 客户端 / slot-091835）。
+- 09:15 服务端诊断：训练岛 GridMap「CachedPickupSPList.Num()=0」「Add 229 SceneItems」、无 [Pickup] SPAWN → 物资点组件没把刷点交给 GM（服务端 NetMode 2 被 0x10c0ba4 挡，v3.53 的 Loot.PK 正是放开这个）；「训练桌放枪：没跑」原因待 v3.53 诊断看。
+- 本次：bash build_all.sh 3.53 3.53 254 254，core/b0-2 = 254，notice.txt 换成 v3.53 内容。
