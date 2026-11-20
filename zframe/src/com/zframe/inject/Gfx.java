@@ -56,6 +56,7 @@ final class Gfx {
         state = "已切到 " + CN[k] + "（发了 " + n + " 条）";
         LogCap.note("画质：" + state);
         GameOverlay.toastAny("画质已切到 " + CN[k]);
+        GfxOpt.applyAll();   // v3.58 细项盖在画质档上面
     }
     /** v2.26b 房主减负：联机里大家跟着房主，房主（云手机）只当服务器用，画面压到最低、帧率锁 30（服务器每秒 30 次更新，够用） */
     static final String[] LITE = {"sg.ShadowQuality 0", "sg.PostProcessQuality 0", "sg.EffectsQuality 0", "sg.FoliageQuality 0", "sg.TextureQuality 0",

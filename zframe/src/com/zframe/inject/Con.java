@@ -486,6 +486,7 @@ public class Con {
         }
         // v3.39 用户：训练岛设置里点「退出」没反应 → 游戏日志出现退出对局就直接回大厅（只在训练岛，3 秒内只做一次）
         if (training && inMatch && l.contains("QuitMatch") && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
+        if (l.contains("LogLoad: Took")) GfxOpt.afterLoad();   // v3.58 画面细项每次进图重发
         int tk = l.indexOf("LogLoad: Took");
         if (tk >= 0) {
             int lm = l.indexOf("LoadMap(", tk);
