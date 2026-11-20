@@ -1435,3 +1435,14 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户规则（09:59）：训练场的枪必须游戏自己刷，位置完全由游戏决定，不许我们摆（tableGuns 删调用，只统计原生 150 米内物资写诊断）。服务端物资点 NetMode 门放开（Loot.PK 0x10c0ba4）保留——那是让游戏自己的刷点逻辑跑。
 - 用户 09:59：联机服务端开、客户端开车开着开着被拉回。线索（v3.52 服务端日志）：NZVehicleSyncPhysicStateComponent.cpp:90「Vehicle=%s GetRigidBodyState failed」刷屏（Van/Uaz/Mirado/Buggy 各上百行）。打印点在 0xdf43cc，函数 0xdf3e08（开头 GetNetMode 0x28a4250 ≤2 才跑 = 服务端侧；[this+0xf4] 车，vt+0x2c 取根组件 → GetRigidBodyState 0x2c74c1c 失败）；同族串：ServerAdjustRigidBodyStateByClient 0xdbe500、OnRep_SyncToDSLocation 0xe01c38、TickCorrectVehicleLocation 0xe1c814（客户端纠正位置）。还没定根因，下一步查 0x2c74c1c 返回 0 的条件（物理体没建/没模拟？）和客户端纠正阈值。
 - 环境：libUE4.so 从 git show 585c115^:game/x/lib/armeabi-v7a/libUE4.so 恢复；ue.py 的 xr.pkl/calls.pkl 改成可缺省。
+
+## v3.55（core256，未实测，2026-11-20 12:4x）训练岛刷枪点关卡 ServerOnly/Pickups 按视野加载
+- 用户 12:33：单机还是不刷枪。诊断 train-1120-122904（v3.54 单机，notes/device-tests/v3.54）：
+  「[Pickup] SPAWN Started, Stage=2, Total=0」→ PickupManager 自己的刷物资流程跑了，但没有物资点；物资链：物资点组件 0、层 ServerOnly/Pickups 关卡 1 已载 0（包住人物）、AlwaysLoad 5/5 已载。
+- RE：客户端策略 Update 0x11671bc 对每个当前层调 layer vt+0x18（按视野加载）。普通层 vt+0x18 = 0x11555f0（转 [this+0x1c] 集合 vt+0x14 = 0x1175304）；
+  ServerOnly 层类 vt 0x4caee2c（ServerOnly、/Door、/Glass、/Pickups、/GrassMap，ctor 0x117b8ec，集合 0x4cb1bf0 派生自 TilesCollection 0x4caebac，vt+0x14 同为 0x1175304）的 vt+0x18 = 0xb63a30（bx lr）→ tlcave 把层加进来也永远不加载。
+  ServerOnlyMajority 0x4cb1c58 / GroundObjects 0x4cb1ca4 同样是空，这版没动。
+- PickupManager 注册 0xff1e88：+0x30c（已开刷）为真时打「[Pickup] SPAWN Spawn has start, Direct spawn, Comp=%s」并直接 0x10c0fbc 刷 → 关卡后加载也会刷。
+- 改动：Island.soLoad 把 vt 0x4caee2c+0x18 从 base+0xb63a30 改成 base+0x11555f0（install 早装 + matchLoaded 再补一次，防重定位前写）；诊断「物资链」行开头写结果。大地图客户端路径没有 ServerOnly 层在当前层，不受影响（推断）。
+- 要看：物资链「ServerOnly/Pickups 已载 1」、关键日志里「Direct spawn」、「训练桌（只看不摆）原生 150 米内物资」>0。附带可能出门/玻璃（ServerOnly/Door、Glass 同类）。
+- 另：12:27:25 有一次闪退（libUE4 0x19bb448 无限递归栈），是 12:27:32 这次启动之前的那次运行，原因没查。

@@ -161,7 +161,23 @@ final class Island {
         tlState = "服务器层补丁（训练岛刷枪点）：" + tlInstall() + "；先进中间位置 4（小地图）：" + Mods.write(PS4, PS4_O, PS4_N, true) + "；所有人同一个位置 4：" + Mods.write(SAME4, SAME4_O, SAME4_N, true);
         // v3.53 物资点组件 UNZBRPickupConfigComponent::BeginPlay 0x10c0b5c 只认 NetMode 0/1，服务端（listen，NetMode 2）训练岛的物资点不交给 PickupManager → 放开到「只排除客户端 3」（Loot 的 PK 那三条）
         String pk = Mods.write(Loot.PK, Loot.PK_O, Loot.PK_N, true);
-        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t + "；物资点放开（服务端也交给 PickupManager）：" + pk; LogCap.note(fix);
+        fix = "训练场空队伍补丁：" + r + "；块数补丁 0x10828b0：" + r2 + "；同帧摆人 cave " + c + "，Tick 入口 " + t + "；物资点放开（服务端也交给 PickupManager）：" + pk
+            + "；ServerOnly 层按视野加载（Pickups 刷枪点关卡）：" + soLoad(); LogCap.note(fix);
+    }
+    /** v3.55 ServerOnly 层类（vt 0x4caee2c：ServerOnly、/Door、/Glass、/Pickups、/GrassMap）的 vt+0x18「按视野更新」是空函数 bx lr 0xb63a30，
+     *  客户端策略 Update 0x11671bc 轮到它什么也不加载 → ServerOnly/Pickups 关卡一直「已载 0」→ 物资点组件不存在、[Pickup] SPAWN Total=0。
+     *  换成普通层的 0x11555f0（转给集合 vt+0x14 0x1175304，ServerOnly 集合 0x4cb1bf0 同一个函数）→ 跟普通层一样按人物视野加载。
+     *  物资点组件后来才 BeginPlay 也行：PickupManager 0xff1e88 见 +0x30c 已开刷 → 「Direct spawn」直接刷（游戏自己的刷点和物品表）。
+     *  大地图客户端路径不把 ServerOnly 层放进当前层，这个改动只在训练岛（tlcave 加进来的）起作用。 */
+    static volatile String soState = "没试";
+    static final long SO_VT18 = 0x4caee2cL + 0x18, SO_NOP = 0xb63a30L, SO_UPD = 0x11555f0L;
+    static String soLoad() {
+        long b = Mods.base(); if (b == 0) return "找不到游戏库";
+        long a = b + SO_VT18, cur = rdq(a) & 0xffffffffL;
+        if (cur == ((b + SO_UPD) & 0xffffffffL)) return "ok";
+        if (cur != ((b + SO_NOP) & 0xffffffffL)) return "原值不符 " + Long.toHexString(cur - b);
+        String w = Mods.pokeInt(a, (int) (b + SO_UPD));
+        return (rdq(a) & 0xffffffffL) == ((b + SO_UPD) & 0xffffffffL) ? "ok" : "写入没生效 " + w;
     }
     static volatile String block = "分配位置：没试";
     static volatile String state = "训练岛：没进";
@@ -188,6 +204,7 @@ final class Island {
 
     static void matchLoaded() {
         if (running) return; running = true;
+        soState = soLoad();   // 启动早装时库可能还没重定位，进岛再补一次
         block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
@@ -695,7 +712,7 @@ final class Island {
     static volatile String pickup = "物资链：没查";
     /** v3.53 训练岛枪从哪来：物资点组件个数、GameMode 是不是 BR GameMode、PickupManager(GM+0x90c)、刷物资信息、常驻层/Pickups 层的关卡加载了没有 */
     static String pickDiag(long b, Veh.Names nm) throws Exception {
-        StringBuilder sb = new StringBuilder("物资链（进岛 15 秒）：");
+        StringBuilder sb = new StringBuilder("物资链（进岛 15 秒）：ServerOnly 层按视野加载 " + soState + "；");
         double[] q = Veh.info(); long gm = q == null ? 0 : (long) q[4];
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             long g = Server.rd(m, b + 0x51250acL);

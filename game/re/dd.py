@@ -1,7 +1,7 @@
 # robust ARM disasm: python3 dd.py start end  (skips undecodable words)
 import sys,struct,capstone
-exec(open('/workspace/work/qjcj-gh/game/re/ue.py').read())
-exec(open('/workspace/work/qjcj-gh/game/re/ds.py').read().split('def show')[0].split("exec(open('ue.py').read())")[1])
+exec(open('/workspace/work/quanjunchuji/game/re/ue.py').read())
+exec(open('/workspace/work/quanjunchuji/game/re/ds.py').read().split('def show')[0].split("exec(open('ue.py').read())")[1])
 md=capstone.Cs(capstone.CS_ARCH_ARM,capstone.CS_MODE_ARM)
 def show2(a,b):
     lit={}
