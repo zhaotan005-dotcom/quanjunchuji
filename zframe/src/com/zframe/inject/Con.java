@@ -532,6 +532,7 @@ public class Con {
         if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
             synchronized (botLog) { if (botLog.size() >= 30) botLog.remove(0); botLog.add(l.trim().length() > 220 ? l.trim().substring(0, 220) : l.trim()); }
         }
+        if (l.contains("[FlowManager]") || l.contains("NZStartupFlow") || l.contains("LogoUI")) UpdPage.flowLine(l);   // v3.57 TiMi 开机页查原因
         Loot.line(l);   // v2.20 房主：服务器物资层/门/空投
         if (l.contains("CalcAirLineByRestrictedAreaInfo StartLoc:")) Flow.airLog(l);   // v1.94：航线原始坐标，按值去内存里找
         if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();

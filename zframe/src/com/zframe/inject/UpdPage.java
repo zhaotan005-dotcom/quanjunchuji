@@ -17,6 +17,43 @@ final class UpdPage {
     static volatile String state = "游戏更新页：没开始";
     static final long INFO_GET = 0xfb1be8L, SHOW_NOTICE = 0x15de914L;
 
+    /** v3.57 用户：开机一直没有 TiMi 那页（LogoUI，UNZStartupFlowTimi）。先只看：游戏日志里跑了哪些启动步骤、
+     *  启动 GameMode +0x33c StartupFlowTypes（反射表 0x4d8b0f4）里有哪几步。只读。 */
+    static final StringBuilder flowSb = new StringBuilder();
+    static volatile String flows = "启动步骤：没看到";
+    static void flowLine(String l) {
+        synchronized (flowSb) { if (flowSb.length() < 2500) flowSb.append("\n  ").append(l.trim().length() > 180 ? l.trim().substring(0, 180) : l.trim()); flows = "启动步骤日志：" + flowSb; }
+    }
+    static volatile String flowTypes = "StartupFlowTypes：没查";
+    static void flowTypes(long b, Veh.Names nm) {
+        StringBuilder sb = new StringBuilder("StartupFlowTypes（启动 GameMode +0x33c）：");
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            long g = Server.rd(m, b + 0x51250acL), objs = Server.rd(m, g + 0x10); int num = (int) Server.rd(m, g + 0x18);
+            if (objs < 0x10000 || num <= 0 || num > 0x200000) { flowTypes = sb.append("对象表不对").toString(); return; }
+            byte[] raw = new byte[num * 16]; m.seek(objs); m.readFully(raw);
+            ByteBuffer bb = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+            java.util.HashMap<Long, String> cn = new java.util.HashMap<>(); int found = 0; StringBuilder flowObjs = new StringBuilder();
+            for (int i = 0; i < num; i++) {
+                long o = bb.getInt(i * 16) & 0xffffffffL; if (o < 0x10000) continue;
+                long c = Server.rd(m, o + 0xc); if (c < 0x10000) continue;
+                String n = cn.get(c); if (n == null) { n = Alive.objName(m, nm, c); cn.put(c, n == null ? "" : n); }
+                if (n == null) continue;
+                boolean cdo = (Server.rd(m, o + 4) & 0x10) != 0;
+                if (n.contains("StartupGameMode") && !cdo && found < 3) {
+                    found++;
+                    long d = Server.rd(m, o + 0x33c); int k = (int) Server.rd(m, o + 0x340);
+                    sb.append(n).append(" 共 ").append(k).append(" 步：");
+                    for (int j = 0; j < k && j < 16 && d >= 0x10000; j++) { long t = Server.rd(m, d + 4L * j); sb.append(t < 0x10000 ? "空" : Alive.objName(m, nm, t)).append(' '); }
+                    sb.append("；");
+                }
+                if ((n.startsWith("NZStartupFlow") || n.startsWith("LogoUI")) && flowObjs.length() < 400) flowObjs.append(n).append(cdo ? "(默认)" : "(实例)").append(' ');
+            }
+            if (found == 0) sb.append("没找到启动 GameMode 实例；");
+            sb.append("启动步骤对象：").append(flowObjs.length() == 0 ? "无" : flowObjs.toString());
+        } catch (Throwable t) { sb.append("出错 ").append(t); }
+        flowTypes = sb.toString();
+    }
+
     static void start() {
         if (started) return;
         started = true;
@@ -38,6 +75,7 @@ final class UpdPage {
             for (int i = 0; i < 80 && (b = Mods.base()) == 0; i++) Thread.sleep(250);
             if (b == 0 || !UpdFlow.on) { state = "游戏更新页：没开（" + UpdFlow.state + "）"; finished = true; return; }
             Veh.Names nm = Veh.Names.get();
+            try { Thread.sleep(1500); flowTypes(b, nm); LogCap.note(flowTypes); } catch (Throwable ignored) {}
             long v = 0;
             // 启动流程先问腾讯（约 12 秒失败），之后才进更新步骤建页面 → 最多等 25 秒
             state = "游戏更新页：开始找页面";
