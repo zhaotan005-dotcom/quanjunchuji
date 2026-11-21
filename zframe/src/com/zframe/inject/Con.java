@@ -490,7 +490,7 @@ public class Con {
         // v3.65 用户：要先弹游戏自己的「确定要退出演习？」，点确认再退。v3.64 认的是「Btn_System_QuitMatch Btn Click」（点按钮那一下，确认框刚弹出就走了）→ 改成只认确认后的 QueryQuitMatch
         if (training && inMatch && (l.contains("QueryQuitMatch") || l.contains("ConfirmQuitMatch") || l.contains("QuitMatchConfirm_OK")) && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
         // v3.65 军需点不开：点的时候没发任何请求 → 看界面/脚本这边：大厅里出现建界面失败、Lua 报错、或建了没见过的界面，就自动传一份大厅日志
-        if (!inMatch && Server.on && System.currentTimeMillis() - lobbyAt > 20000 && ((l.contains("CreateUI") && (l.contains("fail") || l.contains("Fail") || !l.contains("StoreUI"))) || (l.toLowerCase().contains("lua") && l.contains("rror")))) Server.opLog(0);
+        if (!inMatch && Server.on && System.currentTimeMillis() - lobbyAt > 20000 && ((l.contains("CreateUI") && (l.contains("fail") || l.contains("Fail") || !l.contains("StoreUI"))) || (l.toLowerCase().contains("lua") && l.contains("rror")) || l.contains("Mall") || l.contains("Midas") || l.contains("Pandora") || l.contains("Commodity") || l.contains("Lottery") || l.contains("Treasure"))) Server.opLog(0);   // v3.67 军需「加载商城」
         if (l.contains("LogLoad: Took")) GfxOpt.afterLoad();   // v3.58 画面细项每次进图重发
         int tk = l.indexOf("LogLoad: Took");
         if (tk >= 0) {

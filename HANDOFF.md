@@ -303,3 +303,4 @@
 - 改：Con.startGame 编号 4 → MAP_SAVAGE + ?game=BP_NZBattleRoyalePropsGameMode；服务端开房「雨林」走 ModeProbe.host("Props")。
 - 用户说点「军需」进的是游戏自带「房间」页（单人模式/经典模式下拉、开始游戏卡在「正在进入战局…」）；用户：开房以后再修，修好拿它组队（待办，没动）。
 - 更正：上条「军需进的是房间页」是我理解错。14:56 用户问军需：lobbyop-1121-145058 只到 14:50:47，没有点军需的记录，也没有 51xxx 请求。已问用户点军需后的现象并要截图和导出诊断。候选蓝图 CommodityUI / StoreUI。
+- v3.67（core268）：用户说点军需显示「加载商城」然后就没了。大厅菜单最下面加「上传日志」（lobbyop-），UE 日志出现 Mall/Midas/Pandora/Commodity/Lottery/Treasure 也会自动传。

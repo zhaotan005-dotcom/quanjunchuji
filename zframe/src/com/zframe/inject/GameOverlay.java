@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.66";
+    static final String VER = "v3.67";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1122,6 +1122,9 @@ public class GameOverlay {
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         }
         if (Ed.ED != 1) note(a, u, root, Server.state);
+        // v3.67 用户：军需点了显示「加载商城」然后就没了 → 大厅加一个上传日志（只上传，不存手机）
+        LinearLayout lg = row(a, root);
+        btn(a, u, lg, "上传日志", () -> new Thread(() -> { AvatarLog.manual = true; try { toastAny(AvatarLog.export(a, "lobbyop-")); } catch (Throwable t) { toastAny("上传失败：" + t); } finally { AvatarLog.manual = false; } }, "zf-uplog").start());
     }
     /** 加入房间卡片：「加入艾挽服务器」+ 自己填地址（v3.10；v3.21 单机版「联机」页也用） */
     static void joinCard(final Activity a, final Ui u, final LinearLayout root) {
