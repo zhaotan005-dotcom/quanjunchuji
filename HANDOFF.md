@@ -304,3 +304,11 @@
 - 用户说点「军需」进的是游戏自带「房间」页（单人模式/经典模式下拉、开始游戏卡在「正在进入战局…」）；用户：开房以后再修，修好拿它组队（待办，没动）。
 - 更正：上条「军需进的是房间页」是我理解错。14:56 用户问军需：lobbyop-1121-145058 只到 14:50:47，没有点军需的记录，也没有 51xxx 请求。已问用户点军需后的现象并要截图和导出诊断。候选蓝图 CommodityUI / StoreUI。
 - v3.67（core268）：用户说点军需显示「加载商城」然后就没了。大厅菜单最下面加「上传日志」（lobbyop-），UE 日志出现 Mall/Midas/Pandora/Commodity/Lottery/Treasure 也会自动传。
+
+## v3.68（core269，2026-11-21 17:4x，未实测）
+- 训练桌分区按用户 17:2x 截图核对标牌：10 射手步枪→连狙，11 冲锋枪，12 推断突击步枪→步枪，13 投掷武器，14 弩→十字弩，15 轻机枪→机枪，16 霰弹枪，17 近战武器→放倍镜（没有近战物品），18 狙击步枪，19 手枪（TableGuns.SIGN_ZONE）。三个配件区（步枪/冲锋/狙击配件）放在对应枪区旁最近的空桌（TableGuns.NEAR）。12 没截图，待确认。
+- 训练场锁血 MinHp.java：0xcc0e10 mov r0,#0 → b 0x171e1c8；cave A 0x171e1c8..0x1ff（GM GiveItem 死函数头）+ B 0x171e28c..0x2af；受伤者==自己人物时伤害夹到 血−1（最低 0），计次在缓冲区+8。unicorn 测过。诊断行「训练场锁血：」。原因：用户训练场开车撞死后闪退（剩 20 分钟时）。
+- 军需：39001 = CS_GET_ACHIEVEMENT_REQ（成就，不是军需）；27005 = 房间列表。军需是 Pandora 网页商城（libUE4 NZPandoraSupport "type":"MallReady"），要从腾讯服务器下 Lua 页面 → 「加载商城」后关闭。修法：把军需按钮改开游戏自带商城 NZShoppingMall（cs_mall CS_MALL_GET_MALL_REQ 18001/18002 CSMallGetRes），还没做。
+- 协议：game/re/protoext.py+protodump.py 重新导出 58 个 .proto 到 game/proto/（cmd.proto 是消息号表，cs_roomsvr/cs_roomcenter 是房间）。
+- 用户要：游戏自带「创建房间」能用，所有人能加入，云手机挂服务端。计划：服务端包（云手机）开房 → 用 cs_roomsvr 回 26001/26005/26017，27006 房间列表填云手机房间，开始后 26031 CSRoomGetDsInfoNtf 给 frp-put.com:47937 让游戏原生连。下一版做。
+- 用户说：扔闪光弹/烟雾弹显示手雷的图标；捏雷时不能蹲起。没查。

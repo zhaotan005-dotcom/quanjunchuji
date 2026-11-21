@@ -156,6 +156,15 @@ final class TableGuns {
     };
     /** 标牌编号 → 分区名（没核对，空 = 按编号顺序排） */
     static final java.util.HashMap<Integer, String> SIGN_ZONE = new java.util.HashMap<>();
+    // v3.68 按用户 11-21 截图核对：10 射手步枪 11 冲锋枪 13 投掷武器 14 弩 15 轻机枪 16 霰弹枪 17 近战武器 18 狙击步枪 19 手枪；12 推断为突击步枪
+    static {
+        SIGN_ZONE.put(10, "连狙"); SIGN_ZONE.put(11, "冲锋枪"); SIGN_ZONE.put(12, "步枪"); SIGN_ZONE.put(13, "投掷武器");
+        SIGN_ZONE.put(14, "十字弩"); SIGN_ZONE.put(15, "机枪"); SIGN_ZONE.put(16, "霰弹枪"); SIGN_ZONE.put(17, "倍镜");
+        SIGN_ZONE.put(18, "狙击枪"); SIGN_ZONE.put(19, "手枪");
+    }
+    /** 没有标牌的配件区：放在对应枪区旁边最近的空桌 */
+    static final java.util.HashMap<String, String> NEAR = new java.util.HashMap<>();
+    static { NEAR.put("步枪配件", "步枪"); NEAR.put("冲锋枪配件", "冲锋枪"); NEAR.put("狙击配件", "狙击枪"); }
     static final class Zone { String name; final ArrayList<Item> items = new ArrayList<>(); String tables = "", signTxt = ""; }
 
     /** 每块标牌找 3 米内最近的桌子 */
@@ -191,19 +200,22 @@ final class TableGuns {
         int fi = 0;
         ArrayList<Zone> out = new ArrayList<>();
         java.util.HashSet<Table> used = new java.util.HashSet<>();
+        java.util.HashMap<String, Table> first = new java.util.HashMap<>();
         for (String[][] zd : ZONES) {
             Zone z = new Zone(); z.name = zd[0][0];
             ArrayList<Table> mine = new ArrayList<>();
             ArrayList<Table> a = anchor.get(z.name);
             if (a != null) for (Table t : a) if (used.add(t)) mine.add(t);
             if (mine.isEmpty() && fi < freeNums.size()) { int n = freeNums.get(fi++); for (Table t : byNum.get(n)) if (used.add(t)) mine.add(t); z.signTxt = "，标牌 " + n; }
+            Table par = NEAR.containsKey(z.name) ? first.get(NEAR.get(z.name)) : null;
+            if (mine.isEmpty() && par != null) { Table nb = null; double bd = 1e18; for (Table o : ts) { if (used.contains(o) || o.sign >= 0) continue; double dx = o.cx - par.cx, dy = o.cy - par.cy, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; nb = o; } } if (nb != null) { used.add(nb); mine.add(nb); } }
             if (mine.isEmpty()) for (Table t : ts) if (!used.contains(t) && t.sign < 0) { used.add(t); mine.add(t); break; }
             if (mine.isEmpty()) for (Table t : ts) if (used.add(t)) { mine.add(t); break; }
             if (mine.isEmpty()) break;   // 桌子用完了
             // 摆：枪类一段一把（枪顺着桌子、子弹在外侧），小件两行均匀排
             ArrayList<String[]> gunsL = new ArrayList<>(), small = new ArrayList<>();
             for (int j = 1; j < zd.length; j++) (zd[j][2] != null ? gunsL : small).add(zd[j]);
-            int ti = 0; Table t = mine.get(0);
+            int ti = 0; Table t = mine.get(0); first.put(z.name, t);
             java.util.ArrayDeque<String[]> q = new java.util.ArrayDeque<>(gunsL);
             while (!q.isEmpty() || !small.isEmpty()) {
                 int kG = (int) Math.max(1, Math.floor(2 * t.L / 85.0));
