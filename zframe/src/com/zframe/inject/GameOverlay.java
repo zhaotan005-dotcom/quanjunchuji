@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.69";
+    static final String VER = "v3.70";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1152,6 +1152,11 @@ public class GameOverlay {
         ipEt.setOnEditorActionListener((v, act, ev) -> { focusable(ipEt, false); ipEt.clearFocus(); return false; });
         LinearLayout er = row(a, rc); er.setPadding(0, u.dp(4), 0, 0);
         btn(a, u, er, "加入这个地址", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填地址"); return; } toast(a, Lan.join(ipBuf)); });
+        // v3.70 用户用自己的内网穿透：填穿透地址（转发 UDP 7777 到本机）点这个，之后游戏里建的房间把这个地址发给别人
+        btn(a, u, er, "设为我的开房地址", () -> { focusable(ipEt, false); ipEt.clearFocus();
+            if (!ipBuf.isEmpty() && !ipBuf.matches("[A-Za-z0-9.-]+(:\\d{1,5})?")) { toast(a, "地址格式不对，要像 xxx.com:12345"); return; }
+            a.getSharedPreferences("zframe", 0).edit().putString("room_addr", ipBuf).apply();
+            android.widget.Toast.makeText(a, ipBuf.isEmpty() ? "已清空，开房用默认地址" : "开房地址：" + ipBuf, android.widget.Toast.LENGTH_SHORT).show(); });
     }
     /** 最下面：日志 */
     static void logRow(final Activity a, final Ui u, final LinearLayout root) {

@@ -35,6 +35,7 @@ final class Room {
         return "玩家" + (myId() % 10000);
     }
     static String myAddr() {
+        try { String a = Con.act.getSharedPreferences("zframe", 0).getString("room_addr", ""); if (a != null && !a.isEmpty()) return a; } catch (Throwable ignored) {}   // v3.70 用户自己的内网穿透地址
         if (Ed.ED == 1) return GameOverlay.AIWAN;
         String ip = Lan.ip(); int k = ip.indexOf('（');
         return k > 0 ? ip.substring(0, k) : ip;

@@ -319,3 +319,5 @@
 - 军需：MallMainView = UMallUIView : UBasePandoraMall，内容是 Pandora 网页（等 MallReady），pak 里没有原生 ShoppingMall_C（上次说「改开本地商城」是错的）。现在 UE 日志出现 WaitingMallReady / Pandora is Ready Mall 时弹提示说明。
 - 闪光/烟雾图标：武器是对的（BP_NZWeap_StunGrenade_C），图标是 HUD 蓝图 UpdateThrowWeaponTexture 选的，没改。另：震爆弹投掷模式 [武器+3e8]+24+20 = 2，ThrowWeaponTrace=0 时要 5/6 → 震爆弹不画抛物线。
 - 房间 Room.java：Server.handle 先给 Room（26xxx/27xxx、房主在房间里的 15001）。建房 26001→26002、改房 26025、信息 26017、加入 26005/26033、退出 26007、开始 26011/15001、列表 27005→27006、搜房号 27001。房间表走 ntfy zf-qj-room-k7r2p9m4x1（R/J/Q 行，见类注释），房主每 30 秒发一次。开始：房主本机 Lan.host / ModeProbe.host（地图 1 老海岛、3 新海岛战术、4 雨林战术），进图后发 P，加入的人 Lan.join(地址)。地址：服务端包（云手机 Ed.ED==1）= frp-put.com:47937，其它 = 局域网 IP。
+
+- v3.70（core271）：联机页地址框旁加「设为我的开房地址」（prefs room_addr），Room.myAddr 优先用它（用户自己的内网穿透，需转发 UDP 7777）。
