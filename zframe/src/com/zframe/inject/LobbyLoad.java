@@ -15,12 +15,15 @@ import java.nio.ByteOrder;
  *  UpdateUI_C 类：开机那页（UpdPage.view）的类先记下；拿不到就在对象表里按名字 UpdateUI_C 找。GameInstance 在对象表里按类名找实例。未实测。 */
 final class LobbyLoad {
     static volatile long page, startAt, readyAt, cls;
-    static volatile boolean busy;
+    static volatile boolean busy, lobbyBrowse;
     static volatile String state = "大厅加载页：没出现过";
     static final long CREATE = 0x25448acL, ADD_VP = 0x253dbe0L;
 
     static void line(String l) {
-        if (l.contains("Browse: /Game/Maps/Erangle_RoleHall")) show();
+        // v3.83：以前在「Browse 大厅」时就建，那时旧关卡还没卸，页面跟着 StartupMap 一起被清掉（看不到），
+        //       15 秒后再对已经被回收的页面调 RemoveFromParent → 服务端进大厅一会儿就闪退（推断）。改成大厅关卡载好（Game class 是 FrontEnd）再建
+        if (l.contains("Browse: /Game/Maps/Erangle_RoleHall")) lobbyBrowse = true;
+        else if (lobbyBrowse && l.contains("Game class is '") && l.contains("FrontEnd")) { lobbyBrowse = false; show(); }
         else if (busy && readyAt == 0 && (l.contains("HideLoadingProgress") || l.contains("OnChangeHairColor"))) readyAt = System.currentTimeMillis();
     }
     /** 开机更新页找到时记下它的类（UpdateUI_C） */
@@ -62,7 +65,7 @@ final class LobbyLoad {
             // 页面和开机时一样：我们的公告 + 更新进度条停在开机最后的状态（满格「已是最新版本」），人物装好就关
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
             long ba = GameOverlay.bufAddr(bb);
-            String us = UpdPage.state; UpdPage.notice(b, w, bb, ba); UpdPage.state = us;
+            // v3.83 用户：不要我们的公告
             String txt = "已是最新版本（v" + GameOverlay.VER.replace("v", "") + "）";
             bb.clear();
             UpdPage.fstr(bb, ba, 0x8000, txt);
@@ -85,7 +88,7 @@ final class LobbyLoad {
         try {
             long b = Mods.base(), fn;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
-                if (!Mods.isObj(m, b, w)) { state += "；关：页面已不在"; return; }
+                if (!Mods.isObj(m, b, w) || Server.rd(m, w + 0xc) != cls) { state += "；关：页面已不在"; return; }
                 fn = Server.rd(m, Server.rd(m, w) + 0x128);
             }
             if (fn < b || fn > b + 0x5000000L) { state += "；关：RemoveFromParent 地址不对"; return; }

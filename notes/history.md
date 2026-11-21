@@ -1547,3 +1547,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v3.82（core283）未实测
 - 用户：开机不要我们自己画的公告弹层（GameOverlay.srvUpdatePage，黑底+公告+黄条），要游戏自己的加载页/进度。改：startupUpdate 不再弹，srvFallback 只记日志，新内核兜底重启线程（UpdPage 没找到页时）；UpdPage 不再塞我们公告（notice 调用去掉）、去掉 flowTypes 全表扫描。
 - 客户端游戏包：用户 Drive 原版 game.apk（/workspace/w/game_apk）+ /workspace/w/hostpatch/Host.java（patchBase+patchSound mczi=1+gkey 签名）打了 v3.81 客户端包发给用户。用户说服务端包他有。
+
+## v3.83（core284，2026-11-21 22:0x，只推内核，未实测）
+- 用户 21:59（v3.82 实测，截图）：开机加载页还是没有进度条；进大厅等好一会才出衣服（大厅加载页没盖上）；服务端进大厅一会就闪退。
+- 查 UpdateUI.uasset：进度条/文字在 CanvasPanel_1（CanvasPanel_0 槽 10，底部），蓝图默认可见；包里有 UpdateUI_C 的实例 WidgetArchetype（原型，不在屏幕）。UpdPage.find 只跳 CDO(0x10) → 找到的是原型，进度条全写在原型上 → 看不到。改：跳 flag 0x30，只认名字 UpdateUI_C*、不认 WidgetArchetype。
+- LobbyLoad：以前 Browse 大厅时建（旧关卡还在，LoadMap 时被清），15 秒后对可能已回收的页调 RemoveFromParent → 推断是服务端大厅闪退原因（server 日志：进大厅后约 10~60 秒进程重启，无 tombstone）。改：Browse 后等 "Game class is '…FrontEnd…'" 再建；关前核对 +0xc 仍是 UpdateUI 类；去掉 UpdPage.notice（不放我们公告）。诊断加 LobbyLoad.state。

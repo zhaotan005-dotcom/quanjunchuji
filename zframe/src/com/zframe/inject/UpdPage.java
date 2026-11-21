@@ -143,9 +143,10 @@ final class UpdPage {
                 if (h == null) { String n = Alive.objName(m, nm, c); h = n != null && n.startsWith("UpdateUI"); hit.put(c, h);
                     if (n != null && n.contains("Update") && seen.size() < 8) seen.add(n); }
                 if (!h) continue;
-                if ((Server.rd(m, o + 4) & 0x10) != 0) continue;   // 类默认对象
+                if ((Server.rd(m, o + 4) & 0x30) != 0) continue;   // 类默认对象 / v3.83：原型对象（RF_ArchetypeObject 0x20）
                 String on = Alive.objName(m, nm, o);
-                if (on != null && on.startsWith("Default__")) continue;
+                // v3.83：以前找到的是蓝图包里的 WidgetArchetype（模板，不在屏幕上）→ 进度条全写在模板上，用户看不到。只认真正建出来的 UpdateUI_C_N
+                if (on == null || on.startsWith("Default__") || on.equals("WidgetArchetype") || !on.startsWith("UpdateUI_C")) continue;
                 lastCls = String.join(",", seen);
                 return o;
             }

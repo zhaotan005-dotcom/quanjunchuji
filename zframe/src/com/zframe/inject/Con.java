@@ -450,7 +450,7 @@ public class Con {
         Flare.line(l);
         if (l.contains("Game class is '")) ModeProbe.gameClass(l);
         if (l.contains("Flow") || l.contains("UpdateUI")) UpdFlow.line(l);
-        if (l.contains("Browse: ") || l.contains("HideLoadingProgress") || l.contains("OnChangeHairColor")) LobbyLoad.line(l);
+        if (l.contains("Browse: ") || l.contains("Game class is '") || l.contains("HideLoadingProgress") || l.contains("OnChangeHairColor")) LobbyLoad.line(l);
         if (l.contains("BP_NZWeap_") || l.contains("WeaponBase/W")) {
             java.util.regex.Matcher m = WEAP.matcher(l);
             if (m.find()) { String w = m.group(1) != null ? m.group(1) : m.group(2); if (!"EmptyHand".equals(w)) { lastWeap = w; lastWeapAt = System.currentTimeMillis(); } }
