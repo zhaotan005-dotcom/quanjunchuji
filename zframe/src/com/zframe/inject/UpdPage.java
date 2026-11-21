@@ -100,20 +100,23 @@ final class UpdPage {
             long fn;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { fn = Server.rd(m, Server.rd(m, v) + 0x240); }
             if (fn < b || fn > b + 0x5000000L) { state += "；OnUpdateProcess 地址不对 " + Long.toHexString(fn); finished = true; return; }
-            long doneAt = 0, end = Long.MAX_VALUE;   // v3.29：等下载走完，不设上限（失败 NetCore 自动重试）
+            long doneAt = 0, end = Long.MAX_VALUE;
+            float shown = 0f;   // v3.84 用户：进度条要「走」→ 显示值每 0.3 秒往目标涨，开机这页最多到 60%，剩下的在大厅加载页走完   // v3.29：等下载走完，不设上限（失败 NetCore 自动重试）
             while (System.currentTimeMillis() < end) {
                 boolean ready = NetCore.readyVer > ZInit.CORE_VER;
                 int p = NetCore.pct;
-                float f = ready ? 1f : NetCore.done ? 1f : p >= 0 ? p / 100f : 0.05f;
-                String s = ready ? "更新已下好，马上重启" : NetCore.done ? "已是最新版本（v" + GameOverlay.VER.replace("v", "") + "）"
-                        : p >= 0 ? "正在下载更新 " + p + "%" : (NetCore.status.isEmpty() ? "正在检查更新…" : NetCore.status);
+                float tgt = ready ? 1f : NetCore.done ? 0.6f : p >= 0 ? p / 100f : 0.3f;
+                shown = Math.min(tgt, shown + 0.04f);
+                float f = Math.max(shown, 0.01f);
+                String s = ready ? "更新已下好，马上重启" : NetCore.done ? "正在加载资源…"
+                        : p >= 0 ? "正在下载更新" : "正在检查更新…";
                 int so = 0x8000;
                 bb.clear();
                 fstr(bb, ba, so, s);
                 long[] r = Server.gcall(fn, v, Float.floatToIntBits(f), ba + so, 0, 1500);
                 if (r[0] == 0) { state += "；游戏线程没跑到调用"; GameOverlay.toastAny("更新页进度条失败：游戏线程没跑到调用"); break; }
-                if ((ready || NetCore.done) && doneAt == 0) doneAt = System.currentTimeMillis();
-                if (doneAt != 0 && System.currentTimeMillis() - doneAt > (ready ? 1500 : 3000)) break;
+                if ((ready || NetCore.done) && shown >= tgt && doneAt == 0) doneAt = System.currentTimeMillis();
+                if (doneAt != 0 && System.currentTimeMillis() - doneAt > (ready ? 1500 : 600)) break;
                 Thread.sleep(300);
             }
             if (NetCore.readyVer > ZInit.CORE_VER && Con.act != null) NetCore.restart(Con.act);

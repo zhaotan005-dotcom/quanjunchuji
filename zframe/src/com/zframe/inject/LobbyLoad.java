@@ -24,12 +24,26 @@ final class LobbyLoad {
         //       15 秒后再对已经被回收的页面调 RemoveFromParent → 服务端进大厅一会儿就闪退（推断）。改成大厅关卡载好（Game class 是 FrontEnd）再建
         if (l.contains("Browse: /Game/Maps/Erangle_RoleHall")) lobbyBrowse = true;
         else if (lobbyBrowse && l.contains("Game class is '") && l.contains("FrontEnd")) { lobbyBrowse = false; show(); }
-        else if (busy && readyAt == 0 && (l.contains("HideLoadingProgress") || l.contains("OnChangeHairColor"))) readyAt = System.currentTimeMillis();
+        else if (busy && (l.contains("HideLoadingProgress") || l.contains("OnChangeHairColor"))) readyAt = System.currentTimeMillis();   // v3.84：衣服是第二次 HideLoadingProgress 前后才上身 → 每次都刷新，最后一次之后 2.5 秒才算装好
     }
     /** 开机更新页找到时记下它的类（UpdateUI_C） */
     static void rememberClass(long v) {
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { long c = Server.rd(m, v + 0xc); if (c > 0x10000) cls = c; } catch (Throwable ignored) {}
+        // v3.84：v3.83 实测「没找到 UpdateUI_C 类」——切到大厅关卡时这个蓝图类被 GC 回收了。
+        //        记下类时把它在对象表里的项标成 RootSet（1<<30），不让回收（类的 Outer 包跟着被引用，也留着）
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            long c = Server.rd(m, v + 0xc); if (c <= 0x10000) return;
+            cls = c;
+            long b = Mods.base(), g = Server.rd(m, b + 0x51250acL), objs = Server.rd(m, g + 0x10);
+            long idx = Server.rd(m, c + 8), num = Server.rd(m, g + 0x18);
+            if (objs < 0x10000 || idx <= 0 || idx >= num) { rooted = "类对象表下标不对"; return; }
+            long it = objs + idx * 16;
+            if (Server.rd(m, it) != c) { rooted = "对象表项不对"; return; }
+            long fl = Server.rd(m, it + 4);
+            m.seek(it + 4); m.write(new byte[] { (byte) fl, (byte) (fl >> 8), (byte) (fl >> 16), (byte) ((fl >> 24) | 0x40) });
+            rooted = "类已设 RootSet";
+        } catch (Throwable t) { rooted = "设 RootSet 出错 " + t; }
     }
+    static volatile String rooted = "";
 
     static volatile boolean once;
     static void show() {
@@ -46,7 +60,7 @@ final class LobbyLoad {
             if (b == 0) { state = "大厅加载页：找不到游戏库"; return; }
             Veh.Names nm = Veh.Names.get();
             long[] f = find(b, nm);   // {类, GameInstance}
-            if (f[0] == 0 || f[1] == 0) { state = "大厅加载页：没找到 " + (f[0] == 0 ? "UpdateUI_C 类 " : "") + (f[1] == 0 ? "GameInstance" : ""); return; }
+            if (f[0] == 0 || f[1] == 0) { state = "大厅加载页：没找到 " + (f[0] == 0 ? "UpdateUI_C 类（" + rooted + "）" : "") + (f[1] == 0 ? "GameInstance" : ""); return; }
             long[] r = Server.gcall(b + CREATE, f[0], f[1], 0, 0, 3000);
             w = r[1];
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
@@ -66,16 +80,20 @@ final class LobbyLoad {
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
             long ba = GameOverlay.bufAddr(bb);
             // v3.83 用户：不要我们的公告
-            String txt = "已是最新版本（v" + GameOverlay.VER.replace("v", "") + "）";
-            bb.clear();
-            UpdPage.fstr(bb, ba, 0x8000, txt);
-            Server.gcall(fn, w, Float.floatToIntBits(1f), ba + 0x8000, 0, 1500);
+            // v3.84 用户：进度条要走 → 接着开机那页的 60% 往上走，人物衣服装好（readyAt）后走到 100% 再关
+            float shown = 0.6f;
             while (true) {
                 long now = System.currentTimeMillis(), el = now - startAt;
-                if ((readyAt != 0 && now - readyAt > 2500) || el > 15000) { state = "大厅加载页：开机更新页，" + (readyAt == 0 ? "15 秒超时关" : "人物装好后关") + "（" + el + " ms，" + panel + "）"; break; }
+                boolean ok = readyAt != 0 && now - readyAt > 2500;
+                float tgt = ok ? 1f : 0.95f;
+                shown = Math.min(tgt, shown + (ok ? 0.1f : 0.012f));
+                bb.clear();
+                UpdPage.fstr(bb, ba, 0x8000, "正在加载资源…");
+                if (Server.gcall(fn, w, Float.floatToIntBits(shown), ba + 0x8000, 0, 1500)[0] == 0) { state = "大厅加载页：进度没跑到"; break; }
+                if ((ok && shown >= 1f) || el > 15000) { state = "大厅加载页：" + (ok ? "人物装好后关" : "15 秒超时关") + "（" + el + " ms，" + panel + "，" + rooted + "）"; break; }
                 Thread.sleep(200);
             }
-            Thread.sleep(300);
+            Thread.sleep(400);
         } catch (Throwable t) { state = "大厅加载页：出错 " + t; }
         finally {
             if (w != 0) close(w);

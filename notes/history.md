@@ -1552,3 +1552,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 21:59（v3.82 实测，截图）：开机加载页还是没有进度条；进大厅等好一会才出衣服（大厅加载页没盖上）；服务端进大厅一会就闪退。
 - 查 UpdateUI.uasset：进度条/文字在 CanvasPanel_1（CanvasPanel_0 槽 10，底部），蓝图默认可见；包里有 UpdateUI_C 的实例 WidgetArchetype（原型，不在屏幕）。UpdPage.find 只跳 CDO(0x10) → 找到的是原型，进度条全写在原型上 → 看不到。改：跳 flag 0x30，只认名字 UpdateUI_C*、不认 WidgetArchetype。
 - LobbyLoad：以前 Browse 大厅时建（旧关卡还在，LoadMap 时被清），15 秒后对可能已回收的页调 RemoveFromParent → 推断是服务端大厅闪退原因（server 日志：进大厅后约 10~60 秒进程重启，无 tombstone）。改：Browse 后等 "Game class is '…FrontEnd…'" 再建；关前核对 +0xc 仍是 UpdateUI 类；去掉 UpdPage.notice（不放我们公告）。诊断加 LobbyLoad.state。
+
+## v3.84（core285，2026-11-22 01:2x，只推内核，未实测）
+- 用户 01:16（v3.83 实测）：开机页只显示「更新」、像有 bug、进度条不走；进大厅还是没穿衣服。日志 upd-1122-011558：UpdPage 找到真实页 e68bc540（v3.83 修对了）；LobbyLoad「没找到 UpdateUI_C 类」= 切关卡时蓝图类被 GC。
+- RE：OnUpdateProcess 0x15de6c4：+0x210 值标签（文字非空时显示 Printf("%d%%")），+0x20c 文字标签=传入串，+0x208 进度条 SetPercent，f>0 才 Visible；FString 是 UTF-32（"%d%%" 字面量 4 字节/字）。
+- 改：LobbyLoad.rememberClass 把 UpdateUI_C 类的 FUObjectItem flags 置 RootSet(1<<30) 防回收；UpdPage 进度显示值每 0.3 秒涨 0.04，开机页到 60%（文字「正在检查更新…/正在加载资源…」），到了 0.6 秒后停；LobbyLoad 从 60% 每 0.2 秒涨到 95%，HideLoadingProgress/OnChangeHairColor 每次刷新 readyAt，最后一次后 2.5 秒走满 100% 关，最长 15 秒。诊断带 rooted 状态。「显示有 bug」具体是什么没截图，已问用户。
