@@ -188,9 +188,13 @@ public class Veh {
         return out;
     }
     /** 刷之后：找 before 里没有的、车在 (x,y) 30 米内的那个油箱组件 → {组件, 车}；没有返回 null */
-    static long[] findNew(java.util.HashMap<Long, Long> before, float x, float y) {
+    static volatile java.util.HashMap<Long, Long> snap;
+    /** v3.89：打开刷车页时后台扫一次现有车，刷车时不用再等 */
+    static void preSnap() { new Thread(() -> { java.util.HashMap<Long, Long> h = fuelComps(); if (h != null) snap = h; }, "zf-vsnap").start(); }
+    static long[] findNew(java.util.HashMap<Long, Long> before, float x, float y, double rad) {
         java.util.HashMap<Long, Long> now = fuelComps(); if (now == null) return null;
-        long[] best = null; double bd = 3000 * 3000;
+        snap = now;
+        long[] best = null; double bd = rad * rad;
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             for (java.util.Map.Entry<Long, Long> e : now.entrySet()) {
                 if (before.containsKey(e.getKey())) continue;
@@ -222,7 +226,10 @@ public class Veh {
     static String place(String label, long id, double px, double py, double pz, double yawDeg) throws InterruptedException {
         double r = Math.toRadians(yawDeg), fx = Math.cos(r), fy = Math.sin(r);
         double[][] cand = { {600, 0}, {1000, 0}, {700, 450}, {700, -450} };   // 前方距离、左右（厘米）；最多 4 个落点（没确认到也不会多刷超过 4 辆）
-        java.util.HashMap<Long, Long> before = fuelComps();
+        // v3.89 用户：刷车不是秒出了 → 以前每次刷之前先整表扫一遍油箱组件（GUObjectArray）才刷，慢在这。改成用上次扫的结果（打开刷车页时后台先扫好），刷完再扫确认
+        java.util.HashMap<Long, Long> before = snap;
+        boolean fresh = before != null;
+        if (before == null) before = new java.util.HashMap<>();
         StringBuilder tried = new StringBuilder();
         for (int i = 0; i < cand.length; i++) {
             float x = (float) (px + cand[i][0] * fx - cand[i][1] * fy), y = (float) (py + cand[i][0] * fy + cand[i][1] * fx);
@@ -234,8 +241,7 @@ public class Veh {
                 if (h.z > pz - 500) { z = h.z + 200f; how = "地面"; }   // 比脚下低 4 米以上（坡下/水底）就还按人物高度，让车自己落
             }
             if (!spawnAt(id, x, y, z, (float) yawDeg)) return "没反应 " + label + "（编号 " + id + "，补丁代码没反应）";
-            if (before == null) return "已刷 " + label + "（编号 " + id + "，没法确认、没加油：扫车出错）";
-            long[] v = findNew(before, x, y);
+            long[] v = findNew(before, x, y, fresh ? 3000 : 900);
             if (v != null) {
                 String f = fillFuel(v[0]);
                 fuelState = "满油：" + label + " " + f;
