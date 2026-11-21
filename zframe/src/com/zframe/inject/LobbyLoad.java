@@ -28,8 +28,10 @@ final class LobbyLoad {
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { long c = Server.rd(m, v + 0xc); if (c > 0x10000) cls = c; } catch (Throwable ignored) {}
     }
 
+    static volatile boolean once;
     static void show() {
-        if (busy) return;
+        if (busy || once) return;   // v3.81：只在开机第一次进大厅（接着开机更新页），对局回大厅不盖
+        once = true;
         busy = true; startAt = System.currentTimeMillis(); readyAt = 0;
         new Thread(LobbyLoad::run, "zf-lobbyload").start();
     }
@@ -56,16 +58,18 @@ final class LobbyLoad {
             if (fn < b || fn > b + 0x5000000L) { state = "大厅加载页：OnUpdateProcess 地址不对，" + panel; return; }
             state = "大厅加载页：游戏 UpdateUI 显示中（" + panel + "）";
             LogCap.note(state);
-            ByteBuffer bb = ByteBuffer.allocateDirect(4096).order(ByteOrder.LITTLE_ENDIAN);
+            // v3.80b 用户：不要「正在加载大厅」假进度，就是开机那个更新页本身一直留着，大厅在它后面加载 →
+            // 页面和开机时一样：我们的公告 + 更新进度条停在开机最后的状态（满格「已是最新版本」），人物装好就关
+            ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
             long ba = GameOverlay.bufAddr(bb);
+            String us = UpdPage.state; UpdPage.notice(b, w, bb, ba); UpdPage.state = us;
+            String txt = "已是最新版本（v" + GameOverlay.VER.replace("v", "") + "）";
+            bb.clear();
+            UpdPage.fstr(bb, ba, 0x8000, txt);
+            Server.gcall(fn, w, Float.floatToIntBits(1f), ba + 0x8000, 0, 1500);
             while (true) {
                 long now = System.currentTimeMillis(), el = now - startAt;
-                int pct = readyAt == 0 ? (int) (90 * (1 - Math.exp(-el / 3000.0))) : Math.min(100, 90 + (int) ((now - readyAt) / 250));
-                if (el > 15000) pct = 100;
-                bb.clear();
-                UpdPage.fstr(bb, ba, 0, pct >= 100 ? "加载完成" : "正在加载大厅…");
-                Server.gcall(fn, w, Float.floatToIntBits(pct / 100f), ba, 0, 1500);
-                if (pct >= 100) { state = "大厅加载页：游戏 UpdateUI，" + (readyAt == 0 ? "15 秒超时关" : "人物装好后关") + "（" + el + " ms，" + panel + "）"; break; }
+                if ((readyAt != 0 && now - readyAt > 2500) || el > 15000) { state = "大厅加载页：开机更新页，" + (readyAt == 0 ? "15 秒超时关" : "人物装好后关") + "（" + el + " ms，" + panel + "）"; break; }
                 Thread.sleep(200);
             }
             Thread.sleep(300);
