@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.63";
+    static final String VER = "v3.64";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -235,13 +235,14 @@ public class GameOverlay {
             panelAct = a;
             // v3.22 用户：删掉自制的「道具」键（战术模式用游戏原生道具栏）
             // v2.34：屏幕大小变了（云手机转屏/分辨率）或菜单变大变小，都重新夹回屏幕里
-            panel.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> clamp(panel, decor, u));
-            decor.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (r - l != or - ol || bt - t != ob - ot) panel.post(() -> clamp(panel, decor, u)); });
+            panel.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (!Con.inMatch) repos(panel, decor, u); else clamp(panel, decor, u); });   // v3.64 大厅一直固定中上
+            // v3.64 用户：开小窗再回全屏，菜单位置被挤歪。屏幕大小变了就按新屏幕重新摆：大厅固定中上；对局回到自己拖的位置（小窗里只是临时夹进屏幕，不改记住的位置）
+            decor.addOnLayoutChangeListener((v, l, t, r, bt, ol, ot, or, ob) -> { if (r - l != or - ol || bt - t != ob - ot) panel.post(() -> repos(panel, decor, u)); });
             if (hidden || !lobbySeen) panel.setVisibility(View.GONE);   // v2.19 用户：腾讯加载页不显示，到大厅才出来
             panelRef = panel;
             apply.run();
             // v3.38 用户：大厅里菜单固定在中上（收起），不能拖
-            lobbyPos = () -> { collapsed = true; apply.run(); px = (sw - u.dp(150)) / 2f; py = u.dp(4); setXY(panel, px, py); };
+            lobbyPos = () -> { collapsed = true; apply.run(); int W = decor.getWidth() > 0 ? decor.getWidth() : sw; px = (W - u.dp(150)) / 2f; py = u.dp(4); setXY(panel, px, py); };
 
             head.setOnTouchListener(new View.OnTouchListener() {
                 float dx, dy, sx, sy; boolean moved;
@@ -259,6 +260,7 @@ public class GameOverlay {
                             // v3.38 用户：对局里往上拖（顶到屏幕上边还继续拖）= 隐藏，五指再打开
                             if (Con.inMatch && moved && sy + (e.getRawY() - dy) < -u.dp(24)) { clamp(panel, decor, u); showPanel(panel, false, u); return true; }
                             clamp(panel, decor, u);
+                            if (moved) { ux = px; uy = py; }
                             if (!moved) { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); }
                             return true;
                     }
@@ -270,6 +272,15 @@ public class GameOverlay {
         }
     }
 
+    /** v3.64：用户在对局里拖到的位置（-1 = 没拖过） */
+    static volatile float ux = -1, uy = -1;
+    static void repos(View panel, View decor, Ui u) {
+        int W = decor.getWidth();
+        if (W <= 0) return;
+        if (!Con.inMatch) { int w = panel.getWidth() > 0 ? panel.getWidth() : u.dp(150); setXY(panel, (W - w) / 2f, u.dp(4)); clamp(panel, decor, u); return; }
+        if (ux >= 0) { float sx = ux, sy = uy; setXY(panel, sx, sy); clamp(panel, decor, u); ux = sx; uy = sy; }
+        else clamp(panel, decor, u);
+    }
     /** v2.34 用户：服务端菜单被拖到屏幕外（标题栏出去了）就拉不回来、点不到。位置一直夹在屏幕里：整个标题栏必须在屏幕内 */
     static void clamp(View panel, View decor, Ui u) {
         int W = decor.getWidth(), H = decor.getHeight();
@@ -1103,31 +1114,11 @@ public class GameOverlay {
           }
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         } else {
-            // v3.21 用户：最上面一排「单机 | 联机」分段选择（不弹窗，记住选择）。单机 = 游戏模式 + 自动刷人机，点「匹配赛」本机开局；联机 = 加入艾挽服务器 + 自己填地址
-            LinearLayout seg = row(a, root); seg.setPadding(0, u.dp(2), 0, u.dp(6));
-            final boolean net = netTab();
-            pick(a, u, seg, "单机", !net, () -> setNetTab(false));
-            pick(a, u, seg, "联机", net, () -> setNetTab(true));
-            if (!net) {
-                head(a, u, root, "游戏模式");
-                LinearLayout fl = row(a, root);
-                // v2.17 用户：只要两个模式；「不刷毒对局」= 不上飞机（直接在出生岛开打）+ 不刷圈。去掉清空仓库、日志
-                pick(a, u, fl, "正常对局", !Mods.zoneOff(), () -> result(a, Mods.setNormal()));
-                pick(a, u, fl, "不刷毒对局", Mods.zoneOff(), () -> result(a, Mods.setNoZone()));
-                note(a, u, root, "选好后点游戏里的「匹配赛」开始。");
-                // v3.33 用户：训练营资源找到了（训练岛 BR-TrainingIsland_Mobile_Main）→ 单机直接进
-                gfxBlock(a, u, root);
-                head(a, u, root, "诊断");   // v3.38 用户：训练营/训练场用游戏自己的入口，菜单里去掉
-                LinearLayout dgx = row(a, root);   // v3.36 用户：单机也要能导出诊断（训练场闪退要看）
-                btn(a, u, dgx, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
-                // v2.56 用户：自动刷人机开关放大厅
-                switchRow(a, u, root, "自动刷人机", "关掉后整局不自动刷人机（手动刷不受影响），下次也记住", Bots.want, v -> { Bots.setWant(a, v); Bots.state = v ? "人机：自动刷新已开" : "人机：自动刷新已关"; return "ok"; });
-            } else {
-                head(a, u, root, "加入房间");
-                joinCard(a, u, root);
-                note(a, u, root, "服务端先进图，再点加入。");
-                if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
-            }
+            // v3.64 用户：大厅去掉「单机」（游戏自己的开始游戏就是单机），只留联机；正常/不刷毒、自动刷人机沿用上次的设置
+            head(a, u, root, "联机");
+            joinCard(a, u, root);
+            note(a, u, root, "服务端先进图，再点加入。");
+            if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         }
         if (Ed.ED != 1) note(a, u, root, Server.state);
     }
@@ -1751,7 +1742,7 @@ public class GameOverlay {
         if (Ed.single()) {
             if (Lan.role == 2) return "全军出击联机版";
             if (Con.inMatch) return "全军出击单机版";
-            return netTab() ? "全军出击联机版" : "全军出击单机版";
+            return "全军出击";   // v3.64 用户：大厅菜单标题只要「全军出击」
         }
         return Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端";
     }

@@ -74,6 +74,10 @@ final class TableGuns {
     /** 入口（单机/房主，进岛后的线程里调）：等射击区地面能打到 → 找桌子 → 摆 → 补货循环 */
     static void run(long b, Veh.Names nm, long mgr, long pc) throws Exception {
         long t0 = System.currentTimeMillis();
+        // v3.64 用户：v3.63 进训练场几秒就闪退。枪桌是进岛几秒内开始、25ms 一件连刷上百件 → 先等 12 秒、每件隔 150ms、最多 12 把枪
+        for (int i = 0; i < 24 && Con.training && Con.inMatch; i++) Thread.sleep(500);
+        if (!Con.training || !Con.inMatch) return;
+        Server.mark("训练岛枪桌：开始找桌子");
         double[] c = null; float gz = Float.NaN;
         for (int i = 0; i < 40 && Con.training && Con.inMatch; i++) {   // 最多 20 秒等射击区地形碰撞
             c = Island.shootCenter(b, mgr, pc);
@@ -109,7 +113,8 @@ final class TableGuns {
             double seg = 2 * t.L / k;
             for (int j = 0; j < k; j++) slots.add(new double[] { ti, -t.L + seg * (j + 0.5), seg });
         }
-        int n = Math.min(slots.size(), GUNS.length);
+        int n = Math.min(Math.min(slots.size(), GUNS.length), 12);
+        Server.mark("训练岛枪桌：开始摆 " + n + " 把");
         ArrayList<String[]> pick = new ArrayList<>();
         for (int i = 0; i < n; i++) pick.add(GUNS[i]);
         pick.sort((p, q) -> cat(p[1]) - cat(q[1]));
@@ -118,10 +123,11 @@ final class TableGuns {
             double[] s = slots.get(i); Table t = ts.get((int) s[0]); String[] g = pick.get(i);
             ArrayList<Item> grp = layout(t, s[1], s[2], g);
             int ok = 0;
-            for (Item it : grp) { if (drop(it)) { ok++; okN++; placed.add(it); } else failN++; Thread.sleep(25); }
+            for (Item it : grp) { if (drop(it)) { ok++; okN++; placed.add(it); } else failN++; Thread.sleep(150); }
             if (ok > 0) guns++;
         }
         synchronized (items) { items.clear(); items.addAll(placed); }
+        Server.mark("训练岛枪桌：摆完 " + okN + " 件");
         StringBuilder tb = new StringBuilder();
         for (int i = 0; i < ts.size() && i < 8; i++) { Table t = ts.get(i); tb.append(String.format(" [%.0f,%.0f z%.0f 长%.0f 宽%.0f %s]", t.cx, t.cy, t.z, 2 * t.L, 2 * t.W, t.src)); }
         Island.gunTables = "训练岛枪桌：" + ts.size() + " 桌 " + slots.size() + " 个桌位，摆了 " + guns + " 把枪（共 " + okN + " 件，失败 " + failN + "）；找桌子用" + how

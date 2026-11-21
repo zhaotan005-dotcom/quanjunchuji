@@ -318,10 +318,11 @@ public class Server {
                 push(13004, seq, key, equip(body)); saveProps(); what = "穿上";
                 long id = reqId(body);
                 if (id / 100000000L == 101 || id / 100000000L == 102) { syncWear(); pushStore(); what = "换角色/发型"; followHairColor(id); }
+                else if (id / 100000000L == 405) what = "穿上降落伞（不再推仓库/重穿人物）";   // v3.64 用户：装降落伞时预览里冒出人物
                 else followPreview("ReqStoreEquipProp", id);
                 break;
             }
-            case 13005: push(13006, seq, key, unequip(body)); saveProps(); what = "脱下"; followPreview("ReqStoreUnEquipProp", reqId(body)); break;
+            case 13005: push(13006, seq, key, unequip(body)); saveProps(); what = "脱下"; { long uid = reqId(body); if (uid / 100000000L != 405) followPreview("ReqStoreUnEquipProp", uid); } break;
             case 25001: push(25002, seq, key, mailList()); what = "邮件列表 " + mails.size() + " 封"; break;
             case 25003: {
                 int before = props == null ? 0 : props.size();
@@ -347,6 +348,22 @@ public class Server {
                 push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "空的成功包";
         }
         if (log.size() < 300) log.add(cmd + " seq" + seq + (key ? " key" : "") + " 长" + body.length + " → " + what + "  " + hexHead(body, 48));
+        // v3.64 用户：大厅手持枪展示、军需点了没反应 → 点这些（或没见过的请求）4 秒后自动传一份大厅日志（单机也传，只上传），看游戏到底发了什么
+        long rc = (cmd == 13003 || cmd == 13005) ? reqId(body) / 100000000L : 0;
+        if (!SEEN.contains(cmd) || (rc != 0 && (rc < 300 || rc >= 400) && rc != 101 && rc != 102 && rc != 405) || (cmd >= 31000 && cmd < 32000) || (cmd >= 38000 && cmd < 39000) || (cmd >= 51000 && cmd < 52000)) opLog(cmd);
+    }
+    static final java.util.Set<Integer> SEEN = new java.util.HashSet<>(java.util.Arrays.asList(10001, 15016, 44033, 37010, 36001, 30014, 22005, 22003, 73140, 83001, 15001, 15003, 15005, 13001, 13003, 13005, 25001, 25003, 25005));
+    static volatile long opAt;
+    static void opLog(int cmd) {
+        long now = System.currentTimeMillis();
+        if (now - opAt < 45000) return;
+        opAt = now;
+        new Thread(() -> {
+            try { Thread.sleep(4000); } catch (Throwable ignored) {}
+            if (Con.act == null || Con.inMatch) return;
+            mark("大厅操作日志：请求 " + cmd);
+            AvatarLog.manual = true; try { AvatarLog.export(Con.act, "lobbyop-"); } catch (Throwable ignored) {} finally { AvatarLog.manual = false; }
+        }, "zf-oplog").start();
     }
 
     /** 往回包区放一个 CSPkg，下一帧游戏收 */
@@ -417,8 +434,7 @@ public class Server {
 
     /** v1.70 自动记录：上次运行用过服务端（留下了步骤文件），这次进大厅 6 秒后自动导出一份诊断到 下载/ZFrame/crash-*.txt，每份记录只存一次 */
     public static void autoCrashSave() {
-        if (AvatarLog.off()) return;   // v3.22 单机不记录
-        try {
+        try {   // v3.64：单机也上传闪退诊断（只上传，不存手机），训练场闪退要看
             // v2.17：任何闪退（Bugly 留了新的 tomb_*.txt）下次进大厅自动存一份 crash-*.txt，每个 tomb 只存一次（大厅已去掉「导出诊断」）
             try {
                 java.io.File[] ts = new java.io.File("/data/data/com.tencent.tmgp.pubgm/app_bugly").listFiles((d, n) -> n.startsWith("tomb"));
@@ -429,11 +445,12 @@ public class Server {
                     String k = nt.getName();
                     if (!(st.exists() && k.equals(new String(java.nio.file.Files.readAllBytes(st.toPath()), "UTF-8")))) {
                         java.nio.file.Files.write(st.toPath(), k.getBytes("UTF-8"));
-                        GameOverlay.toastAny("上次闪退了，诊断" + AvatarLog.export(Con.act, "crash-"));
+                        AvatarLog.manual = true; try { AvatarLog.export(Con.act, "crash-"); } finally { AvatarLog.manual = false; }
                         return;
                     }
                 }
             } catch (Throwable ignored) {}
+            if (AvatarLog.off()) return;
             java.io.File f = stepFile(); if (f == null) return;
             java.io.File prev = new java.io.File(f.getParentFile(), "zf_server_steps_prev.txt");
             if (!prev.exists()) return;
