@@ -5,7 +5,7 @@ package com.zframe.inject;
  *  v2.44 用户：客户端版在加载页让人选「单机 / 联机」。选单机就把 ED 改成 0，后面完全按单机版走。
  *  ED 不能再是常量（javac 会把常量内联），改成运行时变量；启动早装要等选完再装。 */
 final class Ed {
-    static final int BUILD = 1;
+    static final int BUILD = 0;
     // v3.13 用户：去掉单机/联机选择，客户端包也默认开自建服务端（ED 0：大厅自建服务端 + 仓库衣服），大厅里照样能加入别人
     static volatile int ED = BUILD == 2 ? 0 : BUILD;
     static volatile boolean chosen = true;
