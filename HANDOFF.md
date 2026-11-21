@@ -325,3 +325,5 @@
 - v3.71（core272）：开房地址没设过默认 frp-put.com:47937（所有包）；输入框加 IME_FLAG_NO_EXTRACT_UI/NO_FULLSCREEN，横屏不进全屏输入页。
 
 - v3.72（core273）：服务端/客户端包进大厅也自动开自建服务端（之前只有单机），否则游戏「创建房间」的 26001 没人回，点了没反应（日志：服务端包 自建服务端：没开，ConnectorService::SendRawBuffer connector is invalidate）。
+
+- v3.73（core274）：右边输入框提示「填穿透地址」，不预填（只显示已设的开房地址）；开房地址没设时仍默认 frp-put.com:47937。
