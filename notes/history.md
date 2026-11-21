@@ -1533,3 +1533,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   - 风险：挨着的拾取物游戏会不会合成箱子（以前同一坐标会），没测间隔阈值；dropAt 的 z 是桌面 +2 厘米，拾取物是否会再贴地没测。
   - 诊断「训练岛枪桌：N 桌 M 个桌位，摆了 K 把枪（共 x 件，失败 y）；找桌子用模型/射线，用时；桌子：[中心 z 长 宽 模型名]…；模型找桌子：…」「训练岛补枪：第 n 次检查（每 5 秒）…」。
 - 构建：bash build_all.sh 3.62 3.63 263 264，core/b0-2.ver=264。releases/ 只留 v3.63 三个（git rm v3.62）。
+
+## v3.80（core281，2026-11-21 20:4x，只推内核，未实测）进大厅加载页改用游戏自己的 UpdateUI
+- 用户 20:27：等待加载页面不是游戏的，要调游戏自己的加载页（开机那页带进度条的 UpdateUI），进大厅时建出来盖上，人物装好后关；上一个智能体没改完的那版没推。
+- RE（UNZStartupFlowUpdate::Begin 0x121244c）：类 = StaticLoadClass 0x1bf2c5c(UUserWidget, 0, "Blueprint'/Game/Startup/UI/UpdateUI.UpdateUI_C'", 0, 栈 0,0)；页 = CreateWidget 0x25448ac(类, GameInstance(world+0xc4), 0, 0)，存流程 +0x34；vt+0x23c 0x15d99a0 记流程到 +0x4e0；AddToViewport = 0x253dbe0(页, ZOrder) → vt+0x164；vt+0x278 0x15da2bc RegisterDelegates（+0x4e0 空就跳过）；vt+0x244 0x15dbb00 StartCheck（磁盘/腾讯更新）。
+- UNZUpdateUIView 虚表 0x4d449c8（+0x25c ShowUpdateError 0x15de030 → 定位）：+0x240 OnUpdateProcess 0x15de6c4（只用 +0x210 等控件，不碰流程）。UWidget::RemoveFromParent = vt+0x128（thunk 0xf22f84）。
+- LobbyLoad.java 重写：Browse 大厅 → 线程里找类（开机 UpdPage 找到页时 rememberClass 记 +0xc，失败按对象名 UpdateUI_C 扫 *GeneratedClass）和 GameInstance（类名以 GameInstance/GameInstance_C 结尾的实例）→ gcall CreateWidget → AddToViewport(10000) → SetVisibility 显示 UpdatePanel/进度条 → 每 0.2 秒 OnUpdateProcess(「正在加载大厅…」, 进度) → HideLoadingProgress/OnChangeHairColor 后 2.5 秒到 100% 或 15 秒 → RemoveFromParent。不调 vt+0x23c/0x278/0x244。我们自己的黑底层删掉，失败也不回退（只写 LobbyLoad.state 到日志）。
+- 风险：在 LoadMap 之后的 Tick 里建（gcall 在 FEngineLoop::Tick），大厅之后若再 RemoveAllViewportWidgets 会被清掉；ZOrder 10000 是否压住大厅 UI 没测。
+- 构建：bash build_all.sh 3.77 3.80 278 281（没有 3.79 APK 做底包，APK 没提交），core/b0-2.ver=281。
