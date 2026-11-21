@@ -69,10 +69,10 @@ final class UpdFlow {
      *    控件在第一帧前就建好，第一帧 Slate 的 dt 很大 → 动画一开始就跳过一大截（推断），看到的只剩 2~3 秒。
      *  改（cave 0x171e690..0x171e6df，game/re/logo_cave.py，emu_logo_cave.py unicorn 过）：
      *    虚表 +0x120 → 空函数（先不建控件）；+0x134 → 控件没建时只累计 dt，满 0.5 秒（引擎已正常出帧）再调原 Begin；建好后照常走基类 Tick；
-     *    +0x130 → 4.5 秒（动画 4.0 秒放完再停 0.5 秒）。只改 Logo 这个类的虚表，Timi 类（同用 0x1211368）不动。未实测。 */
+     *    +0x130 → 4.5 秒（动画 4.0 秒放完再停 0.5 秒）；v3.75 改 3.95 秒。只改 Logo 这个类的虚表，Timi 类（同用 0x1211368）不动。未实测。 */
     static final long LOGO_CAVE = 0x171e690L, LOGO_VT = 0x4cf2600L;
     static final String LOGO_CAVE_O = "0670a0e10870a01138300be530300be5010057e334700be51b0000ba38004be20010a0e3b158d1eb34701be5010057e3150000ba000055e338901b15000059131300000a0010a0e3000058e30600000a";
-    static final String LOGO_CAVE_N = "1eff2fe1242090e5000052e30b00001a101a00ee081a90ed001a31ee081a80ed000ab6eec01ab4ee10faf1ee1eff2fd10020a0e3202080e5e7cbebea00f020e362c3ebea000000e3900044e31eff2fe1";
+    static final String LOGO_CAVE_N = "1eff2fe1242090e5000052e30b00001a101a00ee081a90ed001a31ee081a80ed000ab6eec01ab4ee10faf1ee1eff2fd10020a0e3202080e5e7cbebea00f020e362c3ebeacd0c0ce37c0044e31eff2fe1";   // v3.75 用户：最后一秒画面发白（动画尾帧 + 停 0.5 秒）→ 超时 4.5 改 3.95 秒（0x407ccccd），动画最后一帧前就结束
     static final long[][] LOGO_SLOTS = { { 0x120, 0x121166cL, 0x171e690L }, { 0x134, 0x120f460L, 0x171e694L }, { 0x130, 0x1211368L, 0x171e6d4L } };
     static String logoFull() {
         long b = Mods.base(); if (b == 0) return "找不到游戏库";
