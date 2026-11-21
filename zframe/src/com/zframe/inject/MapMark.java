@@ -12,6 +12,7 @@ import java.io.RandomAccessFile;
  */
 final class MapMark {
     static final int MI = 0xa04;
+    static final float STAND = 95f;   // v3.63 落点 + 胶囊半高（约 88~90 厘米）
     static volatile boolean autoTp = true, tpNow;
     // v3.30 用户截图：单机标点了不传 → 开关没存，重启（更新后自动重启）就变回关。改成记住，默认开
     static void load(android.content.Context c) { try { autoTp = c.getSharedPreferences("zframe", 0).getBoolean("mark_tp", true); } catch (Throwable ignored) {} }
@@ -25,7 +26,7 @@ final class MapMark {
         th = new Thread(() -> {
             while (true) {
                 try { tick(); } catch (Throwable t) { state = "标点：出错 " + t; }
-                try { Thread.sleep(500); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(200); } catch (InterruptedException e) { return; }   // v3.63 0.5 → 0.2 秒，点完标点更快传
             }
         }, "zf-mapmark");
         th.setDaemon(true); th.start();
@@ -98,20 +99,45 @@ final class MapMark {
         if (!autoTp || Ed.ED == 2 || Lan.role == 2) return;
         if (Float.isNaN(x) || Float.isNaN(y) || (x == 0 && y == 0) || Math.abs(x) > 2e6 || Math.abs(y) > 2e6) return;
         double[] me = Veh.info();
-        // v3.46 用户：以前写死 200 米绝对高度（Z=20000），训练岛地面在 Z≈-15800，等于离地约 358 米。
-        // 改成按目标点的地面算：从上往下打射线，打到东西（地形/房顶）就落在它上面 2 米；
-        // 目标点还没加载打不到 → 落在「自己现在的高度 +30 米」，再慢慢落地。
-        Trace.Hit gh = Trace.down((float) x, (float) y, 500000f, -500000f);
-        // v3.62 训练岛：目标点地面可能刚开始流式加载，多试 3 次（每次隔 0.5 秒）再按自己高度兜底（训练岛另有防摔 NoFall）
-        for (int t = 0; Con.training && t < 3 && (gh == null || Float.isNaN(gh.z) || gh.cls.contains("位置对不上")); t++) { Thread.sleep(500); gh = Trace.down((float) x, (float) y, 500000f, -500000f); }
-        double z; String how;
-        if (gh != null && !Float.isNaN(gh.z) && !gh.cls.contains("位置对不上")) { z = gh.z + 200; how = String.format("目标点地面 %.0f（%s）上方 2 米", gh.z, gh.land ? "地形" : gh.cls); }
-        else { z = (me == null ? 0 : me[2]) + 3000; how = "目标点地面没打到（可能还没加载），按自己高度 +30 米"; }
-        boolean ok = Veh.teleport(pawn, x, y, z, me == null ? 0 : me[3]);
-        note("自动传送到标点 " + (ok ? "成功" : "失败") + "，Z=" + (int) z + "：" + how);
+        // v3.63 用户：标点传送要「立刻到、直接站在地上」（v3.62 等 3×0.5 秒重试、按自己高度 +30 米兜底慢落都不要了）。
+        //   1. Trace.stand：从高处往下打射线，树/草/叶子/体积/很陡的面跳过接着往下打，第一层能站的面（地形、房顶、石头、地板）= 落点；
+        //   2. 打到了 → 直接传到 落点 + 95 厘米（人物胶囊半高约 88~90 厘米，脚贴地），清掉原来的速度，不再从空中慢落；
+        //   3. 目标点碰撞还没加载（一列什么都没打到）→ 先把人定住（Fly.hold：重力 0、速度 0，不会往下掉），传到目标点，
+        //      每 0.1 秒再打一次，地面一出来就放到地面 +95 厘米再放开（最多 20 秒，超时才慢落）。所有地图都这么走（只在单机/房主）。
+        double yaw = me == null ? 0 : me[3];
+        long tt = System.currentTimeMillis();
+        StringBuilder why = new StringBuilder();
+        Trace.Hit gh = Trace.stand((float) x, (float) y, why);
+        boolean ok; String how;
+        if (gh != null && !Float.isNaN(gh.z)) {
+            ok = Veh.teleport(pawn, x, y, gh.z + STAND, yaw);
+            if (ok) Fly.release();
+            how = String.format("落在 %.0f（%s）+%.0f 厘米；射线：%s", gh.z, gh.land ? "地形" : gh.cls, STAND, why);
+        } else {
+            double hz = me == null ? 0 : me[2];
+            Fly.hold();
+            ok = Veh.teleport(pawn, x, y, hz, yaw);
+            int tries = 0; Trace.Hit g2 = null; StringBuilder w2 = new StringBuilder();
+            while (ok && Con.inMatch && System.currentTimeMillis() - tt < Fly.holdMax) {
+                Thread.sleep(100); tries++;
+                w2.setLength(0); g2 = Trace.stand((float) x, (float) y, w2);
+                if (g2 != null && !Float.isNaN(g2.z)) break;
+                g2 = null;
+            }
+            if (g2 != null) {
+                ok = Veh.teleport(pawn, x, y, g2.z + STAND, yaw);
+                Fly.release();
+                how = String.format("目标点碰撞没加载（%s），原地定住 %d 毫秒（%d 次射线）后落在 %.0f（%s）+%.0f 厘米；射线：%s",
+                    why, System.currentTimeMillis() - tt, tries, g2.z, g2.land ? "地形" : g2.cls, STAND, w2);
+            } else {
+                Fly.release();
+                if (ok) Fly.softLand();
+                how = "目标点 " + (System.currentTimeMillis() - tt) / 1000 + " 秒还没打到地面（" + why + "），放开慢落";
+            }
+        }
+        note("自动传送到标点 " + (ok ? "成功" : "失败") + "，用时 " + (System.currentTimeMillis() - tt) + " 毫秒：" + how);
         state = String.format("标点：(%.0f, %.0f) 传送%s", x, y, ok ? "成功" : "失败");
         if (!ok) GameOverlay.toastAny("标点传送失败（传送功能没装上）");
-        if (ok) Fly.softLand();
         // v3.25 用户：服务端点标点传送，所有人跟着一起传。等房主落地（慢落，不摔），再把加入的玩家都拉到身边一圈（2 米）
         if (ok && (Ed.ED == 1 || Lan.role == 1)) {
             new Thread(() -> {

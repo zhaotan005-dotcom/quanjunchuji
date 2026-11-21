@@ -260,7 +260,7 @@ final class Island {
     static void matchLoaded() {
         if (running) return; running = true;
         soState = "v3.61 不再请求加载 Pickups 关卡（客户端包里没有）";
-        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; gunTables = "训练岛枪桌：没跑"; restock = "训练岛补枪：没跑"; synchronized (spots) { spots.clear(); } logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; vehicles = "训练岛刷车（游戏自己的驾驶训练台）：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
+        block = "分配位置：没试"; range = "射击训练区：没查"; guns = "训练桌放枪：没跑"; gunTables = "训练岛枪桌：没跑"; restock = "训练岛补枪：没跑"; TableGuns.reset(); logic = "常驻层 AlwaysLoad：没跑"; pickup = "物资链：没查"; spawn = "原生刷车/刷物资：没查"; vehicles = "训练岛刷车（游戏自己的驾驶训练台）：没查"; setup = "出生点建立：没查"; track = "坐标/地形块随时间：-"; stream = "流式状态：没查"; state = "训练岛：进了，开始等 GameMode";
         { android.app.Activity x = Con.act; if (x != null) AvatarLog.autoTrain(x); }
         new Thread(() -> {
             try { run(); } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); GameOverlay.toastAny(state); }
@@ -324,20 +324,15 @@ final class Island {
                 // v3.61：pak 文件表（321 个 pak、83436 个文件）里训练岛没有任何 ServerOnly 关卡文件，刷枪点（物资点组件）在这个客户端里不存在，
                 //   v3.55~v3.60 的各种「让游戏加载 Pickups 关卡」都不可能成功 → 不再请求加载（只留诊断）。
                 //   训练场自己的 APickUpRefreshSystem 只会在人在刷物资区里捡走东西后按原位置重刷（OnPlayerPickUp 0x119cf9c 记 {时间,物品,位置} → Tick 0x119d478 → 0x119d884），没有初始刷点表。
-                guns = "训练桌（只看不摆）：线程开始";
+                guns = "训练桌：线程开始";
                 soState = "v3.61 不再请求加载（客户端包里没有 ServerOnly/Pickups 关卡文件）";
-                Thread.sleep(15000);
-                if (!Con.training || !Con.inMatch) { guns = "训练桌放枪：15 秒后不在训练岛了（training " + Con.training + " inMatch " + Con.inMatch + "）"; return; }
-                try { pickup = pickDiag(fb, fnm); } catch (Throwable e) { pickup = "物资链：出错 " + e; } note(pickup);
-                guns = "训练桌（只看不摆）：扫物资";
-                double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
-                if (me != null) for (float[] q : sc.pick) if (d2(q, me) < 15000.0 * 15000.0) near++;
-                guns = "训练桌：原生 150 米内物资 " + near + " 个（v3.62 起自己摆枪，见「训练岛枪桌」）"; note(guns);
-                // v3.62 用户放开：射击区枪桌摆枪 + 子弹，捡走补
-                double[] c = shootCenter(fb, fmgr, fpc);
-                String where = c == null ? "人物位置" : "射击区 " + (int) c[0] + "," + (int) c[1];
-                if (c == null) c = me;
-                if (c != null) { tableGuns(c[0], c[1], c[2], where); restockLoop(fb, fnm); } else { gunTables = "训练岛枪桌：拿不到射击区和人物位置"; note(gunTables); }
+                // v3.63 用户：枪要快点出来 → 不再固定等 15 秒，射击区地面一能打到就找桌子摆（TableGuns），摆完再做物资诊断
+                new Thread(() -> { try { Thread.sleep(15000); if (!Con.training || !Con.inMatch) return; pickup = pickDiag(fb, fnm); note(pickup);
+                    double[] me = me(); Scan sc = scan(fb, fnm); int near = 0;
+                    if (me != null) for (float[] q : sc.pick) if (d2(q, me) < 15000.0 * 15000.0) near++;
+                    guns = "训练桌：15 秒时 150 米内地上物资 " + near + " 个（含自己摆的）"; note(guns);
+                } catch (Throwable e) { pickup = "物资链：出错 " + e; } }, "zf-pickdiag").start();
+                try { TableGuns.run(fb, fnm, fmgr, fpc); } catch (Throwable e) { gunTables = "训练岛枪桌：出错 " + e; note(gunTables); }
             } catch (Throwable e) { guns = "训练桌放枪：出错 " + e; note(guns); }
         }, "zf-tablegun").start(); }
         state = "训练岛：已摆人和 Client Load Block，跟踪地形加载";
@@ -487,128 +482,7 @@ final class Island {
     static volatile String guns = "训练桌放枪：没跑";
     /** 人物周围 36×36 米、1.2 米一格，从人物中心上方 1 米往下打射线（低于棚顶）。
      *  一格比周围 3 米内最低点高 55~115 厘米 = 桌面。桌面格按 1.5 米连成桌子，每张桌子一把枪（按枪表轮流）+ 子弹 3 份。 */
-    /** v3.62 用户（23:24，明确放开 09:59「不许自己摆」）：训练岛射击区的枪桌像原版训练营一样摆枪 + 对应子弹，捡走后补上。
-     *  原版刷枪点在 ServerOnly/Pickups（客户端包里没有）→ 自己找桌子摆：
-     *  - 以射击区（pak shootreturn + 本块偏移）为中心 ±19.8 米、0.9 米格往下打射线（起点 = 射击区地面 +1.9 米，低于棚顶）；
-     *  - 只认「不是地形」的命中（v3.51 的 74 个桌面全是 LandscapeStreamingProxy 地形起伏）：类名/对象名含 Landscape、Character、Vehicle、Pick、Target 的都不算；
-     *    比周围 2.7 米内最低点高 55–115 厘米 = 桌面；1.5 米内、高差 < 30 厘米连成一张桌子；桌子至少 2 格、最长 6 米（排除长栏杆）；
-     *  - 每张桌子沿桌面每隔 1.2 米一个摆放点（最多 4 个），每个点 1 把枪 + 3 份对应子弹（TRAIN_GUNS 轮流：步枪/冲锋枪/狙/连狙/喷子/机枪/手枪）；
-     *  - 刷法：现有 cave 'G'（Veh.dropAt，服务器上生成拾取物，客户端由游戏同步）。游戏自己的 SpawnOnePickUp 0x119d884 要 APickUpRefreshSystem 对象 +
-     *    物品结构体，没在模拟器里验证，这版不用。
-     *  - 补货：每 15 秒扫地上物资（scan 类型 6），某个摆放点 70 厘米内少于摆下的件数、连续两次 → 补 1 把枪 + 缺的子弹；
-     *    第一次扫不到自己摆的东西（类型认不出来）就不补，免得越摆越多。全部未实测。 */
-    static final String[][] TRAIN_GUNS = {
-        {"M416", "20101000001", "20600000001"}, {"AKM", "20101000002", "20600000002"}, {"UMP9", "20105000001", "20600000003"}, {"98K", "20104000001", "20600000002"},
-        {"S1897", "20103000001", "20600000005"}, {"SCAR-L", "20101000004", "20600000001"}, {"Vector", "20105000003", "20600000003"}, {"SKS", "20104000003", "20600000002"},
-        {"M16A4", "20101000003", "20600000001"}, {"UZI", "20105000002", "20600000003"}, {"M24", "20104000004", "20600000002"}, {"S686", "20103000002", "20600000005"},
-        {"Mini14", "20104000006", "20600000001"}, {"M249", "20102000001", "20600000001"}, {"AWM", "20104000002", "20600000006"}, {"P92", "20201000001", "20600000003"},
-        {"P1911", "20201000002", "20600000004"}, {"汤姆逊", "20105000004", "20600000004"} };
-    static final class Spot { float x, y, z; int gun, want, low; Spot(float x, float y, float z, int g) { this.x = x; this.y = y; this.z = z; gun = g; } }
-    static final ArrayList<Spot> spots = new ArrayList<>();
-    static int dropSet(Spot s, boolean gun, int ammo) throws InterruptedException {
-        String[] g = TRAIN_GUNS[s.gun % TRAIN_GUNS.length]; int n = 0;
-        if (gun && Veh.dropAt(Long.parseLong(g[1]), s.x, s.y, s.z) == null) n++;
-        for (int a = 0; a < ammo; a++) if (Veh.dropAt(Long.parseLong(g[2]), s.x + 28f, s.y + (a - 1) * 18f, s.z) == null) n++;
-        return n;
-    }
-    static boolean bad(String who) {
-        String w = who.toLowerCase();
-        return w.contains("landscape") || w.contains("character") || w.contains("vehicle") || w.contains("pick") || w.contains("target") || w.contains("位置对不上");
-    }
-    static void tableGuns(double cx, double cy, double cz, String where) throws Exception {
-        long t0 = System.currentTimeMillis();
-        final float step = 90f; final int R = 22;
-        int n = 2 * R + 1;
-        float[][] z = new float[n][n]; boolean[][] obj = new boolean[n][n]; String[][] who = new String[n][n];
-        int ok = 0, objHits = 0;
-        for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
-            if (!Con.training || !Con.inMatch) return;
-            float x = (float) (cx + (i - R) * step), y = (float) (cy + (j - R) * step);
-            Trace.Hit h = Trace.down(x, y, (float) cz + 100f, (float) cz - 1500f);
-            z[i][j] = h == null || Float.isNaN(h.z) ? Float.NaN : h.z;
-            who[i][j] = h == null ? "" : h.actor + "/" + h.cls;
-            obj[i][j] = h != null && !Float.isNaN(h.z) && !h.land && !bad(who[i][j]);
-            if (!Float.isNaN(z[i][j])) ok++;
-            if (obj[i][j]) objHits++;
-        }
-        ArrayList<float[]> top = new ArrayList<>(); java.util.TreeMap<String, Integer> names = new java.util.TreeMap<>();
-        for (int i = 0; i < n; i++) for (int j = 0; j < n; j++) {
-            if (!obj[i][j]) continue;
-            float lo = z[i][j];
-            for (int a = Math.max(0, i - 3); a <= Math.min(n - 1, i + 3); a++) for (int c = Math.max(0, j - 3); c <= Math.min(n - 1, j + 3); c++) if (!Float.isNaN(z[a][c])) lo = Math.min(lo, z[a][c]);
-            float d = z[i][j] - lo;
-            if (d >= 55 && d <= 115) { top.add(new float[] { (float) (cx + (i - R) * step), (float) (cy + (j - R) * step), z[i][j] }); names.merge(who[i][j], 1, Integer::sum); }
-        }
-        int[] g = new int[top.size()]; for (int i = 0; i < g.length; i++) g[i] = i;
-        for (int i = 0; i < g.length; i++) for (int j = i + 1; j < g.length; j++)
-            if (d2(top.get(i), top.get(j)) < 150.0 * 150.0 && Math.abs(top.get(i)[2] - top.get(j)[2]) < 30) g[root(g, i)] = root(g, j);
-        java.util.LinkedHashMap<Integer, ArrayList<float[]>> tb = new java.util.LinkedHashMap<>();
-        for (int i = 0; i < g.length; i++) tb.computeIfAbsent(root(g, i), k -> new ArrayList<>()).add(top.get(i));
-        ArrayList<Spot> sp = new ArrayList<>(); int tables = 0, gi = 0, longOnes = 0;
-        for (ArrayList<float[]> t : tb.values()) {
-            if (t.size() < 2) continue;
-            double ext = 0; for (float[] p : t) for (float[] q : t) ext = Math.max(ext, d2(p, q));
-            if (ext > 600.0 * 600.0) { longOnes++; continue; }
-            tables++;
-            ArrayList<float[]> chosen = new ArrayList<>();
-            for (float[] p : t) { boolean far = true; for (float[] q : chosen) if (d2(p, q) < 120.0 * 120.0) { far = false; break; } if (far && chosen.size() < 4) chosen.add(p); }
-            for (float[] p : chosen) sp.add(new Spot(p[0], p[1], p[2] + 8f, gi++));
-        }
-        boolean onTable = !sp.isEmpty();
-        if (!onTable) {   // 找不到桌子：射击区中心前方地上一排，间隔 1.5 米
-            for (int k = 0; k < TRAIN_GUNS.length; k++) {
-                float x = (float) (cx + 400 + (k / 9) * 150), y = (float) (cy + ((k % 9) - 4) * 150);
-                Trace.Hit h = Trace.down(x, y, (float) cz + 300f, (float) cz - 1500f);
-                float gz = h == null || Float.isNaN(h.z) ? (float) cz - 80f : h.z + 10f;
-                sp.add(new Spot(x, y, gz, k));
-            }
-        }
-        if (sp.size() > 48) sp.subList(48, sp.size()).clear();
-        int guns0 = 0, items = 0;
-        for (Spot s : sp) {
-            if (!Con.training || !Con.inMatch) return;
-            int k = dropSet(s, true, 3); items += k; s.want = k; if (k > 0) guns0++;
-            Thread.sleep(40);
-        }
-        synchronized (spots) { spots.clear(); spots.addAll(sp); }
-        StringBuilder nb = new StringBuilder(); int c = 0;
-        for (java.util.Map.Entry<String, Integer> e : names.entrySet()) { if (c++ >= 6) break; nb.append(e.getKey()).append("×").append(e.getValue()).append(' '); }
-        gunTables = "训练岛枪桌：" + (onTable ? tables : 0) + " 桌 " + guns0 + " 把（" + (onTable ? "摆在桌上" : "没找到桌子，摆在射击区地上") + "，共 " + items + " 件）；中心 " + where
-            + "；射线 " + ok + "/" + (n * n) + "（非地形 " + objHits + "），桌面格 " + top.size() + "，太长不算 " + longOnes + "，用时 " + (System.currentTimeMillis() - t0) / 1000 + " 秒；桌面命中：" + nb;
-        note(gunTables);
-        if (guns0 > 0) GameOverlay.toastAny("训练岛枪桌已摆好 " + guns0 + " 把");
-    }
     static volatile String gunTables = "训练岛枪桌：没跑", restock = "训练岛补枪：没跑";
-    /** 每 15 秒：摆放点 70 厘米内地上物资少于摆下的件数、连续两次 → 补枪 + 缺的子弹 */
-    static void restockLoop(long b, Veh.Names nm) throws Exception {
-        int rounds = 0, refills = 0; boolean seenOwn = false;
-        while (Con.training && Con.inMatch) {
-            Thread.sleep(15000);
-            if (!Con.training || !Con.inMatch) break;
-            ArrayList<Spot> sp; synchronized (spots) { sp = new ArrayList<>(spots); }
-            if (sp.isEmpty()) { restock = "训练岛补枪：没有摆放点"; return; }
-            Scan sc = scan(b, nm); rounds++;
-            int[] cnt = new int[sp.size()]; int found = 0;
-            for (int i = 0; i < sp.size(); i++) { Spot s = sp.get(i); for (float[] q : sc.pick) { double dx = q[0] - s.x, dy = q[1] - s.y; if (dx * dx + dy * dy < 70.0 * 70.0) cnt[i]++; } found += Math.min(cnt[i], s.want); }
-            if (!seenOwn) {
-                if (found == 0) { restock = "训练岛补枪：地上物资扫描认不出我们摆的东西（地上物资 " + sc.pick.size() + " 个），不补（免得越摆越多）"; note(restock); return; }
-                seenOwn = true;
-            }
-            int now = 0;
-            for (int i = 0; i < sp.size(); i++) {
-                Spot s = sp.get(i);
-                if (cnt[i] >= s.want || cnt[i] > 8) { s.low = 0; continue; }
-                if (++s.low < 2) continue;
-                int miss = s.want - cnt[i];
-                now += dropSet(s, true, Math.max(0, Math.min(3, miss - 1))); s.low = 0;
-                Thread.sleep(40);
-            }
-            refills += now;
-            restock = "训练岛补枪：第 " + rounds + " 次检查，摆放点 " + sp.size() + "，这次补 " + now + " 件，累计 " + refills + " 件";
-            if (now > 0) note(restock);
-        }
-    }
-
     static void note(String s) { LogCap.note(s); }
     /** 读一个字节（Server.rd 只读 4 字节对齐） */
     static int rb(RandomAccessFile m, long a) { return (int) ((Server.rd(m, a & ~3L) >>> ((a & 3) * 8)) & 0xff); }

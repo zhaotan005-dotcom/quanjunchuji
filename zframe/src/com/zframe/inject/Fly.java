@@ -38,7 +38,25 @@ final class Fly {
         return state = "飞天：关，慢慢落下";
     }
 
-    static boolean busy() { return want || on || falling; }
+    static boolean busy() { return want || on || falling || holdOn || zeroUntil > System.currentTimeMillis(); }
+
+    /** v3.63 标点传送：目标点地面碰撞还没加载时，人原地定住（重力 0、速度 0，不下落），等地面出来再放到地面上。
+     *  hold() 开始，release() 结束（还原重力，再清 0.3 秒速度，免得带着原来的下落速度）。最多定 holdMax 毫秒，超时自动放开。 */
+    static volatile boolean holdOn; static volatile long holdT0, zeroUntil; static long holdMax = 20000, holdCmc; static float hGrav = Float.NaN;
+    static void hold() { holdT0 = System.currentTimeMillis(); holdOn = true; Mods.startMover(); }
+    static void release() { holdOn = false; zeroUntil = System.currentTimeMillis() + 300; Mods.startMover(); }
+    static void holdTick(RandomAccessFile m, long c, int mw, long now) throws java.io.IOException {
+        if (holdOn && now - holdT0 > holdMax) { holdOn = false; LogCap.note("标点传送：定住超过 " + holdMax / 1000 + " 秒，放开"); }
+        if (holdOn) {
+            if (Float.isNaN(hGrav) || holdCmc != c) { hGrav = Mods.f(m, c + C_GRAV); holdCmc = c; if (hGrav == 0f) hGrav = 1f; }
+            if ((mw & 0xff) != Mods.MOVE_FALLING) Mods.wi(m, c + Mods.C_MODE, (mw & ~0xff) | Mods.MOVE_FALLING);
+            Mods.wf(m, c + C_GRAV, 0f);
+            Mods.wf(m, c + Mods.C_VEL, 0f); Mods.wf(m, c + Mods.C_VEL + 4, 0f); Mods.wf(m, c + Mods.C_VEL + 8, 0f);
+            return;
+        }
+        if (!Float.isNaN(hGrav)) { if (holdCmc == c && !want && !on) Mods.wf(m, c + C_GRAV, hGrav); hGrav = Float.NaN; }
+        if (zeroUntil > now) { Mods.wf(m, c + Mods.C_VEL, 0f); Mods.wf(m, c + Mods.C_VEL + 4, 0f); if (Mods.f(m, c + Mods.C_VEL + 8) < 0f) Mods.wf(m, c + Mods.C_VEL + 8, 0f); }
+    }
 
     static void restore(RandomAccessFile m, long c) throws java.io.IOException {
         if (!on) return;
@@ -54,6 +72,9 @@ final class Fly {
         int mw = Mods.rd(m, c + Mods.C_MODE);
         int mode = mw & 0xff;
         long now = System.currentTimeMillis();
+        if (!Con.inMatch) holdOn = false;
+        holdTick(m, c, mw, now);
+        if (holdOn) return;
         boolean ok = mode == 1 || mode == Mods.MOVE_FALLING;
         if (!Con.inMatch || (on && c != cmcOn) || (busy() && Bots.phase != phaseOn)) {   // 换人物/阶段变了（上飞机、跳伞）：关掉不管
             if (busy() && Bots.phase != phaseOn) { state = "飞天：对局阶段变了，已自动关"; }

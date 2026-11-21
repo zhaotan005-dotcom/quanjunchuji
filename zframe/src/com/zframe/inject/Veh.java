@@ -129,11 +129,13 @@ public class Veh {
         return null;
     }
     /** v2.20 房主：在指定坐标（游戏世界坐标，厘米）放一件拾取物（cave 'G'，服务器上生成，客户端由游戏同步）；返回 null = 成功 */
-    static synchronized String dropAt(long id, float x, float y, float z) throws InterruptedException {
+    static String dropAt(long id, float x, float y, float z) throws InterruptedException { return dropAt(id, x, y, z, 0f); }
+    /** v3.63 带朝向（yaw 度，SpawnOnePickUp 的 Rot = buf+52 pitch / +56 yaw / +60 roll） */
+    static synchronized String dropAt(long id, float x, float y, float z, float yaw) throws InterruptedException {
         if (!installed) return state;
         if (buf == null) { buf = ByteBuffer.allocateDirect(256).order(ByteOrder.LITTLE_ENDIAN); addr = GameOverlay.bufAddr(buf); }
         buf.putFloat(40, x); buf.putFloat(44, y); buf.putFloat(48, z);
-        buf.putFloat(52, 0f); buf.putFloat(56, 0f); buf.putFloat(60, 0f);
+        buf.putFloat(52, 0f); buf.putFloat(56, yaw); buf.putFloat(60, 0f);
         buf.putInt(124, (int) (id % 10000));
         if (!call('G', id / 10000) || buf.getInt(0) != 0x5b0a) return "补丁代码没反应";
         return null;

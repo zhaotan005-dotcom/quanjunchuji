@@ -23,7 +23,7 @@ final class Trace {
     static volatile int calls, hits, fails;
     static ByteBuffer pb; static long pa; static long worldC, worldAt;
 
-    static final class Hit { float x, y, z; String actor = "", cls = ""; boolean land; long obj; }
+    static final class Hit { float x, y, z, nz = 1f; String actor = "", cls = "", comp = ""; boolean land; long obj; }
 
     /** 找 UFunction 和类默认对象（进程里只要找一次，都是常驻对象） */
     static volatile long failAt;
@@ -83,7 +83,9 @@ final class Trace {
         if (!ret) { h.z = Float.NaN; return h; }
         hits++;
         h.x = pb.getFloat(HIT + 0x18); h.y = pb.getFloat(HIT + 0x1c); h.z = pb.getFloat(HIT + 0x20);
-        int idx = pb.getInt(HIT + 0x64);
+        h.nz = pb.getFloat(HIT + 0x38);   // ImpactNormal.Z
+        if (Float.isNaN(h.nz) || h.nz == 0f) h.nz = pb.getFloat(HIT + 0x2c);   // Normal.Z
+        int idx = pb.getInt(HIT + 0x64), cidx = pb.getInt(HIT + 0x6c);
         long b = Mods.base();
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             Veh.Names nm = Veh.Names.get();
@@ -91,6 +93,10 @@ final class Trace {
             if (idx > 0 && idx < n && objs >= 0x10000) {
                 long o = Server.rd(m, objs + 16L * idx) & 0xffffffffL;
                 if (o >= 0x10000) { h.obj = o; h.actor = Alive.objName(m, nm, o); h.cls = Alive.clsName(m, nm, o); }
+            }
+            if (cidx > 0 && cidx < n && objs >= 0x10000) {
+                long o = Server.rd(m, objs + 16L * cidx) & 0xffffffffL;
+                if (o >= 0x10000) h.comp = Alive.objName(m, nm, o);
             }
         } catch (Throwable ignored) {}
         h.land = h.cls.contains("Landscape") || h.actor.startsWith("Landscape");
@@ -101,6 +107,29 @@ final class Trace {
     static float ground(float x, float y, float zTop, float zBot) {
         Hit h = down(x, y, zTop, zBot);
         return h != null && h.land ? h.z : Float.NaN;
+    }
+    /** v3.63 标点传送用：人能站的面。从高处往下打，碰到树/草/叶子/体积/很陡的面（法线 Z < 0.6）就从它下面 3 厘米接着往下打，
+     *  最多 6 层；第一层能站的（地形、房顶、石头、地板）就是落点。返回 null = 调用失败；z 是 NaN = 这一列什么都没打到（碰撞还没加载）。
+     *  why 记每一层打到什么（诊断）。 */
+    static Hit stand(float x, float y, StringBuilder why) {
+        float top = 500000f; Hit last = null;
+        for (int i = 0; i < 6; i++) {
+            Hit h = down(x, y, top, -500000f);
+            if (h == null) return null;
+            if (Float.isNaN(h.z)) { if (why != null) why.append(i == 0 ? "什么都没打到" : " → 下面没有了"); break; }
+            boolean bad = h.cls.contains("位置对不上");
+            boolean soft = !h.land && (bad || softName(h.actor + "/" + h.cls + "/" + h.comp) || h.nz < 0.6f);
+            if (why != null) why.append(i == 0 ? "" : " → ").append(String.format("%.0f %s/%s/%s 法线%.2f%s", h.z, h.cls, h.actor, h.comp, h.nz, soft ? "（跳过）" : ""));
+            if (!soft) return h;
+            last = h; top = h.z - 3f;
+        }
+        Hit n = new Hit(); n.z = Float.NaN; if (last != null) { n.actor = last.actor; n.cls = "只打到跳过的东西"; } return n;
+    }
+    static boolean softName(String s) {
+        String w = s.toLowerCase().replace("street", "").replace("spine", "");
+        for (String k : new String[] { "foliage", "tree", "bush", "leaf", "leaves", "plant", "grass", "branch", "pine", "birch", "fern", "shrub",
+                "volume", "trigger", "blocking", "water", "ocean", "sky", "cloud", "camera" }) if (w.contains(k)) return true;
+        return false;
     }
     static String text() { return state + "（调用 " + calls + " 次，打到 " + hits + "，失败 " + fails + "）"; }
 }
