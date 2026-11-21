@@ -97,7 +97,7 @@ public class Mods {
             LogCap.note("出生衣服钩子 → " + w); wearInstall = w;
             if ("ok".equals(w)) Server.syncWear(); else wearState = "出生衣服：没装上，" + w;
             Server.preinstall();
-        } else wearState = "出生衣服：" + Ed.name() + "不装";
+        } else { wearState = "出生衣服：" + Ed.name() + "不装"; Server.preinstall(); }   // v3.76 服务端/客户端包也预装服务端钩子（门关着=原样），游戏「创建房间」要靠它回包
         Lan.preinstall();
         LogCap.note("刷车钩子 → " + Veh.install());
         LogCap.note(PickAnim.install());   // v2.70 拾取两次动作

@@ -175,10 +175,12 @@ public class Server {
         push(36002, 1, true, new PB().u(1, 0).bytes(), "补回 36001");
         push(22006, 2, false, new PB().u(1, 0).bytes(), "补回 22005");
         push(30015, 5, false, new PB().u(1, 0).bytes(), "补回 30014");
+        if (Ed.single()) {   // v3.76 联机两个包只回房间等包，不发仓库
         mark("补给直接入库");
         giveGift();   // v1.90：不再发邮件，角色/发型/衣服直接放进仓库（用户要求）
         mark("准备 13002");
         push(13002, 0, false, depositProps(true), "仓库");
+        }
         mark("开 SEND 门");
         rpl.putInt(24, 1);                             // 打开 SEND 的门
         Thread t = new Thread(Server::loop, "zf-server"); t.setDaemon(true); t.start();
