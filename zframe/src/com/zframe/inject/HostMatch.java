@@ -12,7 +12,7 @@ import java.io.RandomAccessFile;
 final class HostMatch {
     static final long GIVE_CAVE = 0x17169c0L;
     static volatile String state = "开局发道具：还没开局";
-    static volatile boolean hideHost = true;
+    static volatile boolean hideHost = false;   // v3.74 用户：以后不用去掉房主人物（开关也删了）
     static final java.util.HashSet<Long> given = new java.util.HashSet<>();
     static volatile long hidden;
     static java.nio.ByteBuffer sb; static long sbAddr;

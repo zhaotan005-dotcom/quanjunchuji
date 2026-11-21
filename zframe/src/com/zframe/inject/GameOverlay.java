@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.73";
+    static final String VER = "v3.74";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1064,45 +1064,21 @@ public class GameOverlay {
         if (NetCore.readyVer > ZInit.CORE_VER) {
             LinearLayout ur = row(a, root);
             primary(a, u, ur, "有新版本，点这里重启更新", () -> NetCore.restart(a));
-        } else if (Ed.ED == 1 ? (NetCore.status.startsWith("检查更新失败") || NetCore.status.startsWith("发现新版本")) : !NetCore.status.isEmpty()) note(a, u, root, Ed.ED == 1 ? NetCore.status : "更新：" + NetCore.status);
+        } else if (!NetCore.status.isEmpty()) note(a, u, root, "更新：" + NetCore.status);   // v3.74 服务端也跟客户端一样显示
         // v2.13：分版本，不再有联机/单机切换
         lobbyTab = Ed.single() ? 1 : 0;
         UpdUi.probe();   // v3.14：找游戏自己的更新页蓝图（日志 upd-*）
         if (lobbyTab == 0) {
           if (Ed.ED == 1) {
+            // v3.74 用户：服务端菜单跟客户端同一个样子，删掉不相干的（单挑、去掉房主人物、本机 IP、调试说明），进训练营改成联机训练营
+            head(a, u, root, "开房");
             LinearLayout hc = card(a, u, root);
-            kv(a, u, hc, "本机 IP", Lan.ip());
-            // v3.50 用户：服务端加进训练营（和单机同一个训练岛默认模式，开房 ?listen，服务端有权威，看原生刷不刷枪）。放第一行，原来卡片下面的两个旧按钮去掉
-            LinearLayout tr2 = row(a, hc); tr2.setPadding(0, u.dp(4), 0, u.dp(2));
-            primary(a, u, tr2, "进训练营", () -> { Training.off(); Duel.off(); toast(a, Lan.host(Con.MAP_TRAINING)); });
-            LinearLayout r = row(a, hc); r.setPadding(0, u.dp(4), 0, u.dp(6));
-            fillBtn(a, u, r, "老海岛", () -> { Training.off(); Duel.off(); toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")); });
-            // v3.03 用户：新海岛默认就是战术模式（v3.02 实测战术模式能用：原生道具栏、道具都能用）
-            fillBtn(a, u, r, "新海岛", () -> { Training.off(); Duel.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")); });
-            fillBtn(a, u, r, "雨林", () -> { Training.off(); Duel.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")); });   // v3.66 用户：雨林也是战术模式
-            // v3.16 用户：两人单挑（20 个头赢、选枪、5 秒复活、3 秒无敌），雨林 / 海岛各一个，打出生岛
-            LinearLayout dr = row(a, hc); dr.setPadding(0, 0, 0, u.dp(6));
-            fillBtn(a, u, dr, "单挑·海岛", () -> toast(a, Duel.open(false)));
-            fillBtn(a, u, dr, "单挑·雨林", () -> toast(a, Duel.open(true)));
-            // v3.21 用户：不要让用户记录任何地点 → 去掉「记录单挑点 / 清除单挑点」，场地程序自己选（DuelArena.java）
-            note(a, u, hc, Duel.state + (Duel.respawnState.isEmpty() ? "" : "；" + Duel.respawnState));
-            // v3.33 用户：训练营回来了（真地图找到了），服务端也能开房进训练岛
-            // v3.15 用户：删掉训练营和决胜五军（Training/ModeProbe.BFA 代码留着，不再有入口）
-            // v3.03 用户：再找找别的地图 → 服务端进大厅自动扫名字表里的 /Game/Maps/…_Main（ModeProbe.maps），除了上面三张，扫到的都列出来（战术模式开）
-            java.util.List<String> extra = ModeProbe.maps;
-            LinearLayout xr = null; int xn = 0;
-            for (final String mp : extra) {
-                if (mp.contains("BR-Erangel_Mobile_Main") || mp.contains("BR-ErangelRenew_Mobile_Main") || mp.contains("BR-Savage_Mobile_Main")) continue;
-                if (xn % 3 == 0) xr = row(a, hc);
-                String lb = mp.substring(mp.lastIndexOf('/') + 1).replace("BR-", "").replace("_Mobile_Main", "").replace("_Main", "");
-                fillBtn(a, u, xr, lb + "（试）", () -> toast(a, ModeProbe.host("Props", "战术模式", mp)));
-                xn++;
-            }
-            if (xr != null) while (xn % 3 != 0) { xr.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); xn++; }
-            switchRow(a, u, hc, "去掉房主人物", "开局把房主自己的人物隐藏、关碰撞、冻住（看不到、打不到、挡不住人，也不和任何人一队），房主只当服务器", HostMatch.hideHost, v -> { HostMatch.hideHost = v; return "ok"; });
-            // v3.21 用户：删掉「出生岛空投」（更新后出生岛根本没有空投，没用）。Box 开局放堆/排车不再跑（Box.on=false，HostMatch 不再调 Box.tick）
-            note(a, u, hc, HostMatch.state);
-            note(a, u, hc, ModeProbe.state);
+            LinearLayout tr2 = row(a, hc); tr2.setPadding(0, u.dp(8), 0, u.dp(4));
+            fillBtn(a, u, tr2, "联机训练营", () -> { Training.off(); Duel.off(); toast(a, Lan.host(Con.MAP_TRAINING)); });
+            LinearLayout r = row(a, hc); r.setPadding(0, u.dp(4), 0, u.dp(8));
+            btn(a, u, r, "老海岛", () -> { Training.off(); Duel.off(); toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")); });
+            btn(a, u, r, "新海岛", () -> { Training.off(); Duel.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")); });
+            btn(a, u, r, "雨林", () -> { Training.off(); Duel.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")); });
             LinearLayout mr = row(a, root);
             // v2.22：房主也能选模式。房主自己没网络连接，游戏不让他上飞机；「不刷毒对局」= 大家都不上飞机，一起在出生岛开打
             pick(a, u, mr, "正常对局", !Mods.zoneOff(), () -> { toast(a, Mods.setNormal()); refreshAny(); });
@@ -1795,7 +1771,7 @@ public class GameOverlay {
             if (Con.inMatch) return "全军出击单机版";
             return "全军出击 艾挽";   // v3.65 用户：「全军出击」后面空一格加「艾挽」（v3.64 只要「全军出击」）
         }
-        return Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端";
+        return Ed.ED == 1 ? "全军出击 艾挽 服务端" : "全军出击 艾挽";   // v3.74 跟客户端一个样子
     }
     /** v3.21 用户：单机/联机选择放在大厅菜单里（分段按钮），不要弹窗；记住（prefs lobby_net） */
     static volatile Boolean netTabV;
