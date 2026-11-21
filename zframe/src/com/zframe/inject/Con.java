@@ -427,8 +427,9 @@ public class Con {
     static volatile long startAt;
     /** 地图编号来自日志：1 老海岛，3 新海岛（GameMapId=3），4 雨林（GameMapId=4），5 训练场 */
     static void startGame(final int id) {
+        // v3.66 用户：雨林也用战术模式（和海岛一样能用战术道具）
         // v3.22 用户：单机新海岛也用战术模式（和联机服务端开房一样：?game=战术模式蓝图）
-        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE : id == 5 ? MAP_TRAINING : null;   // v3.33：5 训练场 = 训练岛默认模式
+        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE + "?game=" + ModeProbe.cache.get("Props") : id == 5 ? MAP_TRAINING : null;   // v3.33：5 训练场 = 训练岛默认模式
         // v3.42 用户：删掉伪装联机（v3.25 加的单机 ?listen 进图；v3.31 起默认关），单机一律真单机进图
         final String m = m0;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);

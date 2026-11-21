@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.65";
+    static final String VER = "v3.66";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1079,7 +1079,7 @@ public class GameOverlay {
             fillBtn(a, u, r, "老海岛", () -> { Training.off(); Duel.off(); toast(a, Lan.host("/Game/Maps/ErangelMobile_Runtime/BR-Erangel_Mobile_Main")); });
             // v3.03 用户：新海岛默认就是战术模式（v3.02 实测战术模式能用：原生道具栏、道具都能用）
             fillBtn(a, u, r, "新海岛", () -> { Training.off(); Duel.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/ErangeMobileRenew_Runtime/BR-ErangelRenew_Mobile_Main")); });
-            fillBtn(a, u, r, "雨林", () -> { Training.off(); Duel.off(); toast(a, Lan.host("/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")); });
+            fillBtn(a, u, r, "雨林", () -> { Training.off(); Duel.off(); toast(a, ModeProbe.host("Props", "战术模式", "/Game/Maps/SavageMobile_4x4_Runtime/BR-Savage_Mobile_Main")); });   // v3.66 用户：雨林也是战术模式
             // v3.16 用户：两人单挑（20 个头赢、选枪、5 秒复活、3 秒无敌），雨林 / 海岛各一个，打出生岛
             LinearLayout dr = row(a, hc); dr.setPadding(0, 0, 0, u.dp(6));
             fillBtn(a, u, dr, "单挑·海岛", () -> toast(a, Duel.open(false)));

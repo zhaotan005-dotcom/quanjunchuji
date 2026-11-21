@@ -297,3 +297,8 @@
   ⑦军需：点的时候游戏没发任何请求（v3.64 lobbyop 里没有 51xxx/31xxx/38xxx）→ 大厅里建界面（CreateUI 非 StoreUI/失败）或 Lua 报错时自动传 lobbyop-（进大厅 20 秒后）。
 - 降落伞「装备成功」：libUE4 里没有这串字（Lua/蓝图里），没改。
 - 构建：/tmp/core.sh <ver> <corever>（本沙盒 JDK/SDK 在 /workspace/w/tools），会改 Ed.BUILD，结束还原（失败中断时手动改回 1）。
+
+## v3.66（core267，2026-11-21 15:0x，只推内核，未实测）
+- 用户 14:52：v3.65 大厅手持枪展示能点了。雨林也要战术模式（能用战术道具），单机和服务端都要。
+- 改：Con.startGame 编号 4 → MAP_SAVAGE + ?game=BP_NZBattleRoyalePropsGameMode；服务端开房「雨林」走 ModeProbe.host("Props")。
+- 用户说点「军需」进的是游戏自带「房间」页（单人模式/经典模式下拉、开始游戏卡在「正在进入战局…」）；用户：开房以后再修，修好拿它组队（待办，没动）。
