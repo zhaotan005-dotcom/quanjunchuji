@@ -137,8 +137,17 @@ final class Parabola {
         aim = "抛物线跟视角（0xefaea8 主机也用控制器视角）：" + r;
         LogCap.note(aim);
     }
+    /** v3.69 用户：捏雷时不能蹲起。RE：姿态切换检查 0xd7adcc（返回 EMovementFailureReason）在 0xd7af08 bl 0xd1c060
+     *  读人物 +0x810 bIsInKeepPreFireState，为真返回 10 = IsInKeepPreFireState。补丁：这条 bl 改 mov r0,#0（只跳过这一项，其它检查照旧）。 */
+    static volatile String crouch = "捏雷蹲起：没装";
+    static void crouchFix() {
+        String r = Mods.write(0xd7af08L, "5484feeb", "0000a0e3", true);
+        crouch = "捏雷蹲起（0xd7af08 不查捏雷状态）：" + r;
+        LogCap.note(crouch);
+    }
     static void matchStart() {
         aimFix();
+        crouchFix();
         if (watching) return; watching = true;
         new Thread(() -> {
             try {

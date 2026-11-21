@@ -1,5 +1,5 @@
 import sys,struct
-exec(open('/workspace/work/quanjunchuji/game/re/ue.py').read())
+exec(open('ue.py').read())
 def vcalls(off,lo=0x8aeb18,hi=0x8aeb18+0x378b814):
     res=[]
     w=D[lo:hi]

@@ -197,7 +197,7 @@ public class Con {
     static volatile int tweakDone; static volatile long waitAt, brAt;
     /** v1.49：当前是不是在对局地图里（大厅 = false）。加速/高跳/刷物品只在对局里用 */
     public static volatile boolean inMatch;
-    static volatile long lobbyAt;
+    static volatile long lobbyAt, mallTipAt;
     static volatile long quitAt;
     public static volatile String navInfo = "";
     static final java.util.ArrayList<String> botLog = new java.util.ArrayList<>();
@@ -490,6 +490,8 @@ public class Con {
         // v3.65 用户：要先弹游戏自己的「确定要退出演习？」，点确认再退。v3.64 认的是「Btn_System_QuitMatch Btn Click」（点按钮那一下，确认框刚弹出就走了）→ 改成只认确认后的 QueryQuitMatch
         if (training && inMatch && (l.contains("QueryQuitMatch") || l.contains("ConfirmQuitMatch") || l.contains("QuitMatchConfirm_OK")) && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
         // v3.65 军需点不开：点的时候没发任何请求 → 看界面/脚本这边：大厅里出现建界面失败、Lua 报错、或建了没见过的界面，就自动传一份大厅日志
+        // v3.69 用户：点军需打不开。军需 = MallMainView（UBasePandoraMall），商品页是腾讯 Pandora 网页，要连腾讯服务器下，单机永远等不到 MallReady
+        if (!inMatch && (l.contains("WaitingMallReady") || l.contains("Pandora is Ready Mall")) && System.currentTimeMillis() - mallTipAt > 60000) { mallTipAt = System.currentTimeMillis(); GameOverlay.toastAny("军需是腾讯的网页商城，要连腾讯服务器才有内容，单机打不开；衣服、枪皮仓库里都有"); LogCap.note("军需：" + l); }
         if (!inMatch && Server.on && System.currentTimeMillis() - lobbyAt > 20000 && ((l.contains("CreateUI") && (l.contains("fail") || l.contains("Fail") || !l.contains("StoreUI"))) || (l.toLowerCase().contains("lua") && l.contains("rror")) || l.contains("Mall") || l.contains("Midas") || l.contains("Pandora") || l.contains("Commodity") || l.contains("Lottery") || l.contains("Treasure"))) Server.opLog(0);   // v3.67 军需「加载商城」
         if (l.contains("LogLoad: Took")) GfxOpt.afterLoad();   // v3.58 画面细项每次进图重发
         int tk = l.indexOf("LogLoad: Took");

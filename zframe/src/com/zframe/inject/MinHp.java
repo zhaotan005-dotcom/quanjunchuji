@@ -12,7 +12,7 @@ import java.nio.ByteOrder;
 final class MinHp {
     static final long HOOK = 0xcc0e10L, A = 0x171e1c8L, B = 0x171e28cL;
     static final String HOOK_O = "0000a0e3", HOOK_N = "ec7429ea";
-    static final String CA = "2c109fe5000091e5080050e13300001a5a0e88e2001a90ed000a96ed012a91ed421a31eec10ab4ee10faf1ee2b00009a230000ea";
+    static final String CA = "2c109fe5000091e5080050e13300001aa00598e5010040e2100a01eec11ab8ee000a96edc10ab4ee10faf1ee2b00009a230000ea";
     static final String CA_O = "f04b2de918b08de218d04de20140a0e10080a0e1041094e5bc029fe5007094e5000051e3b4229fe54710a0e300708f0002008fe0046080e2";
     static final String CB = "100a11ee000050e30000a0b3000086e5080091e5010080e2080081e50000a0e3d88ad6ea";
     static final String CB_O = "0c1095e55c2090e55c3091e5030052e1e4ffffca581091e5580080e2021191e7000051e1";
@@ -51,12 +51,13 @@ final class MinHp {
             try {
                 String r = install();
                 if (!"ok".equals(r)) { state = "训练场锁血：没装上，" + r; LogCap.note(state); return; }
-                int n = 0;
+                int n = 0, last = 0;
                 while (Con.training && Con.inMatch) {
                     long me = Mods.myPawn();
                     buf.putInt(0, (int) me);
                     state = "训练场锁血：已装（血最低留 1，人物 " + Long.toHexString(me) + "，挡住致命伤害 " + buf.getInt(8) + " 次）";
-                    if (++n == 5) LogCap.note(state);
+                    int c = buf.getInt(8);
+                    if (++n == 5 || c != last) { LogCap.note(state); last = c; }
                     Thread.sleep(1000);
                 }
                 state = state + "；已离开训练岛，停";

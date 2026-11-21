@@ -312,3 +312,10 @@
 - 协议：game/re/protoext.py+protodump.py 重新导出 58 个 .proto 到 game/proto/（cmd.proto 是消息号表，cs_roomsvr/cs_roomcenter 是房间）。
 - 用户要：游戏自带「创建房间」能用，所有人能加入，云手机挂服务端。计划：服务端包（云手机）开房 → 用 cs_roomsvr 回 26001/26005/26017，27006 房间列表填云手机房间，开始后 26031 CSRoomGetDsInfoNtf 给 frp-put.com:47937 让游戏原生连。下一版做。
 - 用户说：扔闪光弹/烟雾弹显示手雷的图标；捏雷时不能蹲起。没查。
+
+## v3.69（core270，2026-11-21 18:5x，只推内核，未实测）
+- 训练场不掉血的原因：MinHp cave 把 Health(+0x5a0) 当 float 读，实际是 int（TakeDamage 0xbe0e48 ldr/sub/str）→ 每次伤害都被夹成 0。改成 ldr r0,[r8,#0x5a0]; sub r0,#1; vmov s2; vcvt.f32.s32 → 伤害 > 血−1 才夹。unicorn 测：100 血 30 伤 → 30；150 伤 → 99；1 血 → 0。防摔（NoFall）没动。锁血计次变化就写日志。
+- 捏雷不能蹲起：姿态检查 0xd7adcc（返回 EMovementFailureReason）在 0xd7af08 bl 0xd1c060 读人物 +0x810 bIsInKeepPreFireState → 10 IsInKeepPreFireState。补丁 0xd7af08 5484feeb → 0000a0e3（Parabola.crouchFix，每局 matchStart 装，所有端）。诊断「捏雷蹲起」。
+- 军需：MallMainView = UMallUIView : UBasePandoraMall，内容是 Pandora 网页（等 MallReady），pak 里没有原生 ShoppingMall_C（上次说「改开本地商城」是错的）。现在 UE 日志出现 WaitingMallReady / Pandora is Ready Mall 时弹提示说明。
+- 闪光/烟雾图标：武器是对的（BP_NZWeap_StunGrenade_C），图标是 HUD 蓝图 UpdateThrowWeaponTexture 选的，没改。另：震爆弹投掷模式 [武器+3e8]+24+20 = 2，ThrowWeaponTrace=0 时要 5/6 → 震爆弹不画抛物线。
+- 房间 Room.java：Server.handle 先给 Room（26xxx/27xxx、房主在房间里的 15001）。建房 26001→26002、改房 26025、信息 26017、加入 26005/26033、退出 26007、开始 26011/15001、列表 27005→27006、搜房号 27001。房间表走 ntfy zf-qj-room-k7r2p9m4x1（R/J/Q 行，见类注释），房主每 30 秒发一次。开始：房主本机 Lan.host / ModeProbe.host（地图 1 老海岛、3 新海岛战术、4 雨林战术），进图后发 P，加入的人 Lan.join(地址)。地址：服务端包（云手机 Ed.ED==1）= frp-put.com:47937，其它 = 局域网 IP。

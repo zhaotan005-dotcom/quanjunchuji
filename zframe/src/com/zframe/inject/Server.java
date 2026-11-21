@@ -312,6 +312,9 @@ public class Server {
             } else if (r.field == 2 && r.wire == 2) body = r.raw();
         }
         String what;
+        // v3.69 游戏自带房间（建房/加入/列表/开始）交给 Room
+        String rmw = (cmd >= 26000 && cmd < 28000) || cmd == 15001 ? Room.handle(cmd, seq, key, body) : null;
+        if (rmw != null) what = rmw; else
         switch (cmd) {
             case 13001: push(13002, seq, key, depositProps()); what = "仓库物品"; break;
             // v3.65 用户：大厅仓库里点枪「展示」（手持枪）没效果。13022 = CSDepositReportShowInfoReq{show_info=1}，回 13023 CSDepositReportShowInfoRes{result=1, show_info=2}
@@ -355,7 +358,7 @@ public class Server {
         long rc = (cmd == 13003 || cmd == 13005) ? reqId(body) / 100000000L : 0;
         if (!SEEN.contains(cmd) || (rc != 0 && (rc < 300 || rc >= 400) && rc != 101 && rc != 102 && rc != 405) || (cmd >= 31000 && cmd < 32000) || (cmd >= 38000 && cmd < 39000) || (cmd >= 51000 && cmd < 52000)) opLog(cmd);
     }
-    static final java.util.Set<Integer> SEEN = new java.util.HashSet<>(java.util.Arrays.asList(10001, 15016, 44033, 37010, 36001, 30014, 22005, 22003, 73140, 83001, 15001, 15003, 15005, 13001, 13003, 13005, 13022, 25001, 25003, 25005));
+    static final java.util.Set<Integer> SEEN = new java.util.HashSet<>(java.util.Arrays.asList(10001, 15016, 44033, 37010, 36001, 30014, 22005, 22003, 73140, 83001, 15001, 15003, 15005, 13001, 13003, 13005, 13022, 25001, 25003, 25005, 27005, 27001, 26001, 26005, 26007, 26011, 26017, 26025, 26033));
     static volatile long opAt;
     static void opLog(int cmd) {
         long now = System.currentTimeMillis();

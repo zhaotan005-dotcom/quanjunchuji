@@ -1,5 +1,5 @@
 import sys
-exec(open('/workspace/work/quanjunchuji/game/re/ue.py').read())
+exec(open('ue.py').read())
 TS,TE=0x8aeb18,0x8aeb18+0x378b814
 def vt(a):
     v=a
