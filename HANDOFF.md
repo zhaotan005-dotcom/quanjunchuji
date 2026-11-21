@@ -339,3 +339,4 @@
 - 2026-11-21 用户不要框架 App：原版游戏 APK 在 /workspace/w/game_apk/game.apk；沙盒打游戏包用 /workspace/w/hostpatch/Host.java（patchBase+patchSound+gkey 签名，参数：game.apk core/b<ED>.dex 输出）。v3.77 客户端(b2)/服务端(b1)游戏包已发。
 
 - v3.78（core279，2026-11-21 19:4x，只推内核，未实测）：服务端监听端口跟着开房地址的端口走（Lan.setListenPort，开房前改 UrlConfig.DefaultPort = libUE4+0x5374904；RE：FUrlConfig::Init 0x1a34ad0，UrlConfig 0x53748c8，+0x3c Port）。开房地址 frp-put.com:47937 → 本机听 UDP 47937；没写端口的地址仍 7777。用户 frpc 的 local_port 要从 7777 改成 47937。诊断行「服务端监听端口」。
+- v3.79（core280）：撤回 v3.78。用户 Sakura FRP 隧道 aiwan 本地 127.0.0.1:7777、远程 frp-put.com:47937 固定不能改 → 服务端一直听默认 7777（setListenPort 留着没调用）。UE4 不要求穿透两端端口一致。
