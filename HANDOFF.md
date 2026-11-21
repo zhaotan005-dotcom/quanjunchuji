@@ -335,3 +335,5 @@
 - v3.76（core277）：服务端/客户端包启动也预装完整服务端钩子（之前只装 TICK，大厅再装时 TICK 字节已变 →「游戏代码和预期不一样」没开，创建房间 26001 无回包）；联机包开服务端不发仓库/礼物。删跨进程：内核里不再从 com.zframe.mods 读插件；ZInit.onCreate 源码去掉读 ZFrame App 内核（要新 APK 才生效）。
 
 - v3.77（core278/vc278）：LobbyLoad 进大厅加载页（Browse 大厅→盖层进度条，人物装好 HideLoadingProgress/OnChangeHairColor 后 2.5 秒到 100%，最长 15 秒）。打了三包 releases/ZFrame-v3.77-*.apk（ZInit.onCreate 不再读 ZFrame App 内核，需用新包重打补丁才进游戏包）。
+
+- 2026-11-21 用户不要框架 App：原版游戏 APK 在 /workspace/w/game_apk/game.apk；沙盒打游戏包用 /workspace/w/hostpatch/Host.java（patchBase+patchSound+gkey 签名，参数：game.apk core/b<ED>.dex 输出）。v3.77 客户端(b2)/服务端(b1)游戏包已发。
