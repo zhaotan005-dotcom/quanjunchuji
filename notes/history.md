@@ -1543,3 +1543,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 构建：bash build_all.sh 3.77 3.80 278 281（没有 3.79 APK 做底包，APK 没提交），core/b0-2.ver=281。
 - v3.81（core282，20:4x，未实测）：用户 20:35：不要「正在加载大厅」进度条，要的就是开机更新的那个加载页本身，大厅在那页里加载。改 LobbyLoad：只开机第一次进大厅（once），建出的 UpdateUI 调 UpdPage.notice 放我们的公告，OnUpdateProcess 一次写满格「已是最新版本（vX）」，不再走假进度；人物装好 2.5 秒后或 15 秒关。LoadMap 期间（旧页被清、新页还没建）仍有空档。
 - 用户 20:35 要重发服务端游戏包：本沙盒没有 /workspace/w（原版 game.apk、hostpatch/Host.java 都不在），重打不了。
+
+## v3.82（core283）未实测
+- 用户：开机不要我们自己画的公告弹层（GameOverlay.srvUpdatePage，黑底+公告+黄条），要游戏自己的加载页/进度。改：startupUpdate 不再弹，srvFallback 只记日志，新内核兜底重启线程（UpdPage 没找到页时）；UpdPage 不再塞我们公告（notice 调用去掉）、去掉 flowTypes 全表扫描。
+- 客户端游戏包：用户 Drive 原版 game.apk（/workspace/w/game_apk）+ /workspace/w/hostpatch/Host.java（patchBase+patchSound mczi=1+gkey 签名）打了 v3.81 客户端包发给用户。用户说服务端包他有。

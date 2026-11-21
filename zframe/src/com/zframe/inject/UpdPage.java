@@ -77,7 +77,7 @@ final class UpdPage {
             for (int i = 0; i < 80 && (b = Mods.base()) == 0; i++) Thread.sleep(250);
             if (b == 0 || !UpdFlow.on) { state = "游戏更新页：没开（" + UpdFlow.state + "）"; finished = true; return; }
             Veh.Names nm = Veh.Names.get();
-            try { Thread.sleep(1500); flowTypes(b, nm); LogCap.note(flowTypes); } catch (Throwable ignored) {}
+            // v3.82：去掉开机扫整张对象表的启动步骤诊断（慢，拖慢找更新页）
             long v = 0;
             // 启动流程先问腾讯（约 12 秒失败），之后才进更新步骤建页面 → 最多等 25 秒
             state = "游戏更新页：开始找页面";
@@ -94,7 +94,7 @@ final class UpdPage {
             LogCap.note(state);
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
             long ba = GameOverlay.bufAddr(bb);
-            notice(b, v, bb, ba);
+            // v3.82 用户：不要我们的公告，游戏更新页不再塞我们的公告
             showPanel(b, v, nm);   // v3.34：UpdatePanel 蓝图里默认 Collapsed，游戏只在腾讯 Dolphin 开始时才显示 → 我们自己设成可见
             // 进度条
             long fn;
