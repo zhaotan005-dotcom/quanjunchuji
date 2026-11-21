@@ -126,7 +126,19 @@ final class Parabola {
 
     /** v3.46：自动跑（单机/服务端/客户端都跑，联机正常、单机不正常要对比）：对局里手上切到投掷物 1.5 秒后检查一次并上传 para-，每局一次 */
     static volatile boolean watching;
+    /** v3.65 抛物线不跟视角（用户多次提，联机客户端正常、单机/房主不正常）。根因（静态读码）：每帧更新 0xefa98c 取瞄准方向用 0xefae5c：
+     *  武器 Role(+0xe8) ≤ 2（联机客户端）→ 取自己控制器的视角（0x2c551a4）；Role = 3（单机/房主，自己就是主机）→ 读武器 +0x1b48 那份
+     *  「客户端上报给服务器的方向」，单机没人上报，一直是拿雷那一刻的值 → 抛物线定住。
+     *  补丁：0xefaea8 的 bhi（Role>2 跳去读 +0x1b48）改成 nop，主机也走控制器视角。只改抛物线取方向这一处（原字节核对）。 */
+    static volatile String aim = "抛物线跟视角：没装";
+    static void aimFix() {
+        if (Lan.role == 2) { aim = "抛物线跟视角：联机客户端本来就跟视角，不用改"; return; }
+        String r = Mods.write(0xefaea8L, "3900008a", "00f020e3", true);
+        aim = "抛物线跟视角（0xefaea8 主机也用控制器视角）：" + r;
+        LogCap.note(aim);
+    }
     static void matchStart() {
+        aimFix();
         if (watching) return; watching = true;
         new Thread(() -> {
             try {

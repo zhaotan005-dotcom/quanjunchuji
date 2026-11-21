@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.64";
+    static final String VER = "v3.65";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -118,10 +118,10 @@ public class GameOverlay {
             // v3.13：客户端包现在自建服务端 —— 没加入别人时按服务端的页；加入别人后只剩联机
             final boolean cliT = Ed.ED == 2 || Lan.role == 2, srvT = Ed.ED == 1 || Ed.BUILD == 2;
             final String[] tabs = cliT ? new String[]{"联机"}
-                : srvT ? new String[]{"常用", "功能", "道具", "刷车", "衣服", "联机", "画面"}
-                : new String[]{"常用", "功能", "武器", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "人机", "联机", "画面"};
+                : srvT ? new String[]{"常用", "功能", "刷枪", "配件", "特殊", "子弹", "道具", "刷车", "衣服", "联机", "画面"}
+                : new String[]{"常用", "功能", "刷枪", "配件", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "人机", "联机", "画面"};   // v3.65 用户：「武器」改「刷枪」（只刷枪+子弹），配件单独一页按枪种分区
             final int[] map = cliT ? new int[]{6}
-                : srvT ? new int[]{0, 8, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 9, 10, 4, 11, 1, 7, 2, 6, 5};
+                : srvT ? new int[]{0, 8, 3, 12, 9, 10, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 12, 9, 10, 4, 11, 1, 7, 2, 6, 5};
             { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = map[0]; }
             final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("道具", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
@@ -161,7 +161,7 @@ public class GameOverlay {
             final View tabsLine = hr;
             // v2.05：对局里的分页按身份不同 —— 单机：常用/武器/装备/刷车/人机/画面；房主：人机换成联机；加入的客户端：只有联机/画面
             final Runnable mode = () -> {
-                boolean trainOnly = Con.training && Con.inMatch;   // v3.47 用户：训练营只剩一页 → 不要左边分页列、内容多高菜单多高（不留大片空白）
+                boolean trainOnly = false;   // v3.65 用户：训练场把刷枪这些加回来 → 训练场也有左边分页（功能/刷枪/配件/特殊/子弹/装备）。v3.47 用户：训练营只剩一页 → 不要左边分页列、内容多高菜单多高（不留大片空白）
                 int v = Con.inMatch && !trainOnly ? View.VISIBLE : View.GONE; tsv.setVisibility(v); tabsLine.setVisibility(v);
                 // v2.19 用户：大厅菜单下面一大片空白 → 大厅里内容多高就多高
                 LinearLayout.LayoutParams sl = (LinearLayout.LayoutParams) sv.getLayoutParams();
@@ -170,11 +170,11 @@ public class GameOverlay {
                 int r = Lan.role;
                 for (TextView t : tv) {
                     int id = (Integer) t.getTag();
-                    boolean show = Con.training && Con.inMatch ? id == 8 : r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8 || id == 3 || id == 9 || id == 10 || id == 4 || id == 11 || id == 1 || id == 7);   // v2.92 客户端加回 刷车、衣服（服务端代刷）   // v2.91 客户端刷东西页加回来（服务端代刷）
+                    boolean show = Con.training && Con.inMatch ? TRAIN_TABS.contains(id) : r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8 || id == 3 || id == 9 || id == 10 || id == 4 || id == 11 || id == 1 || id == 7 || id == 12);   // v2.92 客户端加回 刷车、衣服（服务端代刷）   // v2.91 客户端刷东西页加回来（服务端代刷）
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
                 if (Con.inMatch) {
-                    boolean ok = Con.training ? tab == 8 : r == 0 ? tab != 6 && tab != 7 : r == 1 ? true : (tab == 6 || tab == 5 || tab == 0 || tab == 8 || tab == 3 || tab == 9 || tab == 10 || tab == 4 || tab == 11);
+                    boolean ok = Con.training ? TRAIN_TABS.contains(tab) : r == 0 ? tab != 6 && tab != 7 : r == 1 ? true : (tab == 6 || tab == 5 || tab == 0 || tab == 8 || tab == 3 || tab == 9 || tab == 10 || tab == 4 || tab == 11 || tab == 12);
                     if (!ok) { tab = Con.training ? 8 : r == 2 ? 6 : 0; paintTabs(tv, u); }   // v3.46 训练营只有「功能」页
                 }
             };
@@ -988,7 +988,7 @@ public class GameOverlay {
     static void giveGun(Activity a, String name, String id, String ammo) {
         give(a, id, 1);
         if (!"0".equals(ammo)) give(a, "2060000000" + ammo, "7".equals(ammo) ? 30 : 60);
-        if (takesAttachments(id)) {
+        if (false && takesAttachments(id)) {   // v3.65 用户：刷枪只刷枪和子弹，配件在「配件」页自己挑
             // v2.70 用户：刷的枪没有配件。以前配件直接塞进背包（游戏不会自动装到枪上，日志里没有 Attaching adapter）。
             // 现在放到脚下：走游戏自己的拾取（自动拾取/点拾取），捡起来时游戏会自动装到能装的枪上。每把枪都给一套。
             final java.util.List<String> set = attFor(id);
@@ -1042,6 +1042,7 @@ public class GameOverlay {
             case 9: specialPage(a, u, root); return;
             case 10: ammoPage(a, u, root); return;
             case 11: propPage(a, u, root); return;
+            case 12: attPage(a, u, root); return;
             default:
                 mainPage(a, u, root);
         }
@@ -1319,9 +1320,49 @@ public class GameOverlay {
         }
         hs.addView(cr);
         root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        head(a, u, root, "点一下放进背包（带子弹，配件放在脚下）");
+        head(a, u, root, onGround || remote() ? "点一下刷在脚下（带子弹）" : "点一下放进背包（带子弹）");   // v3.65 用户：刷枪就是刷枪，配件去「配件」页按需刷
         gunGrid(a, u, root, weapCat);
         giveHint(a, root);
+    }
+    /** v3.65 用户：配件按枪种分区（步枪/冲锋枪/狙击枪/连狙/霰弹枪/手枪/十字弩），倍镜单独一区；点哪件刷哪件。编号按 pak 拾取物蓝图名核对（见 attFor） */
+    static final String[][] ATT_CATS = {
+        {"步枪", "消音器:20501000001", "消焰器:20501000002", "补偿器:20501000003", "垂直握把:20502000001", "直角握把:20502000002", "扩容弹匣:20504000001", "快速弹匣:20504000002", "快速扩容:20504000003", "战术枪托:20505000001"},
+        {"冲锋枪", "消音器:20501000004", "消焰器:20501000005", "补偿器:20501000006", "垂直握把:20502000001", "扩容弹匣:20504000004", "快速弹匣:20504000005", "快速扩容:20504000006", "战术枪托:20505000001", "UZI枪托:20505000002"},
+        {"狙击枪", "消音器:20501000007", "消焰器:20501000008", "补偿器:20501000009", "扩容弹匣:20504000007", "快速弹匣:20504000008", "快速扩容:20504000009", "托腮板:20505000003", "98K子弹袋:20505000005"},
+        {"连狙", "消音器:20501000007", "消焰器:20501000008", "补偿器:20501000009", "垂直握把:20502000001", "扩容弹匣:20504000007", "快速弹匣:20504000008", "快速扩容:20504000009", "托腮板:20505000003"},
+        {"霰弹枪", "收束器:20501000011", "霰弹子弹袋:20505000004"},
+        {"手枪", "手枪消音:20501000010", "扩容弹匣:20504000010", "快速弹匣:20504000011", "快速扩容:20504000012"},
+        {"十字弩", "箭袋:20502000003", "弩瞄准镜:20503000007"},
+        {"倍镜", "红点:20503000001", "全息:20503000002", "2倍镜:20503000003", "4倍镜:20503000004", "8倍镜:20503000005"},
+    };
+    static int attCat = 0;
+    static void attPage(final Activity a, final Ui u, final LinearLayout root) {
+        HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
+        LinearLayout cr = new LinearLayout(a); cr.setOrientation(LinearLayout.HORIZONTAL);
+        if (attCat >= ATT_CATS.length) attCat = 0;
+        for (int k = 0; k < ATT_CATS.length; k++) {
+            final int idx = k;
+            TextView t = new TextView(a);
+            t.setText(ATT_CATS[k][0]); t.setTextSize(11.5f);
+            t.setTextColor(k == attCat ? ON_TXT : SUBT);
+            t.setBackground(k == attCat ? grad(u.dp(14)) : boxLine(0, LINE, u.dp(14), 1));
+            t.setPadding(u.dp(11), u.dp(5), u.dp(11), u.dp(5));
+            t.setOnClickListener(v -> { attCat = idx; fill(a, u, root); });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
+            cr.addView(t, lp);
+        }
+        hs.addView(cr);
+        root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
+        giveHint(a, root);
+        head(a, u, root, (ATT_CATS[attCat][0].equals("倍镜") ? "倍镜" : ATT_CATS[attCat][0] + "配件") + "（点一下刷一件）");
+        LinearLayout r = null; int n = 0;
+        for (int j = 1; j < ATT_CATS[attCat].length; j++) {
+            final String[] it = ATT_CATS[attCat][j].split(":");
+            if (n % 4 == 0) r = row(a, root);
+            btn(a, u, r, it[0], () -> give(a, it[1], 1, it[0]));
+            n++;
+        }
+        while (n % 4 != 0) { r.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); n++; }
     }
     static final int GUN_CATS = 7;   // CATS 前 7 类是枪
     static int catIdx(String n) { for (int k = 0; k < CATS.length; k++) if (n.equals(CATS[k][0])) return k; return -1; }
@@ -1738,11 +1779,13 @@ public class GameOverlay {
     static volatile View chooser; static volatile Activity chooserAct;
     /** v3.21 用户：单机版加入服务器后标题还是「单机版」。标题跟实际状态走：加入了别人的房间（Lan.role==2）= 联机版；
      *  在本机对局里 = 单机版；在大厅按菜单顶上的「单机 | 联机」选择。 */
+    /** v3.65 训练场显示的分页：功能 刷枪 配件 特殊（含投掷物） 子弹 装备 */
+    static final java.util.Set<Integer> TRAIN_TABS = new java.util.HashSet<>(java.util.Arrays.asList(8, 3, 12, 9, 10, 4));
     static String titleText() {
         if (Ed.single()) {
             if (Lan.role == 2) return "全军出击联机版";
             if (Con.inMatch) return "全军出击单机版";
-            return "全军出击";   // v3.64 用户：大厅菜单标题只要「全军出击」
+            return "全军出击 艾挽";   // v3.65 用户：「全军出击」后面空一格加「艾挽」（v3.64 只要「全军出击」）
         }
         return Ed.ED == 1 ? "全军出击联机版 服务端" : "全军出击联机版 客户端";
     }

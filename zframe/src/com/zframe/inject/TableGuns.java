@@ -64,8 +64,10 @@ final class TableGuns {
         return 8;
     }
 
-    static final class Table { double cx, cy, z, ux, uy, L, W; String src; boolean ground; }
-    static final class Item { final long id; final float x, y, z, yaw; final String what; int miss, unseen, refills; boolean blind, seen;
+    static final class Table { double cx, cy, z, ux, uy, L, W; String src; boolean ground; int sign = -1; double signD = 1e9; String zone; }
+    /** v3.65 找到的地上标牌 {编号, x, y, z} */
+    static final ArrayList<double[]> signs = new ArrayList<>();
+    static final class Item { final long id; final float x, y, z, yaw; final String what; int miss, unseen, refills; boolean blind, seen, gun;
         Item(long id, float x, float y, float z, float yaw, String what) { this.id = id; this.x = x; this.y = y; this.z = z; this.yaw = yaw; this.what = what; } }
     static final ArrayList<Item> items = new ArrayList<>();
     static void reset() { synchronized (items) { items.clear(); } }
@@ -79,7 +81,7 @@ final class TableGuns {
         if (!Con.training || !Con.inMatch) return;
         Server.mark("训练岛枪桌：开始找桌子");
         double[] c = null; float gz = Float.NaN;
-        for (int i = 0; i < 40 && Con.training && Con.inMatch; i++) {   // 最多 20 秒等射击区地形碰撞
+        for (int i = 0; i < 12 && Con.training && Con.inMatch; i++) {   // 最多 6 秒（v3.65：v3.64 这里地面一直打不到，白等 20 秒）等射击区地形碰撞
             c = Island.shootCenter(b, mgr, pc);
             if (c != null) { gz = Trace.ground((float) c[0], (float) c[1], (float) c[2] + 5000f, (float) c[2] - 5000f); if (!Float.isNaN(gz)) break; }
             Thread.sleep(500);
@@ -104,37 +106,143 @@ final class TableGuns {
             how += "（没找到桌子，摆在射击区地上）";
             for (int r = 0; r < 4; r++) { Table t = new Table(); t.ux = 0; t.uy = 1; t.L = 300; t.W = 50; t.cx = c[0] + 400 + r * 200; t.cy = c[1]; t.z = cz; t.src = "地上"; t.ground = true; ts.add(t); }
         }
-        // 桌位：每张桌子按约 1.5 米一段均分，最多 4 段
-        ArrayList<double[]> slots = new ArrayList<>();   // {桌子序号, 段中心 u, 段长}
-        sortTables(ts, c[0], c[1]);
-        for (int ti = 0; ti < ts.size(); ti++) {
-            Table t = ts.get(ti);
-            int k = (int) Math.max(1, Math.min(4, Math.round(2 * t.L / 150.0)));
-            double seg = 2 * t.L / k;
-            for (int j = 0; j < k; j++) slots.add(new double[] { ti, -t.L + seg * (j + 0.5), seg });
-        }
-        int n = Math.min(Math.min(slots.size(), GUNS.length), 12);
-        Server.mark("训练岛枪桌：开始摆 " + n + " 把");
-        ArrayList<String[]> pick = new ArrayList<>();
-        for (int i = 0; i < n; i++) pick.add(GUNS[i]);
-        pick.sort((p, q) -> cat(p[1]) - cat(q[1]));
-        for (int i = 0; i < n; i++) {
+        // v3.65 用户：枪摆的位置不对，没有手雷和配件专区 → 按分区摆：每个分区占一张（不够再占旁边的）桌子；
+        //   桌子旁边地上有分类标牌（indicator_NN）的优先用，同一个标牌编号 = 同一个分区。编号→分区的对照 SIGN_ZONE 还没核对（标牌文字在贴图里），
+        //   没对上的标牌按编号顺序排分区。日志「训练岛标牌：」列出每个标牌编号、位置、最近的桌子、摆了什么，下一版按它改对照表。
+        matchSigns(ts);
+        ArrayList<Zone> plan = plan(ts, c[0], c[1]);
+        Server.mark("训练岛枪桌：开始摆 " + plan.size() + " 个分区");
+        int cap = 160;
+        StringBuilder zl = new StringBuilder();
+        for (Zone z : plan) {
             if (!Con.training || !Con.inMatch) return;
-            double[] s = slots.get(i); Table t = ts.get((int) s[0]); String[] g = pick.get(i);
-            ArrayList<Item> grp = layout(t, s[1], s[2], g);
-            int ok = 0;
-            for (Item it : grp) { if (drop(it)) { ok++; okN++; placed.add(it); } else failN++; Thread.sleep(150); }
-            if (ok > 0) guns++;
+            int zok = 0;
+            for (Item it : z.items) {
+                if (okN >= cap) break;
+                if (drop(it)) { okN++; zok++; placed.add(it); if (it.gun) guns++; } else failN++;
+                Thread.sleep(120);
+            }
+            zl.append(" [").append(z.name).append(" ").append(zok).append("/").append(z.items.size()).append(" 件，桌 ").append(z.tables).append(z.signTxt).append("]");
         }
         synchronized (items) { items.clear(); items.addAll(placed); }
         Server.mark("训练岛枪桌：摆完 " + okN + " 件");
         StringBuilder tb = new StringBuilder();
         for (int i = 0; i < ts.size() && i < 8; i++) { Table t = ts.get(i); tb.append(String.format(" [%.0f,%.0f z%.0f 长%.0f 宽%.0f %s]", t.cx, t.cy, t.z, 2 * t.L, 2 * t.W, t.src)); }
-        Island.gunTables = "训练岛枪桌：" + ts.size() + " 桌 " + slots.size() + " 个桌位，摆了 " + guns + " 把枪（共 " + okN + " 件，失败 " + failN + "）；找桌子用" + how
-            + "，" + tFind / 1000.0 + " 秒，总用时 " + (System.currentTimeMillis() - t0) / 1000.0 + " 秒；中心 " + where + "；桌子：" + tb + "；" + diag;
+        Island.gunTables = "训练岛枪桌：" + ts.size() + " 桌，标牌 " + signs.size() + " 块，摆了 " + guns + " 把枪（共 " + okN + " 件，失败 " + failN + "）；分区：" + zl + "；找桌子用" + how
+            + "，" + tFind / 1000.0 + " 秒，总用时 " + (System.currentTimeMillis() - t0) / 1000.0 + " 秒；中心 " + where + "；桌子：" + tb + "；" + diag + "；" + signText(ts);
         note(Island.gunTables);
-        if (guns > 0) GameOverlay.toastAny("训练岛枪桌已摆好 " + guns + " 把（带配件和子弹）");
+        if (okN > 0) GameOverlay.toastAny("训练岛枪桌已摆好：" + plan.size() + " 个分区，" + guns + " 把枪");
         restock(b, nm);
+    }
+
+
+    // ---------------- v3.65 分区 ----------------
+    /** 分区：名字 + 东西（{名字, 编号, 子弹编号或 null}）。顺序 = 优先级 */
+    static final String[][][] ZONES = {
+        {{"步枪"}, {"M416", "20101000001", "20600000001"}, {"AKM", "20101000002", "20600000002"}, {"SCAR-L", "20101000004", "20600000001"}, {"M16A4", "20101000003", "20600000001"}, {"GROZA", "20101000005", "20600000002"}},
+        {{"冲锋枪"}, {"UMP9", "20105000001", "20600000003"}, {"Vector", "20105000003", "20600000003"}, {"UZI", "20105000002", "20600000003"}, {"汤姆逊", "20105000004", "20600000004"}},
+        {{"狙击枪"}, {"98K", "20104000001", "20600000002"}, {"AWM", "20104000002", "20600000006"}, {"M24", "20104000004", "20600000002"}},
+        {{"连狙"}, {"SKS", "20104000003", "20600000002"}, {"MK14", "20104000005", "20600000002"}, {"Mini14", "20104000006", "20600000001"}, {"QBU88", "20104000008", "20600000001"}, {"VSS", "20104000007", "20600000003"}},
+        {{"投掷武器"}, {"手雷", "20401000001", null}, {"手雷", "20401000001", null}, {"震爆弹", "20401000002", null}, {"烟雾弹", "20401000003", null}, {"烟雾弹", "20401000003", null}, {"燃烧瓶", "20401000004", null}},
+        {{"倍镜"}, {"红点", "20503000001", null}, {"全息", "20503000002", null}, {"2倍", "20503000003", null}, {"4倍", "20503000004", null}, {"8倍", "20503000005", null}, {"弩瞄", "20503000007", null}},
+        {{"步枪配件"}, {"步枪消音", "20501000001", null}, {"步枪消焰", "20501000002", null}, {"步枪补偿", "20501000003", null}, {"垂直握把", "20502000001", null}, {"直角握把", "20502000002", null},
+            {"步枪扩容", "20504000001", null}, {"步枪快速", "20504000002", null}, {"步枪快扩", "20504000003", null}, {"战术枪托", "20505000001", null}},
+        {{"冲锋枪配件"}, {"冲锋消音", "20501000004", null}, {"冲锋消焰", "20501000005", null}, {"冲锋补偿", "20501000006", null}, {"冲锋扩容", "20504000004", null}, {"冲锋快速", "20504000005", null}, {"冲锋快扩", "20504000006", null}, {"UZI枪托", "20505000002", null}},
+        {{"狙击配件"}, {"狙击消音", "20501000007", null}, {"狙击消焰", "20501000008", null}, {"狙击补偿", "20501000009", null}, {"狙击扩容", "20504000007", null}, {"狙击快速", "20504000008", null}, {"狙击快扩", "20504000009", null}, {"托腮板", "20505000003", null}, {"98K子弹袋", "20505000005", null}},
+        {{"霰弹枪"}, {"S1897", "20103000001", "20600000005"}, {"S686", "20103000002", "20600000005"}, {"S12K", "20103000003", "20600000005"}, {"收束器", "20501000011", null}, {"霰弹子弹袋", "20505000004", null}},
+        {{"手枪"}, {"P92", "20201000001", "20600000003"}, {"P1911", "20201000002", "20600000004"}, {"P18C", "20201000004", "20600000003"}, {"R45", "20201000006", "20600000004"}, {"手枪消音", "20501000010", null}, {"手枪快扩", "20504000012", null}},
+        {{"机枪"}, {"M249", "20102000001", "20600000001"}, {"DP-28", "20102000002", "20600000002"}},
+        {{"十字弩"}, {"十字弩", "20106000001", "20600000007"}, {"箭袋", "20502000003", null}},
+    };
+    /** 标牌编号 → 分区名（没核对，空 = 按编号顺序排） */
+    static final java.util.HashMap<Integer, String> SIGN_ZONE = new java.util.HashMap<>();
+    static final class Zone { String name; final ArrayList<Item> items = new ArrayList<>(); String tables = "", signTxt = ""; }
+
+    /** 每块标牌找 3 米内最近的桌子 */
+    static void matchSigns(ArrayList<Table> ts) {
+        for (double[] sg : signs) {
+            Table best = null; double bd = 300 * 300;
+            for (Table t : ts) { double dx = t.cx - sg[1], dy = t.cy - sg[2], d = dx * dx + dy * dy; if (d < bd) { bd = d; best = t; } }
+            if (best != null && bd < best.signD) { best.sign = (int) sg[0]; best.signD = bd; }
+        }
+    }
+    static String signText(ArrayList<Table> ts) {
+        StringBuilder sb = new StringBuilder("训练岛标牌：" + signs.size() + " 块");
+        int k = 0;
+        for (double[] sg : signs) {
+            if (k++ >= 30) break;
+            Table near = null; double bd = 1e18;
+            for (Table t : ts) { double dx = t.cx - sg[1], dy = t.cy - sg[2], d = dx * dx + dy * dy; if (d < bd) { bd = d; near = t; } }
+            sb.append(String.format(" [%02d %.0f,%.0f 离桌 %.0f 厘米%s]", (int) sg[0], sg[1], sg[2], Math.sqrt(bd), near != null && near.sign == (int) sg[0] && near.zone != null ? " → " + near.zone : ""));
+        }
+        return sb.toString();
+    }
+    /** 分区分桌子：有标牌的桌子先用（同编号同分区，SIGN_ZONE 有对照按对照），其余按离射击区中心的距离 */
+    static ArrayList<Zone> plan(ArrayList<Table> ts, double cx, double cy) {
+        sortTables(ts, cx, cy);
+        ArrayList<Table> signed = new ArrayList<>();
+        for (Table t : ts) if (t.sign >= 0) signed.add(t);
+        signed.sort((a, b) -> a.sign - b.sign);
+        java.util.HashMap<String, ArrayList<Table>> anchor = new java.util.HashMap<>();
+        java.util.ArrayList<Integer> freeNums = new java.util.ArrayList<>();
+        java.util.HashMap<Integer, ArrayList<Table>> byNum = new java.util.HashMap<>();
+        for (Table t : signed) { byNum.computeIfAbsent(t.sign, k -> new ArrayList<>()).add(t); }
+        for (Integer n : new java.util.TreeSet<>(byNum.keySet())) { String zn = SIGN_ZONE.get(n); if (zn != null) anchor.computeIfAbsent(zn, k -> new ArrayList<>()).addAll(byNum.get(n)); else freeNums.add(n); }
+        int fi = 0;
+        ArrayList<Zone> out = new ArrayList<>();
+        java.util.HashSet<Table> used = new java.util.HashSet<>();
+        for (String[][] zd : ZONES) {
+            Zone z = new Zone(); z.name = zd[0][0];
+            ArrayList<Table> mine = new ArrayList<>();
+            ArrayList<Table> a = anchor.get(z.name);
+            if (a != null) for (Table t : a) if (used.add(t)) mine.add(t);
+            if (mine.isEmpty() && fi < freeNums.size()) { int n = freeNums.get(fi++); for (Table t : byNum.get(n)) if (used.add(t)) mine.add(t); z.signTxt = "，标牌 " + n; }
+            if (mine.isEmpty()) for (Table t : ts) if (!used.contains(t) && t.sign < 0) { used.add(t); mine.add(t); break; }
+            if (mine.isEmpty()) for (Table t : ts) if (used.add(t)) { mine.add(t); break; }
+            if (mine.isEmpty()) break;   // 桌子用完了
+            // 摆：枪类一段一把（枪顺着桌子、子弹在外侧），小件两行均匀排
+            ArrayList<String[]> gunsL = new ArrayList<>(), small = new ArrayList<>();
+            for (int j = 1; j < zd.length; j++) (zd[j][2] != null ? gunsL : small).add(zd[j]);
+            int ti = 0; Table t = mine.get(0);
+            java.util.ArrayDeque<String[]> q = new java.util.ArrayDeque<>(gunsL);
+            while (!q.isEmpty() || !small.isEmpty()) {
+                int kG = (int) Math.max(1, Math.floor(2 * t.L / 85.0));
+                int nG = Math.min(kG, q.size());
+                int perRow = (int) Math.max(1, Math.floor((2 * t.L - 20) / 26.0));
+                double half = Math.max(12, Math.min(25, t.W * 0.45));
+                float z0 = (float) t.z + 2f, yaw = (float) Math.toDegrees(Math.atan2(t.uy, t.ux));
+                int rowsFree = 2;
+                if (nG > 0) {
+                    double seg = 2 * t.L / nG;
+                    for (int j = 0; j < nG; j++) {
+                        String[] g = q.poll(); double u = -t.L + seg * (j + 0.5);
+                        Item gi = at(t, u, +half, z0, yaw, Long.parseLong(g[1]), z.name + " " + g[0]); gi.gun = true; z.items.add(gi);
+                        z.items.add(at(t, u - Math.min(20, seg / 4), -half, z0, 0, Long.parseLong(g[2]), g[0] + " 子弹"));
+                        z.items.add(at(t, u + Math.min(20, seg / 4), -half, z0, 0, Long.parseLong(g[2]), g[0] + " 子弹"));
+                    }
+                    rowsFree = 0;
+                }
+                if (rowsFree > 0 && !small.isEmpty()) {
+                    int cnt = Math.min(small.size(), perRow * 2);
+                    for (int r = 0; r < 2 && !small.isEmpty(); r++) {
+                        int m = Math.min(perRow, small.size()); if (m == 0) break;
+                        double d = (2 * t.L - 20) / m;
+                        for (int j = 0; j < m; j++) { String[] it = small.remove(0); z.items.add(at(t, -t.L + 10 + d * (j + 0.5), r == 0 ? +half : -half, z0, 0, Long.parseLong(it[1]), z.name + " " + it[0])); }
+                    }
+                }
+                z.tables += (z.tables.isEmpty() ? "" : "+") + String.format("%.0f,%.0f", t.cx, t.cy);
+                t.zone = z.name;
+                if (q.isEmpty() && small.isEmpty()) break;
+                // 下一张：自己分区的下一张，没有就离这张最近的空桌子
+                ti++;
+                Table nx = ti < mine.size() ? mine.get(ti) : null;
+                if (nx == null) { double bd = 1e18; for (Table o : ts) { if (used.contains(o) || o.sign >= 0) continue; double dx = o.cx - t.cx, dy = o.cy - t.cy, dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; nx = o; } } if (nx != null) used.add(nx); }
+                if (nx == null) break;
+                t = nx;
+            }
+            out.add(z);
+        }
+        return out;
     }
 
     static boolean drop(Item it) throws InterruptedException { return Veh.dropAt(it.id, it.x, it.y, it.z, it.yaw) == null; }
@@ -179,6 +287,7 @@ final class TableGuns {
         HashMap<Long, Integer> kind = new HashMap<>(); HashMap<Long, String> meshName = new HashMap<>();
         java.util.TreeMap<String, Integer> names = new java.util.TreeMap<>();
         int comps = 0, inst = 0, far = 0, bad = 0, dup = 0; String why = "";
+        signs.clear();
         try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
             long g = Server.rd(m, b + 0x51250acL);
             long objs = Server.rd(m, g + 0x10), num = Server.rd(m, g + 0x18);
@@ -198,6 +307,16 @@ final class TableGuns {
                 String mn = meshName.get(mesh);
                 if (mn == null) { mn = Alive.objName(m, nm, mesh); meshName.put(mesh, mn); }
                 String lw = mn.toLowerCase();
+                if (lw.contains("indicator")) {   // v3.65 地上的分类标牌（投掷武器 / 步枪 …），pak 里 Props_Trainingisland/indicator_01..28
+                    float ix = Mods.f(m, o + 0x140), iy = Mods.f(m, o + 0x144), iz = Mods.f(m, o + 0x148);
+                    double ddx = ix - cx, ddy = iy - cy;
+                    if (ddx * ddx + ddy * ddy < 6000.0 * 6000.0 && Math.abs(iz - cz) < 1500) {
+                        int sn = -1; try { sn = Integer.parseInt(lw.replaceAll(".*indicator_?0*(\\d+).*", "$1")); } catch (Throwable ignored) {}
+                        boolean dupI = false; for (double[] q : signs) if (Math.abs(q[1] - ix) < 20 && Math.abs(q[2] - iy) < 20) dupI = true;
+                        if (!dupI) signs.add(new double[] { sn, ix, iy, iz });
+                    }
+                    continue;
+                }
                 if (!(lw.contains("table") || lw.contains("desk")) || lw.contains("lift") || lw.contains("datatable")) continue;
                 comps++;
                 float tx = Mods.f(m, o + 0x140), ty = Mods.f(m, o + 0x144), tz = Mods.f(m, o + 0x148);

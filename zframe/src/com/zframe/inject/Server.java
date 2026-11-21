@@ -314,6 +314,9 @@ public class Server {
         String what;
         switch (cmd) {
             case 13001: push(13002, seq, key, depositProps()); what = "仓库物品"; break;
+            // v3.65 用户：大厅仓库里点枪「展示」（手持枪）没效果。13022 = CSDepositReportShowInfoReq{show_info=1}，回 13023 CSDepositReportShowInfoRes{result=1, show_info=2}
+            //   （协议从 libUE4 里内嵌的 cs_deposit.proto 读出）。以前回空包 → 游戏日志 hasShowInfo:0 → 不换手里的枪。记住，仓库回包 13002 的 show_info(8) 也带上
+            case 13022: { byte[] si = showInfo(body); push(13023, seq, key, new PB().u(1, 0).b(2, si).bytes()); saveShow(si); what = "大厅展示的枪（" + showIds(si) + "）"; break; }
             case 13003: {
                 push(13004, seq, key, equip(body)); saveProps(); what = "穿上";
                 long id = reqId(body);
@@ -352,7 +355,7 @@ public class Server {
         long rc = (cmd == 13003 || cmd == 13005) ? reqId(body) / 100000000L : 0;
         if (!SEEN.contains(cmd) || (rc != 0 && (rc < 300 || rc >= 400) && rc != 101 && rc != 102 && rc != 405) || (cmd >= 31000 && cmd < 32000) || (cmd >= 38000 && cmd < 39000) || (cmd >= 51000 && cmd < 52000)) opLog(cmd);
     }
-    static final java.util.Set<Integer> SEEN = new java.util.HashSet<>(java.util.Arrays.asList(10001, 15016, 44033, 37010, 36001, 30014, 22005, 22003, 73140, 83001, 15001, 15003, 15005, 13001, 13003, 13005, 25001, 25003, 25005));
+    static final java.util.Set<Integer> SEEN = new java.util.HashSet<>(java.util.Arrays.asList(10001, 15016, 44033, 37010, 36001, 30014, 22005, 22003, 73140, 83001, 15001, 15003, 15005, 13001, 13003, 13005, 13022, 25001, 25003, 25005));
     static volatile long opAt;
     static void opLog(int cmd) {
         long now = System.currentTimeMillis();
@@ -690,7 +693,38 @@ public class Server {
         PB res = new PB().u(1, 0);
         for (java.util.Map.Entry<Long, long[]> e : props.entrySet())
             if (roles || e.getValue()[2] == 0) res.m(2, prop(e.getKey(), e.getValue()));
-        return res.u(5, role()).bytes();
+        res.u(5, role());
+        byte[] si = loadShow(); if (si != null && si.length > 0) res.b(8, si);   // v3.65 大厅手持枪展示
+        return res.bytes();
+    }
+    /** v3.65 请求里的 DepositShowInfo（field 1）；每件 prop 用仓库里的完整 prop（带 gid），仓库里没有的原样 */
+    static synchronized byte[] showInfo(byte[] body) {
+        initProps();
+        PB out = new PB();
+        PB.R r = new PB.R(body);
+        while (r.next()) if (r.field == 1 && r.wire == 2) {
+            PB.R si = new PB.R(r.d, r.off, r.len);
+            while (si.next()) if (si.field == 1 && si.wire == 2) {
+                byte[] raw = java.util.Arrays.copyOfRange(si.d, si.off, si.off + si.len);
+                long id = 0, gid = -1; PB.R p = new PB.R(raw); while (p.next()) { if (p.field == 1 && p.wire == 0) id = p.val; else if (p.field == 2 && p.wire == 0) gid = p.val; }
+                if (props != null && (gid < 0 || !props.containsKey(gid))) { gid = -1; for (java.util.Map.Entry<Long, long[]> e : props.entrySet()) if (e.getValue()[0] == id) { gid = e.getKey(); break; } }
+                if (props != null && gid >= 0 && props.containsKey(gid)) out.m(1, prop(gid, props.get(gid))); else out.b(1, raw);
+            }
+        }
+        return out.bytes();
+    }
+    static String showIds(byte[] si) {
+        StringBuilder b = new StringBuilder(); PB.R r = new PB.R(si);
+        while (r.next()) if (r.field == 1 && r.wire == 2) { PB.R p = new PB.R(r.d, r.off, r.len); while (p.next()) if (p.field == 1 && p.wire == 0) b.append(b.length() == 0 ? "" : ",").append(p.val); }
+        return b.length() == 0 ? "空" : b.toString();
+    }
+    static volatile byte[] showCache;
+    static java.io.File showFile() { java.io.File f = propsFile(); return f == null ? null : new java.io.File(f.getParentFile(), "zf_show.bin"); }
+    static void saveShow(byte[] si) { showCache = si; try { java.io.File f = showFile(); if (f != null) java.nio.file.Files.write(f.toPath(), si); } catch (Throwable ignored) {} }
+    static byte[] loadShow() {
+        byte[] c = showCache; if (c != null) return c;
+        try { java.io.File f = showFile(); if (f != null && f.exists()) showCache = c = java.nio.file.Files.readAllBytes(f.toPath()); } catch (Throwable ignored) {}
+        return c;
     }
     static long reqId(byte[] body) {
         PB.R r = new PB.R(body); long id = 0;

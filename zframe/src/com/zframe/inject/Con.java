@@ -197,6 +197,7 @@ public class Con {
     static volatile int tweakDone; static volatile long waitAt, brAt;
     /** v1.49：当前是不是在对局地图里（大厅 = false）。加速/高跳/刷物品只在对局里用 */
     public static volatile boolean inMatch;
+    static volatile long lobbyAt;
     static volatile long quitAt;
     public static volatile String navInfo = "";
     static final java.util.ArrayList<String> botLog = new java.util.ArrayList<>();
@@ -485,7 +486,10 @@ public class Con {
             new Thread(() -> { if (Lan.role != 0 || Lan.busy || inMatch) { earlySrv = false; return; } LogCap.note("大厅开始加载，提前开服务端 → " + Server.start()); }, "zf-srv0").start();
         }
         // v3.39 用户：训练岛设置里点「退出」没反应 → 游戏日志出现退出对局就直接回大厅（只在训练岛，3 秒内只做一次）
-        if (training && inMatch && l.contains("QuitMatch") && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
+        // v3.65 用户：要先弹游戏自己的「确定要退出演习？」，点确认再退。v3.64 认的是「Btn_System_QuitMatch Btn Click」（点按钮那一下，确认框刚弹出就走了）→ 改成只认确认后的 QueryQuitMatch
+        if (training && inMatch && (l.contains("QueryQuitMatch") || l.contains("ConfirmQuitMatch") || l.contains("QuitMatchConfirm_OK")) && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
+        // v3.65 军需点不开：点的时候没发任何请求 → 看界面/脚本这边：大厅里出现建界面失败、Lua 报错、或建了没见过的界面，就自动传一份大厅日志
+        if (!inMatch && Server.on && System.currentTimeMillis() - lobbyAt > 20000 && ((l.contains("CreateUI") && (l.contains("fail") || l.contains("Fail") || !l.contains("StoreUI"))) || (l.toLowerCase().contains("lua") && l.contains("rror")))) Server.opLog(0);
         if (l.contains("LogLoad: Took")) GfxOpt.afterLoad();   // v3.58 画面细项每次进图重发
         int tk = l.indexOf("LogLoad: Took");
         if (tk >= 0) {
@@ -495,6 +499,7 @@ public class Con {
                 int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
                 boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
                 if (m.startsWith("/Game/Maps/")) { training = m.contains("TrainingIsland"); } if (m.startsWith("/Game/Maps/") && training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); Island.matchLoaded(); } else if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); /* v3.21：每次进图按存的模式重打不上飞机/不刷圈 + 阶段守护 */ } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
+                if (lobby) lobbyAt = System.currentTimeMillis();
                 if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
                     Gfx.unlite();
                     Island.caveReset();   // v3.46 同帧摆人缓冲区不留上一局的 PC
