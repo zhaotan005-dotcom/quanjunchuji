@@ -142,10 +142,35 @@ final class Lan {
         String u = unlock(); if (!"ok".equals(u)) return "开房失败：" + u;
         role = 1; NetRate.start(); /* v3.10：客户端不再请求代刷（菜单删了），服务端不再订阅 ntfy，少占限流 */ Bots.auto = false; Server.quiet(); beat("开房加载");
         // v2.93 用户：服务端一直收人。引擎 GameSession.MaxPlayers（+0x2b4）默认很小，满了 ApproveLogin 回「Server full.」→ 开房带 ?MaxPlayers=100（InitOptions 0x2a011c4 读这个选项）
+        String lp = setListenPort();
         boolean ok = Con.exec("open " + map + "?listen?MaxPlayers=100");
         state = ok ? "开房：已发 open " + map.substring(map.lastIndexOf('/') + 1) + "?listen，等加载" : "开房：命令没发出去";
         note(state);
         return ok ? "正在开房，加载完把本机 IP 告诉另一台" : "命令没发出去";
+    }
+
+    /** v3.78 用户：服务端监听端口跟着开房地址的端口走（穿透 47937 → 本机也听 47937，不用再 47937 转 7777）。
+     *  RE：FUrlConfig::Init 0x1a34ad0，UrlConfig 在 0x53748c8，DefaultPort = +0x3c（Atoi 后 str r0,[r4,#0x3c] @0x1a3502c）。
+     *  open 是绝对 URL，新 FURL 的 Port 取 UrlConfig.DefaultPort → 改这个 int 就是改 ?listen 的端口。没写端口的地址仍用 7777。 */
+    static volatile int listenPort = 7777;
+    static String setListenPort() {
+        int port = 7777;
+        try { String a = Room.myAddr(); int c = a == null ? -1 : a.lastIndexOf(':'); if (c > 0) port = Integer.parseInt(a.substring(c + 1).trim()); } catch (Throwable ignored) {}
+        if (port < 1 || port > 65535) port = 7777;
+        String r;
+        long lb = Mods.base(); if (lb == 0) r = "没找到游戏库基址，仍用默认端口";
+        else {
+            long at = lb + 0x5374904L;
+            try (java.io.RandomAccessFile m = new java.io.RandomAccessFile("/proc/self/mem", "r")) {
+                int cur = Mods.rd(m, at);
+                if (cur < 1 || cur > 65535) r = "端口位置读到 " + cur + "，和预期不一样，没改";
+                else if (cur == port) r = "已是 " + port;
+                else r = "从 " + cur + " 改成 " + port + "：" + Mods.pokeInt(at, port);
+            } catch (Throwable t) { r = "出错 " + t.getMessage(); }
+        }
+        if (r.startsWith("已是") || r.contains("：ok")) listenPort = port;
+        note("服务端监听端口 " + r);
+        return r;
     }
 
     static String join(String ip) {

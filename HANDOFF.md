@@ -337,3 +337,5 @@
 - v3.77（core278/vc278）：LobbyLoad 进大厅加载页（Browse 大厅→盖层进度条，人物装好 HideLoadingProgress/OnChangeHairColor 后 2.5 秒到 100%，最长 15 秒）。打了三包 releases/ZFrame-v3.77-*.apk（ZInit.onCreate 不再读 ZFrame App 内核，需用新包重打补丁才进游戏包）。
 
 - 2026-11-21 用户不要框架 App：原版游戏 APK 在 /workspace/w/game_apk/game.apk；沙盒打游戏包用 /workspace/w/hostpatch/Host.java（patchBase+patchSound+gkey 签名，参数：game.apk core/b<ED>.dex 输出）。v3.77 客户端(b2)/服务端(b1)游戏包已发。
+
+- v3.78（core279，2026-11-21 19:4x，只推内核，未实测）：服务端监听端口跟着开房地址的端口走（Lan.setListenPort，开房前改 UrlConfig.DefaultPort = libUE4+0x5374904；RE：FUrlConfig::Init 0x1a34ad0，UrlConfig 0x53748c8，+0x3c Port）。开房地址 frp-put.com:47937 → 本机听 UDP 47937；没写端口的地址仍 7777。用户 frpc 的 local_port 要从 7777 改成 47937。诊断行「服务端监听端口」。
