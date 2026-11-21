@@ -107,8 +107,8 @@ final class UpdPage {
             while (System.currentTimeMillis() < end) {
                 boolean ready = NetCore.readyVer > ZInit.CORE_VER;
                 int p = NetCore.pct;
-                float tgt = ready ? 1f : NetCore.done ? 0.6f : p >= 0 ? p / 100f : 0.3f;
-                shown = Math.min(tgt, shown + 0.04f);
+                float tgt = ready || NetCore.done ? 1f : p >= 0 ? p / 100f : 0.3f;   // v3.88 用户：要走到 100% 才进
+                shown = Math.min(tgt, shown + (NetCore.done ? 0.08f : 0.04f));
                 float f = Math.max(shown, 0.01f);
                 String s = ready ? "更新已下好，马上重启" : NetCore.done ? "正在加载资源…"
                         : p >= 0 ? "正在下载更新" : "正在检查更新…";
@@ -118,7 +118,7 @@ final class UpdPage {
                 long[] r = Server.gcall(fn, v, Float.floatToIntBits(f), ba + so, 0, 1500);
                 if (r[0] == 0) { state += "；游戏线程没跑到调用"; GameOverlay.toastAny("更新页进度条失败：游戏线程没跑到调用"); break; }
                 if ((ready || NetCore.done) && shown >= tgt && doneAt == 0) doneAt = System.currentTimeMillis();
-                if (doneAt != 0 && System.currentTimeMillis() - doneAt > (ready ? 1500 : 600)) break;
+                if (doneAt != 0 && System.currentTimeMillis() - doneAt > (ready ? 1500 : 300)) break;
                 Thread.sleep(300);
             }
             last = shown;
@@ -131,7 +131,7 @@ final class UpdPage {
                 Server.preFind();   // v3.87：先把大厅连接器找好，进大厅马上回仓库包 → 衣服直接穿上
                 String on;
                 try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { on = Alive.clsName(m, nm, Server.rd(m, v + 0x18)); }
-                boolean r = on != null && on.contains("GameInstance") && LobbyLoad.root(v, true);
+                boolean r = false;   // v3.88：开机页放行前已走满 100%，不再继续走（也不用设 RootSet）
                 creep = "开机页 Outer " + on + (r ? "，已设 RootSet 继续走" : "，不继续走");
                 if (r) {
                     finished = true;   // 放行游戏流程

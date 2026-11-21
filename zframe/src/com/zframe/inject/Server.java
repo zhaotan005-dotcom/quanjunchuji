@@ -215,7 +215,15 @@ public class Server {
                 mark("找到连接器 " + Long.toHexString(c) + connInfo);
                 rpl.putInt(12, (int) c);
                 connState = "连接器：" + Long.toHexString(c) + "（" + how + "，扫了 " + (scanned >> 20) + " MB，" + ms + " ms）";
-                new Thread(() -> { try { Thread.sleep(3000); } catch (Throwable ignored) {} allSkins(); }, "zf-skins").start();
+                // v3.88 用户：进大厅衣服穿上后卡一下 → v3.87 日志 08.28 开始扫全部皮肤（整块读匿名内存），帧 1488→1503 慢下来、09.98~10.98 一帧没动。
+                //        扫到的皮肤已经存进仓库文件，以后每次都一样 → 每个安装只扫一次（标记文件），并且降优先级、每读 1 MB 歇一下
+                java.io.File mk = Con.act == null ? null : new java.io.File(Con.act.getFilesDir(), "zf_skins_scanned");
+                java.io.File pf = Con.act == null ? null : new java.io.File(Con.act.getFilesDir(), "zf_props.txt");
+                if (mk != null && !mk.isFile() && pf != null && pf.length() > 8000) { try { mk.createNewFile(); } catch (Throwable ignored) {} }   // 仓库文件已经很大 = 以前扫过
+                if (mk != null && mk.isFile()) skinState = "全部皮肤：以前扫过，不再扫（v3.88）";
+                else { Thread st = new Thread(() -> { try { Thread.sleep(3000); } catch (Throwable ignored) {} String r = allSkins();
+                    try { if (mk != null && !r.contains("出错") && !r.contains("先按")) mk.createNewFile(); } catch (Throwable ignored) {} }, "zf-skins");
+                    st.setPriority(Thread.MIN_PRIORITY); st.start(); }
             }
         } catch (Throwable e) { connState = "连接器：出错 " + e; }
     }
@@ -947,6 +955,7 @@ public class Server {
             for (long[] g : rs) for (long a = g[0]; a < g[1]; a += buf.length) {
                 int n = (int) Math.min(buf.length, g[1] - a);
                 try { m.seek(a); m.readFully(buf, 0, n); } catch (Throwable e) { break; }
+                try { Thread.sleep(3); } catch (InterruptedException ie) { return hit; }   // v3.88：别一口气读，免得游戏线程卡
                 // v1.82：不再按名字找口罩（太慢，扫一遍要几分钟）
                 int k = n / 8;
                 ByteBuffer.wrap(buf, 0, n).order(ByteOrder.LITTLE_ENDIAN).asLongBuffer().get(w, 0, k);

@@ -1573,3 +1573,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 01:39：不要大厅加载页，开机页加载完进大厅直接穿好衣服。
 - 查 v3.84 日志 upd-1122-012228：大厅 LoadMap 2.5 秒（15.1→17.7），17.45~17.5 游戏发 36001/22005/30014（仓库），回包全在 23.77 才到。原因：Server.findConn 整块扫匿名内存找 ConnectorService 从 16.2 扫到 ~23.7（7 秒多），连接器没找到前 TICK 段不投包 → 衣服 6 秒后才换上。不是资源加载慢。
 - 改：Server.byTable（GUObjectArray 里找 vt==CONN_VT 且非 CDO 的对象）+ Server.preFind（开机页放行时先找，存 preConn）；findConn 顺序 预找 → 对象表 → 整块扫；诊断 Server.preState / connState。LobbyLoad.show 直接 return（不再建大厅加载页）。开机页继续走最多 95% 直到 Browse。
+
+## v3.88（core289，2026-11-22 01:5x，只推内核，未实测）
+- 用户 01:47（v3.87 实测）：加载到 61% 就进了，要走到 100%；衣服穿上后还卡一下，要根治。
+- 日志 lobbyop-1122-014613（v3.87）：连接器开机预找 761 ms ✅，进大厅 0 ms；LoadMap 1.9 秒结束 05.385，30015/13002 在 05.835 到，05.869 第二次 InitAvatar 穿上仓库衣服（比 v3.84 早 6 秒）。之后 08.278「开始扫全部皮肤」（整块读匿名内存）→ 帧 1488(08.7)→1503(09.98) 变慢，1503 停到 10.976 = 卡一下。
+- 改：UpdPage 下载/检查完目标直接 100%（每 0.3 秒 +8%），走满 0.3 秒后才放行游戏流程；不再放行后继续走/RootSet。Server：全部皮肤扫描每个安装只做一次（filesDir/zf_skins_scanned；zf_props.txt > 8000 字节视为扫过），线程最低优先级、每读 1 MB 睡 3 ms。
