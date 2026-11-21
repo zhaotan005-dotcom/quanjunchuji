@@ -313,14 +313,17 @@ final class Island {
         if (!GameOverlay.remote()) { try { logic = alwaysLoad(b, nm, mgr, pc); } catch (Throwable e) { logic = "常驻层 AlwaysLoad：出错 " + e; } note(logic); }
         // v3.61 训练岛刷车：游戏自己的驾驶训练台（LogicLevel 的 BP_VehiclePracticeBase）在它的 Tick 里按 VehicleSpawnInfoArray 的 12 个刷车点刷车，
         //   前提是「本训练位置有人」列表里有自己的位置号 —— 那是 AddPlayerToSlot 末尾广播 OnPlayerAddToSlot 给它的。单机里摆人比 LogicLevel 加载早，广播时训练台还不存在 → 永远不刷。
-        if (!GameOverlay.remote()) { final long fb = b, fgm = gm, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
+        // v3.85 用户：单机模式什么都不刷；服务端（开房）才刷，而且要游戏自己刷 → 单机不调训练台刷车，服务端照旧让游戏自己的驾驶训练台刷
+        if (Ed.single()) { vehicles = "训练岛刷车：单机不刷（v3.85 用户要求）"; guns = "训练桌：单机不刷"; gunTables = "训练岛枪桌：单机不刷"; note(vehicles); }
+        if (!GameOverlay.remote() && !Ed.single()) { final long fb = b, fgm = gm, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
             try { vehicles = vehPractice(fb, fnm, fgm, fpc); } catch (Throwable e) { vehicles = "训练岛刷车：出错 " + e; }
             note(vehicles);
         }, "zf-vehprac").start(); }
         // v3.50 用户：v3.49 枪要等 2 分多钟（跟踪 120 秒之后才摆）→ 进岛 15 秒就摆。
         //   v3.49 诊断：ServerOnly 本层进来后展开出 ServerOnly/Pickups 等子层（关卡 1，包住人物），但地上还是没枪 → 先看原生 150 米内有没有物资，不够 5 个才自己摆
         //   （服务端开房时游戏自己有权威，原生刷出来就不重复摆）。
-        if (!GameOverlay.remote()) { final long fb = b, fmgr = mgr, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
+        // v3.85 用户：不要我们一把一把摆枪（TableGuns），要游戏自己刷 → 单机、服务端都不再摆；客户端包里没有训练岛刷枪点数据（见 v3.61），游戏自己刷不出枪
+        if (false) { final long fb = b, fmgr = mgr, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
             try {
                 // v3.61：pak 文件表（321 个 pak、83436 个文件）里训练岛没有任何 ServerOnly 关卡文件，刷枪点（物资点组件）在这个客户端里不存在，
                 //   v3.55~v3.60 的各种「让游戏加载 Pickups 关卡」都不可能成功 → 不再请求加载（只留诊断）。

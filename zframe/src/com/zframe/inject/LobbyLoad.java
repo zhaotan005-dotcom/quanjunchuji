@@ -41,9 +41,12 @@ final class LobbyLoad {
             long fl = Server.rd(m, it + 4);
             m.seek(it + 4); m.write(new byte[] { (byte) fl, (byte) (fl >> 8), (byte) (fl >> 16), (byte) ((fl >> 24) | 0x40) });
             rooted = "类已设 RootSet";
+            // v3.85 用户：进大厅先露一下大厅再出加载页 → 开机时就把 GameInstance 找好（全表扫要几秒），进大厅关卡后直接建
+            new Thread(() -> { try { long[] f = find(Mods.base(), Veh.Names.get()); if (f[1] != 0) gi = f[1]; } catch (Throwable ignored) {} }, "zf-lobbypre").start();
         } catch (Throwable t) { rooted = "设 RootSet 出错 " + t; }
     }
     static volatile String rooted = "";
+    static volatile long gi;
 
     static volatile boolean once;
     static void show() {
@@ -59,7 +62,11 @@ final class LobbyLoad {
             long b = Mods.base();
             if (b == 0) { state = "大厅加载页：找不到游戏库"; return; }
             Veh.Names nm = Veh.Names.get();
-            long[] f = find(b, nm);   // {类, GameInstance}
+            long[] f;   // {类, GameInstance}
+            long k = cls, g0 = gi;
+            boolean fast = false;
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { fast = k > 0x10000 && g0 > 0x10000 && Mods.isObj(m, b, k) && Mods.isObj(m, b, g0) && Server.rd(m, g0 + 0xc) > 0x10000; }
+            f = fast ? new long[] { k, g0 } : find(b, nm);
             if (f[0] == 0 || f[1] == 0) { state = "大厅加载页：没找到 " + (f[0] == 0 ? "UpdateUI_C 类（" + rooted + "）" : "") + (f[1] == 0 ? "GameInstance" : ""); return; }
             long[] r = Server.gcall(b + CREATE, f[0], f[1], 0, 0, 3000);
             w = r[1];
@@ -126,8 +133,9 @@ final class LobbyLoad {
                 if (n == null || !(n.equals("UpdatePanel") || n.equals("UpdateProgressBar") || n.equals("UpdateProcessText") || n.equals("UpdateProcessValue"))) continue;
                 long fn = Server.rd(m, Server.rd(m, x) + 0x124);
                 if (fn < b || fn > b + 0x5000000L) continue;
-                long[] r = Server.gcall(fn, x, 0, 0, 0, 1500);
-                if (r[0] == 1) got.append(n).append(' ');
+                boolean hide = n.equals("UpdatePanel");   // v3.85：公告框和按钮都在 UpdatePanel 里 → 收起
+                long[] r = Server.gcall(fn, x, hide ? 1 : 0, 0, 0, 1500);
+                if (r[0] == 1) got.append(n).append(hide ? "(收起) " : " ");
             }
         } catch (Throwable t) { got.append("出错 ").append(t); }
         return got.length() == 0 ? "进度条没找到" : "显示了 " + got.toString().trim();

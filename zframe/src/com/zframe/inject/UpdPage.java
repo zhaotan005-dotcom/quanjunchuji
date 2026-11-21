@@ -95,7 +95,7 @@ final class UpdPage {
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);
             long ba = GameOverlay.bufAddr(bb);
             // v3.82 用户：不要我们的公告，游戏更新页不再塞我们的公告
-            showPanel(b, v, nm);   // v3.34：UpdatePanel 蓝图里默认 Collapsed，游戏只在腾讯 Dolphin 开始时才显示 → 我们自己设成可见
+            showPanel(b, v, nm);   // v3.85：只显示进度条，收起 UpdatePanel（公告框+按钮）
             // 进度条
             long fn;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { fn = Server.rd(m, Server.rd(m, v) + 0x240); }
@@ -196,14 +196,17 @@ final class UpdPage {
                 if (n == null || !(n.equals("UpdatePanel") || n.equals("UpdateProgressBar") || n.equals("UpdateProcessText") || n.equals("UpdateProcessValue"))) continue;
                 long fn = Server.rd(m, Server.rd(m, w) + 0x124);
                 if (fn < b || fn > b + 0x5000000L) { got.append(n).append(" 函数不对 "); continue; }
-                long[] r = Server.gcall(fn, w, 0, 0, 0, 1500);
-                got.append(n).append(r[0] == 1 ? " 显示 " : " 没跑到 ");
+                // v3.85：查蓝图（UpdateUI.uasset）——进度条/文字在 CanvasPanel_1，不在 UpdatePanel；UpdatePanel 里是空白公告框、「放弃更新/立即更新/帮助」和更新提示
+                //       用户：公告空白去掉、两个按钮去掉，只要进度条 → UpdatePanel 设成 Collapsed(1)，进度条和文字设 Visible(0)
+                boolean hide = n.equals("UpdatePanel");
+                long[] r = Server.gcall(fn, w, hide ? 1 : 0, 0, 0, 1500);
+                got.append(n).append(r[0] == 1 ? (hide ? " 收起 " : " 显示 ") : " 没跑到 ");
             }
         } catch (Throwable t) { got.append("出错 ").append(t); }
         String g = got.length() == 0 ? "没找到 UpdatePanel" : got.toString().trim();
         state += "；面板：" + g;
         LogCap.note(state);
-        if (!g.contains("UpdatePanel 显示")) GameOverlay.toastAny("更新页进度条失败：" + g);
+        if (!g.contains("UpdateProgressBar 显示")) GameOverlay.toastAny("更新页进度条失败：" + g);
         else { panelOk = true; GameOverlay.closeUpdAny(); }
     }
     static int b8(RandomAccessFile m, long a) { try { byte[] x = new byte[1]; m.seek(a); m.readFully(x); return x[0] & 0xff; } catch (Throwable e) { return -1; } }

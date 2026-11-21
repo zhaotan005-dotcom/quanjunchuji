@@ -1557,3 +1557,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 01:16（v3.83 实测）：开机页只显示「更新」、像有 bug、进度条不走；进大厅还是没穿衣服。日志 upd-1122-011558：UpdPage 找到真实页 e68bc540（v3.83 修对了）；LobbyLoad「没找到 UpdateUI_C 类」= 切关卡时蓝图类被 GC。
 - RE：OnUpdateProcess 0x15de6c4：+0x210 值标签（文字非空时显示 Printf("%d%%")），+0x20c 文字标签=传入串，+0x208 进度条 SetPercent，f>0 才 Visible；FString 是 UTF-32（"%d%%" 字面量 4 字节/字）。
 - 改：LobbyLoad.rememberClass 把 UpdateUI_C 类的 FUObjectItem flags 置 RootSet(1<<30) 防回收；UpdPage 进度显示值每 0.3 秒涨 0.04，开机页到 60%（文字「正在检查更新…/正在加载资源…」），到了 0.6 秒后停；LobbyLoad 从 60% 每 0.2 秒涨到 95%，HideLoadingProgress/OnChangeHairColor 每次刷新 readyAt，最后一次后 2.5 秒走满 100% 关，最长 15 秒。诊断带 rooted 状态。「显示有 bug」具体是什么没截图，已问用户。
+
+## v3.85（core286，2026-11-22 01:30，只推内核，未实测）
+- 用户 01:26（v3.84 实测，4 张截图）：进度条会走了，但开机页还有空白公告框 +「放弃更新/立即更新/帮助」+ 更新提示 → 都去掉只留进度条；进大厅先露一下大厅再出加载页（要等加载完直接穿好衣服进）；进去后键位变默认（原因未查，待问是否卸载重装过）；训练场 1 分钟内闪退（单机无日志）、没刷枪；单机不刷任何东西，服务端再刷且要游戏自己刷、不要一把一把摆；再查联机能否游戏自己刷；接着修军需。
+- RE UpdateUI.uasset 父子关系：公告（ContentSwitcher/Text/Image/NoticeImage/PreBtn/NextBtn）、ExitBtn/UpdateBtn/Help/CloseBtn、IosOrAndroidSwitch(AndroidTip) 全在 UpdatePanel 下；UpdateProgressBar/UpdateProcessText/UpdateProcessValue/UpdateTip 在 CanvasPanel_1（CanvasPanel_0 下，独立）。
+- 改：UpdPage.showPanel / LobbyLoad 显示面板时 UpdatePanel 设 Collapsed(1)，其余 Visible；LobbyLoad 开机 rememberClass 后后台 find 预取 GameInstance，进大厅关卡时类和 GI 都有效就跳过全表扫直接建；Island：单机（Ed.single）不调 vehPractice，TableGuns 单机/服务端都关（if false）；服务端仍让游戏自己的驾驶训练台刷车。
+- 枪：客户端/服务端同一套 pak，训练岛无 ServerOnly/Pickups 关卡文件（v3.61 结论不变），游戏自己刷不出枪。军需 = Pandora 网页商城（要腾讯服务器下 Lua 页），离线无法恢复原页。
