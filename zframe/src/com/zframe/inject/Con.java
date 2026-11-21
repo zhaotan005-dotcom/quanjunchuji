@@ -482,7 +482,7 @@ public class Con {
             if (bounce != 1) audioFix = "大厅音频已初始化";
         }
         // v2.19 用户：仓库衣服刚进大厅没有、要等服务端开 → 单机版一看到开始加载大厅就开服务端（不等加载完 + 2.5 秒）
-        if (Ed.single() && !Server.on && !earlySrv && l.contains("LoadMap") && (l.contains("RoleHall") || l.contains("FrontEnd")) && !l.contains("LogLoad: Took")) {
+        if (!Server.on && !earlySrv && l.contains("LoadMap") && (l.contains("RoleHall") || l.contains("FrontEnd")) && !l.contains("LogLoad: Took")) {
             earlySrv = true;
             new Thread(() -> { if (Lan.role != 0 || Lan.busy || inMatch) { earlySrv = false; return; } LogCap.note("大厅开始加载，提前开服务端 → " + Server.start()); }, "zf-srv0").start();
         }
@@ -507,7 +507,7 @@ public class Con {
                     Gfx.unlite();
                     Island.caveReset();   // v3.46 同帧摆人缓冲区不留上一局的 PC
                     Lan.role = 0; Bots.auto = Bots.want;
-                    if (!Server.on && Ed.single()) new Thread(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
+                    if (!Server.on) new Thread   /* v3.72 用户：服务端包点「创建房间」没反应 = 服务端包/客户端包没开自建服务端，房间包没人回 → 三个包都自动开 */(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
                 }
                 if (m.startsWith("/Game/Maps/") && !lobby) {
                     brMap = m;

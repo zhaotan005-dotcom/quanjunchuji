@@ -323,3 +323,5 @@
 - v3.70（core271）：联机页地址框旁加「设为我的开房地址」（prefs room_addr），Room.myAddr 优先用它（用户自己的内网穿透，需转发 UDP 7777）。
 
 - v3.71（core272）：开房地址没设过默认 frp-put.com:47937（所有包）；输入框加 IME_FLAG_NO_EXTRACT_UI/NO_FULLSCREEN，横屏不进全屏输入页。
+
+- v3.72（core273）：服务端/客户端包进大厅也自动开自建服务端（之前只有单机），否则游戏「创建房间」的 26001 没人回，点了没反应（日志：服务端包 自建服务端：没开，ConnectorService::SendRawBuffer connector is invalidate）。
