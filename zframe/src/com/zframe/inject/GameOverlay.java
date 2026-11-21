@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.70";
+    static final String VER = "v3.71";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1130,13 +1130,13 @@ public class GameOverlay {
     static void joinCard(final Activity a, final Ui u, final LinearLayout root) {
         LinearLayout jc = card(a, u, root);
         // v3.10 用户：默认一个地址 frp-put.com:47937，按钮显示「加入艾挽服务器」；右边留一个能自己改的地址
-        if (ipBuf == null) ipBuf = Lan.lastIp != null && !AIWAN.equals(Lan.lastIp) ? Lan.lastIp : "";
+        if (ipBuf == null) { String ra = a.getSharedPreferences("zframe", 0).getString("room_addr", ""); ipBuf = ra != null && !ra.isEmpty() ? ra : AIWAN; }   // v3.71 默认用户之前的地址
         LinearLayout jr = row(a, jc); jr.setPadding(0, u.dp(8), 0, u.dp(8)); jr.setGravity(Gravity.CENTER_VERTICAL);
         fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
         LinearLayout rc = new LinearLayout(a); rc.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams rcl = new LinearLayout.LayoutParams(0, -2, 1); rcl.leftMargin = u.dp(8);
         jr.addView(rc, rcl);
-        final EditText ipEt = new EditText(a);
+        final EditText ipEt = new EditText(a); ipEt.setImeOptions(ipEt.getImeOptions() | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI | android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN);   // v3.71 横屏不进全屏输入页
         ipEt.setText(ipBuf); ipEt.setHint("自己填地址"); ipEt.setTextColor(TXT); ipEt.setHintTextColor(SUBT); ipEt.setTextSize(13);
         ipEt.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_URI); ipEt.setSingleLine(true);
         ipEt.setGravity(Gravity.CENTER);
@@ -1708,7 +1708,7 @@ public class GameOverlay {
         if (Ed.ED == 1) note(a, u, root, "服务端：衣服刷在脚下，捡起来就穿上。");
         head(a, u, root, "按编号刷");
         LinearLayout ir = row(a, root);
-        final EditText et = new EditText(a);
+        final EditText et = new EditText(a); et.setImeOptions(et.getImeOptions() | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI | android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN);   // v3.71 横屏不进全屏输入页
         et.setHint("11 位编号"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
         et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); et.setSingleLine(true);
         et.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); et.setPadding(u.dp(10), u.dp(7), u.dp(10), u.dp(7));
@@ -1737,7 +1737,7 @@ public class GameOverlay {
         coatLbl = label(a, root, coatNow.isEmpty() ? "" : "刚穿上：" + coatNow, 11, false, SUBT);
         head(a, u, root, "按编号穿");
         LinearLayout ir = row(a, root);
-        final EditText et = new EditText(a);
+        final EditText et = new EditText(a); et.setImeOptions(et.getImeOptions() | android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI | android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN);   // v3.71 横屏不进全屏输入页
         et.setHint("11 位编号"); et.setTextColor(TXT); et.setHintTextColor(SUBT); et.setTextSize(13);
         et.setInputType(android.text.InputType.TYPE_CLASS_NUMBER); et.setSingleLine(true);
         et.setBackground(boxLine(CARD2, LINE, u.dp(8), 1)); et.setPadding(u.dp(10), u.dp(7), u.dp(10), u.dp(7));

@@ -321,3 +321,5 @@
 - 房间 Room.java：Server.handle 先给 Room（26xxx/27xxx、房主在房间里的 15001）。建房 26001→26002、改房 26025、信息 26017、加入 26005/26033、退出 26007、开始 26011/15001、列表 27005→27006、搜房号 27001。房间表走 ntfy zf-qj-room-k7r2p9m4x1（R/J/Q 行，见类注释），房主每 30 秒发一次。开始：房主本机 Lan.host / ModeProbe.host（地图 1 老海岛、3 新海岛战术、4 雨林战术），进图后发 P，加入的人 Lan.join(地址)。地址：服务端包（云手机 Ed.ED==1）= frp-put.com:47937，其它 = 局域网 IP。
 
 - v3.70（core271）：联机页地址框旁加「设为我的开房地址」（prefs room_addr），Room.myAddr 优先用它（用户自己的内网穿透，需转发 UDP 7777）。
+
+- v3.71（core272）：开房地址没设过默认 frp-put.com:47937（所有包）；输入框加 IME_FLAG_NO_EXTRACT_UI/NO_FULLSCREEN，横屏不进全屏输入页。

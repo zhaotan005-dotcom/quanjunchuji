@@ -36,7 +36,7 @@ final class Room {
     }
     static String myAddr() {
         try { String a = Con.act.getSharedPreferences("zframe", 0).getString("room_addr", ""); if (a != null && !a.isEmpty()) return a; } catch (Throwable ignored) {}   // v3.70 用户自己的内网穿透地址
-        if (Ed.ED == 1) return GameOverlay.AIWAN;
+        return GameOverlay.AIWAN;   // v3.71 用户：没设过就默认他之前的 frp-put.com:47937
         String ip = Lan.ip(); int k = ip.indexOf('（');
         return k > 0 ? ip.substring(0, k) : ip;
     }
