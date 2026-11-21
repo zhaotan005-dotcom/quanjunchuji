@@ -128,6 +128,7 @@ final class UpdPage {
             //   切关卡时游戏会回收这页；我们的调用可能晚一帧才跑 → 走的这段时间把页面设 RootSet 不让回收，切完 8 秒再放开。
             //   页面的 Outer 不是 GameInstance（挂在旧关卡的控制器/世界上）就不设，免得旧世界回收不掉 → 那样不继续走。
             if (NetCore.readyVer <= ZInit.CORE_VER) {
+                Server.preFind();   // v3.87：先把大厅连接器找好，进大厅马上回仓库包 → 衣服直接穿上
                 String on;
                 try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { on = Alive.clsName(m, nm, Server.rd(m, v + 0x18)); }
                 boolean r = on != null && on.contains("GameInstance") && LobbyLoad.root(v, true);
@@ -135,8 +136,8 @@ final class UpdPage {
                 if (r) {
                     finished = true;   // 放行游戏流程
                     long c0 = System.currentTimeMillis();
-                    while (!LobbyLoad.lobbyBrowse && !LobbyLoad.busy && System.currentTimeMillis() - c0 < 40000) {
-                        shown = Math.min(0.9f, shown + 0.008f);
+                    while (!LobbyLoad.lobbyBrowse && System.currentTimeMillis() - c0 < 40000) {
+                        shown = Math.min(0.95f, shown + 0.008f);
                         bb.clear(); fstr(bb, ba, 0x8000, "正在加载资源…");
                         if (Server.gcall(fn, v, Float.floatToIntBits(shown), ba + 0x8000, 0, 1500)[0] == 0) break;
                         last = shown;

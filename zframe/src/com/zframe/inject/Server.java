@@ -201,14 +201,20 @@ public class Server {
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
                 if (rd(m, vt + 0x11c) != b + CONN_INIT) { connState = "连接器：vtable 对不上，没找"; return; }
                 connState = "连接器：正在扫内存"; mark("开始扫连接器");
-                long t0 = System.currentTimeMillis(), c = scan(m, vt);
+                // v3.87：v3.84 日志——整块匿名内存扫了 7 秒多（16.2 → 23.7），这段时间大厅包全卡着，衣服 6 秒后才穿上。
+                //        改成：开机时预找（preConn）→ 直接用；不行就按对象表找（连接器是 UObject），最后才整块扫
+                long t0 = System.currentTimeMillis(), c = 0;
+                long pc = preConn;
+                if (pc > 0x10000 && rd(m, pc) == vt && looksAt(m, pc)) { c = pc; how = "开机预找"; }
+                if (c == 0) { c = byTable(m, vt); how = "对象表"; }
+                if (c == 0) { c = scan(m, vt); how = "整块扫"; }
                 long ms = System.currentTimeMillis() - t0;
                 if (c == 0) { connState = "连接器：没找到（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）"; return; }
                 connInfo = "  连接器 +fa038=" + Long.toHexString(rd(m, c + 0xfa038)) + " +fa054=" + Long.toHexString(rd(m, c + 0xfa054))
                     + " 队列 " + rd(m, c + 0xfa05c);
                 mark("找到连接器 " + Long.toHexString(c) + connInfo);
                 rpl.putInt(12, (int) c);
-                connState = "连接器：" + Long.toHexString(c) + "（扫了 " + (scanned >> 20) + " MB，" + ms + " ms）";
+                connState = "连接器：" + Long.toHexString(c) + "（" + how + "，扫了 " + (scanned >> 20) + " MB，" + ms + " ms）";
                 new Thread(() -> { try { Thread.sleep(3000); } catch (Throwable ignored) {} allSkins(); }, "zf-skins").start();
             }
         } catch (Throwable e) { connState = "连接器：出错 " + e; }
@@ -225,6 +231,41 @@ public class Server {
         return looksObj(fl, idx, cls, out);
     }
     /** UObject 头：不是 CDO，序号合理，类和 Outer 都是对齐的指针 */
+    static volatile long preConn; static volatile String how = "", preState = "连接器预找：没跑";
+    static boolean looksAt(RandomAccessFile m, long o) { return looksObj(rd(m, o + 4), rd(m, o + 8), rd(m, o + 12), rd(m, o + 24)); }
+    /** v3.87 连接器是 UObject → 在 GUObjectArray 里找 vtable 对得上、不是 CDO 的那个 */
+    static long byTable(RandomAccessFile m, long vt) {
+        try {
+            long b = Mods.base(), g = rd(m, b + 0x51250acL), objs = rd(m, g + 0x10); int num = (int) rd(m, g + 0x18);
+            if (objs < 0x10000 || num <= 0 || num > 0x200000) return 0;
+            byte[] raw = new byte[num * 16]; m.seek(objs); m.readFully(raw);
+            ByteBuffer bb = ByteBuffer.wrap(raw).order(ByteOrder.LITTLE_ENDIAN);
+            byte[] x = new byte[8];
+            for (int i = 0; i < num; i++) {
+                long o = bb.getInt(i * 16) & 0xffffffffL;
+                if (o < 0x10000) continue;
+                try { m.seek(o); m.readFully(x); } catch (Throwable e) { continue; }
+                long v = (x[0] & 0xffL) | (x[1] & 0xffL) << 8 | (x[2] & 0xffL) << 16 | (x[3] & 0xffL) << 24;
+                if (v != vt) continue;
+                if ((x[4] & 0x10) != 0) continue;   // CDO
+                if (looksAt(m, o)) return o;
+            }
+        } catch (Throwable ignored) {}
+        return 0;
+    }
+    /** v3.87 开机页放行后就先把连接器找好，进大厅开服务端时直接用 */
+    static void preFind() {
+        new Thread(() -> {
+            try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+                long b = Mods.base(), vt = b + CONN_VT;
+                if (b == 0 || rd(m, vt + 0x11c) != b + CONN_INIT) { preState = "连接器预找：vtable 对不上"; return; }
+                long t0 = System.currentTimeMillis(), c = byTable(m, vt);
+                preConn = c;
+                preState = "连接器预找：" + (c == 0 ? "开机时还没有" : Long.toHexString(c)) + "（" + (System.currentTimeMillis() - t0) + " ms）";
+            } catch (Throwable e) { preState = "连接器预找：出错 " + e; }
+            LogCap.note(preState);
+        }, "zf-preconn").start();
+    }
     static boolean looksObj(long fl, long idx, long cls, long out) {
         return (fl & 0x10) == 0 && idx > 0 && idx < 0x400000 && cls > 0x10000 && (cls & 3) == 0 && out > 0x10000 && (out & 3) == 0;
     }

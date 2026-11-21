@@ -65,6 +65,8 @@ final class LobbyLoad {
 
     static volatile boolean once;
     static void show() {
+        // v3.87 用户：不要大厅加载页，在开机页加载完直接进大厅就穿好衣服 → 不再建大厅加载页（衣服慢是连接器找了 7 秒，见 Server.byTable）
+        if (true) { state = "大厅加载页：v3.87 起不建"; return; }
         if (busy || once) return;   // v3.81：只在开机第一次进大厅（接着开机更新页），对局回大厅不盖
         once = true;
         busy = true; startAt = System.currentTimeMillis(); readyAt = 0;
