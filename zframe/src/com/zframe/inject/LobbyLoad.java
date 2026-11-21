@@ -41,11 +41,26 @@ final class LobbyLoad {
             long fl = Server.rd(m, it + 4);
             m.seek(it + 4); m.write(new byte[] { (byte) fl, (byte) (fl >> 8), (byte) (fl >> 16), (byte) ((fl >> 24) | 0x40) });
             rooted = "类已设 RootSet";
+            m.close();
             // v3.85 用户：进大厅先露一下大厅再出加载页 → 开机时就把 GameInstance 找好（全表扫要几秒），进大厅关卡后直接建
             new Thread(() -> { try { long[] f = find(Mods.base(), Veh.Names.get()); if (f[1] != 0) gi = f[1]; } catch (Throwable ignored) {} }, "zf-lobbypre").start();
         } catch (Throwable t) { rooted = "设 RootSet 出错 " + t; }
     }
     static volatile String rooted = "";
+    /** v3.86：对象设/清 RootSet（对象表项 flags 的 1<<30）；返回是否成功 */
+    static boolean root(long o, boolean on) {
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            long b = Mods.base(), g = Server.rd(m, b + 0x51250acL), objs = Server.rd(m, g + 0x10);
+            long idx = Server.rd(m, o + 8), num = Server.rd(m, g + 0x18);
+            if (objs < 0x10000 || idx <= 0 || idx >= num) return false;
+            long it = objs + idx * 16;
+            if (Server.rd(m, it) != o) return false;
+            long fl = Server.rd(m, it + 4);
+            int hi = (int) ((fl >> 24) & 0xff); hi = on ? (hi | 0x40) : (hi & ~0x40);
+            m.seek(it + 4); m.write(new byte[] { (byte) fl, (byte) (fl >> 8), (byte) (fl >> 16), (byte) hi });
+            return true;
+        } catch (Throwable t) { return false; }
+    }
     static volatile long gi;
 
     static volatile boolean once;
@@ -88,7 +103,7 @@ final class LobbyLoad {
             long ba = GameOverlay.bufAddr(bb);
             // v3.83 用户：不要我们的公告
             // v3.84 用户：进度条要走 → 接着开机那页的 60% 往上走，人物衣服装好（readyAt）后走到 100% 再关
-            float shown = 0.6f;
+            float shown = Math.max(0.6f, UpdPage.last);   // v3.86：接着开机那页最后的位置
             while (true) {
                 long now = System.currentTimeMillis(), el = now - startAt;
                 boolean ok = readyAt != 0 && now - readyAt > 2500;

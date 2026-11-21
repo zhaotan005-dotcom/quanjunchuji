@@ -14,6 +14,8 @@ import java.nio.ByteOrder;
 final class UpdPage {
     static volatile long view;
     static volatile boolean finished, started, panelOk;
+    static volatile float last;
+    static volatile String creep = "";
     static volatile String state = "游戏更新页：没开始";
     static final long INFO_GET = 0xfb1be8L, SHOW_NOTICE = 0x15de914L;
 
@@ -119,8 +121,33 @@ final class UpdPage {
                 if (doneAt != 0 && System.currentTimeMillis() - doneAt > (ready ? 1500 : 600)) break;
                 Thread.sleep(300);
             }
+            last = shown;
             if (NetCore.readyVer > ZInit.CORE_VER && Con.act != null) NetCore.restart(Con.act);
             state += "；进度条已接上";
+            // v3.86 用户：开机页走到 60% 就停住，再跳大厅再出一次加载 → 放行游戏流程后这页继续慢慢往 90% 走，一直走到游戏切大厅关卡（Browse）。
+            //   切关卡时游戏会回收这页；我们的调用可能晚一帧才跑 → 走的这段时间把页面设 RootSet 不让回收，切完 8 秒再放开。
+            //   页面的 Outer 不是 GameInstance（挂在旧关卡的控制器/世界上）就不设，免得旧世界回收不掉 → 那样不继续走。
+            if (NetCore.readyVer <= ZInit.CORE_VER) {
+                String on;
+                try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { on = Alive.clsName(m, nm, Server.rd(m, v + 0x18)); }
+                boolean r = on != null && on.contains("GameInstance") && LobbyLoad.root(v, true);
+                creep = "开机页 Outer " + on + (r ? "，已设 RootSet 继续走" : "，不继续走");
+                if (r) {
+                    finished = true;   // 放行游戏流程
+                    long c0 = System.currentTimeMillis();
+                    while (!LobbyLoad.lobbyBrowse && !LobbyLoad.busy && System.currentTimeMillis() - c0 < 40000) {
+                        shown = Math.min(0.9f, shown + 0.008f);
+                        bb.clear(); fstr(bb, ba, 0x8000, "正在加载资源…");
+                        if (Server.gcall(fn, v, Float.floatToIntBits(shown), ba + 0x8000, 0, 1500)[0] == 0) break;
+                        last = shown;
+                        Thread.sleep(300);
+                    }
+                    creep += "，走到 " + (int) (last * 100) + "%（" + (System.currentTimeMillis() - c0) + " ms）";
+                    final long fv = v;
+                    new Thread(() -> { try { Thread.sleep(8000); } catch (InterruptedException ignored) {} LobbyLoad.root(fv, false); }, "zf-unroot").start();
+                }
+                LogCap.note(creep);
+            }
         } catch (Throwable t) { state = "游戏更新页：出错 " + t; LogCap.note(state); GameOverlay.srvFallback(); }
         finally { finished = true; }
     }

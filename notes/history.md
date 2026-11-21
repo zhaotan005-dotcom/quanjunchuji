@@ -1563,3 +1563,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - RE UpdateUI.uasset 父子关系：公告（ContentSwitcher/Text/Image/NoticeImage/PreBtn/NextBtn）、ExitBtn/UpdateBtn/Help/CloseBtn、IosOrAndroidSwitch(AndroidTip) 全在 UpdatePanel 下；UpdateProgressBar/UpdateProcessText/UpdateProcessValue/UpdateTip 在 CanvasPanel_1（CanvasPanel_0 下，独立）。
 - 改：UpdPage.showPanel / LobbyLoad 显示面板时 UpdatePanel 设 Collapsed(1)，其余 Visible；LobbyLoad 开机 rememberClass 后后台 find 预取 GameInstance，进大厅关卡时类和 GI 都有效就跳过全表扫直接建；Island：单机（Ed.single）不调 vehPractice，TableGuns 单机/服务端都关（if false）；服务端仍让游戏自己的驾驶训练台刷车。
 - 枪：客户端/服务端同一套 pak，训练岛无 ServerOnly/Pickups 关卡文件（v3.61 结论不变），游戏自己刷不出枪。军需 = Pandora 网页商城（要腾讯服务器下 Lua 页），离线无法恢复原页。
+
+## v3.86（core287，2026-11-22 01:4x，只推内核，未实测）
+- 用户 01:35：为什么进大厅又跳出来再加载，加载到 60% 就不走了。（日志：开机 StartupMap 01:21:59 → Browse 大厅 01:22:15，开机页放行后停在 60% 直到切关卡。）
+- 改：UpdPage 放行游戏流程后，若开机页 Outer 是 GameInstance → 设 RootSet，继续每 0.3 秒 +0.8% 走到最多 90%，直到 LobbyLoad.lobbyBrowse/busy（40 秒上限），8 秒后清 RootSet；Outer 不是 GameInstance 就不走（防旧世界回收不掉）。UpdPage.last → LobbyLoad 起点。LobbyLoad.root(obj,on) 通用。诊断 UpdPage.creep。
+- 切关卡那一下（旧页被游戏清掉、大厅页建出来之间）还会闪一下大厅，无法完全消掉（UE 换关卡会清掉旧世界的界面）。
