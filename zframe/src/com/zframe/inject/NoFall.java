@@ -27,6 +27,10 @@ final class NoFall {
     static volatile boolean running;
     static final HashSet<Long> pawns = new HashSet<>();
     static String orig = "";
+    // v3.94 用户：训练场开高跳摔死（v3.93 日志：阈值法只在第一次进训练场找到人物，复活/再进后「还没找到人物」）→
+    //   直接改摔伤函数 0xd149a4 开头：mov r0,#0; vmov s0,r0; bx lr（摔伤一律 0，不扣血）；只在训练岛里改，离开改回原样。
+    static final String FALL_O = "f04d2de918b08de2028b2ded", FALL_N = "0000a0e3100a00ee1eff2fe1";
+    static volatile String patchState = "";
 
     static void start() {
         if (running) return;
@@ -36,6 +40,8 @@ final class NoFall {
             long lastScan = 0; int passes = 0;
             try {
                 synchronized (pawns) { pawns.clear(); } orig = "";
+                patchState = "摔伤函数 " + Mods.write(FALL_BASE, FALL_O, FALL_N, true);
+                LogCap.note("训练岛防摔：" + patchState);
                 while (Con.training && Con.inMatch) {
                     long b = Mods.base(); if (b == 0) { Thread.sleep(1000); continue; }
                     long now = System.currentTimeMillis();
@@ -50,14 +56,14 @@ final class NoFall {
                         }
                     }
                     passes++;
-                    state = ok > 0 ? "训练岛防摔：ok（人物 " + ok + " 个，摔伤阈值 High/VeryHigh/Kill 原值 " + orig + " → 1e9；第 " + passes + " 遍）"
-                                   : "训练岛防摔：还没找到人物（第 " + passes + " 遍" + (gone > 0 ? "，" + gone + " 个不是人物/已没了" : "") + "）";
+                    state = (patchState.isEmpty() ? "" : patchState + "；") + (ok > 0 ? "训练岛防摔：ok（人物 " + ok + " 个，摔伤阈值 High/VeryHigh/Kill 原值 " + orig + " → 1e9；第 " + passes + " 遍）"
+                                   : "训练岛防摔：还没找到人物（第 " + passes + " 遍" + (gone > 0 ? "，" + gone + " 个不是人物/已没了" : "") + "）");
                     if (passes == 3 || passes % 150 == 0) LogCap.note(state);
                     Thread.sleep(2000);
                 }
                 state = state + "；已离开训练岛，停";
             } catch (Throwable t) { state = "训练岛防摔：出错 " + t; LogCap.note(state); }
-            finally { running = false; }
+            finally { running = false; patchState = "摔伤函数已改回 " + Mods.write(FALL_BASE, FALL_O, FALL_N, false); }
         }, "zf-nofall").start();
     }
 

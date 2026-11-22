@@ -171,6 +171,7 @@ public class Veh {
     public static volatile String fuelState = "满油：还没刷车";
     /** v3.90：游戏日志里刷车成功/失败的次数（Con.line 数） */
     static volatile int spawnOk, spawnFail;
+    static volatile boolean quickToast;
     static void spawnLog(String l) {
         if (l.contains("Spawn Vehicle ")) spawnOk++;
         else if (l.contains("spawn vehicle failed")) spawnFail++;
@@ -249,6 +250,9 @@ public class Veh {
             Con.fastUntil = System.currentTimeMillis() + 4000;
             int s0 = spawnOk, f0 = spawnFail;
             if (!spawnAt(id, x, y, z, (float) yawDeg)) return "没反应 " + label + "（编号 " + id + "，补丁代码没反应）";
+            // v3.94 用户：刷车别靠读游戏日志 → 我们的 cave 在游戏线程里同步调完游戏刷车函数 0x1102ca4 就回 0x5b03，车这时已经生成，马上提示；
+            //   日志/对象表只在后台核对，被挡住才再提示换位置
+            if (i == 0) { quickToast = true; GameOverlay.toastAny("刷车：已刷 " + label); }
             // v3.90 用户：刷车很大概率点了没效果。v3.89 日志：游戏 11:28:02 就刷出来了，我们 11:28:21 才确认（整表扫 GUObjectArray 十几秒），
             //   这期间 busy，再点只弹旧提示；确认不到还会换位置再刷一辆。改：看游戏日志「Spawn Vehicle …」/「spawn vehicle failed」（最多等 3 秒），
             //   成功就马上提示，满油/可受伤放后台做
@@ -529,8 +533,8 @@ public class Veh {
                 boolean ok = r.startsWith("已刷");
                 String s = "刷车：" + r;
                 note(s); state = s;
-                if (!ok) GameOverlay.toastAny(s);
-                if (ok) GameOverlay.toastAny(s);
+                if (!ok || !quickToast) GameOverlay.toastAny(s);
+                quickToast = false;
             } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();

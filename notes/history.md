@@ -1607,3 +1607,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 12:27（v3.92 实测，客户端包，5 图+视频）：过渡有点卡；喷子枪口「红色那个」（推断=鸭嘴 20501000012，pak 有 Items/WeaponAssist/20501000012_BP_Duckbill，没有 Pickups 蓝图，刷地上可能失败）；训练场「摔死」——日志 12:23:45 Player Died DamageType=NZDamageType_VehicleExplosion（是刷出来的车爆炸，MinHp 挡住 0 次：爆炸伤害不走 GameMode vt+0x484 那条）；训练场刷车不是立马出（日志：游戏 12:22:44.108 Spawn Vehicle，我们 45.463 才提示——Con 日志线程每 1 秒读一次）；训练场菜单刷车上面空一格（隐藏的「道具」分隔线没跟着隐藏）。
 - 改：toggle 改成一次性改窗口 + scale/alpha 硬件层动画（不再逐帧 updateViewLayout）；鸭嘴加进霰弹枪组和 S1897/S686/S12K；carCheck 训练场不跑（车不打开 bCanBeDamaged）；Con.fastUntil：刷车后 4 秒日志 100ms 读一次；分隔线存 tabSep，分页隐藏/训练场时一起隐藏。
 - P92：这几局日志只有 20201000005（92式）出现过，没有 20201000001 P92；用户截图里的手枪可能是 92式。P92 诊断没抓到东西。
+
+## v3.94（core295，2026-11-22 12:4x，只推内核，未实测）
+- 用户 12:33：训练场是开高跳跳起来摔死的（不是车炸——12:23:45 那条是另一次）；刷车不该靠读游戏日志（日志关了就刷不了）。
+- 查：三局诊断 MinHp/防摔的人物都是 94653b00（myPawn 复活/再进后可能是旧的）；防摔阈值法只在第一次进训练场 ok，之后「还没找到人物（第 13 遍）」→ 摔伤阈值没写上。
+- 改：NoFall 进训练岛时直接改摔伤函数 0xd149a4 开头 f04d2de918b08de2028b2ded → mov r0,#0; vmov s0,r0; bx lr（0000a0e3100a00ee1eff2fe1），离开训练岛改回；阈值法保留。Veh.place：cave 回 0x5b03（游戏线程同步调完 0x1102ca4）就马上提示「已刷」，日志/对象表只做后台核对，挡住才再提示。
+- 风险：项目经验说运行中改已跑过的代码可能不生效；如果还摔死，要改成启动早装 + 标志位（SLACK 已满，要另找空位）。
