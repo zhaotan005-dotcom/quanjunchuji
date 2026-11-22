@@ -258,7 +258,9 @@ public class Mods {
     }
 
     static void resetMatch() {
-        // v2.31：加速/高跳/枪的开关跨局保留（在大厅拉好进图也生效），只清内部状态
+        // v3.95 用户：每次回大厅/重新进游戏，所有参数都回默认，不保留高跳这些（以前 v2.31 跨局保留）
+        speed = 1f; jump = 1f; noRecoil = false; noShake = false; infAmmo = false;
+        try { Fly.want = false; } catch (Throwable ignored) {}
         cmc = 0; lastJump = Float.NaN; tableAi = 0; tableAt = 0;
     }
 
@@ -309,6 +311,7 @@ public class Mods {
     static volatile Boolean zoneChoice;
     /** v3.21：大厅/菜单高亮按用户选的（存的）模式，不再用 noPlane||noPoison（v3.20 单挑把 noPlane 改回 false 后按钮还亮着「不刷毒对局」，看不出飞机补丁没打上） */
     static boolean zoneOff() {
+        if (Ed.ED != 1) return false;   // v3.95 用户：单机进图一律上飞机跳伞，只有服务端能选不上飞机
         Boolean c = zoneChoice;
         if (c == null) { boolean on = false; try { android.app.Activity a = Con.act; if (a != null) on = a.getSharedPreferences("zframe", 0).getBoolean("zone_off", false); } catch (Throwable ignored) {} zoneChoice = c = on; }
         return c;
@@ -320,6 +323,7 @@ public class Mods {
     static void restoreZone() {
         boolean on = false;
         try { android.app.Activity a = Con.act; if (a != null) on = a.getSharedPreferences("zframe", 0).getBoolean("zone_off", false); } catch (Throwable ignored) {}
+        if (Ed.ED != 1) on = false;   // v3.95 单机一律上飞机
         String r = on ? setNoZone() : "正常对局不用改";
         zoneState = "游戏模式：启动时恢复「" + (on ? "不刷毒对局" : "正常对局") + "」→ " + r + "（不上飞机=" + noPlane + " 不刷圈=" + noPoison + "）";
         LogCap.note(zoneState);
@@ -452,6 +456,11 @@ public class Mods {
             if (vehPawn == 0 && now - lastPawnAsk > 4000) { lastPawnAsk = now; GameOverlay.askPawn(); }
         }
         return vehPawn;
+    }
+    /** v3.95 每次现问游戏：本机玩家控制器当前控制的人物（Veh.info 的 buf+8），问不到再用缓存 */
+    static long livePawn() {
+        try { double[] q = Veh.info(); if (q != null && q.length > 6 && q[6] != 0) return (long) q[6]; } catch (Throwable ignored) {}
+        return myPawn();
     }
     static String hostSyncText() { return syncState; }
     static void syncFromHost() {

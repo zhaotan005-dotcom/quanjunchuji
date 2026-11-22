@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.95";
+    static final String VER = "v3.96";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -204,55 +204,41 @@ public class GameOverlay {
                 }
                 panel.post(() -> clamp(panel, decor, u));
             };
-            // v3.92 用户（视频）：点标题展开/收起是一下子跳的 → 改成宽、高一起平滑过渡（中心不动），内容淡入淡出，260ms 减速曲线
+            // v3.95 用户（视频）：v3.93 还是闪——逐帧看是改悬浮窗大小那一下，窗口先变大/变小、内容还没画，露出一块空白底。
+            //   改成：先把整块菜单淡出到完全透明（看不见）→ 改窗口大小 → 等新大小画好两帧 → 再缩放淡入。窗口改大小时什么都不显示，就不会闪。
             final android.animation.ValueAnimator[] tgA = new android.animation.ValueAnimator[1];
             final Runnable toggle = () -> {
                 if (tgA[0] != null) { tgA[0].cancel(); tgA[0] = null; }
-                ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
-                if (lp0 == null || panel.getWidth() <= 0 || panel.getVisibility() != View.VISIBLE) {
-                    collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); return;
+                panel.animate().cancel();
+                if (panel.getLayoutParams() == null || panel.getWidth() <= 0 || panel.getVisibility() != View.VISIBLE) {
+                    collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); panel.setAlpha(1f); return;
                 }
                 final boolean toC = !collapsed;
-                final int ow = panel.getWidth(), oh = panel.getHeight();
-                final int nw = toC ? u.dp(150) : pw;
-                int H = decor.getHeight() > 0 ? decor.getHeight() : sh;
-                int nh0;
-                if (toC) nh0 = head.getHeight() + panel.getPaddingTop() + panel.getPaddingBottom();
-                else {
-                    collapsed = false; fill(a, u, content);
-                    body.setVisibility(View.VISIBLE); body.setAlpha(0f);
-                    close.setVisibility(Con.inMatch ? View.VISIBLE : View.GONE);
-                    panel.measure(View.MeasureSpec.makeMeasureSpec(nw, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(H, View.MeasureSpec.AT_MOST));
-                    nh0 = panel.getMeasuredHeight();
-                }
-                final int nh = Math.max(u.dp(24), nh0);
-                // v3.93 用户：v3.92 过渡卡 → 不再逐帧改悬浮窗大小（每帧整窗重排）。改成：展开时先一次性把窗口设成展开大小，
-                //   再用 scale/alpha（GPU 合成，不重排）从小条放大；收起时先缩小淡出，结束再一次性改成小条。
-                final float sx0 = toC ? 1f : Math.min(1f, ow / (float) nw), sy0 = toC ? 1f : Math.min(1f, oh / (float) nh);
-                final float sx1 = toC ? Math.min(1f, nw / (float) ow) : 1f, sy1 = toC ? Math.min(1f, nh / (float) oh) : 1f;
-                if (!toC) { collapsed = false; apply.run(); }
-                panel.setPivotX(toC ? ow / 2f : nw / 2f); panel.setPivotY(0f);
-                panel.setScaleX(sx0); panel.setScaleY(sy0);
-                if (!toC) { body.setAlpha(0f); head.setAlpha(1f); }
-                android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f).setDuration(toC ? 200 : 240);
-                va.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+                panel.setPivotX(panel.getWidth() / 2f); panel.setPivotY(0f);
                 panel.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-                va.addUpdateListener(av -> {
-                    float t = (float) av.getAnimatedValue();
-                    panel.setScaleX(sx0 + (sx1 - sx0) * t); panel.setScaleY(sy0 + (sy1 - sy0) * t);
-                    body.setAlpha(toC ? Math.max(0f, 1f - t * 1.8f) : Math.min(1f, Math.max(0f, t * 1.5f - 0.3f)));
-                });
-                va.addListener(new android.animation.AnimatorListenerAdapter() {
-                    boolean cancelled;
-                    @Override public void onAnimationCancel(android.animation.Animator an) { cancelled = true; }
-                    @Override public void onAnimationEnd(android.animation.Animator an) {
-                        panel.setScaleX(1f); panel.setScaleY(1f); body.setAlpha(1f);
-                        panel.setLayerType(View.LAYER_TYPE_NONE, null);
-                        if (cancelled) return;
-                        if (toC) { collapsed = true; px = getX(panel); apply.run(); }
-                    }
-                });
-                tgA[0] = va; va.start();
+                panel.animate().alpha(0f).scaleX(0.96f).scaleY(0.96f).setDuration(110)
+                        .setInterpolator(new android.view.animation.AccelerateInterpolator())
+                        .withEndAction(() -> {
+                            collapsed = toC;
+                            if (!toC) { fill(a, u, content); body.setAlpha(1f); }
+                            panel.setAlpha(0f);
+                            apply.run();
+                            // 等窗口按新大小排好、画完再显示
+                            panel.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+                                int n;
+                                @Override public boolean onPreDraw() {
+                                    if (++n < 3) { panel.invalidate(); return true; }
+                                    panel.getViewTreeObserver().removeOnPreDrawListener(this);
+                                    panel.setPivotX(panel.getWidth() / 2f); panel.setPivotY(0f);
+                                    panel.setScaleX(0.96f); panel.setScaleY(0.96f);
+                                    panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(toC ? 140 : 180)
+                                            .setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f))
+                                            .withEndAction(() -> panel.setLayerType(View.LAYER_TYPE_NONE, null)).start();
+                                    return true;
+                                }
+                            });
+                            panel.invalidate();
+                        }).start();
             };
             fold.setOnClickListener(v -> toggle.run());
 
@@ -272,6 +258,7 @@ public class GameOverlay {
                 wl.x = (int) px; wl.y = (int) py;
                 if (android.os.Build.VERSION.SDK_INT >= 28) wl.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
                 wl.setTitle("zframe_menu");
+                wl.windowAnimations = 0;   // v3.95 改大小不要系统动画
                 panel.setSystemUiVisibility(decor.getSystemUiVisibility() | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
                 pwm = wm; plp = wl;
                 wm.addView(panel, wl);
@@ -1982,7 +1969,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.95 更新内容（只更新内核）\n· 训练场摔下来照常掉血，但最后总会留 1 滴血，摔不死\n\nv3.94 更新内容（只更新内核）\n· 训练场防摔改成直接关掉游戏的摔伤计算，开高跳摔下来也不掉血\n· 刷车点了马上提示，不再等游戏日志\n\nv3.93 更新内容（只更新内核）\n· 菜单展开收起的过渡改成不卡的缩放淡入\n· 霰弹枪配件加鸭嘴枪口\n· 训练场刷出来的车不再会被打爆（之前被车爆炸炸死）\n· 刷车确认更快\n· 训练场菜单「刷车」上面不再空一格\n\nv3.92 更新内容（只更新内核）\n· 菜单点标题展开、收起改成平滑过渡\n· 战术道具按钮显示名字（护盾、升降台、地雷等），删掉「重新读」\n· 删掉「手雷抛物线检查」\n· 倍镜改成放进背包\n· 霰弹枪配件补上 S12K 能装的枪口和弹匣（共 8 件）\n· 训练场菜单加「刷车」\n\nv3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
+    static final String NOTICE = "v3.96 更新内容（只更新内核）\n· 菜单展开收起：先淡出、换好大小再淡入，不再闪一块白\n· 训练场锁血改成每秒现找自己的人物（以前复活后找的是旧人物，锁血失效被车炸死）\n· 每次回大厅/重新进游戏，加速、高跳、无后座、无限子弹、飞天都回默认\n· 单机进图一律上飞机跳伞，只有服务端能选「不刷毒对局」\n\nv3.95 更新内容（只更新内核）\n· 训练场摔下来照常掉血，但最后总会留 1 滴血，摔不死\n\nv3.94 更新内容（只更新内核）\n· 训练场防摔改成直接关掉游戏的摔伤计算，开高跳摔下来也不掉血\n· 刷车点了马上提示，不再等游戏日志\n\nv3.93 更新内容（只更新内核）\n· 菜单展开收起的过渡改成不卡的缩放淡入\n· 霰弹枪配件加鸭嘴枪口\n· 训练场刷出来的车不再会被打爆（之前被车爆炸炸死）\n· 刷车确认更快\n· 训练场菜单「刷车」上面不再空一格\n\nv3.92 更新内容（只更新内核）\n· 菜单点标题展开、收起改成平滑过渡\n· 战术道具按钮显示名字（护盾、升降台、地雷等），删掉「重新读」\n· 删掉「手雷抛物线检查」\n· 倍镜改成放进背包\n· 霰弹枪配件补上 S12K 能装的枪口和弹匣（共 8 件）\n· 训练场菜单加「刷车」\n\nv3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
     static volatile String remoteNotice;
     static void fetchNotice() {
         new Thread(() -> {

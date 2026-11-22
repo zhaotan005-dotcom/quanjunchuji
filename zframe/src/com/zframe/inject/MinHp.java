@@ -53,7 +53,7 @@ final class MinHp {
                 if (!"ok".equals(r)) { state = "训练场锁血：没装上，" + r; LogCap.note(state); return; }
                 int n = 0, last = 0;
                 while (Con.training && Con.inMatch) {
-                    long me = Mods.myPawn();
+                    long me = Mods.livePawn();   // v3.95 以前用缓存的人物（死了复活/再进训练场后是旧的 → 锁血没挡住，被车炸死）
                     buf.putInt(0, (int) me);
                     state = "训练场锁血：已装（血最低留 1，人物 " + Long.toHexString(me) + "，挡住致命伤害 " + buf.getInt(8) + " 次）";
                     int c = buf.getInt(8);

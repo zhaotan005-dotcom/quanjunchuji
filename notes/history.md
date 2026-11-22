@@ -1618,3 +1618,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 12:38：要「能掉血，剩一丝血怎么也死不掉」；12:39：刷东西都不要靠日志，下个版本他会删掉上传日志。
 - 改：NoFall 不再把摔伤函数整个返回 0，改 0xd149a4 里三处 HealthMax(+0x5a4) → 当前血(+0x5a0)−1：0xd149ec / 0xd14a24（High/VeryHigh 档 ×百分比）、0xd14b1c（Kill 档 = 血−1）。训练岛里改、离开改回；不再写阈值。注意：高、很高两档伤害现在按当前血算（比原来按满血算小）。
 - 刷车：v3.94 起 cave 返回就提示，不依赖日志；日志只做后台核对。
+
+## v3.96（core297，2026-11-22 12:5x，只推内核，未实测）
+- 用户 12:50（图+视频，v3.95）：①动画还是闪 ②训练场脱衣服身上还在 ③要剩 1% 血、再受伤照样有叫声和掉血特效但不死 ④每次回大厅重新进游戏所有参数回默认 ⑤单机进图默认上飞机，只有服务端能开关。
+- ①逐帧（60fps）看：收起时内容缩小淡出后出现一块空白白框、几帧后才出小条；展开时小条位置先出空白框。= 改悬浮窗大小那一下内容没画。改：整块淡出到 0 → apply 改窗口 → OnPreDraw 等 3 帧 → 缩放淡入；wl.windowAnimations=0。
+- ③日志 12:47:05 Player Died DamageType=NZDamageType_InVehicleExplosion（CheckReallyDead: InVehicleExplosion, VehicleHitWall），MinHp 状态「人物 0」→ 锁血根本没指向人物。改：MinHp 每秒用 Mods.livePawn()（Veh.info buf+8 = PC 当前人物）。注意 Health(+0x5a0)/HealthMax(+0x5a4) 是 int（godTick 按 float 读是错的，没生效）。
+  - RE：人物 TakeDamage = 虚表 vt+0x2a0 = 0xd2230c（虚表起点文件 0x4bdcb48，摔伤函数在 +0x7e8）；它内部不直接写血，写血在 GM 伤害链（MinHp 钩点）。爆炸是否走 GM 链未确认。死函数空位 0x171e1c8..0x171e7cc 全被占。libUE4 里日志字符串查不到（加密/混淆）。
+  - 血=1 时伤害改成 0，可能没有受伤反馈（未确认）。
+- ②12:46:43 丢 30318000000 / 30310000006 后仍「DiscardInventory Give Default Apparel Fault」两次；出生列表已含 6 件（含 30301000001、30302000000）→ 不是出生列表的问题，原因未查到，没改。
+- ④resetMatch：speed/jump=1、无后座/聚点/无限子弹关、Fly.want=false（以前 v2.31 跨局保留）。
+- ⑤zoneOff()/restoreZone：Ed.ED != 1 一律 false（单机上飞机），服务端照旧。
