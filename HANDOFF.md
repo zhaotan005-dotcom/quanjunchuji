@@ -346,3 +346,5 @@
 - BootLog：启动 6 秒「启动」消息（标题带机型），40/120 秒没进大厅传 boot-*。
 - 服务端：去掉 UpdateUI 类 RootSet + GameInstance 预扫、UpdUi 名字表扫描；贴图池 128 + MipBias 1；MemTrim 超 850MB 用 madvise PAGEOUT 换出冷页；Beat 记 RssAnon/File 和 smaps 前 15。
 - jsDelivr @main 的 .ver 卡 297/298、.dex 是新的 → 旧内核（<299）只通 jsDelivr 时永远「包不对」重试卡在加载页；钉 @sha / 标签正常。旧内核没法远程救，只能装新包或让 raw/ghfast/gh-proxy 能通（梯子全局模式）。
+
+- 19:5x 朋友小米 2602BRT18C（安卓 16）开机卡加载图：v4.06 已能进（用户 19:48 确认）。boot 日志：更新 14 秒已是最新（没走超时），**游戏日志没找到** → 旧版靠日志的开机触发全不触发；v4.06 的 20 秒计时兜底找到更新页并开大厅。遗留：那台机器所有靠游戏日志的功能（lobbySeen、自动上传、进图识别等）都不灵，未改。详见 history。

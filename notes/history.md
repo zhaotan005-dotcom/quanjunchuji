@@ -1666,3 +1666,13 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
   6. Beat：每秒加 RssAnon/RssFile/RssShmem 和换出状态；服务端第一次过 800MB 记 smaps 前 15 名到 smaps.txt，下次启动随 beat-prev 进诊断。
 - 未做：客户端游戏包重打（本沙盒没有原版 game.apk / Host.java；Drive API 看不到文件）。
 - 待看（下一次服务端启动自动上传的诊断）：「内存换出第 1 轮：RSS a→b」「上次运行 smaps 汇总」「cg …」；还被杀就按 smaps 前几名再砍。朋友：boot-/启动消息（标题带机型）。
+
+## 2026-11-22 19:5x 朋友小米开机卡住 → v4.06 已能进（只记笔记，没出新版）
+- 设备：Xiaomi 2602BRT18C 安卓 16（SDK 36），v4.06 客户端 内核 307（在线），WiFi 无 VPN。19:46:23 启动消息；boot-1122-194657（40 秒）、boot-1122-194817（120 秒）。用户 19:48 说朋友已进游戏。
+- boot 日志要点：
+  - 在线更新 14 秒内「已是最新（v4.06）」，done=true、超时放行=false → 这次没走更新超时那条路（镜像：jsDelivr 部分 297、其余 307；gh-proxy 403）。
+  - **游戏日志：没找到**（findUeLog 在 外部 files / files / /storage/emulated/0/UE4Game 都没找到 .log）。所以 StartupMap / LogLoad / [FlowManager] 一行都没读到，「启动步骤：没看到」。
+  - 19:46:37 「日志里没看到 StartupMap，20 秒计时兜底开始找更新页」→ 19:46:54 找到更新页 e84b8fc0（UpdatePanel 收起）→「引擎就绪：日志里没看到 LogLoad，按更新页已建出来算」→ 19:46:59 开机直接 open FrontEndMap_NEW（启动后约 36 秒）。之后朋友进了游戏。
+- 原因（由日志证实的部分）：这台手机上我们读不到游戏日志。v4.05 及以前开机流程（startupUpdate、engineSeenAt、开机进大厅）全靠日志里的 StartupMap/LogLoad 行触发 → 永远不触发，而 GATE 又让游戏自己的更新步骤不结束 → 永远停在加载图。v4.06 的「不靠日志」兜底（GameOverlay 20 秒计时 + 更新页建出来算引擎就绪）正好救了它。和梯子/在线更新无关（这次没开梯子，更新也正常）。
+- 推断（未证实）：读不到日志是因为游戏日志写在 /sdcard/UE4Game/… 而新装的游戏在小米安卓 16 没有存储权限（或游戏这台机器没开文件日志）；用户自己的荣耀能找到 PUBGM.log。
+- 遗留（未改）：这台机器上所有靠游戏日志的功能都不灵——lobbySeen 不会置位（120 秒 boot 仍说「没进大厅」，其实 19:46:59 已开大厅）、lobbyop/诊断自动上传、刷车日志核对、进图/对局开始识别（Con.line 里的 Browse/LoadMap）等。若朋友报功能不灵，下一步：boot 诊断加 UE4Game 各候选目录是否存在/可读 + 存储权限状态；大厅/进图识别改成不靠日志（如读 GWorld 当前地图名）。
