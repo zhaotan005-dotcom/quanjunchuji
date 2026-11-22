@@ -27,9 +27,18 @@ final class NoFall {
     static volatile boolean running;
     static final HashSet<Long> pawns = new HashSet<>();
     static String orig = "";
-    // v3.94 用户：训练场开高跳摔死（v3.93 日志：阈值法只在第一次进训练场找到人物，复活/再进后「还没找到人物」）→
-    //   直接改摔伤函数 0xd149a4 开头：mov r0,#0; vmov s0,r0; bx lr（摔伤一律 0，不扣血）；只在训练岛里改，离开改回原样。
-    static final String FALL_O = "f04d2de918b08de2028b2ded", FALL_N = "0000a0e3100a00ee1eff2fe1";
+    // v3.95 用户：要「能掉血，但剩一丝血怎么也死不掉」（v3.94 摔伤直接 0 不对）。改摔伤函数 0xd149a4 里三处取 HealthMax(+0x5a4) 的地方，
+    //   换成取当前血(+0x5a0，int) − 1：High/VeryHigh 档 = (血−1)×百分比，Kill 档 = 血−1 → 摔多狠都至少留 1 血，血只剩 1 时伤害 0（函数里 ≤0 不调 TakeDamage）。
+    //   只在训练岛里改，离开改回。不再写阈值（写 1e9 会把摔伤整个关掉）。
+    static final long[] P_AT = { 0xd149ecL, 0xd14a24L, 0xd14b1cL };
+    static final String[] P_O = { "a40500e3000084e0000a90ed840a00e3c00ab8ee", "a40500e3000084e0000a90ed880a00e3c00ab8ee", "a40500e3000084e0000a90edc08ab8eec4ffffea" };
+    static final String[] P_N = { "a00594e5010040e2100a00ee840a00e3c00ab8ee", "a00594e5010040e2100a00ee880a00e3c00ab8ee", "a00594e5010040e2100a00eec08ab8eec4ffffea" };
+    static String patch(boolean on) {
+        StringBuilder r = new StringBuilder();
+        for (int i = 0; i < P_AT.length; i++) { String x = Mods.write(P_AT[i], P_O[i], P_N[i], on); if (!"ok".equals(x)) r.append(i + 1).append(':').append(x).append(' '); }
+        if (r.length() > 0 && on) for (int i = 0; i < P_AT.length; i++) Mods.write(P_AT[i], P_O[i], P_N[i], false);   // 有一处不对就全部改回
+        return r.length() == 0 ? "ok" : r.toString().trim();
+    }
     static volatile String patchState = "";
 
     static void start() {
@@ -40,7 +49,7 @@ final class NoFall {
             long lastScan = 0; int passes = 0;
             try {
                 synchronized (pawns) { pawns.clear(); } orig = "";
-                patchState = "摔伤函数 " + Mods.write(FALL_BASE, FALL_O, FALL_N, true);
+                patchState = "摔伤留 1 血 " + patch(true);
                 LogCap.note("训练岛防摔：" + patchState);
                 while (Con.training && Con.inMatch) {
                     long b = Mods.base(); if (b == 0) { Thread.sleep(1000); continue; }
@@ -56,14 +65,14 @@ final class NoFall {
                         }
                     }
                     passes++;
-                    state = (patchState.isEmpty() ? "" : patchState + "；") + (ok > 0 ? "训练岛防摔：ok（人物 " + ok + " 个，摔伤阈值 High/VeryHigh/Kill 原值 " + orig + " → 1e9；第 " + passes + " 遍）"
+                    state = (patchState.isEmpty() ? "" : patchState + "；") + (ok > 0 ? "训练岛防摔：ok（人物 " + ok + " 个，摔伤阈值 High/VeryHigh/Kill " + orig + "（不改）；第 " + passes + " 遍）"
                                    : "训练岛防摔：还没找到人物（第 " + passes + " 遍" + (gone > 0 ? "，" + gone + " 个不是人物/已没了" : "") + "）");
                     if (passes == 3 || passes % 150 == 0) LogCap.note(state);
                     Thread.sleep(2000);
                 }
                 state = state + "；已离开训练岛，停";
             } catch (Throwable t) { state = "训练岛防摔：出错 " + t; LogCap.note(state); }
-            finally { running = false; patchState = "摔伤函数已改回 " + Mods.write(FALL_BASE, FALL_O, FALL_N, false); }
+            finally { running = false; patchState = "摔伤已改回 " + patch(false); }
         }, "zf-nofall").start();
     }
 
@@ -73,9 +82,7 @@ final class NoFall {
         float[] v = { Mods.f(m, p + T_HIGH), Mods.f(m, p + T_VHIGH), Mods.f(m, p + T_KILL) };
         for (float x : v) if (!(x == BIG || (x > 0f && x < 1e8f))) return "阈值不像（" + v[0] + "/" + v[1] + "/" + v[2] + "）";
         if (orig.isEmpty() && v[0] != BIG) orig = (int) v[0] + "/" + (int) v[1] + "/" + (int) v[2];
-        if (v[0] != BIG) Mods.wf(m, p + T_HIGH, BIG);
-        if (v[1] != BIG) Mods.wf(m, p + T_VHIGH, BIG);
-        if (v[2] != BIG) Mods.wf(m, p + T_KILL, BIG);
+        // v3.95 不再写阈值（只读，诊断用）
         return null;
     }
     /** 虚表 +0x7e8 是 ANZCharacter 摔伤 0xd149a4 或 BR 人物的 0x10e8f00 → 是会摔伤的人物 */
