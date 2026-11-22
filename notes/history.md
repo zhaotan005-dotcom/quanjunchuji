@@ -1725,3 +1725,22 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 菜单状态行（GameOverlay，标题下 9sp 灰字最多 3 行，每秒刷新，只内存）：WorldWatch.shortText() = 世界地址 地图短名 状态（第 N 个、地图名来源）；模式；15001 解析原值 → 编号；最近触发；服务端开/关。
 - 未实测/不确定：maps_chose 实际值（按旧日志应是 1/3/4/5）；Room.mine 残留（以前建过游戏房间没退）时 15001 会走 Room 房主开房；WorldWatch GWorld 偏移仍未上机验证（状态行能直接看出来）。
 - 构建：/tmp/b.sh（build_all.sh 的 JDK 换 jdk-21.0.12.1+1、分两次跑，仓库脚本没改）4.08 4.09 309 310，core/b0-2.ver=310；releases 加 v4.09 三个（v4.06 已不在仓库，v4.08 留着）。
+
+## v4.10（core311，2026-11-22 20:5x，全部未实测）训练岛不死 + 刷车安全落点
+- 用户 20:39（v4.09 实测，荣耀 X70 单机，5 图）：训练岛入口好了（状态行 15001 maps_chose=[5] → 5，BR-TrainingIsland_Mobile_Main，服务端 开）✅。问题：①刷车按「三轮摩托」提示「刷车：没反应 三轮摩托（编号 16，补丁代码没反应）」，旁边却出来一辆摩托；②训练岛「你因载具爆炸而被淘汰」（截图人旁边一辆烧着的摩托），还会淹死。
+- 「补丁代码没反应」根因（Veh.place → spawnAt → call）：call() 只等 2 秒（40×50ms）cave 的 0x5b03。cave 进入时写 0x5b01，在游戏线程同步调 PC::SpawnVehicle 0x1102ca4 → 0x100600c（FindRow → SpawnActor 0x2aa8ad4），第一次刷某种车要同步加载蓝图/模型，超过 2 秒就误报，车稍后才出来；晚到的 0x5b03 还会被下一次调用当成自己的结果。编号 16 本身没问题的证据只有「旁边出来一辆车」（是不是三轮没看清，未确认）。
+- 叠车/炸车（推断，未上机证实）：v4.07 删日志后 place() 仍在等日志「Spawn Vehicle」（spawnOk/spawnFail 不再变）→ 每次白等 3 秒 + 整表扫 GUObjectArray 找新车（十几秒），找不到就在 7 米外左右 4.5 米再刷，一次按键最多 4 辆，车叠在一起被物理弹开受伤爆炸；落点只看一个点高度，不看车身/坡/别的车/人，船按人物高度刷。
+- 训练岛还会死的根因（静态 RE）：
+  - 人物扣血在 0xbe0618（人物 TakeDamage 0xd2230c 在 0xd2270c/0xd22b00 调），两处 ldr/sub/str [+0x5a0]（0xbe0e48、0xbe0ed0）；GM vt+0x484（0xbe0a84，MinHp 钩子所在链）只在 GameMode 类检查通过时才调 → MinHp 不是所有伤害都挡。
+  - MinHp 指向 Mods.livePawn() = PC+0x2c0 Pawn，人在车上时可能是车（vcave 'V0' 的 buf+8 就是 PC+0x2c0）。
+  - MinHp/NoFall 只在 Island.run 找到 GameMode/地块管理器/出生点后才启动，前面 return 就不启动。
+  - 淹死：0xd028a0（人物憋气）：水下 +0xc30 CurrentBreathHoldTime += +0xc40 DeduceBreathTimeScale×dt，夹到 +0xc34 MaxBreathHoldTime；到上限置 +0xc44，+0xc48 每满 1 秒在权威端调 TakeDamage(vt+0x2a0)，伤害 = HealthMax(+0x5a4 int) × +0xc38。出水 +0xc30 按 +0xc3c 减回 0。（反射表：MaxBreathHoldTime 0x4bfcb04、CurrentBreathHoldTime 0x4bfcb2c）
+- 改：
+  1. TrainSafe（新，单机/服务端，客户端不跑）：Con.onLoaded 进训练岛立即启动，同时启动 NoFall/MinHp（不再等 Island.run）。每 1 秒认自己的人物（PC Pawn 且 NoFall.isChar；在车上保留上车前的人物），房主加 NoFall.pawns 里有 PlayerState(+0x2c4) 的人物。每 0.1 秒：血(int) < 上限×10 → 写 上限×20；关 bCanBeDamaged（+0x110 bit1）；憋气 +0xc30/+0xc44/+0xc48 清零（+0xc34 是 0..10000 才写）；记下的刷出来的车血补满（NZVehicle MaxHealth +0x2f8 / Health +0x308，int）。状态行加「保命 开 补血N 憋气N 车N」。
+  2. MinHp 改用 TrainSafe.me()（人物，不是车）。
+  3. Veh：call(k,id,timeout)，刷车等 10 秒；超时看标记（0 = 游戏没执行；0x5b01 = 还在加载 →「刷车中…稍等几秒」），并在下次调用前等上次那条出来（staleUntil 15 秒）。删 spawnOk/spawnFail/spawnLog。
+  4. Veh.place 重写：按车型车身尺寸（摩托 半长120/半宽50，三轮 140/100，蹦蹦 180/100，吉普/轿车/跑车 260/115，面包 290/120，皮卡/大脚 310/140，快艇 320/130，大船 520/220）；落点离人 2.5 米（在车上 4.5 米）+ 半车长；每个候选点打 5 条射线（中心/头/尾/左/右），要能停车（不是水/树草体积/车/人，法线 Z≥0.85，和脚下差 ≤2 米，5 点高差 ≤1.2 米），最多 7 个候选；菜单刷车 2 分钟内刷过的点附近不再刷（防连按叠车，服务端代刷/排车不用）；刷在 最高点+车型抬高（120~160 厘米）。船：人游泳时刷人前方水面；否则人周围 8 方向 6~25 米找射线打到水（名字含 water/ocean/sea/lake/river）且船头船尾也是水的点；找不到就不刷并提示。人在游泳时不刷车。人在车上（PC Pawn 不是人物）放车两侧/后方。射线用不了时退回旧办法（人物高度+1.5 米，更远）。刷完在落点打射线确认（打到 *vehicle*），确认到就补满车血，训练岛记进 TrainSafe；确认不到也不再自动刷第二辆。满油后台照旧（findNew）。
+  5. carCheck：训练岛改成 set NZVehicle bCanBeDamaged 0；去掉 getall（只会让游戏写日志）；Con.setAllGod 去掉 getall。
+- 未实测/风险：血写成上限×20 后血条显示可能超出（若 HUD 不夹 0..1）；bCanBeDamaged 位 +0x110 bit1 沿用 v3.26 的 RE；射线是否打得到水面/车身（Visibility 通道）未上机确认——打不到水 → 船刷不出（会提示），打不到车 → 只是提示「射线没确认到车」；人在车上时 PC Pawn 是车还是人未确认（两种都处理了）；`set NZVehicle bCanBeDamaged 0` 控制台在这版是否生效未确认（有 TrainSafe 补血兜底）；房主别的玩家只能靠 NoFall 10 秒一次的扫描找到（沿用旧的扫描，没新增大内存扫描）。
+- 注意：本次查车辆类名时误 grep 了仓库里旧的已存日志 game/logs（只取了 BP_Vehicle_ 前缀），以后别碰 game/logs。
+- 构建：/tmp/b.sh（build_all.sh 的 JDK 换 jdk-21.0.12.1+1，仓库脚本没改）4.09 4.10 310 311，core/b0-2.ver=311；releases 加 v4.10 三个（留 v4.08/4.09/4.10，没有 v4.07 残留）。

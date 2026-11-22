@@ -97,18 +97,27 @@ public class Veh {
         return new long[] { 0, 0 };
     }
     static boolean call(long id) throws InterruptedException { return call('V', id); }
-    static synchronized boolean call(char k, long id) throws InterruptedException {
+    static boolean call(char k, long id) throws InterruptedException { return call(k, id, 2000); }
+    /** v4.10：上一次调用超时时 cave 的标记（0 = 游戏线程根本没跑到 cave；0x5b01 = 进了 cave 还没出来，多半在同步加载车的资源） */
+    static volatile int lastTimeoutMark = -1;
+    /** v4.10：超时的那条命令可能还在游戏线程里跑（刷车第一次加载某种车要好几秒）。下一次调用前先等它出来，免得它晚到的 0x5b03 被当成新命令的结果 */
+    static volatile long staleUntil;
+    static synchronized boolean call(char k, long id, int timeoutMs) throws InterruptedException {
         if (buf == null) { buf = ByteBuffer.allocateDirect(256).order(ByteOrder.LITTLE_ENDIAN); addr = GameOverlay.bufAddr(buf); }
         if (addr <= 0 || addr > 0xffffffffL) return false;
+        while (staleUntil > System.currentTimeMillis() && buf.getInt(0) == 0x5b01) Thread.sleep(50);
+        staleUntil = 0;
         buf.putInt(0, 0);
         final String c = "AddAvaItem " + k + id + "x" + addr;
         Activity a = Con.act; if (a == null) return false;
         a.runOnUiThread(() -> Con.exec(c));
-        for (int i = 0; i < 40; i++) {
+        for (int i = 0, n = Math.max(1, timeoutMs / 50); i < n; i++) {
             Thread.sleep(50);
             int mg = buf.getInt(0);
-            if (mg >= 0x5b02 && mg <= 0x5b0d) return true;
+            if (mg >= 0x5b02 && mg <= 0x5b0d) { lastTimeoutMark = -1; return true; }
         }
+        lastTimeoutMark = buf.getInt(0);
+        if (lastTimeoutMark == 0x5b01) staleUntil = System.currentTimeMillis() + 15000;
         return false;
     }
 
@@ -169,21 +178,19 @@ public class Veh {
     static final long FUEL_VT = 0x4beb188L, ADD_FUEL = 0xe1e6b8L;
     static final int F_OWNER = 0xa0, F_MAX = 0xa8, F_CUR = 0xb4, F_ADD = 0x1e8;
     public static volatile String fuelState = "满油：还没刷车";
-    /** v3.90：游戏日志里刷车成功/失败的次数（Con.line 数） */
-    static volatile int spawnOk, spawnFail;
     static volatile boolean quickToast;
-    static void spawnLog(String l) {
-        if (l.contains("Spawn Vehicle ")) spawnOk++;
-        else if (l.contains("spawn vehicle failed")) spawnFail++;
-    }
 
     /** 一次加锁：写落点和朝向，再调刷车。true = cave 调过了 0x1102ca4（不代表车一定生成了） */
-    static synchronized boolean spawnAt(long id, float x, float y, float z, float yaw) throws InterruptedException {
-        if (!installed) return false;
-        if (buf == null && !call(0)) return false;
+    static boolean spawnAt(long id, float x, float y, float z, float yaw) throws InterruptedException { return spawnCode(id, x, y, z, yaw) == 1; }
+    /** v4.10：1 = cave 调完游戏刷车函数（0x5b03）；0 = cave 跑了但半路收尾（没人物/没 GameMode/没车辆管理器/没车表，0x5b02）；
+     *  -1 = 10 秒内游戏线程没跑到 cave（命令没执行）；-2 = 进了 cave、10 秒还没出来（游戏在同步加载这辆车，车多半稍后会出来） */
+    static synchronized int spawnCode(long id, float x, float y, float z, float yaw) throws InterruptedException {
+        if (!installed) return -1;
+        if (buf == null && !call(0)) return -1;
         buf.putFloat(40, x); buf.putFloat(44, y); buf.putFloat(48, z);
         buf.putFloat(52, 0f); buf.putFloat(56, yaw); buf.putFloat(60, 0f);
-        return call(id) && buf.getInt(0) == 0x5b03;
+        if (call('V', id, 10000)) return buf.getInt(0) == 0x5b03 ? 1 : 0;
+        return lastTimeoutMark == 0x5b01 ? -2 : -1;
     }
     /** 场上所有车的油箱组件 → {组件, 车}；扫一遍 GUObjectArray（只比虚表，跳过类默认对象）。出错返回 null */
     static java.util.HashMap<Long, Long> fuelComps() {
@@ -229,57 +236,194 @@ public class Veh {
         if (r[0] != 0x5b0e) return "满油：加油没调成（" + Long.toHexString(r[0]) + "），油 " + Math.round(cur) + "/" + max;
         return "油 " + Math.round(cur) + "→" + Math.round(now) + "/" + max;
     }
-    /** 在 (px,py,pz)（人物中心）朝 yaw 方向找落点刷 id：贴地、挡住换位置、确认生成、加满油。返回给菜单看的一句话 */
-    static String place(String label, long id, double px, double py, double pz, double yawDeg) throws InterruptedException {
-        double r = Math.toRadians(yawDeg), fx = Math.cos(r), fy = Math.sin(r);
-        double[][] cand = { {600, 0}, {1000, 0}, {700, 450}, {700, -450} };   // 前方距离、左右（厘米）；最多 4 个落点（没确认到也不会多刷超过 4 辆）
-        // v3.89 用户：刷车不是秒出了 → 以前每次刷之前先整表扫一遍油箱组件（GUObjectArray）才刷，慢在这。改成用上次扫的结果（打开刷车页时后台先扫好），刷完再扫确认
-        java.util.HashMap<Long, Long> before = snap;
-        boolean fresh = before != null;
-        if (before == null) before = new java.util.HashMap<>();
-        StringBuilder tried = new StringBuilder();
-        for (int i = 0; i < cand.length; i++) {
-            float x = (float) (px + cand[i][0] * fx - cand[i][1] * fy), y = (float) (py + cand[i][0] * fy + cand[i][1] * fx);
-            float z = (float) pz + 150f; String how = "人物高度";
-            boolean boat = label.contains("艇") || label.contains("船");   // 船照旧按人物高度（射线可能穿过水面打到水底）
-            Trace.Hit h = boat ? null : Trace.down(x, y, (float) pz + 800f, (float) pz - 2500f);
-            if (h != null && !Float.isNaN(h.z)) {
-                if (h.z > pz + 300) { tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append(" 前面高出 ").append(Math.round((h.z - pz) / 100)).append(" 米（").append(h.cls).append("），跳过"); continue; }
-                if (h.z > pz - 500) { z = h.z + 200f; how = "地面"; }   // 比脚下低 4 米以上（坡下/水底）就还按人物高度，让车自己落
+    // ---------------- v4.10 刷车落点（安全版） ----------------
+    /* v4.09 实测（训练岛，11-22 20:39 截图）：按「三轮摩托」提示「没反应（编号 16，补丁代码没反应）」，但旁边出来了一辆摩托；之后人物「因载具爆炸而被淘汰」。原因：
+     *  1) 「补丁代码没反应」= call() 2 秒内没等到 cave 的完成标记 0x5b03。cave 在游戏线程里同步调游戏刷车函数，第一次刷某种车要同步加载它的蓝图/模型，
+     *     会超过 2 秒 → 误报没反应，车其实过一会儿才出来（标记停在 0x5b01 = 进了 cave 没出来）。超时那条命令还会把晚到的 0x5b03 写进下一次调用的缓冲区。
+     *  2) v4.07 删掉读游戏日志后，place() 还在等日志里的「Spawn Vehicle」（spawnOk/spawnFail 永远不变）→ 每次白等 3 秒，再整表扫 GUObjectArray（十几秒）找新车；
+     *     找不到（扫描慢/车被物理弹开超过 9 米/没预扫）就当「没生成」在 700 米外左右 4.5 米再刷一辆 → 一次按键最多刷 4 辆，车叠在一起/砸在一起被物理弹飞、受伤爆炸。
+     *  3) 落点只看前方一个点的高度：不看车身占地（坡、房子边、树、别的车、人），船按人物高度刷（可能刷在岸上），车可能刷进水里。
+     * 现在：
+     *  - 按车型给车身尺寸；落点在人前方「人 2.5 米净空 + 半个车长」以外；每个候选点打 5 条向下射线（中心、车头、车尾、左右），
+     *    都要打到能停车的面（不是树/草/水/体积/车/人，法线 Z ≥ 0.85 ≈ 坡度 ≤ 32°），和人脚下高差 ≤ 2 米，5 点高差 ≤ 1.2 米；再和最近 2 分钟刷过的点保持距离。
+     *  - 船只能刷在水面：在人周围 6~25 米找射线打到水（名字含 water/ocean/sea/lake/river）的点；人自己在游泳时刷在人前方水面。其他车不刷进水里。
+     *  - 人在车上（控制器的 Pawn 不是人物）：落点放到车的左右两侧/后方更远处。
+     *  - 刷车等 10 秒（不再 2 秒误报）；cave 返回 0x5b03 后在落点往下打射线确认车在那（打到 BP_Vehicle…），确认到就把车血补满（NZVehicle Health +0x308 = MaxHealth +0x2f8），
+     *    训练岛里记下这辆车，TrainSafe 一直给它补血（不让它在人旁边炸）。确认不到也不会自动再刷第二辆（避免叠车）。满油照旧后台做。 */
+    static final class Size { float halfLen, halfW, lift; boolean boat; Size(float l, float w, float z, boolean b) { halfLen = l; halfW = w; lift = z; boat = b; } }
+    static Size size(String label) {
+        if (label.contains("大船")) return new Size(520, 220, 60, true);
+        if (label.contains("艇") || label.contains("船")) return new Size(320, 130, 60, true);
+        if (label.contains("三轮")) return new Size(140, 100, 120, false);
+        if (label.contains("摩托")) return new Size(120, 50, 120, false);
+        if (label.contains("蹦蹦")) return new Size(180, 100, 140, false);
+        if (label.contains("面包")) return new Size(290, 120, 150, false);
+        if (label.contains("皮卡") || label.contains("大脚")) return new Size(310, 140, 160, false);
+        return new Size(260, 115, 150, false);   // 吉普、轿车、跑车
+    }
+    /** 最近刷过的点 {x, y, 时间, 世界}（同一个世界 2 分钟内） */
+    static final ArrayList<float[]> recent = new ArrayList<>();
+    static final long T0 = System.currentTimeMillis();   // 时间存成离 T0 的秒数（float 存绝对秒数会丢精度）
+    static boolean nearRecent(float x, float y, float r) {
+        long now = System.currentTimeMillis();
+        synchronized (recent) {
+            for (int i = recent.size() - 1; i >= 0; i--) {
+                float[] q = recent.get(i);
+                if (now - T0 - (long) (q[2] * 1000f) > 120000) { recent.remove(i); continue; }
+                float dx = q[0] - x, dy = q[1] - y;
+                if (dx * dx + dy * dy < r * r) return true;
             }
-            Con.fastUntil = System.currentTimeMillis() + 4000;
-            int s0 = spawnOk, f0 = spawnFail;
-            if (!spawnAt(id, x, y, z, (float) yawDeg)) return "没反应 " + label + "（编号 " + id + "，补丁代码没反应）";
-            // v3.94 用户：刷车别靠读游戏日志 → 我们的 cave 在游戏线程里同步调完游戏刷车函数 0x1102ca4 就回 0x5b03，车这时已经生成，马上提示；
-            //   日志/对象表只在后台核对，被挡住才再提示换位置
-            if (i == 0) { quickToast = true; GameOverlay.toastAny("刷车：已刷 " + label); }
-            // v3.90 用户：刷车很大概率点了没效果。v3.89 日志：游戏 11:28:02 就刷出来了，我们 11:28:21 才确认（整表扫 GUObjectArray 十几秒），
-            //   这期间 busy，再点只弹旧提示；确认不到还会换位置再刷一辆。改：看游戏日志「Spawn Vehicle …」/「spawn vehicle failed」（最多等 3 秒），
-            //   成功就马上提示，满油/可受伤放后台做
-            int lg = 0;
-            for (int w = 0; w < 30 && lg == 0; w++) { Thread.sleep(100); if (spawnOk != s0) lg = 1; else if (spawnFail != f0) lg = -1; }
-            if (lg == 1) {
-                final java.util.HashMap<Long, Long> bf = before; final float fx2 = x, fy2 = y; final String lb = label;
-                new Thread(() -> {
-                    try {
-                        long[] v = findNew(bf, fx2, fy2, 3000);
-                        if (v != null) { String f = fillFuel(v[0]); fuelState = "满油：" + lb + " " + f; note("刷车：" + lb + " " + f); }
-                        carCheck();
-                    } catch (Throwable ignored) {}
-                }, "zf-vfuel").start();
-                return "已刷 " + label + "（编号 " + id + (i > 0 ? "，第 " + (i + 1) + " 个位置" : "") + "，" + how + "）";
-            }
-            if (lg == -1) { tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append("（").append(how).append("）被挡住"); continue; }
-            long[] v = findNew(before, x, y, fresh ? 3000 : 900);
-            if (v != null) {
-                String f = fillFuel(v[0]);
-                fuelState = "满油：" + label + " " + f;
-                new Thread(Veh::carCheck, "zf-vdmg").start();
-                return "已刷 " + label + "（编号 " + id + (i > 0 ? "，第 " + (i + 1) + " 个位置" : "") + "，" + how + "）" + f;
-            }
-            tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append("（").append(how).append("）没生成");
         }
-        return "没刷出来 " + label + "（编号 " + id + "）：" + tried + "（游戏生成时被挡住，换个空地再刷）";
+        return false;
+    }
+    static void remember(float x, float y) { synchronized (recent) { recent.add(new float[] { x, y, (System.currentTimeMillis() - T0) / 1000f }); if (recent.size() > 40) recent.remove(0); } }
+    static boolean isWater(Trace.Hit h) {
+        String w = (h.actor + "/" + h.cls + "/" + h.comp).toLowerCase(java.util.Locale.ROOT);
+        return w.contains("water") || w.contains("ocean") || w.contains("sea_") || w.contains("_sea") || w.contains("lake") || w.contains("river");
+    }
+    static boolean isVehOrChar(Trace.Hit h) {
+        String w = (h.actor + "/" + h.cls).toLowerCase(java.util.Locale.ROOT);
+        return (w.contains("vehicle") && !w.contains("props_") && !w.contains("broken")) || w.contains("character") || w.startsWith("bp_vh");
+    }
+    /** 一个点能不能停车：返回落地高度，不行返回 NaN，why 记原因 */
+    static float okPoint(float x, float y, float feet, StringBuilder why) {
+        Trace.Hit h = Trace.down(x, y, feet + 600f, feet - 1500f);
+        if (h == null) { why.append("射线没调成"); return Float.NaN; }
+        if (Float.isNaN(h.z)) { why.append("下面什么都没打到"); return Float.NaN; }
+        if (isWater(h)) { why.append("是水面"); return Float.NaN; }
+        if (isVehOrChar(h)) { why.append("有车/人（").append(h.cls).append("）"); return Float.NaN; }
+        if (!h.land && (h.cls.contains("位置对不上") || Trace.softName(h.actor + "/" + h.cls + "/" + h.comp))) { why.append("是树/草/体积（").append(h.cls).append("）"); return Float.NaN; }
+        if (h.nz < 0.85f) { why.append("太陡（法线 ").append(String.format("%.2f", h.nz)).append("）"); return Float.NaN; }
+        if (Math.abs(h.z - feet) > 200f) { why.append("和脚下差 ").append(Math.round((h.z - feet) / 100f)).append(" 米"); return Float.NaN; }
+        return h.z;
+    }
+    /** 车身 5 个点（中心、车头、车尾、左、右，车朝 yaw）都能停：返回最高点高度，否则 NaN */
+    static float okFootprint(float cx, float cy, double fx, double fy, Size sz, float feet, StringBuilder why) {
+        float[][] pts = { {0, 0}, {sz.halfLen, 0}, {-sz.halfLen, 0}, {0, sz.halfW}, {0, -sz.halfW} };
+        float lo = Float.MAX_VALUE, hi = -Float.MAX_VALUE;
+        for (float[] q : pts) {
+            float x = (float) (cx + q[0] * fx - q[1] * fy), y = (float) (cy + q[0] * fy + q[1] * fx);
+            float z = okPoint(x, y, feet, why);
+            if (Float.isNaN(z)) return Float.NaN;
+            lo = Math.min(lo, z); hi = Math.max(hi, z);
+        }
+        if (hi - lo > 120f) { why.append("地面不平（高差 ").append(Math.round(hi - lo)).append(" 厘米）"); return Float.NaN; }
+        return hi;
+    }
+    /** 船：水面高度，不是水返回 NaN */
+    static float waterAt(float x, float y, float feet) {
+        Trace.Hit h = Trace.down(x, y, feet + 800f, feet - 3000f);
+        if (h == null || Float.isNaN(h.z) || !isWater(h)) return Float.NaN;
+        return h.z;
+    }
+    /** 人在不在水里（移动模式 4 = 游泳） */
+    static boolean swimming(long pawn) {
+        long b = Mods.base(); if (b == 0 || pawn < 0x10000) return false;
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) {
+            if (!NoFall.isChar(m, b, pawn)) return false;
+            long c = Mods.rp(m, pawn + Mods.P_CMC);
+            return Mods.isObj(m, b, c) && (Mods.rd(m, c + Mods.C_MODE) & 0xff) == 4;
+        } catch (Throwable e) { return false; }
+    }
+    /** 在落点往下打射线确认车出来了：打到 BP_Vehicle… 就返回车（actor），否则 0 */
+    static long confirm(float x, float y, float z) {
+        for (int k = 0; k < 3; k++) {
+            Trace.Hit h = Trace.down(x, y, z + 400f, z - 600f);
+            if (h != null && !Float.isNaN(h.z) && h.obj != 0) {
+                String w = (h.actor + "/" + h.cls).toLowerCase(java.util.Locale.ROOT);
+                if (w.contains("vehicle") && !w.contains("props_") && !w.contains("broken")) return h.obj;
+            }
+            try { Thread.sleep(250); } catch (InterruptedException e) { return 0; }
+        }
+        return 0;
+    }
+    /** NZVehicle 反射：MaxHealth +0x2f8（int）、Health +0x308（int） */
+    static final int V_MAXHP = 0x2f8, V_HP = 0x308;
+    /** 把车血补满；返回给人看的一句（读不对就不写） */
+    static String repair(long veh) {
+        long b = Mods.base(); if (b == 0 || veh < 0x10000) return "";
+        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
+            if (!Mods.isObj(m, b, veh)) return "";
+            int mx = Mods.rd(m, veh + V_MAXHP), hp = Mods.rd(m, veh + V_HP);
+            if (mx <= 0 || mx > 100000 || hp < 0 || hp > mx) return "车血读不对（" + hp + "/" + mx + "）";
+            if (hp < mx) Mods.wi(m, veh + V_HP, mx);
+            return hp < mx ? "车血 " + hp + "→" + mx : "车血满 " + mx;
+        } catch (Throwable e) { return ""; }
+    }
+
+    /** 在 (px,py,pz)（人物中心）朝 yaw 方向找安全落点刷 id。返回给菜单看的一句话 */
+    static String place(String label, long id, double px, double py, double pz, double yawDeg) throws InterruptedException { return place(label, id, px, py, pz, yawDeg, false, false, false); }
+    static String place(String label, long id, double px, double py, double pz, double yawDeg, boolean inVeh, boolean swim) throws InterruptedException { return place(label, id, px, py, pz, yawDeg, inVeh, swim, true); }
+    /** useRecent = 菜单刷车（防连按叠车：2 分钟内刷过的点附近不再刷）；服务端代刷/排车（spawnGroupAt）不用，只靠射线看车位 */
+    static String place(String label, long id, double px, double py, double pz, double yawDeg, boolean inVeh, boolean swim, boolean useRecent) throws InterruptedException {
+        double r = Math.toRadians(yawDeg), fx = Math.cos(r), fy = Math.sin(r);
+        Size sz = size(label);
+        float feet = (float) pz - 90f;   // 人物中心离脚约 90 厘米（车上时是车的位置，差不多）
+        float clear = (inVeh ? 450f : 250f) + sz.halfLen + 50f;   // 离人（或人坐的车）的净空
+        float fx0 = 0, fy0 = 0, fz = Float.NaN; String how = "";
+        StringBuilder tried = new StringBuilder();
+        boolean traceOk = Trace.init();
+        if (sz.boat) {
+            // 船：先看人前方，再绕一圈找水面
+            if (swim) { fx0 = (float) (px + clear * fx); fy0 = (float) (py + clear * fy); float w = waterAt(fx0, fy0, feet); fz = (Float.isNaN(w) ? (float) pz : w) + sz.lift; how = "人前方水面"; }
+            else if (traceOk) {
+                outer:
+                for (float d : new float[] { clear, clear + 400f, clear + 900f, 2500f }) for (int k = 0; k < 8; k++) {
+                    double a = r + (k == 0 ? 0 : ((k + 1) / 2) * Math.PI / 4 * ((k & 1) == 1 ? 1 : -1));
+                    float x = (float) (px + d * Math.cos(a)), y = (float) (py + d * Math.sin(a));
+                    float w = waterAt(x, y, feet);
+                    if (Float.isNaN(w) || useRecent && nearRecent(x, y, sz.halfLen * 2)) continue;
+                    // 船身两头也要是水
+                    float w1 = waterAt((float) (x + sz.halfLen * Math.cos(a)), (float) (y + sz.halfLen * Math.sin(a)), feet), w2 = waterAt((float) (x - sz.halfLen * Math.cos(a)), (float) (y - sz.halfLen * Math.sin(a)), feet);
+                    if (Float.isNaN(w1) || Float.isNaN(w2)) continue;
+                    fx0 = x; fy0 = y; fz = w + sz.lift; how = "水面（" + Math.round(d / 100) + " 米）"; yawDeg = Math.toDegrees(a); break outer;
+                }
+            }
+            if (Float.isNaN(fz)) return "没刷 " + label + "：船只能刷在水上，附近 25 米没找到水面（走到水边或下水再刷）";
+        } else {
+            if (swim) return "没刷 " + label + "：人在水里，先上岸再刷（车不刷进水里）";
+            if (!traceOk) {
+                // 射线用不了：退回旧办法（人前方、人物高度 +1.5 米），但离人更远
+                fx0 = (float) (px + (clear + 100f) * fx); fy0 = (float) (py + (clear + 100f) * fy); fz = (float) pz + 150f; how = "人物高度（地面射线用不了：" + Trace.state + "）";
+                if (useRecent && nearRecent(fx0, fy0, sz.halfLen * 2 + 150f)) return "没刷 " + label + "：前面刚刷过车，换个方向再刷（地面射线用不了，没法看落点）";
+            } else {
+                // 候选：{前方距离, 左右}；人在车上时放车两侧/后方更远
+                float[][] cand = inVeh
+                    ? new float[][] { {0, clear + 150f}, {0, -(clear + 150f)}, {-(clear + 300f), 0}, {clear + 600f, 0}, {-(clear + 300f), clear + 150f}, {-(clear + 300f), -(clear + 150f)} }
+                    : new float[][] { {clear, 0}, {clear + 350f, 0}, {clear + 100f, 2 * sz.halfW + 300f}, {clear + 100f, -(2 * sz.halfW + 300f)}, {clear + 700f, 0}, {0, clear + 150f}, {0, -(clear + 150f)} };
+                for (int i = 0; i < cand.length; i++) {
+                    float x = (float) (px + cand[i][0] * fx - cand[i][1] * fy), y = (float) (py + cand[i][0] * fy + cand[i][1] * fx);
+                    if (useRecent && nearRecent(x, y, sz.halfLen * 2 + 150f)) { tried.append(tried.length() == 0 ? "" : "；").append("位置").append(i + 1).append(" 刚刷过车"); continue; }
+                    StringBuilder why = new StringBuilder();
+                    float z = okFootprint(x, y, fx, fy, sz, feet, why);
+                    if (Float.isNaN(z)) { tried.append(tried.length() == 0 ? "" : "；").append("位置").append(i + 1).append(" ").append(why); continue; }
+                    fx0 = x; fy0 = y; fz = z + sz.lift; how = i == 0 ? "前方地面" : "第 " + (i + 1) + " 个位置";
+                    break;
+                }
+                if (Float.isNaN(fz)) return "没刷 " + label + "：附近没有能停车的平地（" + tried + "）。换到空旷平地再刷";
+            }
+        }
+        java.util.HashMap<Long, Long> before = snap;
+        final boolean fresh = before != null;
+        if (before == null) before = new java.util.HashMap<>();
+        int code = spawnCode(id, fx0, fy0, fz, (float) yawDeg);
+        if (code == -1) return "没反应 " + label + "（编号 " + id + "，游戏 10 秒没执行刷车命令；进对局落地后再按）";
+        if (code == 0) return "没刷 " + label + "（编号 " + id + "，这局拿不到人物/车辆管理器/车表）";
+        remember(fx0, fy0);
+        if (code == -2) return "刷车中 " + label + "（编号 " + id + "，游戏还在加载这辆车，稍等几秒会出来；别连按）";
+        long veh = confirm(fx0, fy0, fz);
+        String rep = veh != 0 ? repair(veh) : "";
+        if (veh != 0 && Con.training) TrainSafe.addVehicle(veh);
+        final java.util.HashMap<Long, Long> bf = before; final float cx = fx0, cy = fy0; final String lb = label;
+        new Thread(() -> {
+            try {
+                long[] v = findNew(bf, cx, cy, fresh ? 3000 : 900);
+                if (v != null) { String f = fillFuel(v[0]); fuelState = "满油：" + lb + " " + f; note("刷车：" + lb + " " + f); if (Con.training) { TrainSafe.addVehicle(v[1]); repair(v[1]); } }
+                carCheck();
+            } catch (Throwable ignored) {}
+        }, "zf-vfuel").start();
+        if (veh == 0) return "已刷 " + label + "（编号 " + id + "，" + how + "；射线没确认到车，前面没看到车就换个空地再刷，别连按）";
+        return "已刷 " + label + "（编号 " + id + "，" + how + (rep.isEmpty() ? "" : "，" + rep) + "）";
     }
 
     /** v3.47：皮卡/大脚车核对。车表行里有车的蓝图路径（FSoftObjectPath，FName）：/Game/Vehicles/Wheeled/MonsterTruck/… 或 /Game/Vehicles/Wheeled/PickUpTruck/…（pak 清单里的目录名） */
@@ -529,11 +673,14 @@ public class Veh {
                 trucks(dt);
                 Group g = gs.get(gi % gs.size());
                 long id = g.ids.get(g.at++ % g.ids.size());
-                String r = place(g.label, id, p[0], p[1], p[2], p[3]);
-                boolean ok = r.startsWith("已刷");
+                // v4.10：人在车上（控制器的 Pawn 不是人物）→ 落点离车更远；人在游泳 → 只能刷船
+                long pawn = (long) p[6]; boolean inVeh = false;
+                long bb = Mods.base();
+                if (bb != 0 && pawn != 0) try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { inVeh = !NoFall.isChar(m, bb, pawn); } catch (Throwable ignored) {}
+                String r = place(g.label, id, p[0], p[1], p[2], p[3], inVeh, !inVeh && swimming(pawn));
                 String s = "刷车：" + r;
                 note(s); state = s;
-                if (!ok || !quickToast) GameOverlay.toastAny(s);
+                GameOverlay.toastAny(s);
                 quickToast = false;
             } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
@@ -544,14 +691,13 @@ public class Veh {
      *  NZVehicle 反射：MaxHealth +0x2f8、DamageScale +0x2fc、Health +0x308。 */
     static void carCheck() {
         if (Ed.ED == 2) return;
-        if (Con.training) return;   // v3.93 用户：训练场被刷的车炸死（12:23:45 Player Died NZDamageType_VehicleExplosion）→ 训练场的车不打开可受伤
         try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
         Con.exec("EnableCheats");
+        // v3.93 训练场被刷的车炸死 → 训练场不打开；v4.10：训练场反过来把车设成不受伤（不会在人旁边炸），血由 TrainSafe 补
+        // v4.10：去掉 getall（只是让游戏往日志里写，现在不读日志也不让游戏写日志）
+        if (Con.training) { Con.exec("set NZVehicle bCanBeDamaged 0"); note("刷车：训练岛车辆不受伤"); return; }
         Con.exec("set NZVehicle bCanBeDamaged 1");
-        Con.exec("getall NZVehicle bCanBeDamaged");
-        Con.exec("getall NZVehicle Health");
-        Con.exec("getall NZVehicle MaxHealth");
-        note("刷车：已打开车辆可受伤，血量写进日志");
+        note("刷车：已打开车辆可受伤");
     }
 
     // ---------------- v1.84/v1.85 刷人机 ----------------

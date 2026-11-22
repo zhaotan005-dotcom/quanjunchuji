@@ -454,7 +454,7 @@ public class Con {
             LogCap.note("对局模式类：" + (gm != null ? gm : "名字表没有，按开图命令") + (props ? "（战术模式，用游戏原生道具栏）" : ""));
         } else ModeProbe.propsMode = false;
         training = m.contains("TrainingIsland");
-        if (training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); Island.matchLoaded(); }
+        if (training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); TrainSafe.start(); Island.matchLoaded(); }
         else { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); } GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; }
         if (lobby) {
             lobbyAt = now;
@@ -493,11 +493,9 @@ public class Con {
         exec("EnableCheats");
         if (godT == null || !godT.isAlive()) {
             godT = new Thread(() -> {
-                boolean first = true;
                 while (allGod) {
                     try {
                         exec("set Character bCanBeDamaged 0");
-                        if (first) { exec("getall Character bCanBeDamaged"); first = false; }
                         Thread.sleep(3000);
                     } catch (Throwable e) { break; }
                 }

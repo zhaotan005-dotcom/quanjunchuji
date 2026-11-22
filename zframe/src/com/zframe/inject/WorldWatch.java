@@ -213,7 +213,8 @@ final class WorldWatch {
         String st = w == 0 ? "无世界" : !browsed ? "读地图名中" : loaded ? "已加载" : "加载中";
         return "世界 " + (w == 0 ? "0" : Long.toHexString(w)) + " " + mp + " " + st + "（第" + worlds + "个" + (how.isEmpty() ? "" : "，" + how) + "）"
             + "；模式 " + (Con.training ? "训练岛" : ModeProbe.propsMode ? "战术" : Con.inMatch ? "对局" : "大厅/无")
-            + "；15001 " + Con.lastStart + "；触发 " + Con.lastTrig + "；服务端 " + (Server.on ? "开" : "关");
+            + "；15001 " + Con.lastStart + "；触发 " + Con.lastTrig + "；服务端 " + (Server.on ? "开" : "关")
+            + (Con.training ? "；保命 " + (TrainSafe.running ? "开 补血" + TrainSafe.refills + " 憋气" + TrainSafe.breathResets + " 车" + TrainSafe.vehRepairs : "关") : "");
     }
 
     static String text() {
