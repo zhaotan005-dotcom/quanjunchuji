@@ -169,6 +169,12 @@ public class Veh {
     static final long FUEL_VT = 0x4beb188L, ADD_FUEL = 0xe1e6b8L;
     static final int F_OWNER = 0xa0, F_MAX = 0xa8, F_CUR = 0xb4, F_ADD = 0x1e8;
     public static volatile String fuelState = "满油：还没刷车";
+    /** v3.90：游戏日志里刷车成功/失败的次数（Con.line 数） */
+    static volatile int spawnOk, spawnFail;
+    static void spawnLog(String l) {
+        if (l.contains("Spawn Vehicle ")) spawnOk++;
+        else if (l.contains("spawn vehicle failed")) spawnFail++;
+    }
 
     /** 一次加锁：写落点和朝向，再调刷车。true = cave 调过了 0x1102ca4（不代表车一定生成了） */
     static synchronized boolean spawnAt(long id, float x, float y, float z, float yaw) throws InterruptedException {
@@ -240,11 +246,30 @@ public class Veh {
                 if (h.z > pz + 300) { tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append(" 前面高出 ").append(Math.round((h.z - pz) / 100)).append(" 米（").append(h.cls).append("），跳过"); continue; }
                 if (h.z > pz - 500) { z = h.z + 200f; how = "地面"; }   // 比脚下低 4 米以上（坡下/水底）就还按人物高度，让车自己落
             }
+            int s0 = spawnOk, f0 = spawnFail;
             if (!spawnAt(id, x, y, z, (float) yawDeg)) return "没反应 " + label + "（编号 " + id + "，补丁代码没反应）";
+            // v3.90 用户：刷车很大概率点了没效果。v3.89 日志：游戏 11:28:02 就刷出来了，我们 11:28:21 才确认（整表扫 GUObjectArray 十几秒），
+            //   这期间 busy，再点只弹旧提示；确认不到还会换位置再刷一辆。改：看游戏日志「Spawn Vehicle …」/「spawn vehicle failed」（最多等 3 秒），
+            //   成功就马上提示，满油/可受伤放后台做
+            int lg = 0;
+            for (int w = 0; w < 30 && lg == 0; w++) { Thread.sleep(100); if (spawnOk != s0) lg = 1; else if (spawnFail != f0) lg = -1; }
+            if (lg == 1) {
+                final java.util.HashMap<Long, Long> bf = before; final float fx2 = x, fy2 = y; final String lb = label;
+                new Thread(() -> {
+                    try {
+                        long[] v = findNew(bf, fx2, fy2, 3000);
+                        if (v != null) { String f = fillFuel(v[0]); fuelState = "满油：" + lb + " " + f; note("刷车：" + lb + " " + f); }
+                        carCheck();
+                    } catch (Throwable ignored) {}
+                }, "zf-vfuel").start();
+                return "已刷 " + label + "（编号 " + id + (i > 0 ? "，第 " + (i + 1) + " 个位置" : "") + "，" + how + "）";
+            }
+            if (lg == -1) { tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append("（").append(how).append("）被挡住"); continue; }
             long[] v = findNew(before, x, y, fresh ? 3000 : 900);
             if (v != null) {
                 String f = fillFuel(v[0]);
                 fuelState = "满油：" + label + " " + f;
+                new Thread(Veh::carCheck, "zf-vdmg").start();
                 return "已刷 " + label + "（编号 " + id + (i > 0 ? "，第 " + (i + 1) + " 个位置" : "") + "，" + how + "）" + f;
             }
             tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append("（").append(how).append("）没生成");
@@ -504,7 +529,7 @@ public class Veh {
                 String s = "刷车：" + r;
                 note(s); state = s;
                 if (!ok) GameOverlay.toastAny(s);
-                if (ok) carCheck();
+                if (ok) GameOverlay.toastAny(s);
             } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();

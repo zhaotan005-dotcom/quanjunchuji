@@ -464,6 +464,7 @@ public class Con {
             if (m.find()) { myLoc = m.group(1) + " " + m.group(2) + " " + m.group(3); myLocAt = System.currentTimeMillis(); }
         }
         if (l.contains("SpawnVehicle") || l.contains("VehicleSpawn") || l.contains("NZBRVehicleManager")) LogCap.note("刷车日志: " + l.trim());
+        if (l.contains("Spawn Vehicle ") || l.contains("spawn vehicle failed")) Veh.spawnLog(l);
         // v1.32：游戏自带「开始游戏」→ 按选的地图直接进图
         int sm = l.indexOf("RequestStartSingleMatch add_maps_chose:");
         if (sm >= 0) {

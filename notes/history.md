@@ -1585,3 +1585,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 刷车慢：place() 每次先 fuelComps() 整表扫 GUObjectArray 才刷。改成用缓存快照 Veh.snap（打开刷车页 preSnap 后台扫），刷完 findNew 扫一次更新；没快照时只认 9 米内的新车。
 - 军需：仍是 Pandora 网页（腾讯服务器下发），离线没有原页面文件；已向用户说明并问是否接受改成游戏自己的界面替代（未做）。
 - 2026-11-22 11:22 用户问游戏包里知不知道军需页内容。查：pak 只有协议（cs_lottery/cs_treasure/res_lottery/res_treasure/res_treasure_drop 的 proto 定义，无数据）和命令号；无 Pandora 页面、无奖品表。原生 UI 有 CommodityUI/TreasureOpenAnimation、TreasureAwardItemMovie、TreasureObtainItem、PropObtainUI/TreasureOpenMedia、StoreUI/StorePackageComposite*。已提议：点军需走游戏原生开箱动画+获得物品界面，从扫到的皮肤里抽一件入仓库；等用户答复。
+
+## v3.90（core291，2026-11-22 11:4x，只推内核，未实测）
+- 用户 11:39（v3.89 实测，9 张截图）：单机刷车大概率点了没效果；菜单出现「检查补丁中…」（应内置）；训练场玩一会闪退；P92 手里空气、开镜灰屏；喷气背包没模型；对局里脱衣服后身上还有（装备栏已空）。
+- 日志 matchend-1122-113518：游戏 11:28:02 已 Spawn Vehicle，我们 11:28:21 才「已刷」（findNew 整表扫 GUObjectArray 十几秒，busy 期间再点只弹旧提示；确认不到就换位置再刷一辆 → Uaz_2_C_0/C_1 两辆）。另见 NZGameMode.cpp:2602「Success DisableVehicle」刷出几秒后出现（作用未查）。
+- 改：Con.line 数游戏日志「Spawn Vehicle 」/「spawn vehicle failed」→ Veh.spawnOk/spawnFail；place() 调完最多等 3 秒看日志，成功马上提示「已刷」，满油+可受伤放后台线程；失败换下一个落点；没日志才走旧 findNew。成功也弹提示。giveText 检查中不再显示。
+- 训练场闪退：本次日志无新崩溃（崩溃记录 11:23:18，旧 tombstone 01:23 GameThread SIGSEGV fault 4 pc 0x2dfdfb4，函数 0x2dfdec8 遍历 r4+0x640 TArray（12 字节元素）时 data 为空，原因未查）。P92/喷气背包/脱衣服：日志里没有相关记录，未改。仓库衣服进对局用 cave 'I' 发到身上（30318000000/30308000017/30310000006），焊死列表 10200000000,30213000003,30306000000,30303000006。
