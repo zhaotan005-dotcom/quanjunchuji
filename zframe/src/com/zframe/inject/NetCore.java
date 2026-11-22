@@ -22,12 +22,37 @@ final class NetCore {
         RAW,
     };
     /** 并发查各镜像的版本号，最多等 12 秒；返回 各镜像版本（-1 = 失败） */
-    static int[] vers(final String name, final StringBuilder err) {
+    // v3.98：jsdelivr @main 后台会卡旧版（11-22 b1.ver 卡 297 半天，强刷无效），云手机又只通 jsdelivr。
+    //  每版发布时打标签 core<N>（不可变，新地址没有旧缓存），这里直接探 CORE_VER+1..+10 的标签。
+    static final String TAGP = "/gh/zhaotan005-dotcom/quanjunchuji@core";
+    static final String[] TAGH = { "https://cdn.jsdelivr.net", "https://testingcf.jsdelivr.net", "https://gcore.jsdelivr.net", "https://fastly.jsdelivr.net" };
+    //  另加 ntfy 指针：发布时往 PTR 话题发「core <版本> <提交sha>」，这里读最新一条，按 @sha 从 jsdelivr 取（sha 事先没人请求过，不会有旧缓存/404 缓存）。
+    static final String PTR = "https://ntfy.sh/zf-qj-core-k7r2p9m4x1/json?poll=1&since=all";
+    static String ptrSha() {
+        try {
+            java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(PTR).openConnection();
+            c.setConnectTimeout(8000); c.setReadTimeout(10000); c.setUseCaches(false);
+            String body; try (InputStream in = c.getInputStream()) { ByteArrayOutputStream bo = new ByteArrayOutputStream(); copy(in, bo); body = bo.toString("UTF-8"); } finally { c.disconnect(); } String sha = null;
+            for (String line : body.split("\n")) {
+                try { String m = new org.json.JSONObject(line).optString("message", "").trim(); String[] p = m.split("\\s+");
+                    if (p.length >= 3 && p[0].equals("core") && p[2].matches("[0-9a-f]{7,40}")) sha = p[2]; } catch (Throwable ignored) {}
+            }
+            return sha;
+        } catch (Throwable t) { return null; }
+    }
+    static String[] bases() {
+        java.util.ArrayList<String> b = new java.util.ArrayList<>(java.util.Arrays.asList(BASES));
+        String sha = ptrSha();
+        if (sha != null) for (String h : TAGH) b.add(h + "/gh/zhaotan005-dotcom/quanjunchuji@" + sha + "/core/");
+        for (int d = 1; d <= 10; d++) for (String h : TAGH) b.add(h + TAGP + (ZInit.CORE_VER + d) + "/core/");
+        return b.toArray(new String[0]);
+    }
+    static int[] vers(final String[] BASES, final String name, final StringBuilder err) {
         final int[] v = new int[BASES.length]; java.util.Arrays.fill(v, -1);
         Thread[] ts = new Thread[BASES.length];
         for (int k = 0; k < BASES.length; k++) {
             final int i = k;
-            ts[i] = new Thread(() -> { try { v[i] = Integer.parseInt(new String(get(BASES[i] + name + ".ver?t=" + System.currentTimeMillis() / 60000, 64)).trim()); } catch (Throwable t) { synchronized (err) { err.append(BASES[i].substring(8, Math.min(28, BASES[i].length()))).append("：").append(t.getMessage()).append("；"); } } }, "zf-ver" + i);
+            ts[i] = new Thread(() -> { try { v[i] = Integer.parseInt(new String(get(BASES[i] + name + ".ver?t=" + System.currentTimeMillis() / 60000, 64)).trim()); } catch (Throwable t) { if (!BASES[i].contains(TAGP)) synchronized (err) { err.append(BASES[i].substring(8, Math.min(28, BASES[i].length()))).append("：").append(t.getMessage()).append("；"); } } }, "zf-ver" + i);
             ts[i].setDaemon(true); ts[i].start();
         }
         long end = System.currentTimeMillis() + 12000;
@@ -134,7 +159,8 @@ final class NetCore {
             String err = "";
             final String name0 = "b" + Ed.BUILD;
             StringBuilder eb = new StringBuilder();
-            int[] vs = vers(name0, eb); err = eb.toString();
+            final String[] BASES = bases();
+            int[] vs = vers(BASES, name0, eb); err = eb.toString();
             int best = -1; for (int x : vs) best = Math.max(best, x);
             LogCap.note("在线更新：各镜像版本 " + java.util.Arrays.toString(vs));
             for (int bi = 0; bi < BASES.length; bi++) {
