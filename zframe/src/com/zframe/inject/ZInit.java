@@ -26,7 +26,7 @@ public class ZInit extends ContentProvider {
         return true;
     }
 
-    public static final int CORE_VER = 293;
+    public static final int CORE_VER = 294;
 
     public static void boot(Context ctx) {
         try {

@@ -12,7 +12,8 @@ import java.util.*;
  * （门、物资刷新点、载具刷新点……）真正加载出来。
  */
 public class Con {
-    static volatile int p92n;   // v3.92 P92 诊断条数
+    static volatile int p92n;
+    static volatile long fastUntil;   // v3.93 刷车时游戏日志每 100ms 读一次（以前 1 秒，刷车确认最多晚 1 秒）   // v3.92 P92 诊断条数
     static volatile Activity act;
     static volatile String last = "";
     static final List<String> history = Collections.synchronizedList(new ArrayList<String>());
@@ -156,7 +157,7 @@ public class Con {
                     else if (autoOn && lastAddAt > 0 && now - lastAddAt > 3000 && sentAt < lastAddAt) { passes = 1; loadServerLevels("自动"); }
                     else if (autoOn && passes == 1 && sentAt > lastAddAt && now - sentAt > 15000) { passes = 2; loadServerLevels("自动(第2遍)"); }
                 } catch (Throwable e) { LogCap.note("日志监视出错 " + e); }
-                try { Thread.sleep(1000); } catch (InterruptedException e) { return; }
+                try { Thread.sleep(System.currentTimeMillis() < fastUntil ? 100 : 1000); } catch (InterruptedException e) { return; }
             }
         }}, "zframe-uelog");
         t.setDaemon(true);

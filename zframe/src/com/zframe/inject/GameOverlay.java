@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.92";
+    static final String VER = "v3.93";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -125,6 +125,7 @@ public class GameOverlay {
             { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = map[0]; }
             final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("道具", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
+            final java.util.HashMap<TextView, View> tabSep = new java.util.HashMap<>();
             final ScrollView sv = new ScrollView(a);
             sv.setVerticalScrollBarEnabled(false);
             final LinearLayout content = new LinearLayout(a);
@@ -141,6 +142,7 @@ public class GameOverlay {
                     android.view.View sep = new android.view.View(a); sep.setBackgroundColor(0x33FFFFFF);
                     LinearLayout.LayoutParams sl = new LinearLayout.LayoutParams(u.dp(30), u.dp(1)); sl.gravity = Gravity.CENTER_HORIZONTAL; sl.topMargin = u.dp(4); sl.bottomMargin = u.dp(5);
                     tabsRow.addView(sep, sl);
+                    tabSep.put(t, sep);   // v3.93 分隔线跟着分页一起隐藏
                 }
                 tabsRow.addView(t, tl);
                 tv[k] = t;
@@ -172,6 +174,7 @@ public class GameOverlay {
                     int id = (Integer) t.getTag();
                     boolean show = Con.training && Con.inMatch ? TRAIN_TABS.contains(id) : r == 0 ? id != 6 && id != 7 : r == 1 ? true : (id == 6 || id == 5 || id == 0 || id == 8 || id == 3 || id == 9 || id == 10 || id == 4 || id == 11 || id == 1 || id == 7 || id == 12);   // v2.92 客户端加回 刷车、衣服（服务端代刷）   // v2.91 客户端刷东西页加回来（服务端代刷）
                     t.setVisibility(show ? View.VISIBLE : View.GONE);
+                    Object sp = tabSep.get(t); if (sp instanceof View) ((View) sp).setVisibility(show && !(Con.training && Con.inMatch) ? View.VISIBLE : View.GONE);   // v3.93 用户：训练场刷车上面空了一格（隐藏的「道具」分隔线还在）
                 }
                 if (Con.inMatch) {
                     boolean ok = Con.training ? TRAIN_TABS.contains(tab) : r == 0 ? tab != 6 && tab != 7 : r == 1 ? true : (tab == 6 || tab == 5 || tab == 0 || tab == 8 || tab == 3 || tab == 9 || tab == 10 || tab == 4 || tab == 11 || tab == 12);
@@ -223,32 +226,30 @@ public class GameOverlay {
                     nh0 = panel.getMeasuredHeight();
                 }
                 final int nh = Math.max(u.dp(24), nh0);
-                final float cx = getX(panel) + ow / 2f, y0 = getY(panel);
-                android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f).setDuration(260);
-                va.setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f));
+                // v3.93 用户：v3.92 过渡卡 → 不再逐帧改悬浮窗大小（每帧整窗重排）。改成：展开时先一次性把窗口设成展开大小，
+                //   再用 scale/alpha（GPU 合成，不重排）从小条放大；收起时先缩小淡出，结束再一次性改成小条。
+                final float sx0 = toC ? 1f : Math.min(1f, ow / (float) nw), sy0 = toC ? 1f : Math.min(1f, oh / (float) nh);
+                final float sx1 = toC ? Math.min(1f, nw / (float) ow) : 1f, sy1 = toC ? Math.min(1f, nh / (float) oh) : 1f;
+                if (!toC) { collapsed = false; apply.run(); }
+                panel.setPivotX(toC ? ow / 2f : nw / 2f); panel.setPivotY(0f);
+                panel.setScaleX(sx0); panel.setScaleY(sy0);
+                if (!toC) { body.setAlpha(0f); head.setAlpha(1f); }
+                android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f).setDuration(toC ? 200 : 240);
+                va.setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f));
+                panel.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 va.addUpdateListener(av -> {
                     float t = (float) av.getAnimatedValue();
-                    int w = Math.round(ow + (nw - ow) * t), h = Math.round(oh + (nh - oh) * t);
-                    ViewGroup.LayoutParams l = panel.getLayoutParams(); if (l == null) return;
-                    l.width = w; l.height = h;
-                    body.setAlpha(toC ? Math.max(0f, 1f - t * 1.6f) : Math.max(0f, t * 1.4f - 0.4f));
-                    if (l instanceof WindowManager.LayoutParams) {
-                        WindowManager.LayoutParams wl = (WindowManager.LayoutParams) l; wl.x = Math.round(cx - w / 2f); wl.y = Math.round(y0);
-                        try { if (panel.isAttachedToWindow()) pwm.updateViewLayout(panel, wl); } catch (Throwable ignored) {}
-                    } else { panel.setLayoutParams(l); panel.setX(cx - w / 2f); }
+                    panel.setScaleX(sx0 + (sx1 - sx0) * t); panel.setScaleY(sy0 + (sy1 - sy0) * t);
+                    body.setAlpha(toC ? Math.max(0f, 1f - t * 1.8f) : Math.min(1f, Math.max(0f, t * 1.5f - 0.3f)));
                 });
                 va.addListener(new android.animation.AnimatorListenerAdapter() {
                     boolean cancelled;
                     @Override public void onAnimationCancel(android.animation.Animator an) { cancelled = true; }
                     @Override public void onAnimationEnd(android.animation.Animator an) {
-                        ViewGroup.LayoutParams l = panel.getLayoutParams();
-                        if (l != null) {
-                            l.height = ViewGroup.LayoutParams.WRAP_CONTENT; l.width = nw;
-                            if (l instanceof WindowManager.LayoutParams) { try { pwm.updateViewLayout(panel, l); } catch (Throwable ignored) {} } else panel.setLayoutParams(l);
-                        }
-                        body.setAlpha(1f);
+                        panel.setScaleX(1f); panel.setScaleY(1f); body.setAlpha(1f);
+                        panel.setLayerType(View.LAYER_TYPE_NONE, null);
                         if (cancelled) return;
-                        collapsed = toC; px = getX(panel); apply.run();
+                        if (toC) { collapsed = true; px = getX(panel); apply.run(); }
                     }
                 });
                 tgA[0] = va; va.start();
@@ -1010,8 +1011,8 @@ public class GameOverlay {
             case "20105000002": add(l, SMG_MZ); l.add(SMG_MAG); l.add("20505000002"); break;   // UZI：UZI 枪托，没瞄具
             case "20105000003": add(l, SMG_MZ, SC_MID); l.add(SMG_MAG); l.add(TAC); break;     // Vector
             case "20105000004": l.add("20501000004"); l.add("20502000001"); add(l, SC_CLOSE); l.add(SMG_MAG); break;   // 汤姆逊
-            case "20103000001": case "20103000002": l.add("20501000011"); l.add("20505000004"); break;   // S1897、S686：收束器 + 子弹袋
-            case "20103000003": l.add("20501000011"); add(l, AR_MZ, SC_CLOSE); l.add(AR_MAG); break;   // S12K（v3.92 加步枪枪口）
+            case "20103000001": case "20103000002": l.add("20501000011"); l.add("20501000012"); l.add("20505000004"); break;   // v3.93 加鸭嘴   // S1897、S686：收束器 + 子弹袋
+            case "20103000003": l.add("20501000011"); l.add("20501000012"); add(l, AR_MZ, SC_CLOSE); l.add(AR_MAG); break;   // S12K（v3.92 加步枪枪口）
             case "20104000001": add(l, SR_MZ, SC_SR); l.add(CHEEK); l.add("20505000005"); break;   // 98K
             case "20104000002": case "20104000004": add(l, SR_MZ, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // AWM、M24
             case "20104000003": add(l, SR_MZ, GRIP, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // SKS
@@ -1363,7 +1364,7 @@ public class GameOverlay {
         {"冲锋枪", "消音器:20501000004", "消焰器:20501000005", "补偿器:20501000006", "垂直握把:20502000001", "扩容弹匣:20504000004", "快速弹匣:20504000005", "快速扩容:20504000006", "战术枪托:20505000001", "UZI枪托:20505000002"},
         {"狙击枪", "消音器:20501000007", "消焰器:20501000008", "补偿器:20501000009", "扩容弹匣:20504000007", "快速弹匣:20504000008", "快速扩容:20504000009", "托腮板:20505000003", "98K子弹袋:20505000005"},
         {"连狙", "消音器:20501000007", "消焰器:20501000008", "补偿器:20501000009", "垂直握把:20502000001", "扩容弹匣:20504000007", "快速弹匣:20504000008", "快速扩容:20504000009", "托腮板:20505000003"},
-        {"霰弹枪", "收束器:20501000011", "霰弹子弹袋:20505000004", "S12K消音器:20501000001", "S12K消焰器:20501000002", "S12K补偿器:20501000003", "S12K扩容弹匣:20504000001", "S12K快速弹匣:20504000002", "S12K快速扩容:20504000003"},   // v3.92 用户：霰弹枪只有 2 件、S12K 没配件 → 加 S12K 能装的步枪枪口和弹匣（游戏没有 S12K 专用弹匣蓝图）
+        {"霰弹枪", "收束器:20501000011", "鸭嘴枪口:20501000012", "霰弹子弹袋:20505000004", "S12K消音器:20501000001", "S12K消焰器:20501000002", "S12K补偿器:20501000003", "S12K扩容弹匣:20504000001", "S12K快速弹匣:20504000002", "S12K快速扩容:20504000003"},   // v3.92 用户：霰弹枪只有 2 件、S12K 没配件 → 加 S12K 能装的步枪枪口和弹匣（游戏没有 S12K 专用弹匣蓝图）
         {"手枪", "手枪消音:20501000010", "扩容弹匣:20504000010", "快速弹匣:20504000011", "快速扩容:20504000012"},
         {"十字弩", "箭袋:20502000003", "弩瞄准镜:20503000007"},
         {"倍镜", "红点:20503000001", "全息:20503000002", "2倍镜:20503000003", "4倍镜:20503000004", "8倍镜:20503000005"},
@@ -1981,7 +1982,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.92 更新内容（只更新内核）\n· 菜单点标题展开、收起改成平滑过渡\n· 战术道具按钮显示名字（护盾、升降台、地雷等），删掉「重新读」\n· 删掉「手雷抛物线检查」\n· 倍镜改成放进背包\n· 霰弹枪配件补上 S12K 能装的枪口和弹匣（共 8 件）\n· 训练场菜单加「刷车」\n\nv3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
+    static final String NOTICE = "v3.93 更新内容（只更新内核）\n· 菜单展开收起的过渡改成不卡的缩放淡入\n· 霰弹枪配件加鸭嘴枪口\n· 训练场刷出来的车不再会被打爆（之前被车爆炸炸死）\n· 刷车确认更快\n· 训练场菜单「刷车」上面不再空一格\n\nv3.92 更新内容（只更新内核）\n· 菜单点标题展开、收起改成平滑过渡\n· 战术道具按钮显示名字（护盾、升降台、地雷等），删掉「重新读」\n· 删掉「手雷抛物线检查」\n· 倍镜改成放进背包\n· 霰弹枪配件补上 S12K 能装的枪口和弹匣（共 8 件）\n· 训练场菜单加「刷车」\n\nv3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
     static volatile String remoteNotice;
     static void fetchNotice() {
         new Thread(() -> {

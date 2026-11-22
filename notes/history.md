@@ -1602,3 +1602,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 12:09（v3.91 实测，7 图+视频）：训练场不闪退了 ✅；喷气背包截图里有模型了；抛物线正常（「注册了」=正常）。要求：战术道具标名字、删「重新读」、删「手雷抛物线检查」、视频里菜单展开/收起要丝滑过渡、倍镜刷进背包、霰弹枪配件只有 2 件且 S12K 没配件、继续修 P92、训练场菜单加刷车。12:13 补：扔烟雾弹显示的还是手雷那个标（未处理）。
 - 改：GameOverlay toggle：点标题展开/收起用 ValueAnimator 260ms 宽高一起插值、中心不动、body 淡入淡出（WindowManager 窗口逐帧 updateViewLayout，结束恢复 WRAP_CONTENT）；TAC_CN 名字表（按 pak 蓝图名：1 Shield 护盾/2 Lift 升降台/3 LandMine 地雷/4 Trap 捕兽夹/5 Shrub 伪装灌木/6 Chara 替身人偶/7 FakeRock 伪装石头/8 Tree 伪装树/9 Dummy 诱饵假人/10 Box 伪装箱子/12 ScoutBallon 侦察气球/14 LaunchPad 弹射板/15 ScanGrenade 侦测手雷，40200000001 汽油桶）；删重新读、删抛物线检查；倍镜 giveBag（单机强制进背包，服务端仍脚下）；霰弹枪组 8 件（加步枪枪口 3 + 步枪弹匣 3 给 S12K，pak 里没有 S12K 专用弹匣蓝图）、attFor S12K 加 AR_MZ；TRAIN_TABS 加 1（刷车）。
 - P92：客户端 pak cf1f20f5… 里 W202010001_P92 的 BP/1P_FPP/3P 模型/材质/贴图都在，设备上这个 pak 有挂载（11-15 日志）。静态看不出原因。加诊断：Con 收到含 P92 / SK_WP_ / Failed to load 的游戏日志记 60 条「P92诊断」。
+
+## v3.93（core294，2026-11-22 12:3x，只推内核，未实测）
+- 用户 12:27（v3.92 实测，客户端包，5 图+视频）：过渡有点卡；喷子枪口「红色那个」（推断=鸭嘴 20501000012，pak 有 Items/WeaponAssist/20501000012_BP_Duckbill，没有 Pickups 蓝图，刷地上可能失败）；训练场「摔死」——日志 12:23:45 Player Died DamageType=NZDamageType_VehicleExplosion（是刷出来的车爆炸，MinHp 挡住 0 次：爆炸伤害不走 GameMode vt+0x484 那条）；训练场刷车不是立马出（日志：游戏 12:22:44.108 Spawn Vehicle，我们 45.463 才提示——Con 日志线程每 1 秒读一次）；训练场菜单刷车上面空一格（隐藏的「道具」分隔线没跟着隐藏）。
+- 改：toggle 改成一次性改窗口 + scale/alpha 硬件层动画（不再逐帧 updateViewLayout）；鸭嘴加进霰弹枪组和 S1897/S686/S12K；carCheck 训练场不跑（车不打开 bCanBeDamaged）；Con.fastUntil：刷车后 4 秒日志 100ms 读一次；分隔线存 tabSep，分页隐藏/训练场时一起隐藏。
+- P92：这几局日志只有 20201000005（92式）出现过，没有 20201000001 P92；用户截图里的手枪可能是 92式。P92 诊断没抓到东西。

@@ -246,6 +246,7 @@ public class Veh {
                 if (h.z > pz + 300) { tried.append(i == 0 ? "" : "；").append("位置").append(i + 1).append(" 前面高出 ").append(Math.round((h.z - pz) / 100)).append(" 米（").append(h.cls).append("），跳过"); continue; }
                 if (h.z > pz - 500) { z = h.z + 200f; how = "地面"; }   // 比脚下低 4 米以上（坡下/水底）就还按人物高度，让车自己落
             }
+            Con.fastUntil = System.currentTimeMillis() + 4000;
             int s0 = spawnOk, f0 = spawnFail;
             if (!spawnAt(id, x, y, z, (float) yawDeg)) return "没反应 " + label + "（编号 " + id + "，补丁代码没反应）";
             // v3.90 用户：刷车很大概率点了没效果。v3.89 日志：游戏 11:28:02 就刷出来了，我们 11:28:21 才确认（整表扫 GUObjectArray 十几秒），
@@ -539,6 +540,7 @@ public class Veh {
      *  NZVehicle 反射：MaxHealth +0x2f8、DamageScale +0x2fc、Health +0x308。 */
     static void carCheck() {
         if (Ed.ED == 2) return;
+        if (Con.training) return;   // v3.93 用户：训练场被刷的车炸死（12:23:45 Player Died NZDamageType_VehicleExplosion）→ 训练场的车不打开可受伤
         try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
         Con.exec("EnableCheats");
         Con.exec("set NZVehicle bCanBeDamaged 1");
