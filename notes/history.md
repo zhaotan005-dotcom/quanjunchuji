@@ -1584,3 +1584,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 改：allItems 用 propCats：背包(30307 + 402 类里名字是喷气背包的)、战术道具(40201 去掉喷气)、油桶(40200，原「道具(1)」，推测是油桶)。attPage：枪种一排键 → giveGround 整组刷脚下（Veh.ground，服务端有加入玩家时放他脚下，加入别人房间时 Give.ask）；下面倍镜单个刷。pad() 补空位让最后一行不拉宽（道具分类/道具/翻页行/载具）；载具每行 4 个，标签去掉（试）。当前源码里没有「皮卡（试）」字样（v1.9x 老标签），按显示去字兜底。
 - 刷车慢：place() 每次先 fuelComps() 整表扫 GUObjectArray 才刷。改成用缓存快照 Veh.snap（打开刷车页 preSnap 后台扫），刷完 findNew 扫一次更新；没快照时只认 9 米内的新车。
 - 军需：仍是 Pandora 网页（腾讯服务器下发），离线没有原页面文件；已向用户说明并问是否接受改成游戏自己的界面替代（未做）。
+- 2026-11-22 11:22 用户问游戏包里知不知道军需页内容。查：pak 只有协议（cs_lottery/cs_treasure/res_lottery/res_treasure/res_treasure_drop 的 proto 定义，无数据）和命令号；无 Pandora 页面、无奖品表。原生 UI 有 CommodityUI/TreasureOpenAnimation、TreasureAwardItemMovie、TreasureObtainItem、PropObtainUI/TreasureOpenMedia、StoreUI/StorePackageComposite*。已提议：点军需走游戏原生开箱动画+获得物品界面，从扫到的皮肤里抽一件入仓库；等用户答复。
