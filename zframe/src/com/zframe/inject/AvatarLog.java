@@ -77,6 +77,7 @@ public class AvatarLog {
         } catch (Throwable t) { sb.append("读不到：").append(t.getMessage()).append('\n'); }
         sb.append("（").append(n).append(" 行）\n");
         sb.append(crashFiles());
+        sb.append(exitInfo());
         sb.append("== 上一次游戏日志最后 80 行 ==\n");
         try {
             File prev = null;
@@ -91,6 +92,36 @@ public class AvatarLog {
                 for (String t : tail) sb.append(t).append('\n');
             }
         } catch (Throwable t) { sb.append("读不到：").append(t.getMessage()).append('\n'); }
+        return sb.toString();
+    }
+
+    /** v3.99：系统记的最近几次进程退出原因（Android 11+ ApplicationExitInfo）：被系统杀（内存）/ 原生崩溃 / 信号，原生崩溃带系统 tombstone（gzip+base64） */
+    static String exitInfo() {
+        StringBuilder sb = new StringBuilder("== 系统记的退出原因 ==\n");
+        try {
+            android.content.Context c = Con.act;
+            if (c == null || android.os.Build.VERSION.SDK_INT < 30) { sb.append("拿不到\n"); return sb.toString(); }
+            android.app.ActivityManager am = (android.app.ActivityManager) c.getSystemService(android.content.Context.ACTIVITY_SERVICE);
+            java.util.List<android.app.ApplicationExitInfo> l = am.getHistoricalProcessExitReasons(c.getPackageName(), 0, 6);
+            java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US);
+            int traced = 0;
+            for (android.app.ApplicationExitInfo e : l) {
+                sb.append(df.format(new java.util.Date(e.getTimestamp()))).append(" pid ").append(e.getPid()).append(' ').append(e.getProcessName())
+                  .append(" 原因 ").append(e.getReason()).append(" 状态 ").append(e.getStatus()).append(" 重要性 ").append(e.getImportance())
+                  .append(" pss ").append(e.getPss() / 1024).append("MB rss ").append(e.getRss() / 1024).append("MB：").append(e.getDescription()).append('\n');
+                if (traced < 1 && (e.getReason() == android.app.ApplicationExitInfo.REASON_CRASH_NATIVE || e.getReason() == android.app.ApplicationExitInfo.REASON_ANR)) {
+                    try (InputStream in = e.getTraceInputStream()) {
+                        if (in != null) {
+                            java.io.ByteArrayOutputStream bo = new java.io.ByteArrayOutputStream();
+                            try (java.util.zip.GZIPOutputStream gz = new java.util.zip.GZIPOutputStream(bo)) { byte[] b = new byte[1 << 15]; int r, tot = 0; while ((r = in.read(b)) > 0 && tot < (2 << 20)) { gz.write(b, 0, r); tot += r; } }
+                            sb.append("TRACE_B64 ").append(android.util.Base64.encodeToString(bo.toByteArray(), android.util.Base64.NO_WRAP)).append('\n');
+                            traced++;
+                        }
+                    } catch (Throwable t) { sb.append("trace 读不到 ").append(t).append('\n'); }
+                }
+            }
+            if (l.isEmpty()) sb.append("没有记录\n");
+        } catch (Throwable t) { sb.append("读不到：").append(t).append('\n'); }
         return sb.toString();
     }
 
