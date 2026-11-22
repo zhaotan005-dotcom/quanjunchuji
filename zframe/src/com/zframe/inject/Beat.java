@@ -16,7 +16,7 @@ final class Beat {
                 try {
                     Thread.sleep(1000);
                     StringBuilder sb = new StringBuilder(df.format(new java.util.Date()));
-                    sb.append(' ').append(grab("/proc/self/status", "VmRSS", "VmSwap", "Threads"));
+                    sb.append(' ').append(grab("/proc/self/status", "VmPeak", "VmSize", "VmRSS", "VmSwap", "Threads")).append(" oom=").append(Beat.one("/proc/self/oom_score")).append("/").append(Beat.one("/proc/self/oom_score_adj"));
                     sb.append(' ').append(grab("/proc/meminfo", "MemAvailable", "SwapFree"));
                     StringBuilder zf = new StringBuilder();
                     for (Thread t : Thread.getAllStackTraces().keySet()) if (t.getName().startsWith("zf")) zf.append(t.getName()).append(',');
@@ -38,6 +38,7 @@ final class Beat {
         } catch (Throwable ignored) {}
         return sb.toString().trim();
     }
+    static String one(String p) { try (BufferedReader r = new BufferedReader(new FileReader(p))) { return r.readLine(); } catch (Throwable t) { return "?"; } }
     static String prev(android.content.Context c) {
         File f = new File(c.getFilesDir(), "beat-prev.txt");
         StringBuilder sb = new StringBuilder("== 上次运行最后的心跳（内存/线程）==\n");
