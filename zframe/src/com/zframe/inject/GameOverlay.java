@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.90";
+    static final String VER = "v3.91";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1917,7 +1917,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
+    static final String NOTICE = "v3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
     static volatile String remoteNotice;
     static void fetchNotice() {
         new Thread(() -> {

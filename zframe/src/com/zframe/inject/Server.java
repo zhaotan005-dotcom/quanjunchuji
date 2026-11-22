@@ -595,6 +595,10 @@ public class Server {
                 long id = l.get(i); int cat = (int) (id / 1000000 % 1000);
                 if (i == 0 || cat == 113 || cat == 213 || def.contains(id)) base.add(id); else own.add(id);
             }
+            // v3.91：日志 11:30:02 脱风衣 30318000000 → NZBRCharacter.cpp:6836「DiscardInventory Give Default Apparel Fault」，
+            //   身上还显示风衣。原因：默认衣服列表只放了「穿着的」默认件，上衣 30301000001/裤子 30302000000 被风衣顶掉后不在列表里，
+            //   脱下时游戏找不到默认上衣/裤子换回去。现在 4 件默认衣服一直都放（原版 DefaultRoleClotheDataTable 也是 6 件全在）。
+            for (long d : def) if (!base.contains(d)) base.add(d);
             long[] a = new long[base.size()]; for (int i = 0; i < a.length; i++) a[i] = base.get(i);
             Mods.setWear(a);
             Bots.outfit = own;

@@ -1591,3 +1591,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 日志 matchend-1122-113518：游戏 11:28:02 已 Spawn Vehicle，我们 11:28:21 才「已刷」（findNew 整表扫 GUObjectArray 十几秒，busy 期间再点只弹旧提示；确认不到就换位置再刷一辆 → Uaz_2_C_0/C_1 两辆）。另见 NZGameMode.cpp:2602「Success DisableVehicle」刷出几秒后出现（作用未查）。
 - 改：Con.line 数游戏日志「Spawn Vehicle 」/「spawn vehicle failed」→ Veh.spawnOk/spawnFail；place() 调完最多等 3 秒看日志，成功马上提示「已刷」，满油+可受伤放后台线程；失败换下一个落点；没日志才走旧 findNew。成功也弹提示。giveText 检查中不再显示。
 - 训练场闪退：本次日志无新崩溃（崩溃记录 11:23:18，旧 tombstone 01:23 GameThread SIGSEGV fault 4 pc 0x2dfdfb4，函数 0x2dfdec8 遍历 r4+0x640 TArray（12 字节元素）时 data 为空，原因未查）。P92/喷气背包/脱衣服：日志里没有相关记录，未改。仓库衣服进对局用 cave 'I' 发到身上（30318000000/30308000017/30310000006），焊死列表 10200000000,30213000003,30306000000,30303000006。
+
+## v3.91（core292，2026-11-22 11:5x，只推内核，未实测）
+- 用户 11:49 纠正：喷气背包、脱衣服两个问题是真的（截图就是证据），我上一条说「日志没记录」不对——11:30 那局日志里有。
+- 日志：11:30:02 Discard 30318000000（绝地风衣）成功后紧跟 NZBRCharacter.cpp:6836「[Pickup] DiscardInventory Give Default Apparel Fault.」→ 身上模型不换。11:30:07/08 丢 30310000006、30308000017 同样（截图：地上有深绿迷彩短裤、吃鸡MVP口罩，身上还戴着）。原因：syncWear 只把「穿着的」默认件放进出生默认列表（10200000000,30213000003,30306000000,30303000006），默认上衣 30301000001/裤子 30302000000 被风衣顶掉后不在列表，游戏脱下时找不到默认件。改：4 件默认衣服（30301000001,30302000000,30303000006,30306000000）始终放进出生列表（原版 DefaultRoleClotheDataTable 也全在）。
+- 喷气背包：11:29:37 穿上 30307000099 → InitJetpackBag ×2、OnRep_AvaRepInfo、SkeletalMeshComponent_0 注册、紧跟「LogRHI: Error: Unsupported EPixelFormat 28」×2；客户端 pak 里 Avatar/Common/Bagpack/30307000099/ Mesh/Huan/材质都在。原因未定，未改（可能和焊死的默认背包 30306000000 抢背包位，或贴图格式 28 不支持）。
+- P92 / 训练场闪退：那段（训练场）没有上传日志，ntfy 里搜不到 P92，仍待查。
