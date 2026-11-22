@@ -122,7 +122,33 @@ public class AvatarLog {
                 }
             }
             if (l.isEmpty()) sb.append("没有记录\n");
+            for (android.app.ApplicationExitInfo e : l) if (e.getReason() == android.app.ApplicationExitInfo.REASON_SIGNALED) { sb.append(around(e.getTimestamp(), e.getPid())); break; }
         } catch (Throwable t) { sb.append("读不到：").append(t).append('\n'); }
+        return sb.toString();
+    }
+
+    /** v4.02：被杀前 10 秒的系统日志（全部进程、不过滤关键字，去掉刷屏行），看是谁发的 SIGKILL */
+    static String around(long ts, int pid) {
+        StringBuilder sb = new StringBuilder("== 被杀前后系统日志（pid " + pid + "）==\n");
+        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US);
+        String from = df.format(new java.util.Date(ts - 10000)), to = df.format(new java.util.Date(ts + 2000));
+        java.util.ArrayDeque<String> keep = new java.util.ArrayDeque<>();
+        try {
+            Process p = Runtime.getRuntime().exec(new String[] { "logcat", "-d", "-v", "time", "-b", "all" });
+            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "UTF-8"));
+            String x;
+            while ((x = br.readLine()) != null) {
+                if (x.length() < 14) continue;
+                String t = x.substring(0, 14);
+                if (t.compareTo(from) < 0 || t.compareTo(to) > 0) continue;
+                if (x.contains("msgid=5017") || x.contains("EPixelFormat") || x.contains("non-streamed") || x.contains("SafeDataWriter") || x.contains("ProcessSkinRes") || x.contains("GetRenderQuality")) continue;
+                keep.add(x.length() > 260 ? x.substring(0, 260) : x);
+                if (keep.size() > 300) keep.removeFirst();
+            }
+            p.destroy();
+        } catch (Throwable t) { sb.append("读不到：").append(t).append('\n'); }
+        for (String k : keep) sb.append(k).append('\n');
+        sb.append("（").append(keep.size()).append(" 行，").append(from).append(" ~ ").append(to).append("）\n");
         return sb.toString();
     }
 
