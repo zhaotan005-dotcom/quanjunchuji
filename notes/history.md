@@ -1641,3 +1641,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 16:13 v4.00 心跳：被杀前 MemAvailable 1.7GB、RSS ~1.04GB、线程稳定 → 不像内存不足。被杀前活着的 zf 线程：zf-server/zf-skins/zf-gfx/zframe-uelog/zf-logup/zf-diag。zf-skins（Server.allSkins 整块读 /proc/self/mem 匿名内存）在连接器找到后 3 秒开始，约 9 秒后进程被 SIGKILL；被杀就建不了 zf_skins_scanned 标记，于是每次进大厅都重扫。v4.01（core302）禁用 allSkins 自动扫（推断为原因，未实测）。
 - 16:16 用户：全部皮肤扫描本来只要客户端做，服务端不该加；服务端别再加这类整块扫内存的加载。
 - 16:20 v4.01 实测：不扫皮肤照样在进大厅约 16 秒被 SIGKILL（16:18:59），被杀前 zf 线程只剩 zf-gfx/zframe-uelog/zf-diag/zf-server，内存充足 → 皮肤扫描不是原因（v4.01 那条推断作废，但服务端仍不扫皮肤，用户规则）。logcat 过滤的 150 行被 5017 刷屏挤掉。v4.02（core303）：诊断加被杀前 10 秒全部 logcat（-b all，去刷屏行），看谁发的信号。
+- 16:28 v4.02 被杀前 logcat（pid 35502，被杀 16:26:07）：16:25:57 W/xclient [WAIT TO ACTIVE]→[ACTIVE]、TApm 发 hawk_data；16:25:58.608 W/xclient「Tencent Qemu blocked」；之后只有正常日志，约 9 秒后 SIGKILL。推断：游戏自带安全组件（xclient/TP）认出云手机是模拟器（Qemu）后杀进程，不是我们的代码。按项目规则不做绕过保护，不去改/关 xclient。只看到一次窗口，待更多样本确认；客户端为何不被杀未知（可能 xclient 在服务端登录后才激活，推断）。
