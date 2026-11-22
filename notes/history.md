@@ -1633,3 +1633,4 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户：服务端大厅站一会就闪退（有时点了联机训练营、有时没点都会），客户端正常。
 - 诊断：13:33 那次（upd-133414 的上次运行）进大厅 13:32:56，找到连接器 13:33:07，游戏日志停在 13:33:13，没点任何东西，无 tombstone（Bugly 关了原生上报）；13:28、13:32 两次是点了联机训练营后加载 3~4 秒没了。和 v3.82 记的「服务端进大厅 10~60 秒进程重启、无 tombstone」同一现象。
 - 服务端独有、进大厅 20 秒后跑的：ModeProbe.survey（名字表全量扫 4 遍，每遍 64×16384 次读 /proc/self/mem），时间对得上 → 不再自动跑（结果没人用）。未实测是否就是闪退原因；若还闪，下一个怀疑 Server 的 TICK/SEND 钩子或 Lan.host 开训练岛。
+- 14:05 在线更新收不到：jsdelivr 对新提交报「Package size exceeded 50 MB」（仓库 game/ 123M、notes 40M），@main 一直给缓存 297；raw/ghfast 是 298，但用户网络疑似只通 jsdelivr。1e535fb 误把 66 个 releases APK 提交了，ed9b216 已取消跟踪（.git/info/exclude 加 /releases/*.apk）。已发 ZFrame-v3.97-服务端.apk。待办：在线更新换一个不受仓库大小限制的源（如单独小仓库只放 core/，或 GitHub Release），需要新底包才能生效。
