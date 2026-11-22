@@ -18,7 +18,7 @@ public class Con {
     static volatile String last = "";
     static final List<String> history = Collections.synchronizedList(new ArrayList<String>());
 
-    static void setActivity(Activity a) { act = a; }
+    static void setActivity(Activity a) { act = a; try { if (a != null) Beat.start(a.getApplicationContext()); } catch (Throwable ignored) {} }
 
     static Method find(Class<?> c) {
         for (; c != null; c = c.getSuperclass()) {

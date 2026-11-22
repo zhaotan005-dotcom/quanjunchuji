@@ -78,6 +78,7 @@ public class AvatarLog {
         sb.append("（").append(n).append(" 行）\n");
         sb.append(crashFiles());
         sb.append(exitInfo());
+        try { if (Con.act != null) sb.append(Beat.prev(Con.act)); } catch (Throwable ignored) {}
         sb.append("== 上一次游戏日志最后 80 行 ==\n");
         try {
             File prev = null;
