@@ -18,7 +18,7 @@ public class Con {
     static volatile String last = "";
     static final List<String> history = Collections.synchronizedList(new ArrayList<String>());
 
-    static void setActivity(Activity a) { act = a; try { if (a != null) Beat.start(a.getApplicationContext()); } catch (Throwable ignored) {} }
+    static void setActivity(Activity a) { act = a; try { if (a != null) { if (Ed.uploads()) Beat.start(a.getApplicationContext()); else Beat.wipe(a.getApplicationContext()); } } catch (Throwable ignored) {} }
 
     static Method find(Class<?> c) {
         for (; c != null; c = c.getSuperclass()) {
@@ -236,7 +236,7 @@ public class Con {
         if (brAt > 0 && now - brAt > 4000) { brAt = 0; Mods.lastPawnAsk = 0; }
         // 大厅加载完 6 秒后打上「初始衣服 = 绝地风衣」（启动画面阶段不动内存）
         if (coatAt > 0 && now - coatAt > 6000) { coatAt = -1; Mods.builtInCoat(); Mods.restoreZone(); LogCap.note("开局等人 60 秒→1 秒：" + Mods.write(Mods.WAIT, Mods.WAIT_O, Mods.WAIT_N, true)); if (Lan.role == 0) { LogCap.note("单机开局读秒 45→20 秒：" + Mods.write(Mods.START, Mods.START_O, Mods.START_N, true)); LogCap.note("单机等人默认 60→1 秒（构造）：" + Mods.waitCtor()); }   // v1.95b 用户：一进去不显示读秒，过好一会才出 43 倒计时 → 去掉不显示读秒的那 60 秒
-            /* v2.06 用户：不要每次都存；v2.09b 只在上次联机加载闪退时自动存 */ new Thread(Server::autoCrashSave).start(); }
+            /* v2.06 用户：不要每次都存；v2.09b 只在上次联机加载闪退时自动存 */ if (Ed.uploads()) new Thread(Server::autoCrashSave).start(); }
         tickAudio(now);
     }
 

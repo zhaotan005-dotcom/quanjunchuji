@@ -41,7 +41,7 @@ final class MapMark {
     static void tick() throws Exception {
         if (!Con.inMatch) {
             if (lastCtl != 0) {   // v2.79 一局结束（回大厅）也自动传一份，标点没反应也能看到
-                new Thread(() -> { try { Thread.sleep(8000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "matchend-"); } catch (Throwable ignored) {} }, "zf-end-log").start();
+                if (Ed.uploads()) new Thread(() -> { try { Thread.sleep(8000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "matchend-"); } catch (Throwable ignored) {} }, "zf-end-log").start();
             }
             lastCtl = 0; lastHex = ""; return; }
         long b = Mods.base(); if (b == 0) return;
@@ -165,7 +165,7 @@ final class MapMark {
     static void autoLog() {
             if (System.currentTimeMillis() - lastUp > 30000) {   // v2.79 标点有变化就自动传一份诊断（30 秒最多一次）
             lastUp = System.currentTimeMillis();
-            new Thread(() -> { try { Thread.sleep(5000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "mark-"); } catch (Throwable ignored) {} }, "zf-mark-log").start();
+            if (Ed.uploads()) new Thread(() -> { try { Thread.sleep(5000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "mark-"); } catch (Throwable ignored) {} }, "zf-mark-log").start();
         }
     }
     static volatile String inst = "";

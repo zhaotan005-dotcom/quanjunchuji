@@ -243,6 +243,7 @@ final class Lan {
     /** v2.88 用户：不要让我点导出诊断 → 断线/加入失败/换弹循环时自动导出上传（同类 90 秒内只传一次，等 8 秒让后面的日志进来） */
     static final java.util.Map<String, Long> upAt = new java.util.HashMap<>();
     static void autoUp(String kind) {
+        if (!Ed.uploads()) return;   // v4.08：单机/客户端不自动传
         long now = System.currentTimeMillis();
         synchronized (upAt) { Long t = upAt.get(kind); if (t != null && now - t < 90000) return; upAt.put(kind, now); }
         new Thread(() -> { try { Thread.sleep(8000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, kind + "-"); } catch (Throwable ignored) {} }, "zf-auto-" + kind).start();

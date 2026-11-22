@@ -1703,3 +1703,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 没做：「调试开关模拟没日志」——日志整条路已删，所有手机现在都是没日志的路径，不需要。没做存储权限/日志路径诊断（用户说不用管日志）。
 - 未实测风险：GWorld 偏移（静态 RE 4 处一致，未上机）；URL FString 启发式找错字段（会退到包名）；开机 Dummy 世界的 URL 也可能是 StartupMap（startupUpdate/loadingPage 有一次性保护）；NZSystemSettingData 找到的实例是不是设置界面改的那个；15001 字段含义。
 - 构建：bash build_all.sh 4.06 4.07 307 308（JDK sed 成 jdk-21.0.12.1+1 后改回），core/b0-2.ver=308；releases 换成 v4.07 三个（git rm v4.06）。
+
+## v4.08（core309，2026-11-22 20:1x，全部未实测）单机/客户端不上传任何日志，只有服务端上传
+- 用户 20:07：把所有自动后台诊断上传（boot-、lobbyop-、net-、train-、crash-、upd- 等、启动 ntfy 消息、zf-logup 上传线程）从单机和客户端彻底去掉，只留服务端（Ed.ED==1）；只为上传存在的数据收集（心跳/步骤文件/autoCrashSave）单机/客户端也不做；在线更新读 ntfy 指针照旧。
+- 实现：Ed.uploads()（BUILD==1 && ED==1）。LogUp.send/put 硬闸；BootLog、AvatarLog.export（手动也不传，返回「单机/客户端不上传日志」）、autoTrain、Lan.autoUp、Server.opLog/autoCrashSave、大厅 40 秒 lobby-、MapMark 两个线程都先判；联机页「导出诊断」按钮只服务端显示。Beat.start 只服务端，其它调 Beat.wipe 清旧文件（beat*、smaps*、zf_server_steps*、zf_tomb_saved、zf_crash_saved、zf_logq）；Server.stepFile 非服务端返回 null（mark 不写）。
+- 没动：NetCore（ntfy 指针只读 + 下载）、Room/Give 的 ntfy（房间表/代刷是功能）。
+- 构建：build_all.sh 4.07 4.08 308 309（JDK 换 jdk-21.0.12.1+1 的临时副本 /tmp/b.sh 分两次跑，仓库脚本没改），core/b0-2.ver=309；releases 换成 v4.08 三个。

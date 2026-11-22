@@ -10,6 +10,8 @@ final class Ed {
     static volatile int ED = BUILD == 2 ? 0 : BUILD;
     static volatile boolean chosen = true;
     static boolean single() { return ED == 0; }
+    /** v4.08 用户规矩：单机/客户端不上传任何日志、不收集只为上传用的数据（心跳/步骤文件/闪退自动存），只有服务端（ED 1）上传。 */
+    static boolean uploads() { return BUILD == 1 && ED == 1; }
     static boolean canChoose() { return false; }
     static String name() { return ED == 1 ? "服务端" : ED == 2 ? "客户端" : BUILD == 2 ? "客户端" : "单机版"; }
     static java.io.File file;

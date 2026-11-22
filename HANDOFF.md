@@ -354,3 +354,9 @@
 - 开始游戏选图改看 15001 包（maps_chose/map_id）；画质读 NZSystemSettingData +0x7c；有人加入看 PlayerArray；断线 = 非我们发的回大厅。
 - 联机卡片去掉「上传日志」「设为我的开房地址」，开房地址固定 frp-put.com:47937。
 - 待看（下次诊断）：「世界状态：」事件行（新世界/加载完的地图名、URL 偏移、ms）；「开始游戏 15001：maps_chose=… map_id=…」；「画质：设置对象 …」。若世界状态读不到地图名/不加载完 → 先查 GWorld 偏移。
+
+## v4.08（core309，2026-11-22 20:1x，全部未实测）单机/客户端不上传任何日志
+- 用户 20:07 规矩：**单机/客户端不上传任何日志，只有服务端上传**（Ed.uploads() = BUILD==1 && ED==1）。以后新加的诊断/上传一律先判 Ed.uploads()。
+- 闸口：LogUp.send/put 直接返回（硬闸，含 zf-logup 线程和 zf_logq 补传）；BootLog.start/ping（启动消息、boot-*）；AvatarLog.export（所有前缀 lobby-/lobbyop-/net-/train-/crash-/upd-/mode-/pak-/box-/ammo-/matchend-/mark-/duel-/flare-/prop-/para-/slot-，手动导出也不传）；Lan.autoUp；Server.opLog、autoCrashSave（Con 调用处也判）；AvatarLog.autoTrain；GameOverlay 进大厅 40 秒 lobby-；MapMark matchend-/mark- 线程；联机页「导出诊断」按钮单机/客户端不显示。
+- 不再收集：Beat 心跳（beat.txt、smaps）只服务端开；Server.stepFile 单机/客户端返回 null → Server.mark 步骤文件不写；单机/客户端启动时 Beat.wipe 删旧的 beat*/smaps*/zf_server_steps*/zf_tomb_saved/zf_crash_saved/zf_logq。
+- 保留：NetCore 读 ntfy 内核指针（只读）和镜像下载；Room 房间表（ntfy R/J/Q）、Give 代刷 —— 是功能不是日志；LogCap 内存记录（不落盘不上传）。

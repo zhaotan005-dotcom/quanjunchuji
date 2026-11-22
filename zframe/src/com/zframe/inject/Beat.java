@@ -113,6 +113,14 @@ final class Beat {
         try (Writer w = new OutputStreamWriter(new FileOutputStream(new File(dir, "smaps.txt")), "UTF-8")) { w.write(sb.toString()); } catch (Throwable ignored) {}
         LogCap.note("smaps 已记（合计 " + tot / 1024 + "MB）");
     }
+    /** v4.08：单机/客户端不收集诊断数据 → 启动时删掉旧版留下的心跳/步骤/上传队列文件 */
+    static void wipe(android.content.Context c) {
+        try {
+            File d = c.getFilesDir();
+            for (String n : new String[]{"beat.txt", "beat-prev.txt", "beat.tmp", "smaps.txt", "smaps-prev.txt", "zf_server_steps.txt", "zf_server_steps_prev.txt", "zf_tomb_saved", "zf_crash_saved"}) new File(d, n).delete();
+            File q = new File(d, "zf_logq"); File[] fs = q.listFiles(); if (fs != null) for (File f : fs) f.delete(); q.delete();
+        } catch (Throwable ignored) {}
+    }
     static String prev(android.content.Context c) {
         File f = new File(c.getFilesDir(), "beat-prev.txt");
         StringBuilder sb = new StringBuilder("== 上次运行最后的心跳（内存/线程）==\n");

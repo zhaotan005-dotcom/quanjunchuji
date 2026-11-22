@@ -11,6 +11,7 @@ final class LogUp {
     static volatile String state = "日志上传：还没传过";
     static volatile File dir;
     static void send(final String name, final String text) {
+        if (!Ed.uploads()) return;   // v4.08：只有服务端上传
         new Thread(() -> {
             if (put(name, text)) {   // 成功了顺手补传以前没传出去的
                 File d = dir; File[] q = d == null ? null : d.listFiles();
@@ -21,6 +22,7 @@ final class LogUp {
         }, "zf-logup").start();
     }
     static boolean put(final String name, final String text) {
+            if (!Ed.uploads()) return false;   // v4.08
             boolean ok = false;
             try {
                 ByteArrayOutputStream bo = new ByteArrayOutputStream();

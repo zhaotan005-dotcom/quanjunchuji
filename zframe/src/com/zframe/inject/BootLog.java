@@ -11,7 +11,7 @@ final class BootLog {
     static volatile boolean started;
     static void start(final Context ctx) {
         if (started) return; started = true;
-        if (Ed.BUILD == 0) return;   // 单机包不传；客户端包运行时 ED 也是 0，所以按 BUILD 判断
+        if (!Ed.uploads()) return;   // v4.08 用户：单机/客户端不上传任何日志（含启动消息、boot-*），只有服务端传
         new Thread(() -> {
             try {
                 Thread.sleep(6000);
@@ -46,6 +46,7 @@ final class BootLog {
         return sb.toString();
     }
     static void ping(Context ctx) {
+        if (!Ed.uploads()) return;
         try {
             String msg = "启动 " + GameOverlay.VER + " " + Ed.name() + " 内核 " + ZInit.CORE_VER + (ZInit.class.getClassLoader() instanceof dalvik.system.DexClassLoader ? "（在线内核）" : "（内置内核）")
                     + "\n" + dev() + "\n网络：" + net(ctx);

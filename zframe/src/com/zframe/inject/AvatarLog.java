@@ -16,11 +16,13 @@ public class AvatarLog {
     static volatile boolean manual;
     /** v3.38：训练岛进图 50 秒后自动传一份诊断（用户截图：地形全黑、退出没反应；不存手机） */
     static void autoTrain(Activity a) {
+        if (!Ed.uploads()) return;
         new Thread(() -> { try { Thread.sleep(50000); if (Con.training && Con.inMatch) { manual = true; try { export(a, "train-"); } finally { manual = false; } } } catch (Throwable ignored) {} }, "zf-traindiag").start();
     }
     /** v3.22 用户：单机不需要记录日志，也别往手机里放东西 → 单机（ED 0 且没加入别人）不导出、不上传、不留队列 */
     static boolean off() { return Ed.ED == 0 && Lan.role != 2; }
     static String export(Activity a, String prefix) {
+        if (!Ed.uploads()) return "单机/客户端不上传日志";   // v4.08 用户：只有服务端上传（手动/自动都一样）
         if (off() && !manual) return "";
         try {
             StringBuilder sb = new StringBuilder();

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.07";
+    static final String VER = "v4.08";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -408,7 +408,7 @@ public class GameOverlay {
         try { NetCore.lobby(Con.act); } catch (Throwable ignored) {}   // v2.52 在线内核
         ModeProbe.survey();   // v3.00 服务端：名字表修好后自动全量找一次三军对垒/决胜五军模式蓝图，传 mode-*
         // v2.56：卸了补丁更新 App 后仓库空 → 本次启动进大厅 40 秒后自动传一份诊断（只传一次）
-        new Thread(() -> { try { Thread.sleep(40000); Activity x = Con.act; if (x != null) AvatarLog.export(x, "lobby-"); } catch (Throwable ignored) {} }, "zf-diag").start();
+        if (Ed.uploads()) new Thread(() -> { try { Thread.sleep(40000); Activity x = Con.act; if (x != null) AvatarLog.export(x, "lobby-"); } catch (Throwable ignored) {} }, "zf-diag").start();   // v4.08 只有服务端
         mapShown();
     }
     /** v2.35 用户：进大厅、进对局菜单出来时，也要和五指打开一样的过渡动画。切图（Browse）时先收起，图加载好再弹出来 */
@@ -1176,7 +1176,7 @@ public class GameOverlay {
     static void logRow(final Activity a, final Ui u, final LinearLayout root) {
         head(a, u, root, "日志");
         LinearLayout dg = row(a, root);
-        btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());
+        if (Ed.uploads()) btn(a, u, dg, "导出诊断", () -> new Thread(() -> toastAny(AvatarLog.export(a))).start());   // v4.08 单机/客户端不上传，不显示
         btn(a, u, dg, "查剩余人数", () -> new Thread(() -> toastAny(Alive.probe())).start());   // v2.23
         note(a, u, root, Server.state);
     }
