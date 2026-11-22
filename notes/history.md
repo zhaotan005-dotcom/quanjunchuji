@@ -1628,3 +1628,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - ②12:46:43 丢 30318000000 / 30310000006 后仍「DiscardInventory Give Default Apparel Fault」两次；出生列表已含 6 件（含 30301000001、30302000000）→ 不是出生列表的问题，原因未查到，没改。
 - ④resetMatch：speed/jump=1、无后座/聚点/无限子弹关、Fly.want=false（以前 v2.31 跨局保留）。
 - ⑤zoneOff()/restoreZone：Ed.ED != 1 一律 false（单机上飞机），服务端照旧。
+
+## 2026-11-22 13:40 v3.97（core298）
+- 用户：服务端大厅站一会就闪退（有时点了联机训练营、有时没点都会），客户端正常。
+- 诊断：13:33 那次（upd-133414 的上次运行）进大厅 13:32:56，找到连接器 13:33:07，游戏日志停在 13:33:13，没点任何东西，无 tombstone（Bugly 关了原生上报）；13:28、13:32 两次是点了联机训练营后加载 3~4 秒没了。和 v3.82 记的「服务端进大厅 10~60 秒进程重启、无 tombstone」同一现象。
+- 服务端独有、进大厅 20 秒后跑的：ModeProbe.survey（名字表全量扫 4 遍，每遍 64×16384 次读 /proc/self/mem），时间对得上 → 不再自动跑（结果没人用）。未实测是否就是闪退原因；若还闪，下一个怀疑 Server 的 TICK/SEND 钩子或 Lan.host 开训练岛。

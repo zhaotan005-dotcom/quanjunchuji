@@ -119,7 +119,10 @@ public class ModeProbe {
     static volatile java.util.List<String> maps = new java.util.ArrayList<>();
     static volatile boolean surveyed;
     static void survey() {
+        // v3.97 用户：服务端大厅站一会就闪退（13:33 那次进大厅约 15~20 秒进程没了，无 tombstone，时间对得上这里进大厅 20 秒后的名字表全量扫：4 遍 × 100 万次读内存）。
+        //   这个扫描只是 v3.00 找模式蓝图的诊断，结果没人用 → 不再自动跑。
         if (surveyed || Ed.ED != 1) return; surveyed = true;
+        if (true) { state = "娱乐模式：v3.97 不再自动扫名字表（疑似服务端大厅闪退原因）"; return; }
         new Thread(() -> {
             try {
                 Thread.sleep(20000);
