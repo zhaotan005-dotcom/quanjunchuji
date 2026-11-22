@@ -1744,3 +1744,24 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 未实测/风险：血写成上限×20 后血条显示可能超出（若 HUD 不夹 0..1）；bCanBeDamaged 位 +0x110 bit1 沿用 v3.26 的 RE；射线是否打得到水面/车身（Visibility 通道）未上机确认——打不到水 → 船刷不出（会提示），打不到车 → 只是提示「射线没确认到车」；人在车上时 PC Pawn 是车还是人未确认（两种都处理了）；`set NZVehicle bCanBeDamaged 0` 控制台在这版是否生效未确认（有 TrainSafe 补血兜底）；房主别的玩家只能靠 NoFall 10 秒一次的扫描找到（沿用旧的扫描，没新增大内存扫描）。
 - 注意：本次查车辆类名时误 grep 了仓库里旧的已存日志 game/logs（只取了 BP_Vehicle_ 前缀），以后别碰 game/logs。
 - 构建：/tmp/b.sh（build_all.sh 的 JDK 换 jdk-21.0.12.1+1，仓库脚本没改）4.09 4.10 310 311，core/b0-2.ver=311；releases 加 v4.10 三个（留 v4.08/4.09/4.10，没有 v4.07 残留）。
+
+## v4.11（core312，2026-11-22 21:xx，全部未实测）训练营：撤掉 v4.10 补血/无敌 → 让游戏自己的训练营复活规则生效
+- 用户 21:02（看了 v4.10 说明）：「666，你这治标不治本的毛病得改」「车炸是因为我拿枪打爆的啊」。= 车是他故意打爆的，车能炸是正常的；补血/无敌是治标。
+- 撤掉：TrainSafe.java 整个删（0.1 秒血写上限×20、清 bCanBeDamaged、憋气 +0xc30/+0xc44/+0xc48 清零、刷出来的车补血）；Veh.carCheck 训练岛 `set NZVehicle bCanBeDamaged 0` → 和别的图一样 `bCanBeDamaged 1`；Veh.place 刷完补满车血（repair）删掉。
+- 原版训练营怎么处理死亡（只读 pak 明文数据 + libUE4 静态）：
+  - BP_NZBRPracticeGameMode CDO（pakchunk_111896…）：SystemNameList = /Script/NZBattleRoyaleGame.PracticeSystem、ResurrectSystem、PickUpRefreshSystem；StateInfoClassList = BP_PracticeInfoState、BP_PracticeResurrectInfoState（CDO 无覆盖属性）、BP_PickUpRefreshInfoState；DefaultPawnClass BP_NZBRCharacter_Practice；PC ReturnToDeathTime 5.0。
+  - /Game/DataTables/GameFeatureConfig/ResurrectSystemConfig（pakchunk_7c73d0…，RowStruct ResurrectInfoStateRow）：NewRow ModeId0 Sequence（SecondsArray 60..1320、ResurrectInterval 10、带运输机参数）；BTT 503 Interval 60；GameModeTest 2001；**Practice 600：TriggerType Personal、PersonalDelaySeconds 4.0、PersonalResurrectEndTimes -1、bSpawnPawnImediately True、SpectateProtectTime 3、DelaySeconds 0**。
+  - GameModeType 表：SubGameModeType 600 =「训练营地图」，MainGameModeType 2，ServerGameModeType 4。GameMapID：5 = 训练营地图。（其它：100 经典、201 快速、403 绝地训练、505 道具、506 道具快速、503 三军、502 五军…）
+  - 结论：原版训练营会死，死后 4 秒个人复活、不限次数、3 秒保护 —— 不是「不会死」。
+- libUE4 RE：
+  - AResurrectInfoState 初始化 0x103c9d0（虚表 0x4c8a9f0 一项）：World+0x98 GameState → vt+0xa0(GetWorld) → 0x104dd7c(世界, "GameFeatureConfig/ResurrectSystemConfig") → [世界+0xc4] = OwningGameInstance（反射 0x5045270 偏移 0xc4）→ NZCommonTable 选行 0x104e058（日志 "[ModeMapping]: Mode=%d, Map=%d, Match=%d, Team=%d"，NZCommonTable.h）：行 +4 ModeId 对 GI+0xe4（相等 0x80，行为 0 得 8），+8 MapId 对 GI+0xdc（0x40/4），+0xc MatchId 对 +0xe8，+0x10 TeamId 对 +0xec；取最高分。行 +0x38 ResurrectParam（0x50 字节）拷到 InfoState+0x2b8（+0x2b8 TriggerType 0 Sequence/1 Interval/2 Personal，+0x2bc Interval，+0x308/+0x30c SecondsArray，+0x340 PersonalResurrectEndTimes）。
+  - GI 这几个字的来源：GameInstance 虚函数 0xc74234（虚表 0x4bd536c/0x4c871f8 的 +0x174）：GIsClient(0x5212a65) && URL.IsInternal(0x2e1ed18) 时，从 FURL+0x28（反射：RedirectURL 0x28、Portal 0x40、Protocol 0）用 FParse::Value 0x1a53880 解析 MainModeId=→+0xe0、SubModeId=→+0xe4、MapId=→+0xdc、RoomId=→+0xe8、TeamId=→+0xec（日志 "Sync Client: GameMapId…"）。字符串 0x42ca278..0x42ca310。
+  - 复活流程：ResurrectSystem::Tick 0x119feb0（要 InfoState+0x350 = 1，由 OnMatchBegin 0x119f560 置；CanResurrect 0x103c974：Personal 且 EndTimes ≤ 0 → 一直能）→ Personal 0x11a0458（InfoState+0x394 每个 Uin 的倒计时，到 0 → 0xc896fc 按 Uin 找控制器 → 0x11a11d8 → 0x11a1438 重生）。Sequence 走 0x11a07c4 ResurrectAllPlayer（整批）。
+  - 根因：我们 open 训练岛不带模式 → GI+0xe4 = 0 → 选到 NewRow（Sequence）→ Practice 行（4 秒个人复活）从没生效。
+- 改：
+  1. ModeMap.java（新）：Con.exec 发 open /Game/Maps/… 前调 beforeOpen：训练岛 → 记下原值，GI+0xdc=5、+0xe0=2、+0xe4=600；别的图 → 还是我们写的值就改回原值。GI = [GWorld]+0xc4，校验虚表 +0x174 == base+0xc74234。只写这三个 int，不改代码。状态行「模式编号 600 地图 5（训练营规则：死了4秒复活）」。
+  2. TrainMode.java（取代 TrainSafe）：进训练岛启动 NoFall/MinHp（这两个是用户 v3.95/3.96 要的「剩一丝血不死」，保留），每秒认人物给 MinHp；不写血/憋气/车。
+  3. Veh：删 repair/TrainSafe.addVehicle；carCheck 训练岛不再特殊。v4.10 刷车修复（10 秒、一次一辆、5 点射线落点、船刷水面）不动。
+- 未实测/风险：OnMatchBegin 事件在训练营模式会不会来（不来 → +0x350=0 → 不复活）；重生走 Practice ChoosePlayerStart（v3.33 时「level not prepared」崩过，后来 Island 修过空队伍）；MinHp 仍挡大部分伤害 → 实际只有车炸（InVehicleExplosion/VehicleExplosion）和淹水会真死。设 SubModeId 600 后其它按模式选行的表（GameStateCommonConfig 无 600 行 → Default，不变）。其它模式（经典 100、战术 505…）同样没给模式编号，这版没动。
+- pak 读取方式：pak 索引是加密的（footer 前一字节 bEncryptedIndex=1），但文件数据 encrypted=0（只是 zlib）。game/re/pakscan.py 直接扫 zlib 块解压、按 uasset 魔数分段，**不解密任何东西**；dtrows.py 读 DataTable 行。解出来的文件放沙盒项目 work/（不进仓库）。
+- 构建：/tmp/b.sh 4.10 4.11 311 312，core/b0-2.ver=312；releases 留 v4.09/4.10/4.11（git rm v4.08）。

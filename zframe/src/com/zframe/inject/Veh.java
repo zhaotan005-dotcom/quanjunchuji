@@ -248,8 +248,8 @@ public class Veh {
      *    都要打到能停车的面（不是树/草/水/体积/车/人，法线 Z ≥ 0.85 ≈ 坡度 ≤ 32°），和人脚下高差 ≤ 2 米，5 点高差 ≤ 1.2 米；再和最近 2 分钟刷过的点保持距离。
      *  - 船只能刷在水面：在人周围 6~25 米找射线打到水（名字含 water/ocean/sea/lake/river）的点；人自己在游泳时刷在人前方水面。其他车不刷进水里。
      *  - 人在车上（控制器的 Pawn 不是人物）：落点放到车的左右两侧/后方更远处。
-     *  - 刷车等 10 秒（不再 2 秒误报）；cave 返回 0x5b03 后在落点往下打射线确认车在那（打到 BP_Vehicle…），确认到就把车血补满（NZVehicle Health +0x308 = MaxHealth +0x2f8），
-     *    训练岛里记下这辆车，TrainSafe 一直给它补血（不让它在人旁边炸）。确认不到也不会自动再刷第二辆（避免叠车）。满油照旧后台做。 */
+     *  - 刷车等 10 秒（不再 2 秒误报）；cave 返回 0x5b03 后在落点往下打射线确认车在那（打到 BP_Vehicle…）。确认不到也不会自动再刷第二辆（避免叠车）。满油照旧后台做。
+     *  v4.11：去掉 v4.10 的「刷完补满车血 / 训练岛一直给车补血 / 训练岛车不受伤」—— 用户 21:02：车是他拿枪打爆的，车能被打爆是正常的；那套是治标。 */
     static final class Size { float halfLen, halfW, lift; boolean boat; Size(float l, float w, float z, boolean b) { halfLen = l; halfW = w; lift = z; boat = b; } }
     static Size size(String label) {
         if (label.contains("大船")) return new Size(520, 220, 60, true);
@@ -339,18 +339,6 @@ public class Veh {
     }
     /** NZVehicle 反射：MaxHealth +0x2f8（int）、Health +0x308（int） */
     static final int V_MAXHP = 0x2f8, V_HP = 0x308;
-    /** 把车血补满；返回给人看的一句（读不对就不写） */
-    static String repair(long veh) {
-        long b = Mods.base(); if (b == 0 || veh < 0x10000) return "";
-        try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-            if (!Mods.isObj(m, b, veh)) return "";
-            int mx = Mods.rd(m, veh + V_MAXHP), hp = Mods.rd(m, veh + V_HP);
-            if (mx <= 0 || mx > 100000 || hp < 0 || hp > mx) return "车血读不对（" + hp + "/" + mx + "）";
-            if (hp < mx) Mods.wi(m, veh + V_HP, mx);
-            return hp < mx ? "车血 " + hp + "→" + mx : "车血满 " + mx;
-        } catch (Throwable e) { return ""; }
-    }
-
     /** 在 (px,py,pz)（人物中心）朝 yaw 方向找安全落点刷 id。返回给菜单看的一句话 */
     static String place(String label, long id, double px, double py, double pz, double yawDeg) throws InterruptedException { return place(label, id, px, py, pz, yawDeg, false, false, false); }
     static String place(String label, long id, double px, double py, double pz, double yawDeg, boolean inVeh, boolean swim) throws InterruptedException { return place(label, id, px, py, pz, yawDeg, inVeh, swim, true); }
@@ -412,18 +400,16 @@ public class Veh {
         remember(fx0, fy0);
         if (code == -2) return "刷车中 " + label + "（编号 " + id + "，游戏还在加载这辆车，稍等几秒会出来；别连按）";
         long veh = confirm(fx0, fy0, fz);
-        String rep = veh != 0 ? repair(veh) : "";
-        if (veh != 0 && Con.training) TrainSafe.addVehicle(veh);
         final java.util.HashMap<Long, Long> bf = before; final float cx = fx0, cy = fy0; final String lb = label;
         new Thread(() -> {
             try {
                 long[] v = findNew(bf, cx, cy, fresh ? 3000 : 900);
-                if (v != null) { String f = fillFuel(v[0]); fuelState = "满油：" + lb + " " + f; note("刷车：" + lb + " " + f); if (Con.training) { TrainSafe.addVehicle(v[1]); repair(v[1]); } }
+                if (v != null) { String f = fillFuel(v[0]); fuelState = "满油：" + lb + " " + f; note("刷车：" + lb + " " + f); }
                 carCheck();
             } catch (Throwable ignored) {}
         }, "zf-vfuel").start();
         if (veh == 0) return "已刷 " + label + "（编号 " + id + "，" + how + "；射线没确认到车，前面没看到车就换个空地再刷，别连按）";
-        return "已刷 " + label + "（编号 " + id + "，" + how + (rep.isEmpty() ? "" : "，" + rep) + "）";
+        return "已刷 " + label + "（编号 " + id + "，" + how + "）";
     }
 
     /** v3.47：皮卡/大脚车核对。车表行里有车的蓝图路径（FSoftObjectPath，FName）：/Game/Vehicles/Wheeled/MonsterTruck/… 或 /Game/Vehicles/Wheeled/PickUpTruck/…（pak 清单里的目录名） */
@@ -693,9 +679,8 @@ public class Veh {
         if (Ed.ED == 2) return;
         try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
         Con.exec("EnableCheats");
-        // v3.93 训练场被刷的车炸死 → 训练场不打开；v4.10：训练场反过来把车设成不受伤（不会在人旁边炸），血由 TrainSafe 补
         // v4.10：去掉 getall（只是让游戏往日志里写，现在不读日志也不让游戏写日志）
-        if (Con.training) { Con.exec("set NZVehicle bCanBeDamaged 0"); note("刷车：训练岛车辆不受伤"); return; }
+        // v4.11：撤掉 v4.10 训练岛「set NZVehicle bCanBeDamaged 0」（车不受伤是治标，用户：车是他打爆的，能打爆是正常的）。训练岛和别的图一样：车能受伤、能被打爆。
         Con.exec("set NZVehicle bCanBeDamaged 1");
         note("刷车：已打开车辆可受伤");
     }

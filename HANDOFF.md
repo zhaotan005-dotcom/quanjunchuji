@@ -25,7 +25,8 @@
 - 构建：`cd zframe && ./build3.sh <旧> <新> <旧vc> <新vc>`（三个版本一起出，Ed.ED 0 单机/1 房主/2 客户端）。改完写 notes/history.md、本文件，push。
 
 ## 规矩
-简体中文、直接给结果；每版小改动，用户在手机上测（荣耀 X70，安卓16，无 root）；不推荐第三方工具/虚拟机；不解密 pak、不绕保护、不做联网外挂；不删枪和门；沐岑(libMczi)已彻底删除。崩溃看 下载/ZFrame/crash-*.txt（Bugly tomb，只看 pc/lr/fault addr）。
+简体中文、直接给结果；每版小改动，用户在手机上测（荣耀 X70，安卓16，无 root）；不推荐第三方工具/虚拟机；不解密 pak、不绕保护、不做联网外挂；不删枪和门；沐岑(libMczi)已彻底删除。
+- **不要用补血/无敌之类治标方案，找游戏原生机制；载具可被打爆是正常的**（用户 2026-11-22 21:02「治标不治本」「车炸是因为我拿枪打爆的」）。训练营死亡由游戏自己的复活系统处理（v4.11 ModeMap）。崩溃看 下载/ZFrame/crash-*.txt（Bugly tomb，只看 pc/lr/fault addr）。
 
 ## v2.19 做了（待用户实测确认）
 1. 菜单「常用」下面新页「功能」(页号 8)：加速、高跳；「动作放慢」默认折叠。
@@ -376,3 +377,16 @@
 - 菜单状态行训练岛多「保命 开 补血N 憋气N 车N」：用户再报死亡就看这几个数是不是在涨（保命 关 = 没启动；补血 0 = 没认到人物）。
 - 风险：血条可能显示超出（血 > 上限）；射线打不打得到水面/车身没上机确认。
 - 规矩：**别 grep/读 game/logs 里的旧日志**（这次误 grep 过一次车辆类名）。
+
+## v4.11（core312，2026-11-22 21:xx，全部未实测）训练营：撤掉补血/无敌，改成让游戏自己的「死了 4 秒复活」规则生效。详见 history v4.11
+- 用户 21:02：「666，你这治标不治本的毛病得改」「车炸是因为我拿枪打爆的啊」→ v4.10 TrainSafe（每 0.1 秒血写成上限×20、关 bCanBeDamaged、憋气清零、给车补血）和训练岛 `set NZVehicle bCanBeDamaged 0`、刷车后补满车血 **全部删掉**。车能被打爆、人会被炸死/淹死 = 正常。
+- 原版训练营（BP_NZBRPracticeGameMode）本来就能死：模式里挂着游戏自己的复活系统 ResurrectSystem；复活规则表 ResurrectSystemConfig 的「Practice」行（ModeId 600）= 个人复活、死后 4 秒、不限次数、复活后 3 秒保护。
+- 根因：规则表按 GameInstance 里的模式编号选行（GI+0xe4 SubModeId，+0xe0 MainModeId，+0xdc MapId；正式服由服务器给）。我们 open 训练岛没给 → 模式 0 → 拿到通配行 NewRow（60 秒一批整点复活）→ 训练营规则从没生效。
+- 修：ModeMap.beforeOpen（Con.exec 发 open 前）：开训练岛把 GI 写成 MainModeId 2 / SubModeId 600 / MapId 5（GameModeType 表「训练营地图」、GameMapID 表 5），开别的图改回原值。GI = GWorld→+0xc4，且虚表 +0x174 = 0xc74234 才写。
+- 保留：MinHp（剩 1 血不死，v3.95/3.96 用户要的）、NoFall（摔伤留 1 血，v3.95 用户要的）—— 进训练岛由 TrainMode 立刻启动；TrainMode 只认人物给 MinHp，不写血/憋气/车。车炸、淹水这些不走 MinHp 的伤害照样会死 → 4 秒后游戏自己复活。
+- v4.10 刷车修复全保留（一次一辆、落点射线、等 10 秒）。训练岛车辆和别的图一样 `set NZVehicle bCanBeDamaged 1`。
+- 状态行训练岛显示「模式编号 600 地图 5（训练营规则：死了4秒复活）」；不是 600 就是没写上（看「模式编号：…」那条 LogCap）。
+- 未实测/风险：OnMatchBegin（InfoState+0x350）在训练营里会不会触发没上机看；复活后出生点（Practice ChoosePlayerStart）会不会再遇到「level not prepared」；MinHp 挡掉大部分伤害，所以只有车炸/淹水会真死。用户若说死了不复活：先看状态行模式编号，再查 OnMatchBegin。
+- 其它模式（经典 100、战术 505/506 等）同样没给模式编号，各种按模式选行的表都拿通配行；这版没动，待用户决定。
+- 工具：game/re/pakscan.py（pak 的文件数据没加密、只是 zlib 压缩，直接扫压缩块解压，不碰加密的索引，**不是解密**），game/re/dtrows.py（DataTable 行）。
+- 构建：/tmp/b.sh（build_all.sh 的 JDK 换 jdk-21.0.12.1+1）4.10 4.11 311 312，core/b0-2.ver=312；releases 留 v4.09/4.10/4.11（git rm v4.08）。

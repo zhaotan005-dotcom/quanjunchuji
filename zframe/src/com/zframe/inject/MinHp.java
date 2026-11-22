@@ -53,8 +53,8 @@ final class MinHp {
                 if (!"ok".equals(r)) { state = "训练场锁血：没装上，" + r; LogCap.note(state); return; }
                 int n = 0, last = 0;
                 while (Con.training && Con.inMatch) {
-                    // v3.95 以前用缓存的人物（死了复活/再进训练场后是旧的）；v4.10：livePawn 在车上时是车 → 改用 TrainSafe 认出的人物（不是车）
-                    long me = TrainSafe.me();
+                    // v3.95 以前用缓存的人物（死了复活/再进训练场后是旧的）；v4.10：livePawn 在车上时是车 → 改用 TrainMode 认出的人物（不是车）
+                    long me = TrainMode.me();
                     if (me == 0) { long p = Mods.livePawn(); long b0 = Mods.base(); try (RandomAccessFile mm = new RandomAccessFile("/proc/self/mem", "r")) { if (b0 != 0 && NoFall.isChar(mm, b0, p)) me = p; } catch (Throwable ignored) {} }
                     buf.putInt(0, (int) me);
                     state = "训练场锁血：已装（血最低留 1，人物 " + Long.toHexString(me) + "，挡住致命伤害 " + buf.getInt(8) + " 次）";

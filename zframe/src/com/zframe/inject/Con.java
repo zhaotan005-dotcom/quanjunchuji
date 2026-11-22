@@ -39,6 +39,7 @@ public class Con {
                 if (isLobby(t)) lobbyOpenAt = lastOpenAt;
                 int q = t.indexOf('?'); String mp = q > 0 ? t.substring(0, q) : t;
                 if (mp.startsWith("/Game/Maps/") && !isLobby(mp)) { natFor = mp; try { Flow.natPrepare(mp); } catch (Throwable ignored) {} }
+                try { ModeMap.beforeOpen(mp); } catch (Throwable ignored) {}   // v4.11：训练营模式编号 600（游戏自己的「死了 4 秒复活」规则），别的图改回
             }
             m.invoke(a, cmd);
             last = cmd;
@@ -454,7 +455,7 @@ public class Con {
             LogCap.note("对局模式类：" + (gm != null ? gm : "名字表没有，按开图命令") + (props ? "（战术模式，用游戏原生道具栏）" : ""));
         } else ModeProbe.propsMode = false;
         training = m.contains("TrainingIsland");
-        if (training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); TrainSafe.start(); Island.matchLoaded(); }
+        if (training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); TrainMode.start(); Island.matchLoaded(); }
         else { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); } GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; }
         if (lobby) {
             lobbyAt = now;
