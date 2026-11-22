@@ -50,6 +50,7 @@ final class GfxOpt {
         if (n > 0) { state = "进图后已重发 " + n + " 条画面设置"; LogCap.note(state); }
     }
     static void afterLoad() {
+        if (Ed.ED == 1) return;   // v4.05 服务端压内存，不发画面细项
         if (Lan.role == 1 && Gfx.liteOn) return;   // 服务端减负时不动
         new Thread(() -> { try { Thread.sleep(2500); } catch (InterruptedException e) { return; } applyAll(); }, "zf-gfxopt").start();
     }

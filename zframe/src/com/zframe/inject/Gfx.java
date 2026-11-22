@@ -49,6 +49,7 @@ final class Gfx {
         String prev = opt; opt = v;
         if (prev == null) { state = "设置里是 " + cn(v) + "（进图时游戏已应用）"; return; }
         if (prev.equals(v)) return;
+        if (Ed.ED == 1) { state = "服务端压内存，不跟设置切画质"; return; }   // v4.05
         int k = idx(v);
         if (k < 0) { state = "不认识的画质 " + v; LogCap.note("画质：" + state); return; }
         int n = 0;

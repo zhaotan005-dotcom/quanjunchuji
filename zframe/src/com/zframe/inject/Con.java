@@ -251,11 +251,22 @@ public class Con {
         } catch (Throwable ignored) {} });
     }
 
+    /** v4.05：服务端进程每次都在 ~1.0GB 内存被系统杀（4 次样本，推断是单应用内存上限）→ 服务端包压内存：画质最低、贴图池 160MB。
+     *  开机发一次、每次进图后再发、开房前也发（游戏 PreLoadMap 会按设置重设 sg.*，所以也把设置里的画质改成流畅） */
+    static final String[] SRV_MEM = {"set NZSystemSettingData RenderQualityOption Low", "sg.TextureQuality 0", "sg.ViewDistanceQuality 0", "sg.FoliageQuality 0",
+        "sg.EffectsQuality 0", "sg.ShadowQuality 0", "sg.PostProcessQuality 0", "r.ShadowQuality 0", "r.MobileMSAA 1", "r.DetailMode 0",
+        "r.Streaming.PoolSize 160", "foliage.DensityScale 0", "grass.DensityScale 0"};
+    static void srvMem(String why) {
+        if (Ed.ED != 1) return;
+        int n = 0; for (String c : SRV_MEM) if (exec(c)) n++;
+        LogCap.note("服务端省内存（" + why + "）：发了 " + n + " 条");
+    }
     static void runTweaks(String why) {
         int n = 0;
         if (fps == 0) loadFps();
         applyFps();
         for (String c : TWEAKS) if (exec(c)) n++;
+        srvMem("开机");
         // v2.04：画质改由游戏设置决定（Gfx.java 选了立即生效），不再发我们自己的画质
         tweakAt = System.currentTimeMillis();
         tweakStatus = why + "：已发送 " + n + " 条（门/人机/帧率）";
@@ -498,7 +509,7 @@ public class Con {
         // v3.69 用户：点军需打不开。军需 = MallMainView（UBasePandoraMall），商品页是腾讯 Pandora 网页，要连腾讯服务器下，单机永远等不到 MallReady
         if (!inMatch && (l.contains("WaitingMallReady") || l.contains("Pandora is Ready Mall")) && System.currentTimeMillis() - mallTipAt > 60000) { mallTipAt = System.currentTimeMillis(); GameOverlay.toastAny("军需是腾讯的网页商城，要连腾讯服务器才有内容，单机打不开；衣服、枪皮仓库里都有"); LogCap.note("军需：" + l); }
         if (!inMatch && Server.on && System.currentTimeMillis() - lobbyAt > 20000 && ((l.contains("CreateUI") && (l.contains("fail") || l.contains("Fail") || !l.contains("StoreUI"))) || (l.toLowerCase().contains("lua") && l.contains("rror")) || l.contains("Mall") || l.contains("Midas") || l.contains("Pandora") || l.contains("Commodity") || l.contains("Lottery") || l.contains("Treasure"))) Server.opLog(0);   // v3.67 军需「加载商城」
-        if (l.contains("LogLoad: Took")) GfxOpt.afterLoad();   // v3.58 画面细项每次进图重发
+        if (l.contains("LogLoad: Took")) { GfxOpt.afterLoad(); srvMem("进图后"); }   // v3.58 画面细项每次进图重发
         int tk = l.indexOf("LogLoad: Took");
         if (tk >= 0) {
             int lm = l.indexOf("LoadMap(", tk);
