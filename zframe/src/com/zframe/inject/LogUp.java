@@ -30,7 +30,7 @@ final class LogUp {
                 c.setConnectTimeout(8000); c.setReadTimeout(20000);
                 c.setRequestMethod("PUT"); c.setDoOutput(true);
                 c.setRequestProperty("Filename", name + ".gz");
-                c.setRequestProperty("Title", GameOverlay.VER + " " + Ed.name());
+                c.setRequestProperty("Title", GameOverlay.VER + " " + Ed.name() + (name.startsWith("boot-") ? " " + android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL : ""));
                 c.setFixedLengthStreamingMode(d.length);
                 try (OutputStream o = c.getOutputStream()) { o.write(d); }
                 int code = c.getResponseCode(); c.disconnect();

@@ -42,9 +42,13 @@ final class NetCore {
     }
     static String[] bases() {
         java.util.ArrayList<String> b = new java.util.ArrayList<>(java.util.Arrays.asList(BASES));
-        String sha = ptrSha();
+        // v4.06：指针最多等 9 秒（DNS 卡住时 HttpURLConnection 的超时管不到）；标签只探 +1..+3、两个节点（以前 40 个线程一起开，开机 RSS 涨 ~100MB）
+        final String[] sh = new String[1];
+        Thread pt = new Thread(() -> sh[0] = ptrSha(), "zf-ptr"); pt.setDaemon(true); pt.start();
+        try { pt.join(9000); } catch (InterruptedException ignored) {}
+        String sha = sh[0];
         if (sha != null) for (String h : TAGH) b.add(h + "/gh/zhaotan005-dotcom/quanjunchuji@" + sha + "/core/");
-        for (int d = 1; d <= 10; d++) for (String h : TAGH) b.add(h + TAGP + (ZInit.CORE_VER + d) + "/core/");
+        for (int d = 1; d <= 3; d++) for (int k = 0; k < 2; k++) b.add(TAGH[k] + TAGP + (ZInit.CORE_VER + d) + "/core/");
         return b.toArray(new String[0]);
     }
     static int[] vers(final String[] BASES, final String name, final StringBuilder err) {
@@ -60,6 +64,7 @@ final class NetCore {
         return v.clone();
     }
     static volatile String status = "";
+    static volatile String lastVers = "", lastErr = "";
     static volatile int netVer;
     static volatile int pct = -1;   // v2.56 下载进度 0~100，没在下 = -1
 
@@ -124,7 +129,8 @@ final class NetCore {
             if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
             int len = c.getContentLength(); int lastP = -1;
             ByteArrayOutputStream bo = new ByteArrayOutputStream();
-            try (InputStream in = c.getInputStream()) { byte[] b = new byte[1 << 15]; int r; while ((r = in.read(b)) > 0) { bo.write(b, 0, r); if (bo.size() > max) throw new IOException("太大");
+            final long dl = System.currentTimeMillis() + 90000;   // v4.06：整个下载最多 90 秒（慢速代理一点点给数据时 read 超时永远不触发）
+            try (InputStream in = c.getInputStream()) { byte[] b = new byte[1 << 15]; int r; while ((r = in.read(b)) > 0) { bo.write(b, 0, r); if (bo.size() > max) throw new IOException("太大"); if (System.currentTimeMillis() > dl) throw new IOException("下载超时");
                 if (len > 0) { int p = (int) (bo.size() * 100L / len); if (p / 5 != lastP / 5) { lastP = p; pct = p; say("正在下载 " + p + "%", false); } } } }
             return bo.toByteArray();
         } finally { c.disconnect(); }
@@ -136,6 +142,26 @@ final class NetCore {
     static volatile L listener;
     /** v2.68：这次检查已经有结果（最新 / 下好了 / 失败）。加载页的选择框等它 */
     static volatile boolean done;
+    /** v4.06：开机不再被我们的更新卡住。check 开始后 20 秒还没结果（下载中最多 40 秒）→ 当作「这次先不更新」放行游戏，后台继续查/下，下好在大厅弹「重启更新」。
+     *  以前（v3.29）查不到就一直重试、游戏一直停在加载页：朋友手机开梯子卡在加载图就是这样（推断，没有他的日志）。 */
+    static volatile boolean released;
+    static volatile long checkAt;
+    static void bootDeadline() {
+        new Thread(() -> {
+            try {
+                while (!done) {
+                    long el = System.currentTimeMillis() - checkAt;
+                    if (el > 40000 || (el > 20000 && pct < 0)) {
+                        released = true; done = true;
+                        LogCap.note("在线更新：" + (el / 1000) + " 秒没结果，先用当前版本（" + GameOverlay.VER + "）进游戏，后台继续");
+                        GameOverlay.refreshAny();
+                        return;
+                    }
+                    Thread.sleep(500);
+                }
+            } catch (InterruptedException ignored) {}
+        }, "zf-upddl").start();
+    }
     static void say(String m, boolean ready) { status = m; if (ready || m.startsWith("已是最新") || m.startsWith("检查更新失败")) done = true; GameOverlay.refreshAny(); LogCap.note("在线更新：" + m); L l = listener; if (l != null) try { l.on(m, ready); } catch (Throwable ignored) {} }
 
     /** 进大厅后调：清掉闪退计数；本内核是刚换上的就提示「已更新」；再查一次新版本（选单机/联机时查过就不重复） */
@@ -152,7 +178,9 @@ final class NetCore {
     /** 后台查 GitHub 上的版本，比本地新就下载（下次启动生效） */
     static void check(final Context ctx) {
         if (ctx == null || started) return; started = true;
+        checkAt = System.currentTimeMillis();
         say("正在检查更新…", false);
+        bootDeadline();
         new Thread(() -> {
           // v3.29 用户：联网了就该能更新 → 失败不放行，自动重试直到查到结果（跟游戏一样卡在更新页）
           for (int attempt = 1; ; attempt++) {
@@ -163,6 +191,7 @@ final class NetCore {
             int[] vs = vers(BASES, name0, eb); err = eb.toString();
             int best = -1; for (int x : vs) best = Math.max(best, x);
             LogCap.note("在线更新：各镜像版本 " + java.util.Arrays.toString(vs));
+            lastVers = java.util.Arrays.toString(vs) + " 错误：" + err;
             for (int bi = 0; bi < BASES.length; bi++) {
                 if (vs[bi] < 0 || vs[bi] != best) continue;
                 String base = BASES[bi];
@@ -195,9 +224,12 @@ final class NetCore {
                 } catch (Throwable t) { err += base.substring(8, 20) + "：" + t.getMessage() + "；"; }
             }
             pct = -1;
+            lastErr = err;
             LogCap.note("在线更新失败（第 " + attempt + " 次）：" + err);
-            int wait = Math.min(30, 3 * attempt);
-            say("更新失败（网络），" + wait + " 秒后重试（第 " + attempt + " 次）", false);
+            int wait = Math.min(60, 5 * attempt);
+            if (!done) { released = true; done = true; }
+            if (attempt >= 6) { say("更新失败（网络），这次启动不再重试（当前 " + GameOverlay.VER + "）", false); return; }   // v4.06：第一次失败就放行游戏（用当前内核），后台继续重试
+            say("更新失败（网络），先用当前版本；" + wait + " 秒后后台重试（第 " + attempt + " 次）", false);
             try { Thread.sleep(wait * 1000L); } catch (InterruptedException ie) { return; }
             say("正在重新检查更新…", false);
           }

@@ -255,7 +255,7 @@ public class Con {
      *  开机发一次、每次进图后再发、开房前也发（游戏 PreLoadMap 会按设置重设 sg.*，所以也把设置里的画质改成流畅） */
     static final String[] SRV_MEM = {"set NZSystemSettingData RenderQualityOption Low", "sg.TextureQuality 0", "sg.ViewDistanceQuality 0", "sg.FoliageQuality 0",
         "sg.EffectsQuality 0", "sg.ShadowQuality 0", "sg.PostProcessQuality 0", "r.ShadowQuality 0", "r.MobileMSAA 1", "r.DetailMode 0",
-        "r.Streaming.PoolSize 160", "foliage.DensityScale 0", "grass.DensityScale 0"};
+        "r.Streaming.PoolSize 128", "r.Streaming.MipBias 1", "foliage.DensityScale 0", "grass.DensityScale 0"};   // v4.06：池 160→128、贴图少一级 mip（约省 3/4 流式贴图）
     static void srvMem(String why) {
         if (Ed.ED != 1) return;
         int n = 0; for (String c : SRV_MEM) if (exec(c)) n++;
@@ -410,7 +410,10 @@ public class Con {
         // v3.24：开了游戏更新页时，多停一会儿让进度条和公告显示完（查完更新且满 8 秒，最多 40 秒）
         // v3.28 用户：要走完更新进度条才进大厅 → 查更新没结果（没「已是最新/失败/下好」）就一直停在更新页，最多 10 分钟兜底
         boolean upd = !NetCore.done && NetCore.readyVer <= ZInit.CORE_VER;
-        boolean hold = engineSeenAt > 0 && (upd || (UpdFlow.on && !UpdPage.finished));   // v3.29：不设时间上限，失败自动重试   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
+        // v4.06：游戏日志读不到时 engineSeenAt 永远是 0 → 永远不进大厅。更新页已建出来 = 引擎肯定在跑，按它补上
+        if (engineSeenAt == 0 && UpdPage.view != 0) { engineSeenAt = now - 3000; LogCap.note("引擎就绪：日志里没看到 LogLoad，按更新页已建出来算"); }
+        // v4.06：开机最多停 60 秒（NetCore 自己 20~40 秒就放行；这里兜底，任何原因都不再无限卡在加载页）
+        boolean hold = engineSeenAt > 0 && now - engineSeenAt < 60000 && (upd || (UpdFlow.on && !UpdPage.finished));   // v3.29：不设时间上限，失败自动重试   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
         if (!startupLobby && !hold && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
             startupLobby = true;
             audioFix = "开机先进大厅加载声音";

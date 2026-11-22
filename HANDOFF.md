@@ -340,3 +340,9 @@
 
 - v3.78（core279，2026-11-21 19:4x，只推内核，未实测）：服务端监听端口跟着开房地址的端口走（Lan.setListenPort，开房前改 UrlConfig.DefaultPort = libUE4+0x5374904；RE：FUrlConfig::Init 0x1a34ad0，UrlConfig 0x53748c8，+0x3c Port）。开房地址 frp-put.com:47937 → 本机听 UDP 47937；没写端口的地址仍 7777。用户 frpc 的 local_port 要从 7777 改成 47937。诊断行「服务端监听端口」。
 - v3.79（core280）：撤回 v3.78。用户 Sakura FRP 隧道 aiwan 本地 127.0.0.1:7777、远程 frp-put.com:47937 固定不能改 → 服务端一直听默认 7777（setListenPort 留着没调用）。UE4 不要求穿透两端端口一致。
+
+## v4.06（core307，2026-11-22 19:0x，全部未实测）详见 history v4.06
+- 开机不再被在线更新卡住：NetCore 20 秒（下载中 40 秒）/第一次失败就放行，后台更新；Con hold 最多 60 秒；不靠游戏日志也能起更新页/进大厅。
+- BootLog：启动 6 秒「启动」消息（标题带机型），40/120 秒没进大厅传 boot-*。
+- 服务端：去掉 UpdateUI 类 RootSet + GameInstance 预扫、UpdUi 名字表扫描；贴图池 128 + MipBias 1；MemTrim 超 850MB 用 madvise PAGEOUT 换出冷页；Beat 记 RssAnon/File 和 smaps 前 15。
+- jsDelivr @main 的 .ver 卡 297/298、.dex 是新的 → 旧内核（<299）只通 jsDelivr 时永远「包不对」重试卡在加载页；钉 @sha / 标签正常。旧内核没法远程救，只能装新包或让 raw/ghfast/gh-proxy 能通（梯子全局模式）。

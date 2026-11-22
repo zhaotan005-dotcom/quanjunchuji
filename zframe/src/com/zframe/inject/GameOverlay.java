@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.05";
+    static final String VER = "v4.06";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -59,6 +59,8 @@ public class GameOverlay {
             // v2.59：选择框改到游戏自己的加载页（StartupMap）才弹，见 Con
             // v2.63 用户：更新放到腾讯页 → 一打开就后台查更新（只联网，不碰游戏内存），下好了直接弹「更新」框
             try { NetCore.check(a); } catch (Throwable ignored) {}
+            // v4.06：开机更新页/进度条以前只靠游戏日志里的 StartupMap 行触发；日志读不到就永远没进度条、也不进大厅 → 启动 20 秒兜底开始
+            if (startTimer.compareAndSet(false, true)) MAIN.postDelayed(() -> { if (!startupOnce.get()) { LogCap.note("开机更新：日志里没看到 StartupMap，20 秒计时兜底开始找更新页"); startupUpdate(); } }, 20000);
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
             { View old = panelRef; if (old != null && old.isAttachedToWindow() && panelAct == a) return; }
@@ -1107,7 +1109,7 @@ public class GameOverlay {
         } else if (!NetCore.status.isEmpty()) note(a, u, root, "更新：" + NetCore.status);   // v3.74 服务端也跟客户端一样显示
         // v2.13：分版本，不再有联机/单机切换
         lobbyTab = Ed.single() ? 1 : 0;
-        UpdUi.probe();   // v3.14：找游戏自己的更新页蓝图（日志 upd-*）
+        UpdUi.probe();   // v3.14：找游戏自己的更新页蓝图（日志 upd-*）；v4.06 不再扫名字表，只传 upd- 诊断
         if (lobbyTab == 0) {
           if (Ed.ED == 1) {
             // v3.74 用户：服务端菜单跟客户端同一个样子，删掉不相干的（单挑、去掉房主人物、本机 IP、调试说明），进训练营改成联机训练营
@@ -1986,6 +1988,7 @@ public class GameOverlay {
     static void gamePage() { Runnable r = gameMode; if (r != null) MAIN.post(r); }
     /** v3.25：开了游戏自己的更新页（UpdFlow）→ 用游戏的页（UpdPage），建不出来再用我们这层 */
     static final java.util.concurrent.atomic.AtomicBoolean startupOnce = new java.util.concurrent.atomic.AtomicBoolean();
+    static final java.util.concurrent.atomic.AtomicBoolean startTimer = new java.util.concurrent.atomic.AtomicBoolean();
     static void startupUpdate() {
         if (!startupOnce.compareAndSet(false, true)) return;
         if (UpdFlow.on) { fetchNotice(); UpdPage.start(); }

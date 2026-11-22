@@ -1648,3 +1648,21 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 17:32 用户：不陪测了，要解决办法，问为什么以前不闪。查：服务端大厅闪退最早 v3.82 实测时报（11-21 21:59），那几版（v3.80–3.84）加了大厅保留游戏更新页/预取等，之前版本服务端大厅是否稳定没有记录。服务端 RenderQualityOption 读出来是 Unknown（大厅没减负，只有对局 Gfx.lite）。
 - v4.05（core306，未实测）：服务端包（Ed.ED==1）压内存 Con.SRV_MEM：set RenderQualityOption Low + sg.* 0 + r.Streaming.PoolSize 160 + 草/植被 0；开机 runTweaks、每次 LogLoad: Took、Lan.host 开房前各发一次；服务端不发 GfxOpt 细项、Gfx 不跟设置切画质。依据：4 次被杀都在 RSS ~1.0GB（推断上限）。若还闪，下一步：服务端去掉大厅保留更新页/LobbyLoad。
 - 18:24 用户朋友装包后卡开机页（无进度条、无文字，开着美国节点梯子），没收到他的日志。推断：开梯子后腾讯开机检查请求走代理，没按离线流程失败 → 游戏没进更新步骤；或 ZFrame 在他手机没加载。已让关梯子重开，还卡就要机型和包名。未实测。
+
+## v4.06（core307，2026-11-22 19:0x，全部未实测）服务端大厅被杀 + 朋友开机卡加载图
+- 证据（ntfy 18:00 后全部）：v4.05 服务端那次（pid 6475，18:30:43 启动、18:31:25 进大厅、18:31:34 传完 lobbyop）之后没有新的上传 → v4.05 被杀那一刻的心跳/logcat 还没有（下次启动才会传 beat-prev）。18:30:34 那次（pid 5560，v4.03→306 下载完）是我们的更新重启（logcat 有 I/Process Sending signal 9）。v4.04 在服务端一次都没跑过（4.03 直接更新到 4.05），所以 memcg 数据一直没有。
+  - 已有 6 次大厅/开房被杀：原因 2 状态 9、前台 adj 0、被杀前 RSS 996~1040MB、MemAvailable 2.2GB、SwapFree 一直 1048576k（1GB swap 从没用过）、VmSwap 0、没有「Sending signal」（不是我们的 killProcess；全代码只有 NetCore.restart 会自杀，且只在下好新版时）。客户端在荣耀上训练场 RSS 975MB + swap 20MB 正常。→ 推断：云手机单应用内存上限 ~1GB（memcg 不换 swap 或厂商看门狗），未证实。
+  - 开机 StartupMap 阶段服务端已 ~810MB，进大厅 +230MB（游戏大厅本身）。我们开机 50 个 zf-ver 线程（NetCore 探镜像）时 RSS 435→531MB。
+- 朋友开机卡住（视频：腾讯 logo → TiMi → 加载图，无进度条无字）：TiMi 能出来 = ZFrame 已注入（TiMi 是我们 v3.59 接回的）。没有任何上传 = 我们只在进大厅后才传日志。
+  - 代码原因（确定）：v3.29 起「查更新没结果就一直重试、不放行」：Con.tickAudio 的 hold = !NetCore.done || !UpdPage.finished，NetCore.done 只在 已是最新/下好 时置位，失败分支（「更新失败（网络）…」）不置位 → 所有镜像都不通/包不对时游戏永远停在更新页（GATE 补丁让游戏自己的更新步骤不结束，只能靠我们 open 大厅）。另外 startupUpdate/UpdPage 只靠游戏日志里的 StartupMap 行触发、engineSeenAt 只靠 LogLoad 行 → 日志读不到也会永远卡。
+  - jsDelivr @main 现状（19:0x 实测）：cdn 报 Package size exceeded；testingcf/gcore 的 b2.ver=297、fastly=298，但 b2.dex 是 306 的（sha1 084a0f9…=core306）→ 旧内核（<299，没有 ntfy 指针）只通 jsDelivr 时：读到 297/298 → 下 dex → 内核号对不上「包不对」→ 无限重试 → 永远卡。purge @main 的 .ver 返回 finished 但不变。钉提交 @sha 正常。
+  - 没进度条：≤283 的内核把进度写在 WidgetArchetype（v3.83 修的）上，看不见；最后一个客户端游戏包是 v3.81（core282，11-21 打）→ 推断朋友装的是它（未确认）。
+- 改：
+  1. NetCore：check 开始后 20 秒没结果（下载中 40 秒）强制 done（released），第一次失败也立刻 done，后台继续重试（5/10/…/60 秒，最多 6 次），下好在大厅弹「重启更新」；指针最多等 9 秒（DNS 卡住）；下载整体 90 秒上限；标签只探 +1..+3 × 2 节点（线程 50→16）。
+  2. Con.tickAudio：hold 最多 60 秒；日志里没 LogLoad 但更新页已建出来 → 算引擎就绪。GameOverlay.attach 20 秒计时兜底 startupUpdate（不靠 StartupMap 日志）；UpdPage 找页 25→45 秒、进度循环 70 秒上限，放行后文字「正在加载资源…（更新在后台）」。
+  3. BootLog（新）：客户端/服务端包（BUILD≠0）启动 6 秒发一条「启动」消息（标题带机型；内核号、内置/在线、机型/安卓/ABI、VPN/代理），40 秒和 120 秒还没进大厅传 boot-*（在线更新各镜像/错误、更新页/启动步骤、日志找没找到、最近 120 条 LogCap、上次心跳）。LogCap 加 120 条内存环。
+  4. 服务端内存：UpdPage 不再 LobbyLoad.rememberClass（v3.84 加的 UpdateUI_C 类 RootSet + 开机全表扫 GameInstance，v3.87 起大厅加载页不建，纯占内存）；UpdUi.probe 不再全量扫名字表（v3.14 诊断，大厅/开机都跑）；SRV_MEM 贴图池 160→128 + r.Streaming.MipBias 1。
+  5. MemTrim（新，只服务端）：RSS>850MB 时游戏线程调 32 位 libc madvise(范围, 长度, 21=MADV_PAGEOUT) 把私有匿名冷页换到 swap（libc 用 ELF dynsym 找 madvise；范围 rw-p 无名/[anon:*]，排除栈/dalvik/bss/显存，相邻合并，≥256KB，一轮最多 64 次，15 秒一轮；第一轮降不到 20MB 就停用）。依据：swap 1GB 一直空着，内核不会自己换。若上限是 memory+swap 合计（memsw）则无效。
+  6. Beat：每秒加 RssAnon/RssFile/RssShmem 和换出状态；服务端第一次过 800MB 记 smaps 前 15 名到 smaps.txt，下次启动随 beat-prev 进诊断。
+- 未做：客户端游戏包重打（本沙盒没有原版 game.apk / Host.java；Drive API 看不到文件）。
+- 待看（下一次服务端启动自动上传的诊断）：「内存换出第 1 轮：RSS a→b」「上次运行 smaps 汇总」「cg …」；还被杀就按 smaps 前几名再砍。朋友：boot-/启动消息（标题带机型）。

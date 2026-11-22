@@ -12,12 +12,8 @@ final class UpdUi {
         new Thread(() -> {
             try {
                 Thread.sleep(6000);
-                java.util.ArrayList<String> hits = new java.util.ArrayList<>();
-                ModeProbe.find("updatepanel|updateprogress|updateprocess|update_ui|ui_update|updateui|updatewidget|updateview|dolphin|hotupdate|versionupdate|update_bp|bp_update|wbp_update|updatetip", hits);
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < hits.size() && i < 120; i++) sb.append(i == 0 ? "" : " | ").append(hits.get(i));
-                state = "游戏更新页名字表命中 " + hits.size() + "：" + (sb.length() == 0 ? "无" : sb);
-                LogCap.note(state);
+                // v4.06：不再全量扫名字表（64×16384 次读 /proc/self/mem；页面早就找到了，结果没人用；同类扫描 v3.97 已从服务端拿掉）
+                state = "游戏更新页名字表：v4.06 起不扫";
                 Lan.autoUp("upd");
             } catch (Throwable t) { state = "游戏更新页：查名字出错 " + t; LogCap.note(state); }
         }, "zf-updui").start();

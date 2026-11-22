@@ -26,7 +26,7 @@ public class ZInit extends ContentProvider {
         return true;
     }
 
-    public static final int CORE_VER = 306;
+    public static final int CORE_VER = 307;
 
     public static void boot(Context ctx) {
         try {
@@ -35,7 +35,7 @@ public class ZInit extends ContentProvider {
             boolean main = ctx.getPackageName().equals(proc);
             if (NetCore.chain(ctx, main)) return;   // v2.52：有从 GitHub 下好的更新内核就交给它
             Bots.loadWant(ctx); MapMark.load(ctx);   // v2.55 记住的「自动刷人机」开关
-            if (main) { Qcc.fix(ctx); Con.startWatcher(app);
+            if (main) { Qcc.fix(ctx); Con.startWatcher(app); BootLog.start(app); MemTrim.start();
                 Patches.start(ctx); }
             if (main) app.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
                 public void onActivityResumed(Activity a) { GameOverlay.attach(a); }

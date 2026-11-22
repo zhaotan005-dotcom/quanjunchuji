@@ -83,14 +83,14 @@ final class UpdPage {
             long v = 0;
             // 启动流程先问腾讯（约 12 秒失败），之后才进更新步骤建页面 → 最多等 25 秒
             state = "游戏更新页：开始找页面";
-            while (v == 0 && System.currentTimeMillis() - t0 < 25000) {
+            while (v == 0 && System.currentTimeMillis() - t0 < 45000) {   // v4.06：25→45 秒（也可能是计时兜底提前开始找）
                 v = find(b, nm);
                 // v3.38 用户截图一直「没开始」→ 找的过程写出来：用了几秒、对象数、带 Update 的实例类名
                 state = "游戏更新页：找页面 " + (System.currentTimeMillis() - t0) / 1000 + " 秒，对象 " + lastNum + "，Update 类：" + lastCls;
                 if (v == 0) Thread.sleep(400);
             }
-            if (v == 0) { state = "游戏更新页：25 秒内没找到（对象 " + lastNum + "，Update 类：" + lastCls + "），用我们自己的那层"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
-            view = v; LobbyLoad.rememberClass(v);
+            if (v == 0) { state = "游戏更新页：45 秒内没找到（对象 " + lastNum + "，Update 类：" + lastCls + "），用我们自己的那层"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
+            view = v;   // v4.06：不再 LobbyLoad.rememberClass（v3.84 把 UpdateUI_C 类设 RootSet + 开机全表扫找 GameInstance；v3.87 起大厅加载页不建了，这两样只占内存）
             UpdFlow.lobby();   // v3.30：页面建出来了 = 没卡住，删保险文件
             state = "游戏更新页：找到 " + Long.toHexString(v);
             LogCap.note(state);
@@ -102,7 +102,7 @@ final class UpdPage {
             long fn;
             try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "r")) { fn = Server.rd(m, Server.rd(m, v) + 0x240); }
             if (fn < b || fn > b + 0x5000000L) { state += "；OnUpdateProcess 地址不对 " + Long.toHexString(fn); finished = true; return; }
-            long doneAt = 0, end = Long.MAX_VALUE;
+            long doneAt = 0, end = System.currentTimeMillis() + 70000;   // v4.06：最多 70 秒（NetCore 40 秒内一定有结果或放行）
             float shown = 0f;   // v3.84 用户：进度条要「走」→ 显示值每 0.3 秒往目标涨，开机这页最多到 60%，剩下的在大厅加载页走完   // v3.29：等下载走完，不设上限（失败 NetCore 自动重试）
             while (System.currentTimeMillis() < end) {
                 boolean ready = NetCore.readyVer > ZInit.CORE_VER;
@@ -110,7 +110,7 @@ final class UpdPage {
                 float tgt = ready || NetCore.done ? 1f : p >= 0 ? p / 100f : 0.3f;   // v3.88 用户：要走到 100% 才进
                 shown = Math.min(tgt, shown + (NetCore.done ? 0.08f : 0.04f));
                 float f = Math.max(shown, 0.01f);
-                String s = ready ? "更新已下好，马上重启" : NetCore.done ? "正在加载资源…"
+                String s = ready ? "更新已下好，马上重启" : NetCore.done ? (NetCore.released ? "正在加载资源…（更新在后台）" : "正在加载资源…")
                         : p >= 0 ? "正在下载更新" : "正在检查更新…";
                 int so = 0x8000;
                 bb.clear();
