@@ -220,7 +220,10 @@ public class Server {
                 java.io.File mk = Con.act == null ? null : new java.io.File(Con.act.getFilesDir(), "zf_skins_scanned");
                 java.io.File pf = Con.act == null ? null : new java.io.File(Con.act.getFilesDir(), "zf_props.txt");
                 if (mk != null && !mk.isFile() && pf != null && pf.length() > 8000) { try { mk.createNewFile(); } catch (Throwable ignored) {} }   // 仓库文件已经很大 = 以前扫过
-                if (mk != null && mk.isFile()) skinState = "全部皮肤：以前扫过，不再扫（v3.88）";
+                // v4.01：心跳日志——每次服务端大厅被 SIGKILL 前都在跑这个整块读内存的扫描（进大厅 ~8 秒开始，~9 秒后进程被杀），
+                //        被杀就建不了标记 → 每次进大厅都重扫 → 每次都被杀。直接不扫了。
+                if (true) skinState = "全部皮肤：不再整块扫内存（v4.01，疑似导致大厅被杀）";
+                else if (mk != null && mk.isFile()) skinState = "全部皮肤：以前扫过，不再扫（v3.88）";
                 else { Thread st = new Thread(() -> { try { Thread.sleep(3000); } catch (Throwable ignored) {} String r = allSkins();
                     try { if (mk != null && !r.contains("出错") && !r.contains("先按")) mk.createNewFile(); } catch (Throwable ignored) {} }, "zf-skins");
                     st.setPriority(Thread.MIN_PRIORITY); st.start(); }
