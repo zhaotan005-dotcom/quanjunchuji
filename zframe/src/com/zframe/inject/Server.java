@@ -393,7 +393,7 @@ public class Server {
                 break;
             }
             // v1.78：15001 = 开始匹配。单机游戏发完就直接进图，回成功的话回到大厅会以为还在匹配（自动匹配、取消不了）→ 回失败
-            case 15001: push(15002, seq, key, new PB().u(1, 1).bytes()); what = "开始匹配（回失败，单机直接进图）"; break;
+            case 15001: push(15002, seq, key, new PB().u(1, 1).bytes()); what = "开始匹配（回失败，单机直接进图）" + startPicked(body); break;
             // v3.39 用户：训练岛里设置的「退出」没反应 → 收到退出对局请求（15003/15005）就回成功并直接回大厅
             case 15003: case 15005: push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "退出对局（回成功）"; if (Con.training && Con.inMatch) new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); break;
             case 25005: push(25006, seq, key, new PB().u(1, 0).bytes()); what = "发邮件（回成功）"; break;
@@ -612,6 +612,24 @@ public class Server {
     /** v3.48 大厅换发色不生效：游戏 13003 发 hairColor（日志 ReqStoreEquipProp ... hairColor = 4），我们回的角色属性
      *  PropRoleAttr 只有 sex → 游戏 InitAvatarData HairColor 0。现在按角色记发色（存档第 5 列），回包带 hair_color(5)。
      *  发色先从请求 protobuf 里找（Prop.role_attr(13).hair_color(5)），找不到就读日志这一行。 */
+    /** v4.07：游戏自带「开始游戏」→ 按选的地图进图。以前看日志「RequestStartSingleMatch add_maps_chose:N」，
+     *  同一次点击游戏还发 15001 CSRoomMatchStartAllocReq（cs_room_match.proto：map_id=4、maps_chose=7），现在从包里读。 */
+    static String startPicked(byte[] body) {
+        long chose = -1, mapId = -1;
+        try { PB.R r = new PB.R(body); while (r.next()) { if (r.field == 7 && r.wire == 0) chose = r.val; else if (r.field == 4 && r.wire == 0) mapId = r.val; } } catch (Throwable ignored) {}
+        // 日志里的编号是 1 老海岛 / 3 新海岛 / 4 雨林 / 5 训练场；包里字段是编号还是位掩码没实测 → 两个字段都试，位掩码也认
+        int pick = -1;
+        for (long v : new long[] { chose, mapId }) if (v == 1 || v == 3 || v == 4 || v == 5) { pick = (int) v; break; }
+        if (pick < 0 && chose > 0 && Long.bitCount(chose) == 1) { int bit = Long.numberOfTrailingZeros(chose); if (bit == 1 || bit == 3 || bit == 4 || bit == 5) pick = bit; }
+        final int id = pick;
+        mark("开始游戏 15001：maps_chose=" + chose + " map_id=" + mapId + " → " + id);
+        if (id <= 0) return "（maps_chose=" + chose + " map_id=" + mapId + "，认不出地图）";
+        long now = System.currentTimeMillis();
+        if (now - Con.startAt <= 4000) return "（地图 " + id + "，4 秒内重复，不再进）";
+        Con.startAt = now;
+        new Thread(() -> Con.startGame(id), "zf-start").start();
+        return "（地图 " + id + (chose > 0 ? " maps_chose" : " map_id") + " → 进图）";
+    }
     static void setHairColor(long role, long c, String from) {
         synchronized (Server.class) {
             initProps(); long[] v = props.get(role); if (v == null || v[2] == 0 || c < 0 || c > 64) return;
@@ -637,41 +655,11 @@ public class Server {
         } catch (Throwable ignored) {}
         return -1;
     }
-    static void followHairColor(final long role) {
-        new Thread(() -> {
-            for (int t = 0; t < 8; t++) {
-                try { Thread.sleep(250); } catch (Throwable ignored) {}
-                try {
-                    java.io.File f = Con.findUeLog(Con.act); if (f == null) continue;
-                    String txt = AvatarLog.readText(f, 128 * 1024);
-                    int k = txt.lastIndexOf("ReqStoreEquipProp   roleId = " + role);
-                    if (k < 0) continue;
-                    int nl = txt.indexOf('\n', k); String l = txt.substring(k, nl < 0 ? txt.length() : nl);
-                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("hairColor = (\\d+)").matcher(l);
-                    if (m.find()) { setHairColor(role, Long.parseLong(m.group(1)), "日志"); return; }
-                } catch (Throwable ex) { return; }
-            }
-        }, "zf-hair").start();
-    }
+    /** v4.07：不读游戏日志 —— 发色只认请求包里的（reqHairColor），日志兜底去掉 */
+    static void followHairColor(final long role) { }
+    /** v4.07：不读游戏日志 —— 以前从日志「EquipItemsForHallRole」行拿试穿后的整套；现在只按类别处理（equip/unequip 已按类别设好），推一次仓库 */
     static void followPreview(final String req, final long id) {
-        new Thread(() -> {
-            String set = null;
-            for (int t = 0; t < 12 && set == null; t++) {
-                try { Thread.sleep(250); } catch (Throwable ignored) {}
-                try {
-                    java.io.File f = Con.findUeLog(Con.act); if (f == null) continue;
-                    String txt = AvatarLog.readText(f, 256 * 1024);
-                    int k = txt.lastIndexOf(req + "   propID = " + id);
-                    if (k < 0) continue;
-                    int e = txt.lastIndexOf("EquipItemsForHallRole  ", k);
-                    if (e < 0) continue;
-                    int nl = txt.indexOf('\n', e);
-                    set = txt.substring(e + "EquipItemsForHallRole  ".length(), nl < 0 ? txt.length() : nl);
-                } catch (Throwable ex) { mark("读试穿行出错 " + ex); return; }
-            }
-            if (set == null) { mark(req + " " + id + "：日志里没找到试穿行，只按类别处理"); pushStore(); return; }
-            applyPreview(set);
-        }, "zf-preview").start();
+        new Thread(() -> { try { Thread.sleep(250); } catch (Throwable ignored) {} pushStore(); }, "zf-preview").start();
     }
     static void applyPreview(String set) {
         synchronized (Server.class) {

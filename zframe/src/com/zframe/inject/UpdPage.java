@@ -22,7 +22,7 @@ final class UpdPage {
     /** v3.57 用户：开机一直没有 TiMi 那页（LogoUI，UNZStartupFlowTimi）。先只看：游戏日志里跑了哪些启动步骤、
      *  启动 GameMode +0x33c StartupFlowTypes（反射表 0x4d8b0f4）里有哪几步。只读。 */
     static final StringBuilder flowSb = new StringBuilder();
-    static volatile String flows = "启动步骤：没看到";
+    static volatile String flows = "启动步骤：v4.07 不读游戏日志";
     static volatile boolean logoDone;
     static void flowLine(String l) {
         if (l.contains("End Flow NZStartupFlowLogo")) logoDone = true;
@@ -92,6 +92,7 @@ final class UpdPage {
             if (v == 0) { state = "游戏更新页：45 秒内没找到（对象 " + lastNum + "，Update 类：" + lastCls + "），用我们自己的那层"; LogCap.note(state); finished = true; GameOverlay.srvFallback(); return; }
             view = v;   // v4.06：不再 LobbyLoad.rememberClass（v3.84 把 UpdateUI_C 类设 RootSet + 开机全表扫找 GameInstance；v3.87 起大厅加载页不建了，这两样只占内存）
             UpdFlow.lobby();   // v3.30：页面建出来了 = 没卡住，删保险文件
+            UpdFlow.pageSeen = true; GameOverlay.gamePage();   // v4.07：以前看日志「Begin Flow … Update」，现在找到页面就算
             state = "游戏更新页：找到 " + Long.toHexString(v);
             LogCap.note(state);
             ByteBuffer bb = ByteBuffer.allocateDirect(64 * 1024).order(ByteOrder.LITTLE_ENDIAN);

@@ -2,7 +2,7 @@ package com.zframe.inject;
 
 /** v2.04 游戏设置里的画质选了立刻生效。
  *  游戏自己只在进地图时按设置应用画质（UNZSystemSettingData::ApplyRenderQuality 0xca14e0，PreLoadMap 里调），设置界面只提示「下局生效」。
- *  这里每 3 秒 getall NZSystemSettingData RenderQualityOption，选项变了就按档位发 sg./r. 命令。第一次读到的值不发（进图时游戏已经应用了）。 */
+ *  v4.07 起每 3 秒直接读设置对象内存（见 start），选项变了就按档位发 sg./r. 命令。第一次读到的值不发（进图时游戏已经应用了）。 */
 final class Gfx {
     static volatile String opt, state = "等游戏启动";
     static volatile boolean started;
@@ -26,26 +26,46 @@ final class Gfx {
     static final String[] NAME = {"Low", "Middle", "High", "VeryHigh", "Ultra"};
     static final String[] CN = {"流畅", "均衡", "高清", "超高清", "极致"};
 
+    /** v4.07：不读游戏日志。以前每 3 秒 getall 让游戏把值打进日志再读；现在直接读设置对象内存：
+     *  UNZSystemSettingData 实例（对象表按类名找一次，缓存，类指针变了再找）+0x7c RenderQualityOption（字节，反射表 0x4c07a5c 偏移 0x7c；
+     *  枚举 ERenderQualityOption 0 Low 1 Middle 2 High 3 VeryHigh 4 Ultra 5 Unknown，注册表 0x4c04120）、+0x84 FrameRateOption（反射 0x4c07914）。
+     *  帧率选项变了 = 游戏重设了帧率（以前日志 ApplyFrameRateOption）→ 0.8 秒后重发我们的最高帧率。服务端不跟设置（v4.05），不找。 */
+    static volatile long inst, instCls, findAt; static volatile int lastFr = -1;
     static void start() {
         if (started) return; started = true;
         Thread t = new Thread(() -> {
             while (true) {
                 try { Thread.sleep(3000); } catch (InterruptedException e) { return; }
-                try { Con.exec("getall NZSystemSettingData RenderQualityOption"); } catch (Throwable ignored) {}
+                try { poll(); } catch (Throwable ignored) {}
             }
         }, "zf-gfx");
         t.setDaemon(true); t.start();
-        state = "在看设置里的画质";
+        state = "在看设置里的画质（读内存）";
     }
-
-    /** 日志行：... .RenderQualityOption = ERenderQualityOption::High（或 High） */
-    static void line(String l) {
-        int i = l.indexOf("RenderQualityOption = ");
-        if (i < 0) return;
-        String v = l.substring(i + 22).trim();
-        int c = v.lastIndexOf("::"); if (c >= 0) v = v.substring(c + 2);
-        int sp = v.indexOf(' '); if (sp > 0) v = v.substring(0, sp);
-        if (v.isEmpty()) return;
+    static void poll() throws Exception {
+        if (Ed.ED == 1) { state = "服务端压内存，不跟设置切画质"; return; }
+        if (!GameOverlay.lobbySeen) return;
+        long b = Mods.base(); if (b == 0) return;
+        long o = inst; int v, fr;
+        try (java.io.RandomAccessFile m = new java.io.RandomAccessFile("/proc/self/mem", "r")) {
+            if (o != 0 && (!Mods.isObj(m, b, o) || Server.rd(m, o + 0xc) != instCls)) { o = 0; inst = 0; opt = null; lastFr = -1; }
+            if (o == 0) {
+                long now = System.currentTimeMillis();
+                if (now - findAt < 60000) return;
+                findAt = now;
+                o = WorldWatch.firstInstance("NZSystemSettingData");
+                if (o == 0) { state = "画质：没找到设置对象（60 秒后再找）"; return; }
+                inst = o; instCls = Server.rd(m, o + 0xc);
+                LogCap.note("画质：设置对象 " + Long.toHexString(o));
+            }
+            byte[] x = new byte[12]; m.seek(o + 0x7c); m.readFully(x);
+            v = x[0] & 0xff; fr = x[8] & 0xff;
+        }
+        if (lastFr >= 0 && fr != lastFr) Con.fpsAt = System.currentTimeMillis();
+        lastFr = fr;
+        if (v < NAME.length) onOpt(NAME[v]);
+    }
+    static void onOpt(String v) {
         String prev = opt; opt = v;
         if (prev == null) { state = "设置里是 " + cn(v) + "（进图时游戏已应用）"; return; }
         if (prev.equals(v)) return;

@@ -35,8 +35,7 @@ final class Room {
         return "玩家" + (myId() % 10000);
     }
     static String myAddr() {
-        try { String a = Con.act.getSharedPreferences("zframe", 0).getString("room_addr", ""); if (a != null && !a.isEmpty()) return a; } catch (Throwable ignored) {}   // v3.70 用户自己的内网穿透地址
-        return GameOverlay.AIWAN;   // v3.71 用户：没设过就默认他之前的 frp-put.com:47937
+        return GameOverlay.AIWAN;   // v4.07 用户去掉「设为我的开房地址」→ 开房地址固定 frp-put.com:47937（v3.71 起的默认）
     }
 
     // ===== 拼包 =====

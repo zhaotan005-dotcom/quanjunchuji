@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.06";
+    static final String VER = "v4.07";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -60,7 +60,7 @@ public class GameOverlay {
             // v2.63 用户：更新放到腾讯页 → 一打开就后台查更新（只联网，不碰游戏内存），下好了直接弹「更新」框
             try { NetCore.check(a); } catch (Throwable ignored) {}
             // v4.06：开机更新页/进度条以前只靠游戏日志里的 StartupMap 行触发；日志读不到就永远没进度条、也不进大厅 → 启动 20 秒兜底开始
-            if (startTimer.compareAndSet(false, true)) MAIN.postDelayed(() -> { if (!startupOnce.get()) { LogCap.note("开机更新：日志里没看到 StartupMap，20 秒计时兜底开始找更新页"); startupUpdate(); } }, 20000);
+            if (startTimer.compareAndSet(false, true)) MAIN.postDelayed(() -> { if (!startupOnce.get()) { LogCap.note("开机更新：20 秒还没看到 StartupMap 世界，计时兜底开始找更新页"); startupUpdate(); } }, 20000);
             final ViewGroup decor = (ViewGroup) a.getWindow().getDecorView();
             if (decor.findViewWithTag("zframe_panel") != null) return;
             { View old = panelRef; if (old != null && old.isAttachedToWindow() && panelAct == a) return; }
@@ -1140,15 +1140,13 @@ public class GameOverlay {
             if (!"还没试".equals(Lan.state)) note(a, u, root, Lan.state);
         }
         if (Ed.ED != 1) note(a, u, root, Server.state);
-        // v3.67 用户：军需点了显示「加载商城」然后就没了 → 大厅加一个上传日志（只上传，不存手机）
-        LinearLayout lg = row(a, root);
-        btn(a, u, lg, "上传日志", () -> new Thread(() -> { AvatarLog.manual = true; try { toastAny(AvatarLog.export(a, "lobbyop-")); } catch (Throwable t) { toastAny("上传失败：" + t); } finally { AvatarLog.manual = false; } }, "zf-uplog").start());
+        // v4.07 用户：去掉「上传日志」按钮（后台自动上传 boot-/lobbyop-/net- 等照旧）
     }
     /** 加入房间卡片：「加入艾挽服务器」+ 自己填地址（v3.10；v3.21 单机版「联机」页也用） */
     static void joinCard(final Activity a, final Ui u, final LinearLayout root) {
         LinearLayout jc = card(a, u, root);
         // v3.10 用户：默认一个地址 frp-put.com:47937，按钮显示「加入艾挽服务器」；右边留一个能自己改的地址
-        if (ipBuf == null) { String ra = a.getSharedPreferences("zframe", 0).getString("room_addr", ""); ipBuf = ra != null ? ra : ""; }   // v3.73 用户：左边就是他的服务器，右边不预填，只放穿透地址
+        if (ipBuf == null) { ipBuf = ""; try { a.getSharedPreferences("zframe", 0).edit().remove("room_addr").apply(); } catch (Throwable ignored) {} }   // v3.73 右边不预填；v4.07 去掉「设为我的开房地址」，清掉旧存的开房地址
         LinearLayout jr = row(a, jc); jr.setPadding(0, u.dp(8), 0, u.dp(8)); jr.setGravity(Gravity.CENTER_VERTICAL);
         fillBtn(a, u, jr, "加入艾挽服务器", () -> toast(a, Lan.join(AIWAN)));
         LinearLayout rc = new LinearLayout(a); rc.setOrientation(LinearLayout.VERTICAL);
@@ -1169,12 +1167,10 @@ public class GameOverlay {
         });
         ipEt.setOnEditorActionListener((v, act, ev) -> { focusable(ipEt, false); ipEt.clearFocus(); return false; });
         LinearLayout er = row(a, rc); er.setPadding(0, u.dp(4), 0, 0);
-        btn(a, u, er, "加入这个地址", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填地址"); return; } toast(a, Lan.join(ipBuf)); });
-        // v3.70 用户用自己的内网穿透：填穿透地址（转发 UDP 7777 到本机）点这个，之后游戏里建的房间把这个地址发给别人
-        btn(a, u, er, "设为我的开房地址", () -> { focusable(ipEt, false); ipEt.clearFocus();
-            if (!ipBuf.isEmpty() && !ipBuf.matches("[A-Za-z0-9.-]+(:\\d{1,5})?")) { toast(a, "地址格式不对，要像 xxx.com:12345"); return; }
-            a.getSharedPreferences("zframe", 0).edit().putString("room_addr", ipBuf).apply();
-            android.widget.Toast.makeText(a, ipBuf.isEmpty() ? "已清空，开房用默认地址" : "开房地址：" + ipBuf, android.widget.Toast.LENGTH_SHORT).show(); });
+        TextView jb = btn(a, u, er, "加入这个地址", () -> { focusable(ipEt, false); ipEt.clearFocus(); if (ipBuf.isEmpty()) { toast(a, "先填地址"); return; } toast(a, Lan.join(ipBuf)); });
+        // v4.07 用户：去掉「设为我的开房地址」→ 「加入这个地址」一个按钮占满整行，左右和上面的地址框对齐
+        jb.setSingleLine(true);
+        LinearLayout.LayoutParams jl = (LinearLayout.LayoutParams) jb.getLayoutParams(); jl.setMargins(0, u.dp(2), 0, 0); jb.setLayoutParams(jl);
     }
     /** 最下面：日志 */
     static void logRow(final Activity a, final Ui u, final LinearLayout root) {

@@ -35,6 +35,11 @@ public class Con {
         try {
             Method m = find(a.getClass());
             if (m == null) { last = "这个游戏没有 UE4 控制台入口"; return false; }
+            if (cmd.startsWith("open ")) {   // v4.07：记下开图命令（战术模式判断）；对局图先装毒圈底层表（以前在日志 Browse 行装，时机相同：切图开始前）
+                String t = cmd.substring(5).trim(); lastOpen = t; lastOpenAt = System.currentTimeMillis();
+                int q = t.indexOf('?'); String mp = q > 0 ? t.substring(0, q) : t;
+                if (mp.startsWith("/Game/Maps/") && !isLobby(mp)) { natFor = mp; try { Flow.natPrepare(mp); } catch (Throwable ignored) {} }
+            }
             m.invoke(a, cmd);
             last = cmd;
             history.add(cmd);
@@ -60,56 +65,6 @@ public class Con {
         return "已重载门/物资/车";
     }
 
-    // ===== v1.32 刷车 =====
-    // 游戏包是腾讯 IFS 格式，扫不到车的蓝图名；改用游戏自己的 SpawnVehicle(车型编号, 位置, 朝向)（控制器上的 GM 命令，
-    // 里面走 GameMode 的载具管理器按编号刷车）。位置用 getall 读自己人物胶囊体的坐标，车放在身边 5 米。
-    // 车型编号（ENZVehicleType）：1 吉普(封顶) 2 轿车 4 吉普(铁顶) 5 吉普(敞篷) 6 蹦蹦 8 摩托 9 三轮摩托 17 防弹吉普
-    static final java.util.LinkedHashSet<String> carClasses = new java.util.LinkedHashSet<>();
-    static final int[] CAR_TYPES = {2, 5, 1, 4, 6, 8, 9, 17};
-    static final String[] CAR_NAMES = {"", "吉普", "轿车", "船", "吉普", "敞篷吉普", "蹦蹦", "", "摩托", "三轮摩托", "", "", "", "", "", "", "", "防弹吉普"};
-    static volatile int carIdx = 0, carTry;
-    static volatile String myLoc; static volatile long myLocAt;
-    static volatile int carCount = -1, carCountNew;
-    static volatile String carWait; static volatile boolean carFail, carOk;
-    static final java.util.regex.Pattern CAR = java.util.regex.Pattern.compile("\\d+\\) (\\w+_C) \\S+\\.bHidden = ");
-    static final java.util.regex.Pattern LOC = java.util.regex.Pattern.compile("BP_NZBRCharacter\\w*\\.\\w+\\.RelativeLocation = \\(X=(-?[0-9.]+),Y=(-?[0-9.]+),Z=(-?[0-9.]+)\\)");
-    static void spawnCar(final Activity a) {
-        if (brMap == null) { GameOverlay.toast(a, "进地图后再刷车"); return; }
-        carTry = 0;
-        tryCar(a);
-    }
-    static void tryCar(final Activity a) {
-        if (carTry >= 4) { GameOverlay.toast(a, "试了 " + carTry + " 种车都没刷出来，把日志发我"); return; }
-        carTry++;
-        final int t = CAR_TYPES[carIdx++ % CAR_TYPES.length];
-        myLoc = null; carCountNew = 0;
-        exec("EnableCheats");
-        exec("getall CapsuleComponent RelativeLocation");
-        exec("getall WheeledVehicle bHidden");
-        final int before = carClasses.size();
-        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
-        h.postDelayed(() -> {
-            String loc = myLoc;
-            if (loc == null) { LogCap.note("刷车: 没读到人物坐标"); GameOverlay.toast(a, "没读到你的位置，把日志发我"); return; }
-            String[] p = loc.split(" ");
-            double x = Double.parseDouble(p[0]) + 500, y = Double.parseDouble(p[1]), z = Double.parseDouble(p[2]) + 150;
-            String v = String.format(java.util.Locale.US, "(X=%.1f,Y=%.1f,Z=%.1f)", x, y, z);
-            String c = "SpawnVehicle " + t + " " + v + " (Pitch=0.000000,Yaw=0.000000,Roll=0.000000)";
-            boolean ok = exec(c);
-            LogCap.note("刷车: " + c + " → " + ok);
-            h.postDelayed(() -> {
-                carCountNew = 0;
-                exec("getall WheeledVehicle bHidden");
-                exec("getall NZVehicleMotoCycle bHidden");
-                h.postDelayed(() -> {
-                    LogCap.note("刷车后场上车辆行数 " + carCountNew);
-                    if (carCountNew > 0) GameOverlay.toast(a, "已刷车：" + CAR_NAMES[t] + "（在你东边 5 米）");
-                    else { LogCap.note("刷车没出来，换下一种 " + t); tryCar(a); }
-                }, 1200);
-            }, 1200);
-        }, 1200);
-    }
-
     static void loadServerLevels(String why) {
         List<String> lv;
         synchronized (serverLevels) { lv = new ArrayList<>(serverLevels); }
@@ -125,46 +80,18 @@ public class Con {
         layerStatus = why + "：已请求加载 " + n + " 个关卡（门/物资/载具点）";
     }
 
+    /** v4.07：不再读游戏日志。这个线程只做定时的事（发设置、开机进大厅、声音修复跳转）；游戏状态由 WorldWatch 从内存读 */
     static void startWatcher(final android.content.Context ctx) {
-        Thread t = new Thread(new Runnable() { public void run() {
-            File cur = null; long pos = 0; StringBuilder part = new StringBuilder();
+        WorldWatch.start();
+        Thread t = new Thread(() -> {
             while (true) {
-                try {
-                    if (cur == null || !cur.exists() || cur.length() < pos) {
-                        cur = findUeLog(ctx); pos = 0; part.setLength(0);
-                        // v1.18：上一局留下的旧日志不读（以前会把旧日志当成“引擎已启动”，引擎没起来就发命令→闪退）
-                        if (cur != null && cur.lastModified() < bootAt) pos = cur.length();
-                    }
-                    if (cur != null && cur.length() > pos) {
-                        try (RandomAccessFile f = new RandomAccessFile(cur, "r")) {
-                            f.seek(pos);
-                            byte[] b = new byte[(int) Math.min(1 << 20, cur.length() - pos)];
-                            f.readFully(b);
-                            pos += b.length;
-                            boolean xor = !plain;
-                            if (pos == b.length) { plain = new String(b, 0, Math.min(b.length, 4000), "ISO-8859-1").contains("Log"); xor = !plain; }
-                            if (xor) for (int i = 0; i < b.length; i++) b[i] ^= 0x73;
-                            part.append(new String(b, "UTF-8"));
-                            int nl;
-                            while ((nl = part.indexOf("\n")) >= 0) { line(part.substring(0, nl)); part.delete(0, nl + 1); }
-                        }
-                    }
-                    long now = System.currentTimeMillis();
-                    // 只有新日志里出现 “LogLoad: Took” 才算引擎真正就绪
-                    tickTweaks(now);
-                    // v2.20：联机时不用控制台 StreamLevelIn（房主的 ServerOnly 层由游戏自己加载，见 Loot）
-                    if (Lan.role != 0) { /* 不发命令 */ }
-                    else if (autoOn && lastAddAt > 0 && now - lastAddAt > 3000 && sentAt < lastAddAt) { passes = 1; loadServerLevels("自动"); }
-                    else if (autoOn && passes == 1 && sentAt > lastAddAt && now - sentAt > 15000) { passes = 2; loadServerLevels("自动(第2遍)"); }
-                } catch (Throwable e) { LogCap.note("日志监视出错 " + e); }
-                try { Thread.sleep(System.currentTimeMillis() < fastUntil ? 100 : 1000); } catch (InterruptedException e) { return; }
+                try { tickTweaks(System.currentTimeMillis()); } catch (Throwable e) { LogCap.note("定时任务出错 " + e); }
+                try { Thread.sleep(500); } catch (InterruptedException e) { return; }
             }
-        }}, "zframe-uelog");
+        }, "zframe-tick");
         t.setDaemon(true);
         t.start();
     }
-
-    static boolean plain;
 
     // ===== 用引擎 SET 命令改类默认值（新对象和已存在的对象都会改） =====
     static final String[] TWEAKS = {
@@ -411,7 +338,7 @@ public class Con {
         // v3.28 用户：要走完更新进度条才进大厅 → 查更新没结果（没「已是最新/失败/下好」）就一直停在更新页，最多 10 分钟兜底
         boolean upd = !NetCore.done && NetCore.readyVer <= ZInit.CORE_VER;
         // v4.06：游戏日志读不到时 engineSeenAt 永远是 0 → 永远不进大厅。更新页已建出来 = 引擎肯定在跑，按它补上
-        if (engineSeenAt == 0 && UpdPage.view != 0) { engineSeenAt = now - 3000; LogCap.note("引擎就绪：日志里没看到 LogLoad，按更新页已建出来算"); }
+        if (engineSeenAt == 0 && UpdPage.view != 0) { engineSeenAt = now - 3000; LogCap.note("引擎就绪：世界还没开始走时间，按更新页已建出来算"); }
         // v4.06：开机最多停 60 秒（NetCore 自己 20~40 秒就放行；这里兜底，任何原因都不再无限卡在加载页）
         boolean hold = engineSeenAt > 0 && now - engineSeenAt < 60000 && (upd || (UpdFlow.on && !UpdPage.finished));   // v3.29：不设时间上限，失败自动重试   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
         if (!startupLobby && !hold && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
@@ -461,143 +388,77 @@ public class Con {
 
     static volatile String lastWeap = ""; static volatile long lastWeapAt;
     static final java.util.regex.Pattern WEAP = java.util.regex.Pattern.compile("BP_NZWeap_(\\w+?)_C|WeaponBase/W\\d+_(\\w+)/");
-    static void line(String l) {
-        Prop.line(l);
-        Flare.line(l);
-        if (l.contains("Game class is '")) ModeProbe.gameClass(l);
-        if (l.contains("Flow") || l.contains("UpdateUI")) UpdFlow.line(l);
-        if (l.contains("Browse: ") || l.contains("Game class is '") || l.contains("HideLoadingProgress") || l.contains("OnChangeHairColor")) LobbyLoad.line(l);
-        if (l.contains("BP_NZWeap_") || l.contains("WeaponBase/W")) {
-            java.util.regex.Matcher m = WEAP.matcher(l);
-            if (m.find()) { String w = m.group(1) != null ? m.group(1) : m.group(2); if (!"EmptyHand".equals(w)) { lastWeap = w; lastWeapAt = System.currentTimeMillis(); } }
-        }
-        if (l.contains(".bHidden = ")) {
-            java.util.regex.Matcher m = CAR.matcher(l);
-            if (m.find()) { carCountNew++; synchronized (carClasses) { if (carClasses.add(m.group(1))) LogCap.note("车型: " + m.group(1)); } }
-        }
-        if (l.contains(".RelativeLocation = ")) {
-            java.util.regex.Matcher m = LOC.matcher(l);
-            if (m.find()) { myLoc = m.group(1) + " " + m.group(2) + " " + m.group(3); myLocAt = System.currentTimeMillis(); }
-        }
-        if (l.contains("SpawnVehicle") || l.contains("VehicleSpawn") || l.contains("NZBRVehicleManager")) LogCap.note("刷车日志: " + l.trim());
-        if (l.contains("Spawn Vehicle ") || l.contains("spawn vehicle failed")) Veh.spawnLog(l);
-        if ((l.contains("P92") || l.contains("SK_WP_") || l.contains("Failed to load")) && p92n < 60) { p92n++; LogCap.note("P92诊断 " + (l.length() > 300 ? l.substring(0, 300) : l)); }   // v3.92：P92 手里空气，记下游戏关于 P92/武器模型加载的日志
-        // v1.32：游戏自带「开始游戏」→ 按选的地图直接进图
-        int sm = l.indexOf("RequestStartSingleMatch add_maps_chose:");
-        if (sm >= 0) {
-            try {
-                int id = Integer.parseInt(l.substring(sm + 39).trim().split("\\D")[0]);
-                long now = System.currentTimeMillis();
-                if (now - startAt > 4000) { startAt = now; startGame(id); }
-            } catch (Throwable ignored) {}
-        }
-        Lan.line(l);
-        Gfx.line(l);
-        int av = l.indexOf("OnAvatarAssembler In Items");
-        if (av >= 0) LogCap.note("身上装备编号: " + l.substring(av).trim());
-        if (engineSeenAt == 0 && l.contains("LogLoad: Took")) { engineSeenAt = System.currentTimeMillis(); LogCap.note("引擎就绪，10秒后发送设置"); loadAudioPref(); Gfx.start(); }
-        if (l.contains("UNZFrontEndAudioManager: init") || l.contains("UNZPlatformAudioHelper::OnInitialize")) {
-            if (!feAudioSeen) { feAudioSeen = true; feSeenAt = System.currentTimeMillis(); LogCap.note("声音修复: 看到大厅音频初始化"); }
-            if (bounce != 1) audioFix = "大厅音频已初始化";
-        }
-        // v2.19 用户：仓库衣服刚进大厅没有、要等服务端开 → 单机版一看到开始加载大厅就开服务端（不等加载完 + 2.5 秒）
-        if (!Server.on && !earlySrv && l.contains("LoadMap") && (l.contains("RoleHall") || l.contains("FrontEnd")) && !l.contains("LogLoad: Took")) {
+    // ===== v4.07：游戏状态全部来自内存（WorldWatch），不再读游戏日志 =====
+    // 普通手机没有游戏日志（要在手机设置里开），以前靠日志行触发的进图/回大厅/开机页/引擎就绪全改成 WorldWatch 的三个事件。
+    static volatile String lastOpen = "", natFor = ""; static volatile long lastOpenAt;
+    static boolean isLobby(String m) { return m.contains("RoleHall") || m.contains("FrontEnd"); }
+
+    /** GWorld 变空 / 换世界（以前 Browse 行的「收起菜单」部分） */
+    static void onLeave() {
+        inMatch = false;
+        GameOverlay.mapLeaving();
+        GameOverlay.refreshAny();
+    }
+
+    /** 新世界出现、读到地图名（以前「LogNet: Browse: 地图」那行） */
+    static void onBrowse(String m) {
+        boolean lobby = isLobby(m);
+        if (m.startsWith("/Game/Startup/StartupMap")) { GameOverlay.loadingPage(); GameOverlay.startupUpdate(); }
+        // 大厅开始加载就开自建服务端（v2.19，以前看日志里 LoadMap 大厅）
+        if (lobby && !Server.on && !earlySrv) {
             earlySrv = true;
             new Thread(() -> { if (Lan.role != 0 || Lan.busy || inMatch) { earlySrv = false; return; } LogCap.note("大厅开始加载，提前开服务端 → " + Server.start()); }, "zf-srv0").start();
         }
-        // v3.39 用户：训练岛设置里点「退出」没反应 → 游戏日志出现退出对局就直接回大厅（只在训练岛，3 秒内只做一次）
-        // v3.65 用户：要先弹游戏自己的「确定要退出演习？」，点确认再退。v3.64 认的是「Btn_System_QuitMatch Btn Click」（点按钮那一下，确认框刚弹出就走了）→ 改成只认确认后的 QueryQuitMatch
-        if (training && inMatch && (l.contains("QueryQuitMatch") || l.contains("ConfirmQuitMatch") || l.contains("QuitMatchConfirm_OK")) && System.currentTimeMillis() - quitAt > 3000) { quitAt = System.currentTimeMillis(); LogCap.note("训练岛退出：" + l); new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); }
-        // v3.65 军需点不开：点的时候没发任何请求 → 看界面/脚本这边：大厅里出现建界面失败、Lua 报错、或建了没见过的界面，就自动传一份大厅日志
-        // v3.69 用户：点军需打不开。军需 = MallMainView（UBasePandoraMall），商品页是腾讯 Pandora 网页，要连腾讯服务器下，单机永远等不到 MallReady
-        if (!inMatch && (l.contains("WaitingMallReady") || l.contains("Pandora is Ready Mall")) && System.currentTimeMillis() - mallTipAt > 60000) { mallTipAt = System.currentTimeMillis(); GameOverlay.toastAny("军需是腾讯的网页商城，要连腾讯服务器才有内容，单机打不开；衣服、枪皮仓库里都有"); LogCap.note("军需：" + l); }
-        if (!inMatch && Server.on && System.currentTimeMillis() - lobbyAt > 20000 && ((l.contains("CreateUI") && (l.contains("fail") || l.contains("Fail") || !l.contains("StoreUI"))) || (l.toLowerCase().contains("lua") && l.contains("rror")) || l.contains("Mall") || l.contains("Midas") || l.contains("Pandora") || l.contains("Commodity") || l.contains("Lottery") || l.contains("Treasure"))) Server.opLog(0);   // v3.67 军需「加载商城」
-        if (l.contains("LogLoad: Took")) { GfxOpt.afterLoad(); srvMem("进图后"); }   // v3.58 画面细项每次进图重发
-        int tk = l.indexOf("LogLoad: Took");
-        if (tk >= 0) {
-            int lm = l.indexOf("LoadMap(", tk);
-            if (lm >= 0) {
-                String m = l.substring(lm + 8); int e = m.indexOf(')'); if (e > 0) m = m.substring(0, e);
-                int q = m.indexOf('?'); if (q > 0) m = m.substring(0, q);
-                boolean lobby = m.contains("RoleHall") || m.contains("FrontEnd");
-                if (m.startsWith("/Game/Maps/")) { training = m.contains("TrainingIsland"); } if (m.startsWith("/Game/Maps/") && training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); Island.matchLoaded(); } else if (m.startsWith("/Game/Maps/")) { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); /* v3.21：每次进图按存的模式重打不上飞机/不刷圈 + 阶段守护 */ } GameOverlay.refreshAny(); if (lobby || inMatch) GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = System.currentTimeMillis(); }
-                if (lobby) lobbyAt = System.currentTimeMillis();
-                if (lobby) {   // v2.05：回大厅 = 不在联机里；单机默认刷人机；服务端自动开（不再显示开关）
-                    Gfx.unlite();
-                    Island.caveReset();   // v3.46 同帧摆人缓冲区不留上一局的 PC
-                    Lan.role = 0; Bots.auto = Bots.want;
-                    if (!Server.on) new Thread   /* v3.72 用户：服务端包点「创建房间」没反应 = 服务端包/客户端包没开自建服务端，房间包没人回 → 三个包都自动开 */(() -> { try { Thread.sleep(Server.on ? 0 : 300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; try { Thread.sleep(0); } catch (InterruptedException ignored) {} LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
-                }
-                if (m.startsWith("/Game/Maps/") && !lobby) {
-                    brMap = m;
-                    Parabola.matchStart();   // v3.46 拿雷自动查抛物线光束（单机/联机对比）
-                    if (Lan.role == 0 && !training) { Bots.matchLoaded(); Flow.matchLoaded(m); }
-                    else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（服务端：航线/毒圈照单机改；减负）"); }
-                    else Lan.note("进图完成（客户端：航线/毒圈跟服务端）");   // v1.93 不再自动读车表（车编号写死）
-                    if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
-                    else if (!feAudioSeen && bounce == 0) brLoadedAt = System.currentTimeMillis();
-                }
-            }
-        }
-        if (training) Island.seen(l);   // v3.43 训练岛关键游戏日志行
-        if (l.contains("AkAudio") || l.contains("Audiokinetic") || l.contains("Wwise(R)")) LogCap.note("声音日志: " + l.trim());
-        int c = l.indexOf("BlueCircle: ");
-        if (c >= 0) { try {
-            String[] a = l.substring(c + 12).split(",");
-            circle = Math.round(Double.parseDouble(a[2].trim())) + " " + Math.round(Double.parseDouble(a[3].trim()));
-        } catch (Throwable ignored) {} }
-        if (l.contains("ApplyFrameRateOption")) fpsAt = System.currentTimeMillis();
-        // v1.85 诊断：导航网格大小、人机相关日志
-        int nv = l.indexOf("RecastNavMeshSizeBytes=");
-        if (nv >= 0) navInfo = (navInfo.length() > 300 ? "" : navInfo + " | ") + l.substring(nv, Math.min(l.length(), nv + 120)).trim();
-        // v1.86 诊断：航线、毒圈数据（每圈等待/缩圈时间、半径）、开局倒计时
-        if (!l.contains("GVoice") && (l.contains("InitArea[") || l.contains("AirLine") || l.contains("RestrictedArea") || l.contains("Round") || l.contains("AirlineRadius") || l.contains("RadiusForAirLine") || l.contains("JumpRadiusScale") || l.contains("FlightNumber") || l.contains("RestrictedAreaInfos[") || l.contains("CountDownTime") || l.contains("SetGamePhase") || l.contains("GamePhase"))) {
-            synchronized (flowLog) { if (flowLog.size() >= 40) flowLog.remove(0); flowLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
-        }
-        if (l.contains("Drop") || l.contains("PickUpWrapper") || l.contains("PickUp") && l.contains("Spawn") || l.contains("Discard")) {
-            synchronized (dropLog) { if (dropLog.size() >= 40) dropLog.remove(0); dropLog.add(l.trim().length() > 260 ? l.trim().substring(0, 260) : l.trim()); }
-        }
-        if (l.contains("BehaviorTree") || l.contains("Add a Bot") || l.contains("AddBot") || l.contains("DropOneAI") || l.contains("NumBots") || l.contains("NavigationSubLevel")) {
-            synchronized (botLog) { if (botLog.size() >= 30) botLog.remove(0); botLog.add(l.trim().length() > 220 ? l.trim().substring(0, 220) : l.trim()); }
-        }
-        if (l.contains("[FlowManager]") || l.contains("NZStartupFlow") || l.contains("LogoUI")) UpdPage.flowLine(l);   // v3.57 TiMi 开机页查原因
-        Loot.line(l);   // v2.20 房主：服务器物资层/门/空投
-        if (l.contains("CalcAirLineByRestrictedAreaInfo StartLoc:")) Flow.airLog(l);   // v1.94：航线原始坐标，按值去内存里找
-        if (l.contains("NZBRGameState.cpp:304")) brAt = System.currentTimeMillis();
-        int i = l.indexOf("LogNet: Browse: ");
-        if (i >= 0 && l.contains("/Game/Startup/StartupMap")) { GameOverlay.loadingPage(); GameOverlay.startupUpdate(); }   // v3.22 三个包都显示更新进度条+公告   // v2.70 探测已完成（更新页只有默认对象，没实例），不再跑 UpdProbe   // v2.59 游戏自己的加载页
-        if (i >= 0) { Island.clearSeen(); Flow.natPrepare(l); if (l.contains("/Game/Maps/") && !l.contains("FrontEnd") && !l.contains("RoleHall")) Prop.matchLoad(); Bots.newMatch(); Flow.newMatch(); Loot.newMatch(); synchronized (serverLevels) { serverLevels.clear(); } circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false; GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny(); return; }
-        i = l.indexOf("StreamingServerLayer Add ");
-        if (i >= 0) {
-            String p = l.substring(i + "StreamingServerLayer Add ".length()).trim();
-            if (p.startsWith("other ")) p = p.substring(6).trim();
-            if (p.startsWith("/Game/")) {
-                synchronized (serverLevels) { serverLevels.add(p); }
-                lastAddAt = System.currentTimeMillis();
-                layerStatus = "发现服务器关卡 " + serverLevels.size() + " 个，准备加载";
-            }
-        }
+        Island.clearSeen();
+        // 毒圈底层表要在对局开始前装：我们自己发 open 时已经装了（exec 里），游戏自己切的图这里补
+        if (m.startsWith("/Game/Maps/") && !lobby && !m.equals(natFor)) { natFor = m; Flow.natPrepare(m); }
+        if (m.startsWith("/Game/Maps/") && !lobby) Prop.matchLoad();
+        Bots.newMatch(); Flow.newMatch(); Loot.newMatch();
+        synchronized (serverLevels) { serverLevels.clear(); }
+        circle = null; godOn = false; tpGen++; browseAt = System.currentTimeMillis(); layerStatus = "正在进图…"; inMatch = false;
+        GameOverlay.mapLeaving(); GameOverlay.forgetPawn(); GameOverlay.newMatch(); Mods.resetMatch(); GameOverlay.refreshAny();
     }
 
-    static File findUeLog(android.content.Context ctx) {
-        List<File> all = new ArrayList<>();
-        findLogs(ctx.getExternalFilesDir(null), all, 0);
-        findLogs(ctx.getFilesDir(), all, 0);
-        findLogs(new File("/storage/emulated/0/UE4Game"), all, 0);
-        File best = null;
-        for (File f : all) if (f.getName().equals("PUBGM.log") || (f.getName().endsWith(".log") && !f.getName().contains("backup") && f.getPath().contains("Logs"))) {
-            if (best == null || f.lastModified() > best.lastModified()) best = f;
+    /** 新世界开始走时间 = 加载完（以前「LogLoad: Took … LoadMap(地图)」那行） */
+    static void onLoaded(String m) {
+        long now = System.currentTimeMillis();
+        if (engineSeenAt == 0 && (m.startsWith("/Game/") || "?".equals(m))) { engineSeenAt = now; LogCap.note("引擎就绪（" + m + "），10秒后发送设置"); loadAudioPref(); }
+        Gfx.start();
+        GfxOpt.afterLoad(); srvMem("进图后");
+        fpsAt = now;   // 以前看日志 ApplyFrameRateOption：游戏进图会按设置重设帧率 → 每次进图后重发我们的
+        natFor = "";
+        if (!m.startsWith("/Game/Maps/")) return;
+        boolean lobby = isLobby(m);
+        // 战术模式（以前看日志 Game class is '…'）：名字表有就读 GameMode 类名，没有就看我们发的 open 带的 ?game=
+        if (!lobby) {
+            String gm = WorldWatch.gameModeClass();
+            boolean props = gm != null ? gm.contains("Props") : (lastOpen.contains(m) && lastOpen.contains("Props"));
+            ModeProbe.propsMode = props;
+            LogCap.note("对局模式类：" + (gm != null ? gm : "名字表没有，按开图命令") + (props ? "（战术模式，用游戏原生道具栏）" : ""));
+        } else ModeProbe.propsMode = false;
+        training = m.contains("TrainingIsland");
+        if (training && !lobby) { inMatch = true; MapMark.start(); Jetpack.start(); GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; LogCap.note("进训练岛：不刷人机、不改模式、不删占位"); Island.matchLoaded(); }
+        else { inMatch = !lobby; if (inMatch) { MapMark.start(); Phantom.start(); Jetpack.start(); Walls.clientWatch(); if (Ed.ED == 1) HostMatch.start(); Mods.matchZone(); } GameOverlay.refreshAny(); GameOverlay.lobbyReady(); if (coatAt == 0) coatAt = now; }
+        if (lobby) {
+            lobbyAt = now;
+            // 声音：大厅加载完 = 大厅音频已初始化（以前看日志 UNZFrontEndAudioManager: init）
+            if (!feAudioSeen) { feAudioSeen = true; feSeenAt = now; LogCap.note("声音修复: 大厅已加载，算大厅音频已初始化"); }
+            if (bounce != 1) audioFix = "大厅音频已初始化";
+            Gfx.unlite();
+            Island.caveReset();
+            // 以前看日志 NetworkFailure/ConnectionLost 自动传 net-：现在客户端不是我们发的「回大厅」却回到了大厅 → 多半断线，传一份
+            if (Lan.role == 2 && !(lastOpen.startsWith(LOBBY) && now - lastOpenAt < 120000)) { Lan.note("回到大厅（不是框架发的回大厅，可能断线/被踢）"); Lan.autoUp("net"); }
+            Lan.role = 0; Bots.auto = Bots.want;
+            if (!Server.on) new Thread(() -> { try { Thread.sleep(300); } catch (InterruptedException ignored) {} if (Lan.role != 0 || Lan.busy) return; LogCap.note("自动开服务端 → " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv").start();
+            return;
         }
-        return best;
-    }
-    static void findLogs(File d, java.util.List<File> out, int depth) {
-        if (d == null || depth > 8) return;
-        File[] fs = d.listFiles();
-        if (fs == null) return;
-        for (File f : fs) {
-            if (f.isDirectory()) findLogs(f, out, depth + 1);
-            else if (f.getName().endsWith(".log") && f.length() > 0) out.add(f);
-        }
+        brMap = m; brAt = now;
+        Parabola.matchStart();
+        if (Lan.role == 0 && !training) { Bots.matchLoaded(); Flow.matchLoaded(m); }
+        else if (Lan.role == 1) { Flow.matchLoaded(m); Gfx.lite(); Lan.note("进图完成（服务端：航线/毒圈照单机改；减负）"); }
+        else if (Lan.role == 2) Lan.note("进图完成（客户端：航线/毒圈跟服务端）");
+        if (bounce == 2) audioFix = feAudioSeen ? "已经过大厅初始化，本局应有声音" : "已回到地图";
+        else if (!feAudioSeen && bounce == 0) brLoadedAt = now;
     }
 
     /** v2.16 全员无敌（房主）：伤害在房主这边算，God 只是把自己人物的 bCanBeDamaged 关掉。

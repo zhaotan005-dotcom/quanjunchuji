@@ -1676,3 +1676,30 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 原因（由日志证实的部分）：这台手机上我们读不到游戏日志。v4.05 及以前开机流程（startupUpdate、engineSeenAt、开机进大厅）全靠日志里的 StartupMap/LogLoad 行触发 → 永远不触发，而 GATE 又让游戏自己的更新步骤不结束 → 永远停在加载图。v4.06 的「不靠日志」兜底（GameOverlay 20 秒计时 + 更新页建出来算引擎就绪）正好救了它。和梯子/在线更新无关（这次没开梯子，更新也正常）。
 - 推断（未证实）：读不到日志是因为游戏日志写在 /sdcard/UE4Game/… 而新装的游戏在小米安卓 16 没有存储权限（或游戏这台机器没开文件日志）；用户自己的荣耀能找到 PUBGM.log。
 - 遗留（未改）：这台机器上所有靠游戏日志的功能都不灵——lobbySeen 不会置位（120 秒 boot 仍说「没进大厅」，其实 19:46:59 已开大厅）、lobbyop/诊断自动上传、刷车日志核对、进图/对局开始识别（Con.line 里的 Browse/LoadMap）等。若朋友报功能不灵，下一步：boot 诊断加 UE4Game 各候选目录是否存在/可读 + 存储权限状态；大厅/进图识别改成不靠日志（如读 GWorld 当前地图名）。
+
+## v4.07（core308，2026-11-22 20:0x，全部未实测）不读游戏日志，状态全从内存读
+- 用户 19:52：游戏日志只有手机设置里开了日志才有，普通手机没有 → 三个包（单机/客户端/服务端）都不再读游戏日志，不保留日志这条路；诊断里原来的日志摘录直接去掉；不去想办法让游戏写日志。
+- 以前靠日志的（盘点）：Con.line 全部 —— Browse（切图重置、StartupMap 开机更新页/选择框）、LogLoad: Took（引擎就绪、进大厅/进图/训练岛、lobbyReady 菜单显示、服务端自动开、Flow/Bots/HostMatch/Island/Parabola 进图、GfxOpt/srvMem 进图重发）、UNZFrontEndAudioManager（声音跳转 feAudioSeen）、LoadMap 大厅（提前开服务端）、Game class is（战术模式 propsMode、LobbyLoad）、RequestStartSingleMatch（游戏自带开始游戏选图）、QueryQuitMatch（训练岛退出）、Mall/Pandora（军需提示、lobbyop 自动传）、RenderQualityOption（getall 画质跟设置）、ApplyFrameRateOption（重发帧率）、Join succeeded（服务端有人加入 → Crew 同步）、NetworkFailure/ammo/heal（自动传 net-/ammo-/heal-）、StreamingServerLayer Add（单机 StreamLevelIn 补服务器层）、Spawn Vehicle（刷车后台核对）、LockServer/PickupItemIDList（服务端空投空箱补货）、BlueCircle、武器名 lastWeap、getall 刷车（旧 spawnCar）、UpdFlow「Begin Flow Update」、UpdPage 启动步骤、Prop 缺资源/用道具、Flare、Island.seen、P92、导航/人机/航线/丢东西日志、Flow.airLog、Server 试穿行 EquipItemsForHallRole/发色兜底、AvatarLog/BootLog 读日志文件。
+- 新 WorldWatch.java（唯一状态来源，zf-world 线程每 0.4 秒）：
+  - GWorld = libUE4 .bss 0x53757b0（RE：LoadMap 0x2e0c0f8 在 0x2e0d6c4 str 新世界,[GWorld]；0x2519fd8 return GWorld；GetWorldFromContextObject 0x2e05764 兜底读它；GameEngine::Tick 0x29d5c04 写它）。
+  - 世界 +0x744 UnpausedTimeSeconds（GetUnpausedTimeSeconds 0x29fda50；+0x740 TimeSeconds 0x29fda08）开始涨 = LoadMap 走完；45 秒不涨也放行。
+  - 反射表核对：World +0x24 NetDriver、+0x54 StreamingLevels、+0x94 AuthorityGameMode、+0x98 GameState；GameStateBase +0x2bc PlayerArray。
+  - 地图名：世界前 0xC00 字节里找内容 /Game/ 开头的 FString（FURL.Map，UTF-32），偏移缓存；6 秒找不到用名字表读 Outer 包名（服务端只用已缓存的名字表）。
+  - 事件：Con.onLeave（GWorld 空/换世界，收菜单）、Con.onBrowse(地图)（原 Browse 重置）、Con.onLoaded(地图)（原 LogLoad: Took）。每个世界最多各一次；地址复用靠时间倒退/URL 地图名变了识别。
+- 替代：
+  - 大厅加载完 = 大厅音频已初始化（feAudioSeen）。
+  - 战术模式：GameMode 类名（名字表已缓存时）含 Props，否则看我们发的 open 是否带 Props。
+  - 游戏自带开始游戏：Server 收到 15001 CSRoomMatchStartAllocReq（cs_room_match.proto：map_id=4、maps_chose=7）→ Con.startGame（认 1/3/4/5，也认位掩码；mark 记原值「开始游戏 15001：maps_chose=… map_id=…」，没实测字段含义）。
+  - 训练岛退出：只走 Server 15003/15005（本来就有）。
+  - 毒圈底层表（natPrepare）：Con.exec 发「open /Game/Maps/…」时装（原来 Browse 行，同一时机）；游戏自己切的图在 onBrowse 补。
+  - 画质跟设置：对象表找 NZSystemSettingData 实例（WorldWatch.firstInstance，60 秒最多找一次，服务端不找），每 3 秒读 +0x7c RenderQualityOption（反射 0x4c07a5c；枚举 0 Low 1 Middle 2 High 3 VeryHigh 4 Ultra 5 Unknown，注册表 0x4c04120）；+0x84 FrameRateOption（反射 0x4c07914）变了 → 重发帧率；每次进图后也重发帧率。注：ApplyRenderQuality 0xca14e0 里 +0x930 是 bCanApplyRenderQuality，不是画质。
+  - 服务端有人加入：GameState.PlayerArray 人数变多 → Crew.joined()。
+  - 客户端断线：不是我们发的 open 大厅却回到大厅 → Lan.autoUp("net")。
+  - UpdFlow.pageSeen/gamePage：UpdPage 找到更新页即置位。
+  - 发色：只认 13003 请求包里的；试穿：只按类别处理 + 推仓库（不再等日志 3 秒）。
+- 去掉（没有内存替代，按用户说法诊断直接省）：单机按日志 StreamLevelIn 补服务器层（history 505：日志 verbosity 低时这行本来就没有）、服务端空投空箱补货（Loot 开关默认关）、刷车日志核对、ammo/heal 自动上传、军需提示、Mall 触发 lobbyop、各类日志摘录诊断、旧 getall 刷车 spawnCar/tryCar（已不用）。
+- 诊断：AvatarLog.export 不再要求找到游戏日志（以前找不到日志直接「找不到游戏日志」不导出 → 普通手机所有自动诊断都没传过）；日志行换成 WorldWatch 状态/事件 + LogCap 最近 120 条；资源清单只列大文件。BootLog 加「状态来源：内存」+ WorldWatch.text()。
+- 用户 20:02：联机卡片去掉「上传日志」「设为我的开房地址」；「加入这个地址」占满一行（边距和地址框对齐）；Room.myAddr 固定 AIWAN（frp-put.com:47937），首次建卡片时删旧 pref room_addr。后台自动上传照旧。
+- 没做：「调试开关模拟没日志」——日志整条路已删，所有手机现在都是没日志的路径，不需要。没做存储权限/日志路径诊断（用户说不用管日志）。
+- 未实测风险：GWorld 偏移（静态 RE 4 处一致，未上机）；URL FString 启发式找错字段（会退到包名）；开机 Dummy 世界的 URL 也可能是 StartupMap（startupUpdate/loadingPage 有一次性保护）；NZSystemSettingData 找到的实例是不是设置界面改的那个；15001 字段含义。
+- 构建：bash build_all.sh 4.06 4.07 307 308（JDK sed 成 jdk-21.0.12.1+1 后改回），core/b0-2.ver=308；releases 换成 v4.07 三个（git rm v4.06）。

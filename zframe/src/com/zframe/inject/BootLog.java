@@ -5,7 +5,7 @@ import java.io.File;
 
 /** v4.06：开机卡住也要能看到日志。以前只在进大厅后才上传诊断 → 朋友手机卡在加载图时一条日志都没有。
  *  - 启动 6 秒：发一条很短的「启动」消息（机型/安卓/内核版本/网络是否走 VPN）。
- *  - 启动 40 秒、120 秒还没进大厅：传 boot-*（在线更新各镜像结果、更新页/启动步骤状态、游戏日志找没找到、最近 120 条框架记录、上次运行心跳）。
+ *  - 启动 40 秒、120 秒还没进大厅：传 boot-*（在线更新各镜像结果、更新页状态、内存状态来源 WorldWatch、最近 120 条框架记录、上次运行心跳）。
  *  不读游戏日志全文，不扫内存，只用已有状态；单机包（Ed.BUILD 0）照规矩不传。 */
 final class BootLog {
     static volatile boolean started;
@@ -67,9 +67,9 @@ final class BootLog {
         sb.append("网络：").append(net(ctx)).append('\n');
         sb.append("在线更新：").append(NetCore.status).append("；done=").append(NetCore.done).append(" 超时放行=").append(NetCore.released)
           .append(" 下载=").append(NetCore.pct).append(" 已下好=").append(NetCore.readyVer).append("\n  各镜像：").append(NetCore.lastVers).append("\n  最后错误：").append(NetCore.lastErr).append('\n');
-        sb.append(UpdFlow.state).append('\n').append(UpdFlow.timi).append('\n').append(UpdPage.state).append('\n').append(UpdPage.flows).append('\n');
+        sb.append(UpdFlow.state).append('\n').append(UpdFlow.timi).append('\n').append(UpdPage.state).append('\n');
         sb.append("引擎就绪 ").append(Con.engineSeenAt > 0 ? ((Con.engineSeenAt - Con.bootAt) / 1000) + " 秒" : "没看到").append("，开机进大厅 ").append(Con.startupLobby).append('\n');
-        try { File f = Con.findUeLog(ctx); sb.append("游戏日志：").append(f == null ? "没找到" : f.getPath() + " " + f.length() + " 字节").append('\n'); } catch (Throwable t) { sb.append("游戏日志：出错 ").append(t).append('\n'); }
+        sb.append("状态来源：内存（v4.07 不读游戏日志）；").append(WorldWatch.text()).append('\n');
         sb.append("最近框架记录：\n").append(LogCap.recent());
         try { sb.append(Beat.prev(ctx)); } catch (Throwable ignored) {}
         String name = "boot-" + new java.text.SimpleDateFormat("MMdd-HHmmss", java.util.Locale.US).format(new java.util.Date()) + ".txt";

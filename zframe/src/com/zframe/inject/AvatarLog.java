@@ -23,8 +23,6 @@ public class AvatarLog {
     static String export(Activity a, String prefix) {
         if (off() && !manual) return "";
         try {
-            File f = Con.findUeLog(a);
-            if (f == null) return "找不到游戏日志";
             StringBuilder sb = new StringBuilder();
             sb.append("ZFrame " + GameOverlay.VER + " " + Ed.name() + " 诊断\n").append(Prop.useState).append("\n用道具日志：").append(Prop.lastUseLog).append("\n").append(Prop.diagText()).append("\n").append(Mods.hallState).append('\n').append(Mods.earlyState).append('\n').append(PickAnim.report()).append('\n').append(Flow.natState).append('\n');
             sb.append(Veh.state).append("\n  ").append(Veh.botState).append("\n  ").append(Veh.tableInfo).append("\n");
@@ -36,26 +34,17 @@ public class AvatarLog {
             sb.append("libUE4=").append(Long.toHexString(b)).append('\n');
             sb.append("入口 1503230=").append(peek(b, 0x1503230L, 4)).append("  仓库 1877bfc=").append(peek(b, 0x1877bfcL, 4)).append(" 171e630=").append(peek(b, 0x171e630L, 12)).append("\n").append(Mods.storeInfo()).append("\n").append(Mods.wearState).append("\n").append("  cave 171e610=").append(peek(b, 0x171e610L, 32))
               .append("\n风衣 1503680=").append(peek(b, 0x1503680L, 4)).append("  171e600=").append(peek(b, 0x171e600L, 16)).append("\n").append(Server.report()).append("\n");
-            sb.append(crashInfo(f)).append('\n');
-            long len = f.length();
-            int n = 0;
-            {
-                String l;
-                BufferedReader br = new BufferedReader(new StringReader(readText(f, 6_000_000)));
-                while ((l = br.readLine()) != null) {
-                    if (l.contains("LogTexture") || l.contains("LogNavigation")) continue;
-                    for (String k : KEYS) if (l.contains(k)) { sb.append(l.length() > 400 ? l.substring(0, 400) : l).append('\n'); n++; break; }
-                    if (sb.length() > 3_000_000) break;
-                }
-            }
-            sb.append(resources(a, f));
-            sb.append("\n共 ").append(n).append(" 行，日志 ").append(f.getName()).append(' ').append(len).append(" 字节\n");
+            sb.append(WorldWatch.text()).append('\n').append(Gfx.state).append('\n');
+            sb.append(crashInfo()).append('\n');
+            // v4.07：不读游戏日志（普通手机没有）。换成框架自己最近 120 条记录
+            sb.append("== 框架最近记录 ==\n").append(LogCap.recent());
+            sb.append(resources(a));
             return "已上传 " + save(a, sb.toString(), prefix);
         } catch (Throwable t) { return "导出失败：" + t.getMessage(); }
     }
 
     /** v1.68：上次闪退的原因。系统日志里本应用自己的 Fatal signal / backtrace 行，加上上一次的游戏日志最后几十行。 */
-    static String crashInfo(File cur) {
+    static String crashInfo() {
         StringBuilder sb = new StringBuilder("== 系统日志（闪退）==\n");
         int n = 0;
         try {
@@ -79,20 +68,6 @@ public class AvatarLog {
         sb.append(crashFiles());
         sb.append(exitInfo());
         try { if (Con.act != null) sb.append(Beat.prev(Con.act)); } catch (Throwable ignored) {}
-        sb.append("== 上一次游戏日志最后 80 行 ==\n");
-        try {
-            File prev = null;
-            File[] fs = cur.getParentFile().listFiles();
-            if (fs != null) for (File x : fs)
-                if (!x.equals(cur) && x.getName().startsWith("PUBGM") && x.getName().endsWith(".log") && (prev == null || x.lastModified() > prev.lastModified())) prev = x;
-            if (prev == null) sb.append("没有\n");
-            else {
-                sb.append(prev.getName()).append(' ').append(prev.length()).append(" 字节\n");
-                java.util.ArrayDeque<String> tail = new java.util.ArrayDeque<>();
-                for (String l : readText(prev, 200_000).split("\n")) { tail.add(l.length() > 300 ? l.substring(0, 300) : l); if (tail.size() > 80) tail.removeFirst(); }
-                for (String t : tail) sb.append(t).append('\n');
-            }
-        } catch (Throwable t) { sb.append("读不到：").append(t.getMessage()).append('\n'); }
         return sb.toString();
     }
 
@@ -229,32 +204,8 @@ public class AvatarLog {
 
     /** v2.43 资源清单：游戏日志里全部 pak 的挂载目录（看包里到底有没有沙漠、五军、战术大师道具等资源），加上游戏目录里的大文件。只读。 */
     static final String[] WANT = { "Desert", "Miramar", "Legion", "FiveArmy", "ThreeArmy", "Prop", "Mine", "Trap", "Doll", "Shield", "Lift", "Bush", "Tree", "Rock", "Jet", "Flare", "AirSupply", "AirBox", "Training", "Tactic", "Zombie", "Monster", "Maps", "Snow", "Sanhok", "Savage" };
-    static String resources(Activity a, File log) {
-        StringBuilder sb = new StringBuilder("\n== 资源清单（v2.43）==\n");
-        try {
-            java.util.TreeMap<String, Integer> mp = new java.util.TreeMap<>();
-            int paks = 0;
-            for (File x : new File[] { log }) {
-                BufferedReader br = new BufferedReader(new StringReader(readText(x, 30_000_000)));
-                String l;
-                while ((l = br.readLine()) != null) {
-                    int i = l.indexOf("MountPoint");
-                    if (i < 0 || !l.contains("mount pak")) continue;
-                    paks++;
-                    String m = l.substring(i + 10).replace("\"", "").replace("../../../PUBGM/Content/", "").trim();
-                    if (m.endsWith(".")) m = m.substring(0, m.length() - 1);
-                    if (m.startsWith("Avatar/")) { String[] q = m.split("/"); m = q.length > 2 ? "Avatar/" + q[1] + "/" + q[2] + "/*" : m; }
-                    mp.merge(m, 1, Integer::sum);
-                }
-            }
-            sb.append("挂载 pak ").append(paks).append(" 个，目录 ").append(mp.size()).append(" 种\n");
-            StringBuilder hit = new StringBuilder();
-            for (java.util.Map.Entry<String, Integer> e : mp.entrySet()) {
-                sb.append(e.getKey()).append(" ×").append(e.getValue()).append('\n');
-                for (String w : WANT) if (e.getKey().toLowerCase().contains(w.toLowerCase())) { hit.append(e.getKey()).append("  "); break; }
-            }
-            sb.append("关键词命中：").append(hit.length() == 0 ? "无" : hit.toString()).append('\n');
-        } catch (Throwable t) { sb.append("读日志失败：").append(t).append('\n'); }
+    static String resources(Activity a) {
+        StringBuilder sb = new StringBuilder("\n== 资源清单 ==\n（v4.07 不读游戏日志，pak 挂载目录不再列）\n");
         sb.append("-- 游戏目录大文件 --\n");
         try {
             String pkg = "com.tencent.tmgp.pubgm";
