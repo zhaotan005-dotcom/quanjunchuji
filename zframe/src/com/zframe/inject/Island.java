@@ -245,15 +245,6 @@ final class Island {
     static volatile boolean running;
     static final StringBuilder seen = new StringBuilder();
 
-    /** Con 每行游戏日志都给这里（只在训练岛）：记关键行 */
-    static void seen(String l) {
-        String[] keys = { "OnAllDuplicateLevelLoaded", "OnLevelStreamingLayerLoadCompleted", "AddPlayerToSlot", "Spawn Vehicle", "SpawnVehicle", "Load Block", "Client Load Block", "SetupPlayerStartActor Add Player Start 0 ", "LevelMgr is null", "level not prepared",
-            "FillLayersWithCacheData", "TileLayer", "Already Load Block", "Out Of Index", "Streaming in level", "DirectSubmit", "NZStreamingRequestsManager", "Not Need", "FirstLoad", "StreamingLevelsManagerActor", "[Pickup]", "PickUpRefresh", "CachedPickupSPList", "CachedSpawnedPickupList", "GridMap" };
-        for (String k : keys) if (l.contains(k)) {
-            synchronized (seen) { if (seen.length() < 6000) seen.append(l.trim().length() > 200 ? l.trim().substring(0, 200) : l.trim()).append("\n  "); seenLog = seen.toString(); }
-            return;
-        }
-    }
 
     static void clearSeen() { synchronized (seen) { seen.setLength(0); seenLog = ""; } }
 

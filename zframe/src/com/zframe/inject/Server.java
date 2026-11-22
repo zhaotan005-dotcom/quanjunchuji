@@ -617,20 +617,34 @@ public class Server {
     /** v4.07：游戏自带「开始游戏」→ 按选的地图进图。以前看日志「RequestStartSingleMatch add_maps_chose:N」，
      *  同一次点击游戏还发 15001 CSRoomMatchStartAllocReq（cs_room_match.proto：map_id=4、maps_chose=7），现在从包里读。 */
     static String startPicked(byte[] body) {
-        long chose = -1, mapId = -1;
-        try { PB.R r = new PB.R(body); while (r.next()) { if (r.field == 7 && r.wire == 0) chose = r.val; else if (r.field == 4 && r.wire == 0) mapId = r.val; } } catch (Throwable ignored) {}
-        // 日志里的编号是 1 老海岛 / 3 新海岛 / 4 雨林 / 5 训练场；包里字段是编号还是位掩码没实测 → 两个字段都试，位掩码也认
+        // v4.09 根因：cs_room_match.proto 是 proto3（libUE4 0x494a035 内嵌描述符，syntax "proto3"），maps_chose(7) 是 repeated int32
+        //   → proto3 默认 packed，线上是 wire 2（长度+一串 varint），v4.07/4.08 只认 wire 0 → 永远读成 -1「认不出地图」→ 开始游戏/训练场都没反应。
+        //   现在 packed 和非 packed 都认；map_id(4)/mode_type(1) 照记。
+        long mapId = -1, mode = -1; java.util.ArrayList<Long> chose = new java.util.ArrayList<>();
+        try {
+            PB.R r = new PB.R(body);
+            while (r.next()) {
+                if (r.field == 7 && r.wire == 0) chose.add(r.val);
+                else if (r.field == 7 && r.wire == 2) { PB.R p = new PB.R(body, r.off, r.len); while (p.p < p.end) chose.add(p.vint()); }
+                else if (r.field == 4 && r.wire == 0) mapId = r.val;
+                else if (r.field == 1 && r.wire == 0) mode = r.val;
+            }
+        } catch (Throwable ignored) {}
+        // 编号（以前日志 add_maps_chose:N）：1 老海岛 / 3 新海岛 / 4 雨林 / 5 训练场。先认 maps_chose 第一个认得的，再认 map_id，最后按位掩码
         int pick = -1;
-        for (long v : new long[] { chose, mapId }) if (v == 1 || v == 3 || v == 4 || v == 5) { pick = (int) v; break; }
-        if (pick < 0 && chose > 0 && Long.bitCount(chose) == 1) { int bit = Long.numberOfTrailingZeros(chose); if (bit == 1 || bit == 3 || bit == 4 || bit == 5) pick = bit; }
+        for (long v : chose) if (v == 1 || v == 3 || v == 4 || v == 5) { pick = (int) v; break; }
+        if (pick < 0 && (mapId == 1 || mapId == 3 || mapId == 4 || mapId == 5)) pick = (int) mapId;
+        if (pick < 0) for (long v : chose) if (v > 0 && Long.bitCount(v) == 1) { int bit = Long.numberOfTrailingZeros(v); if (bit == 1 || bit == 3 || bit == 4 || bit == 5) { pick = bit; break; } }
+        String raw = "maps_chose=" + chose + " map_id=" + mapId + " mode=" + mode;
+        Con.lastStart = raw + " → " + pick;
         final int id = pick;
-        mark("开始游戏 15001：maps_chose=" + chose + " map_id=" + mapId + " → " + id);
-        if (id <= 0) return "（maps_chose=" + chose + " map_id=" + mapId + "，认不出地图）";
+        mark("开始游戏 15001：" + raw + " → " + id);
+        if (id <= 0) return "（" + raw + "，认不出地图）";
         long now = System.currentTimeMillis();
         if (now - Con.startAt <= 4000) return "（地图 " + id + "，4 秒内重复，不再进）";
         Con.startAt = now;
         new Thread(() -> Con.startGame(id), "zf-start").start();
-        return "（地图 " + id + (chose > 0 ? " maps_chose" : " map_id") + " → 进图）";
+        return "（地图 " + id + "，" + raw + " → 进图）";
     }
     static void setHairColor(long role, long c, String from) {
         synchronized (Server.class) {

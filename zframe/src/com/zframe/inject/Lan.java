@@ -228,18 +228,6 @@ final class Lan {
     }
     static void add(String s) { synchronized (log) { if (log.size() >= 150) log.remove(0); log.add(s.length() > 260 ? s.substring(0, 260) : s); } }
 
-    /** 日志行过滤：网络相关的都收下 */
-    static void line(String l) {
-        if (role == 1 && l.contains("Join succeeded")) Crew.joined();
-        try { trig(l); } catch (Throwable ignored) {}   // v2.31：有人进来 → 房主找人、拉到身边
-        if (l.contains("LogNet") || l.contains("NetDriver") || l.contains("Listen") || l.contains("NMT_") || l.contains("PendingNet")
-                || l.contains("NetConnection") || l.contains("Welcomed") || l.contains("TravelFailure") || l.contains("NetworkFailure")
-                || l.contains("PreLogin") || l.contains("Login") && l.contains("NZ") || l.contains("Beacon") || l.contains("NetMode") || l.contains("Reconnect") || l.contains("ReLogin") || l.contains("Kick") || l.contains("Reject") || l.contains("Duplicate") || l.contains("GameMode") && l.contains("Login") || l.contains("Game class is")) {
-            if (l.contains("Saturated") && l.contains("NZIpNetConnection")) { if (NetRate.satLines++ % 100 != 0) return; }   // v2.97：饱和行每帧一条，挤掉别的；只记数、每 100 条留一条
-            if (l.contains("UNZMobilePlayerinput") || l.contains("AvaListener") || l.contains("EventListener") || l.contains("KeyLobbyMsg") || l.contains("per Net Tick, too much") || l.contains("CheckNetRecvState")) return;   // v2.87：刷屏行挤掉了加入/重连的关键行
-            add(l.trim());
-        }
-    }
     /** v2.88 用户：不要让我点导出诊断 → 断线/加入失败/换弹循环时自动导出上传（同类 90 秒内只传一次，等 8 秒让后面的日志进来） */
     static final java.util.Map<String, Long> upAt = new java.util.HashMap<>();
     static void autoUp(String kind) {
@@ -247,12 +235,6 @@ final class Lan {
         long now = System.currentTimeMillis();
         synchronized (upAt) { Long t = upAt.get(kind); if (t != null && now - t < 90000) return; upAt.put(kind, now); }
         new Thread(() -> { try { Thread.sleep(8000); android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, kind + "-"); } catch (Throwable ignored) {} }, "zf-auto-" + kind).start();
-    }
-    static void trig(String l) {
-        if (l.contains("NetworkFailure") || l.contains("TravelFailure") || l.contains("ConnectionLost") || l.contains("Connection Closed") || l.contains("PreLogin failure") || l.contains("Closing connection") && Lan.role == 1) autoUp("net");
-        else if (l.contains("Force set local front ammo count") || l.contains("ServerAmmo=0")) autoUp("ammo");
-        // v3.05 用户：打药没效果 → 用药品（401 类）时自动传一份日志，看读条/结束/取消哪一步断了
-        else if ((l.contains("PreUseItem") || l.contains("FinishUsing") || l.contains("CancelUsing") || l.contains("CastTime")) && (l.contains("401") || l.contains("Heal") || l.contains("Drink") || l.contains("Bandage") || l.contains("FirstAid") || l.contains("Painkiller"))) autoUp("heal");
     }
     static String text() { synchronized (log) { return log.isEmpty() ? "（空）" : String.join("\n  ", log); } }
 }

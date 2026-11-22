@@ -60,31 +60,6 @@ public class Prop {
     static final java.util.LinkedHashMap<String, Integer> miss = new java.util.LinkedHashMap<>();
     static volatile long missAt; static volatile String lastMiss = "", lastUseLog = "";
     static final java.util.regex.Pattern PATH = java.util.regex.Pattern.compile("(/Game/[^\\s'\"\\]\\)\\[,]+)");
-    static void line(String l) {
-        gameLine(l);
-        String kind = null;
-        if (l.contains("SpawnScenePropItem") || l.contains("CanUseThisItem")) { LogCap.note("用道具日志: " + l); lastUseLog = l; }
-        if (l.contains("asynchronous load mesh failed")) kind = "地上模型";
-        else if (l.contains("Unable to load static mesh")) kind = "手持模型";
-        else if (l.contains("failed to load mesh resource") || l.contains("load fail")) kind = "模型";
-        else if (l.contains("Failed to find object") || l.contains("Couldn't find file") || l.contains("Can't find file")
-            || l.contains("Failed to load") || l.contains("Failed to read file")) kind = "资源";
-        if (kind == null) return;
-        java.util.regex.Matcher m = PATH.matcher(l);
-        String p;
-        if (m.find()) p = m.group(1);
-        else if (kind.equals("资源")) return;     // 没有 /Game/ 路径的通用失败行不记（太杂）
-        else { int a = l.lastIndexOf('['), e = l.lastIndexOf(']'); p = a >= 0 && e > a ? l.substring(a + 1, e) : "（路径空）"; if (p.isEmpty()) p = "（路径空）"; }
-        String key = kind + " " + p;
-        boolean neu;
-        synchronized (miss) {
-            Integer c = miss.remove(key); neu = c == null;
-            miss.put(key, c == null ? 1 : c + 1);
-            while (miss.size() > 40) miss.remove(miss.keySet().iterator().next());
-        }
-        missAt = System.currentTimeMillis(); lastMiss = kind + " " + shortPath(p);
-        if (neu) LogCap.note("缺资源: " + key);
-    }
     static String shortPath(String p) {
         if (!p.startsWith("/Game/")) return p;
         String s = p.substring(6); int d = s.lastIndexOf('.'); if (d > 0) s = s.substring(0, d);
@@ -237,13 +212,7 @@ public class Prop {
         synchronized (diag) { for (String x : diag) sb.append('\n').append(x); }
         return sb.toString();
     }
-    static final String[] GAME_KEYS = { "PreUseItem", "FinishUsingItemCastTime", "StopPreUsingItem", "AbortPreUsingItem", "CanUseThisItem",
-        "UseThisItem", "SpawnScenePropItem", "Recycle", "recycle", "StartAction", "PlayerPropComponent", "ClientPreUseItemPrepareFinish" };
     static volatile long watchUntil;
-    static void gameLine(String l) {
-        if (System.currentTimeMillis() > watchUntil) return;
-        for (String k : GAME_KEYS) if (l.contains(k)) { int i = l.indexOf("]Log"); d("游戏: " + (i > 0 ? l.substring(i + 1) : l)); return; }
-    }
     static void upload(String why) {
         d("上传日志：" + why);
         android.app.Activity a = Con.act; if (a != null) AvatarLog.export(a, "prop-");

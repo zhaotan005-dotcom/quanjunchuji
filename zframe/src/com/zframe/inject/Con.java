@@ -8,8 +8,7 @@ import java.util.*;
 
 /**
  * 通过 UE4 自带的 GameActivity.nativeConsoleCommand 给引擎发控制台命令（纯 Java，不需要 root）。
- * 另外盯着引擎日志：地图里一出现 “StreamingServerLayer Add 某关卡”，就自动用 StreamLevelIn 把这些关卡
- * （门、物资刷新点、载具刷新点……）真正加载出来。
+ * v4.07/4.09：不读任何游戏日志（也不读 logcat）；游戏状态全从内存（WorldWatch）和游戏发给自建服务端的请求包（15001 等）来。
  */
 public class Con {
     static volatile int p92n;
@@ -37,6 +36,7 @@ public class Con {
             if (m == null) { last = "这个游戏没有 UE4 控制台入口"; return false; }
             if (cmd.startsWith("open ")) {   // v4.07：记下开图命令（战术模式判断）；对局图先装毒圈底层表（以前在日志 Browse 行装，时机相同：切图开始前）
                 String t = cmd.substring(5).trim(); lastOpen = t; lastOpenAt = System.currentTimeMillis();
+                if (isLobby(t)) lobbyOpenAt = lastOpenAt;
                 int q = t.indexOf('?'); String mp = q > 0 ? t.substring(0, q) : t;
                 if (mp.startsWith("/Game/Maps/") && !isLobby(mp)) { natFor = mp; try { Flow.natPrepare(mp); } catch (Throwable ignored) {} }
             }
@@ -339,6 +339,8 @@ public class Con {
         boolean upd = !NetCore.done && NetCore.readyVer <= ZInit.CORE_VER;
         // v4.06：游戏日志读不到时 engineSeenAt 永远是 0 → 永远不进大厅。更新页已建出来 = 引擎肯定在跑，按它补上
         if (engineSeenAt == 0 && UpdPage.view != 0) { engineSeenAt = now - 3000; LogCap.note("引擎就绪：世界还没开始走时间，按更新页已建出来算"); }
+        // v4.09：最后兜底——开机 90 秒内存里什么都没认出（更新页也没找到）也算引擎就绪，后面开大厅照常走，不让开机卡死
+        if (engineSeenAt == 0 && now - bootAt > 90000 && act != null) { engineSeenAt = now - 3000; LogCap.note("引擎就绪：开机 90 秒兜底"); }
         // v4.06：开机最多停 60 秒（NetCore 自己 20~40 秒就放行；这里兜底，任何原因都不再无限卡在加载页）
         boolean hold = engineSeenAt > 0 && now - engineSeenAt < 60000 && (upd || (UpdFlow.on && !UpdPage.finished));   // v3.29：不设时间上限，失败自动重试   // v3.25：等游戏更新页走完（没建出来 25 秒放行）
         if (!startupLobby && !hold && audioAuto && !feAudioSeen && bounce == 0 && brMap == null && engineSeenAt > 0 && now - engineSeenAt > 3000 && act != null) {
@@ -355,6 +357,13 @@ public class Con {
             LogCap.note("声音修复: 本次启动没见过大厅音频初始化，先进大厅 " + LOBBY);
             exec("open " + LOBBY);
         }
+        // v4.09：兜底——开了大厅之后 40 秒还没认出大厅加载完（WorldWatch 读不到地图名等），按已加载处理，等着进的图照样进，不卡人
+        if (!feAudioSeen && lobbyOpenAt > 0 && now - lobbyOpenAt > 40000) { feSeenAt = now - 5000; feAudioSeen = true; LogCap.note("声音: 开大厅 40 秒没认出大厅加载完，按已加载算（兜底）"); }
+        // v4.09：大厅里服务端没开（认不出大厅时 onBrowse/onLoaded 不会开）→ 开大厅 12 秒后兜底开，游戏的 15001/仓库请求才有人回
+        if (!Server.on && !srvFallback && lobbyOpenAt > 0 && now - lobbyOpenAt > 12000 && Lan.role == 0 && !Lan.busy && !inMatch) {
+            srvFallback = true;
+            new Thread(() -> { if (Server.on || Lan.role != 0 || Lan.busy) return; LogCap.note("兜底开服务端（大厅 12 秒没认出）→ " + Server.start()); GameOverlay.refreshAny(); }, "zf-srv2").start();
+        }
         if (bounce == 1 && feAudioSeen && feSeenAt > 0 && now - feSeenAt > 4000) {
             bounce = 2;
             String m = pendingMap != null ? pendingMap : brMap != null ? brMap : MAP_SAVAGE;
@@ -364,10 +373,13 @@ public class Con {
             exec("open " + m);
         }
     }
-    static volatile boolean manualBounce;
+    static volatile boolean manualBounce, srvFallback;
+    static volatile long lobbyOpenAt;
 
     static volatile String circle = null; // "x y"
     static volatile long startAt;
+    /** v4.09：菜单状态行用（只在内存，不落盘不上传）：最近一次 15001 解析结果、最近一次进图触发 */
+    static volatile String lastStart = "没收到", lastTrig = "没有";
     /** 地图编号来自日志：1 老海岛，3 新海岛（GameMapId=3），4 雨林（GameMapId=4），5 训练场 */
     static void startGame(final int id) {
         // v3.66 用户：雨林也用战术模式（和海岛一样能用战术道具）
@@ -376,6 +388,11 @@ public class Con {
         // v3.42 用户：删掉伪装联机（v3.25 加的单机 ?listen 进图；v3.31 起默认关），单机一律真单机进图
         final String m = m0;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);
+        // v4.09：玩家是在大厅界面点的开始 → 大厅肯定已经加载完了。WorldWatch 没认出大厅（读不到地图名）时 feAudioSeen 一直是 false，
+        //   goMap 就会把这张图挂在 pendingMap 等「大厅声音」，永远不进 → 这里直接认定大厅已好，绝不让开始按钮卡住
+        pendingMap = null; if (bounce == 1) bounce = 2;   // 先撤掉等着的图（防 tickAudio 抢先开旧图）
+        if (!feAudioSeen) { feSeenAt = System.currentTimeMillis(); feAudioSeen = true; LogCap.note("开始按钮：大厅界面已在 → 算大厅音频已初始化"); }
+        lastTrig = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(new java.util.Date()) + " 开始游戏 编号 " + id + " → " + (m == null ? "无此图" : m.substring(m.lastIndexOf('/') + 1));
         final Activity a = act;
         if (a == null) return;
         a.runOnUiThread(() -> {

@@ -64,23 +64,6 @@ final class Loot {
         synchronized (filled) { filled.clear(); }
     }
 
-    /** Con 的日志监视每行都调（只做字符串判断） */
-    static void line(String l) {
-        if (Ed.ED != 1 || Lan.role != 1 || !on) return;
-        if (l.contains("StreamingServerLayer Add")) { layerAdds++; if (lastLayer.isEmpty()) lastLayer = cut(l); return; }
-        if (l.contains("[Pickup] SPAWN")) { pickupSpawn++; return; }
-        if (l.contains("RegisterDoor") || l.contains("[DS Load]") || l.contains("Add %d Doors") || l.contains("Doors to GridMap")) { doorLines++; lastDoor = cut(l); return; }
-        int i = l.indexOf("LockServer--Pos:");
-        if (i >= 0) {
-            try {
-                String[] p = l.substring(i + 16).trim().split(",");
-                bx = Float.parseFloat(p[0].trim()); by = Float.parseFloat(p[1].trim()); bz = Float.parseFloat(p[2].trim().split("\\s")[0]);
-                boxAt = System.currentTimeMillis();
-            } catch (Throwable ignored) {}
-            return;
-        }
-        if (l.contains("PickupItemIDList.Num() = 0")) { emptyBox++; fillBox(); }
-    }
     static String cut(String l) { l = l.trim(); return l.length() > 200 ? l.substring(0, 200) : l; }
 
     /** 空投箱是空的：在箱子位置放一套（狙 + 子弹 + 3 级头甲）。没拿到箱子位置就不放 */

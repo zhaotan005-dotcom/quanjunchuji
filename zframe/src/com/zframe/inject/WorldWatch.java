@@ -29,6 +29,7 @@ final class WorldWatch {
     static volatile boolean browsed, loaded;
     static volatile int urlOff = -1, players = -1, worlds;
     static volatile float lastT = -1f;
+    static volatile long usedOpenAt;
     static volatile String state = "世界状态：没开始", how = "";
     static volatile boolean leaveSent = true, mapFromUrl;
     /** 调试：模拟「没有游戏日志」已经是常态（v4.07 起不读日志），这里只记录本次运行发过的事件，诊断里看 */
@@ -79,6 +80,11 @@ final class WorldWatch {
             if (w == 0) return;
             if (!browsed) {
                 mapFromUrl = mp != null;
+                // v4.09：URL 里读不到 → 这个世界是我们 open 之后出现的第一个世界，就用开图命令里的地图名（每条命令只用一次，防游戏后面自己切图被认错）
+                long oa = Con.lastOpenAt;
+                if (mp == null && now - seenAt > 1500 && oa > 0 && oa != usedOpenAt && seenAt >= oa - 500 && seenAt - oa < 120000) {
+                    usedOpenAt = oa; mp = strip(Con.lastOpen); how = "地图名来自开图命令";
+                }
                 if (mp == null && now - seenAt > 6000) mp = outerName(m, b, w);
                 if (mp == null) { state = "世界状态：新世界 " + Long.toHexString(w) + "，还没读到地图名"; if (now - seenAt < 30000) { lastT = t; return; } mp = "?"; }
                 map = mp; browsed = true; leaveSent = false;
@@ -198,6 +204,16 @@ final class WorldWatch {
             }
         } catch (Throwable ignored) {}
         return 0;
+    }
+
+    /** v4.09：菜单里一行（只在内存）：世界/地图/是否加载完/模式/最近一次开始游戏 */
+    static String shortText() {
+        String mp = map.isEmpty() ? "-" : map.substring(map.lastIndexOf('/') + 1);
+        long w = world;
+        String st = w == 0 ? "无世界" : !browsed ? "读地图名中" : loaded ? "已加载" : "加载中";
+        return "世界 " + (w == 0 ? "0" : Long.toHexString(w)) + " " + mp + " " + st + "（第" + worlds + "个" + (how.isEmpty() ? "" : "，" + how) + "）"
+            + "；模式 " + (Con.training ? "训练岛" : ModeProbe.propsMode ? "战术" : Con.inMatch ? "对局" : "大厅/无")
+            + "；15001 " + Con.lastStart + "；触发 " + Con.lastTrig + "；服务端 " + (Server.on ? "开" : "关");
     }
 
     static String text() {

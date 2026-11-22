@@ -8,8 +8,6 @@ import java.io.*;
 
 /** v1.56 灰色人物诊断：按一下，把游戏日志里和人物/衣服有关的行存到 下载/ZFrame/avatar-*.txt。平时什么都不做。 */
 public class AvatarLog {
-    static final String[] KEYS = { "GameMode", "Legion", "BFA", "PropBase", "evanlu", "PreUseItem", "FinishUsingItemCastTime", "StopPreUsingItem", "AbortPreUsingItem", "Recycle", "PlayerPropComponent", "SpawnScenePropItem", "CanUseThisItem", "UseThisItem", "Avatar", "Ava", "jayzhong", "cidefeng", "ClotheTry", "HallRole", "RoleID", "roleID",
-            "LoadMap", "Assembler", "SkeletalMesh", "Skin", "KeyLobbyMsg", "SendRawBuffer", "Wardrobe", "Depot", "Bag", "Store", "Error", "LuaErr", "Mail", "VehicleInterface", "UseVehicle", "EnterVehicle", "Ammo", "Reload", "Discrepancy", "Correction", "NZVehicle", "Explo", "Burn", "GiveItem", "PickupInventory", "ChangeClip", "Carried", "AirSupply", "AirBox", "Flare", "FunctionalProp", "Legion", "FiveArmy" };
 
     static String export(Activity a) { manual = true; try { return export(a, "avatar-"); } finally { manual = false; } }
     /** v3.36 用户：单机没有导出诊断 → 手动点的照样导出（存手机 下载/ZFrame），自动的仍关 */
@@ -45,28 +43,9 @@ public class AvatarLog {
         } catch (Throwable t) { return "导出失败：" + t.getMessage(); }
     }
 
-    /** v1.68：上次闪退的原因。系统日志里本应用自己的 Fatal signal / backtrace 行，加上上一次的游戏日志最后几十行。 */
+    /** v4.09：不读任何日志（不读 logcat、不读游戏日志）。只留系统 API 的退出原因、游戏私有目录的崩溃文件和心跳。只服务端用。 */
     static String crashInfo() {
-        StringBuilder sb = new StringBuilder("== 系统日志（闪退）==\n");
-        int n = 0;
-        try {
-            Process p = Runtime.getRuntime().exec(new String[] { "logcat", "-d", "-v", "time", "-b", "crash", "-b", "main", "-b", "system", "-t", "60000" });
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "UTF-8"));
-            java.util.ArrayDeque<String> keep = new java.util.ArrayDeque<>();
-            String l;
-            while ((l = br.readLine()) != null) {
-                if (l.contains("Fatal signal") || l.contains("SIGSEGV") || l.contains("SIGABRT") || l.contains("backtrace") || l.contains(" #")
-                        || l.contains("Abort message") || l.contains("fault addr") || l.contains("libUE4") || l.contains("Cmdline")
-                        || l.contains("KeyLobbyMsg") || l.contains("FATAL") || l.contains("Assertion")
-                        || l.contains("CrashReport") || l.contains("Bugly") || l.contains("eup") || l.contains("signal") || l.contains("pubgm") && (l.contains("died") || l.contains("kill") || l.contains("exit"))) {
-                    keep.add(l.length() > 300 ? l.substring(0, 300) : l);
-                    if (keep.size() > 150) keep.removeFirst();
-                }
-            }
-            p.destroy();
-            for (String k : keep) { sb.append(k).append('\n'); n++; }
-        } catch (Throwable t) { sb.append("读不到：").append(t.getMessage()).append('\n'); }
-        sb.append("（").append(n).append(" 行）\n");
+        StringBuilder sb = new StringBuilder();
         sb.append(crashFiles());
         sb.append(exitInfo());
         try { if (Con.act != null) sb.append(Beat.prev(Con.act)); } catch (Throwable ignored) {}
@@ -99,35 +78,10 @@ public class AvatarLog {
                 }
             }
             if (l.isEmpty()) sb.append("没有记录\n");
-            for (android.app.ApplicationExitInfo e : l) if (e.getReason() == android.app.ApplicationExitInfo.REASON_SIGNALED) { sb.append(around(e.getTimestamp(), e.getPid())); break; }
         } catch (Throwable t) { sb.append("读不到：").append(t).append('\n'); }
         return sb.toString();
     }
 
-    /** v4.02：被杀前 10 秒的系统日志（全部进程、不过滤关键字，去掉刷屏行），看是谁发的 SIGKILL */
-    static String around(long ts, int pid) {
-        StringBuilder sb = new StringBuilder("== 被杀前后系统日志（pid " + pid + "）==\n");
-        java.text.SimpleDateFormat df = new java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.US);
-        String from = df.format(new java.util.Date(ts - 10000)), to = df.format(new java.util.Date(ts + 2000));
-        java.util.ArrayDeque<String> keep = new java.util.ArrayDeque<>();
-        try {
-            Process p = Runtime.getRuntime().exec(new String[] { "logcat", "-d", "-v", "time", "-b", "all" });
-            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream(), "UTF-8"));
-            String x;
-            while ((x = br.readLine()) != null) {
-                if (x.length() < 14) continue;
-                String t = x.substring(0, 14);
-                if (t.compareTo(from) < 0 || t.compareTo(to) > 0) continue;
-                if (x.contains("msgid=5017") || x.contains("EPixelFormat") || x.contains("non-streamed") || x.contains("SafeDataWriter") || x.contains("ProcessSkinRes") || x.contains("GetRenderQuality")) continue;
-                keep.add(x.length() > 260 ? x.substring(0, 260) : x);
-                if (keep.size() > 300) keep.removeFirst();
-            }
-            p.destroy();
-        } catch (Throwable t) { sb.append("读不到：").append(t).append('\n'); }
-        for (String k : keep) sb.append(k).append('\n');
-        sb.append("（").append(keep.size()).append(" 行，").append(from).append(" ~ ").append(to).append("）\n");
-        return sb.toString();
-    }
 
     /** v2.09：游戏自带的崩溃上报（Bugly 等）会吞掉系统的闪退记录，去游戏私有目录里找最近 3 小时的崩溃文件 */
     static String crashFiles() {
@@ -177,17 +131,6 @@ public class AvatarLog {
         }
     }
 
-    /** 读文件最后 max 字节；游戏日志有时是异或 0x73 存的（开头没有 "Log" 就解码），和 Con 里的判断一样 */
-    static String readText(File f, int max) throws IOException {
-        try (RandomAccessFile r = new RandomAccessFile(f, "r")) {
-            byte[] head = new byte[(int) Math.min(4000, r.length())]; r.readFully(head);
-            boolean xor = !new String(head, "ISO-8859-1").contains("Log");
-            long from = Math.max(0, r.length() - max);
-            byte[] b = new byte[(int) (r.length() - from)]; r.seek(from); r.readFully(b);
-            if (xor) for (int i = 0; i < b.length; i++) b[i] ^= 0x73;
-            return new String(b, "UTF-8");
-        }
-    }
 
     static String peek(long b, long off, int n) {
         if (b == 0) return "?";

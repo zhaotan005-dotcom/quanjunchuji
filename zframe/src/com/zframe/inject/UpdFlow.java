@@ -40,10 +40,6 @@ final class UpdFlow {
 
     /** 日志里看到更新流程开始 / 页面类没找到 */
     static volatile boolean pageSeen;
-    static void line(String l) {
-        if (l.contains("Begin Flow") && l.contains("Update")) { pageSeen = true; LogCap.note("游戏更新页：更新流程开始了"); GameOverlay.gamePage(); }
-        else if (l.contains("UpdateUIClass is null")) { state = "游戏更新页：这个包里没有更新页蓝图"; LogCap.note(state); }
-    }
 
     /** v3.59 用户：开机没有 TiMi 页（一直没有）。RE：启动 GameMode 构造 0x121af90 只推 Timi/Update/LoadLogin 三步，
      *  放 LogoUI（timistart 帧 + Timi_Logo_SoundCue）的 UNZStartupFlowLogo（StaticClass 0x1680678，Begin 0x121166c，3.6 秒自动结束）没在列表里；

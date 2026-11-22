@@ -360,3 +360,11 @@
 - 闸口：LogUp.send/put 直接返回（硬闸，含 zf-logup 线程和 zf_logq 补传）；BootLog.start/ping（启动消息、boot-*）；AvatarLog.export（所有前缀 lobby-/lobbyop-/net-/train-/crash-/upd-/mode-/pak-/box-/ammo-/matchend-/mark-/duel-/flare-/prop-/para-/slot-，手动导出也不传）；Lan.autoUp；Server.opLog、autoCrashSave（Con 调用处也判）；AvatarLog.autoTrain；GameOverlay 进大厅 40 秒 lobby-；MapMark matchend-/mark- 线程；联机页「导出诊断」按钮单机/客户端不显示。
 - 不再收集：Beat 心跳（beat.txt、smaps）只服务端开；Server.stepFile 单机/客户端返回 null → Server.mark 步骤文件不写；单机/客户端启动时 Beat.wipe 删旧的 beat*/smaps*/zf_server_steps*/zf_tomb_saved/zf_crash_saved/zf_logq。
 - 保留：NetCore 读 ntfy 内核指针（只读）和镜像下载；Room 房间表（ntfy R/J/Q）、Give 代刷 —— 是功能不是日志；LogCap 内存记录（不落盘不上传）。
+
+## v4.09（core310，2026-11-22 20:3x，全部未实测）开始游戏/训练场修好 + 全部日志残留去掉。详见 history v4.09
+- 根因：15001 的 maps_chose 是 proto3 repeated → packed（wire 2），v4.07/4.08 只认 wire 0 → 永远「认不出地图」，开始游戏和训练场入口（编号 5）都不进图。已改成两种都认。
+- 兜底：开始按钮直接认定大厅已好（不再挂 pendingMap 等声音）；开大厅 12 秒没开服务端就兜底开、40 秒认不出大厅按已加载；开机 90 秒引擎就绪兜底；WorldWatch 读不到地图名用刚发的 open 命令里的地图名。
+- 删光日志残留：各类 line()/seen()/trig() 死代码、AvatarLog 读 logcat/异或解码、LogCap 不再写 logcat。**以后不要加任何读日志（游戏日志、logcat）的代码。**
+- 菜单标题下新增一行小字（只内存）：世界/地图/状态/模式/15001 原值/最近触发/服务端。用户出问题让他截图这一行：
+  - 「15001 没收到」= 游戏请求没到我们的服务端（看「服务端 关」）；「15001 maps_chose=[…] → -1」= 编号不认识，按原值补映射；
+  - 「世界 0 无世界」或地图一直「读地图名中」= GWorld 偏移/地图名读取有问题。

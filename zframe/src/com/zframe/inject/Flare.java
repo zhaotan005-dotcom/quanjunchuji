@@ -24,17 +24,6 @@ final class Flare {
         synchronized (log) { for (String x : log) sb.append("\n    ").append(x); }
         return sb.toString();
     }
-    static final String[] KEYS = { "Flare", "AirSupply", "AirBox", "AirDrop", "AirPlane", "Airplane", "SupplyBox", "AirTransporter" };
-    /** Con.line 每行调 */
-    static void line(String l) {
-        boolean hit = false;
-        for (String k : KEYS) if (l.contains(k)) { hit = true; break; }
-        if (!hit) return;
-        long now = System.currentTimeMillis();
-        if (now < until) { int i = l.indexOf("]Log"); d("游戏: " + (i > 0 ? l.substring(i + 1) : l)); return; }
-        // v3.01：v3.00 任何含 Flare 的行都触发，结果大厅里 LensFlare/T_EFX_Flare 贴图日志也触发、记到的全是默认对象。只认信号枪本身的行
-        if ((l.contains("FlareGun") || l.contains("FlareBullet")) && now - lastStart > 30000) start(l);
-    }
     static void start(String why) {
         lastStart = System.currentTimeMillis(); until = lastStart + 25000;
         synchronized (log) { log.clear(); }

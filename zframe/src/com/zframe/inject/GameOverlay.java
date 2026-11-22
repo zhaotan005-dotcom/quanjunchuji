@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.08";
+    static final String VER = "v4.09";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -105,6 +105,13 @@ public class GameOverlay {
             status.setPadding(u.dp(14), u.dp(6), u.dp(14), u.dp(6));
             panel.addView(status, new LinearLayout.LayoutParams(-1, -2));
             status.setVisibility(View.GONE);   // v2.64 简约：不要状态行
+            // v4.09：单机/客户端不上传诊断 → 菜单里一行小字显示内存里的世界状态（不写文件、不上传），出问题截图看
+            final TextView ww = new TextView(a);
+            ww.setTextSize(9f); ww.setTextColor(SUBT); ww.setMaxLines(3); ww.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            ww.setPadding(u.dp(14), 0, u.dp(14), u.dp(4));
+            panel.addView(ww, new LinearLayout.LayoutParams(-1, -2));
+            final Runnable paintWw = () -> { try { ww.setText(WorldWatch.shortText()); } catch (Throwable ignored) {} };
+            paintWw.run();
 
             // ---- 主体（可收起）：v1.99 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
             final LinearLayout body = new LinearLayout(a);
@@ -184,11 +191,11 @@ public class GameOverlay {
                 }
             };
             mode.run();
-            refresher = () -> { mode.run(); paintStatus(status); fill(a, u, content); TextView tt = titleRef; if (tt != null) tt.setText(titleText()); };
+            refresher = () -> { mode.run(); paintStatus(status); paintWw.run(); fill(a, u, content); TextView tt = titleRef; if (tt != null) tt.setText(titleText()); };
             paintStatus(status);
             fill(a, u, content);
             final Runnable[] tick = new Runnable[1];
-            tick[0] = () -> { if (panel.getParent() == null) return; if (panel.getVisibility() == View.VISIBLE) paintStatus(status); panel.postDelayed(tick[0], 1000); };
+            tick[0] = () -> { if (panel.getParent() == null) return; if (panel.getVisibility() == View.VISIBLE) { paintStatus(status); paintWw.run(); } panel.postDelayed(tick[0], 1000); };
             panel.postDelayed(tick[0], 1000);
 
             // v2.05 用户：不要「艾」悬浮球 → 「–」收起成只剩标题栏的小条，点标题栏或「+」展开

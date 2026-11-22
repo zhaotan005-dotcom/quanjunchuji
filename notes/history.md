@@ -1709,3 +1709,19 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 实现：Ed.uploads()（BUILD==1 && ED==1）。LogUp.send/put 硬闸；BootLog、AvatarLog.export（手动也不传，返回「单机/客户端不上传日志」）、autoTrain、Lan.autoUp、Server.opLog/autoCrashSave、大厅 40 秒 lobby-、MapMark 两个线程都先判；联机页「导出诊断」按钮只服务端显示。Beat.start 只服务端，其它调 Beat.wipe 清旧文件（beat*、smaps*、zf_server_steps*、zf_tomb_saved、zf_crash_saved、zf_logq）；Server.stepFile 非服务端返回 null（mark 不写）。
 - 没动：NetCore（ntfy 指针只读 + 下载）、Room/Give 的 ntfy（房间表/代刷是功能）。
 - 构建：build_all.sh 4.07 4.08 308 309（JDK 换 jdk-21.0.12.1+1 的临时副本 /tmp/b.sh 分两次跑，仓库脚本没改），core/b0-2.ver=309；releases 换成 v4.08 三个。
+
+## v4.09（core310，2026-11-22 20:3x，全部未实测）开始游戏/训练场没日志进不去 —— 根因 + 去掉全部日志残留
+- 用户 20:19：不开日志进不了训练场、点游戏内「开始游戏」不开局。20:22：把全代码所有靠日志的地方都去掉。
+- 根因（确定）：v4.07 把「RequestStartSingleMatch add_maps_chose:N」日志行换成读 15001 CSRoomMatchStartAllocReq 包，Server.startPicked 只认 field 7 wire 0。
+  libUE4 0x494a035 内嵌描述符：cs_room_match.proto 是 **proto3**（同文件 +2027 处 syntax "proto3"），maps_chose = `7 repeated int32` → proto3 默认 **packed（wire 2）**；
+  map_id(4) 单机下多半是 0（proto3 省略）→ 解析永远 -1「认不出地图」→ Con.startGame 不调用。训练场入口走的也是同一条（编号 5）→ 两个症状同一根因。
+  v4.07 之前能用是因为读的日志行；v4.07/4.08 跟开不开日志无关，所有手机都坏（用户开日志时多半是旧版或误判）。
+- 修：startPicked 认 packed 和非 packed，取 maps_chose 第一个 1/3/4/5，再看 map_id，再按位掩码；结果存 Con.lastStart（菜单显示）。离线单测 packed [3]/[5,3] 解析正确。
+- 次要卡点（防 WorldWatch 认不出大厅时卡死）：
+  - Con.startGame：玩家在大厅点的开始 → 直接置 feAudioSeen、清 pendingMap/bounce，goMap 不再挂起等「大厅声音」。
+  - Con.tickAudio：开大厅（exec 记 lobbyOpenAt）40 秒仍没认出加载完 → 按已加载；12 秒 Server 没开 → 兜底 Server.start（否则 15001/仓库请求没人回）；开机 90 秒 engineSeenAt 还是 0 → 兜底就绪。
+  - WorldWatch：URL 读不到地图名时，用我们刚发的 open 命令里的地图名（每条命令只给它之后出现的第一个世界用一次），再退包名、再 "?"。
+- 去掉日志残留（都是 v4.07 后的死代码或只读日志的诊断）：LobbyLoad.line、Flare.line+KEYS、Island.seen、Lan.line+trig（net/ammo/heal 自动传）、Loot.line（空投空箱补货触发）、Prop.line/gameLine/GAME_KEYS、UpdFlow.line、AvatarLog.readText（异或 0x73 解码）/KEYS/around（被杀前后 logcat）/crashInfo 的 logcat 读取（只留 ApplicationExitInfo、私有目录崩溃文件、心跳，仍只服务端）；LogCap.note 不再 android.util.Log.i（不写 logcat，只留内存 120 条）。
+- 菜单状态行（GameOverlay，标题下 9sp 灰字最多 3 行，每秒刷新，只内存）：WorldWatch.shortText() = 世界地址 地图短名 状态（第 N 个、地图名来源）；模式；15001 解析原值 → 编号；最近触发；服务端开/关。
+- 未实测/不确定：maps_chose 实际值（按旧日志应是 1/3/4/5）；Room.mine 残留（以前建过游戏房间没退）时 15001 会走 Room 房主开房；WorldWatch GWorld 偏移仍未上机验证（状态行能直接看出来）。
+- 构建：/tmp/b.sh（build_all.sh 的 JDK 换 jdk-21.0.12.1+1、分两次跑，仓库脚本没改）4.08 4.09 309 310，core/b0-2.ver=310；releases 加 v4.09 三个（v4.06 已不在仓库，v4.08 留着）。
