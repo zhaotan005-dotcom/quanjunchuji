@@ -12,6 +12,7 @@ import java.util.*;
  * （门、物资刷新点、载具刷新点……）真正加载出来。
  */
 public class Con {
+    static volatile int p92n;   // v3.92 P92 诊断条数
     static volatile Activity act;
     static volatile String last = "";
     static final List<String> history = Collections.synchronizedList(new ArrayList<String>());
@@ -465,6 +466,7 @@ public class Con {
         }
         if (l.contains("SpawnVehicle") || l.contains("VehicleSpawn") || l.contains("NZBRVehicleManager")) LogCap.note("刷车日志: " + l.trim());
         if (l.contains("Spawn Vehicle ") || l.contains("spawn vehicle failed")) Veh.spawnLog(l);
+        if ((l.contains("P92") || l.contains("SK_WP_") || l.contains("Failed to load")) && p92n < 60) { p92n++; LogCap.note("P92诊断 " + (l.length() > 300 ? l.substring(0, 300) : l)); }   // v3.92：P92 手里空气，记下游戏关于 P92/武器模型加载的日志
         // v1.32：游戏自带「开始游戏」→ 按选的地图直接进图
         int sm = l.indexOf("RequestStartSingleMatch add_maps_chose:");
         if (sm >= 0) {

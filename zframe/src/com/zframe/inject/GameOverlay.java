@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v3.91";
+    static final String VER = "v3.92";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -201,7 +201,59 @@ public class GameOverlay {
                 }
                 panel.post(() -> clamp(panel, decor, u));
             };
-            fold.setOnClickListener(v -> { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); });
+            // v3.92 用户（视频）：点标题展开/收起是一下子跳的 → 改成宽、高一起平滑过渡（中心不动），内容淡入淡出，260ms 减速曲线
+            final android.animation.ValueAnimator[] tgA = new android.animation.ValueAnimator[1];
+            final Runnable toggle = () -> {
+                if (tgA[0] != null) { tgA[0].cancel(); tgA[0] = null; }
+                ViewGroup.LayoutParams lp0 = panel.getLayoutParams();
+                if (lp0 == null || panel.getWidth() <= 0 || panel.getVisibility() != View.VISIBLE) {
+                    collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); return;
+                }
+                final boolean toC = !collapsed;
+                final int ow = panel.getWidth(), oh = panel.getHeight();
+                final int nw = toC ? u.dp(150) : pw;
+                int H = decor.getHeight() > 0 ? decor.getHeight() : sh;
+                int nh0;
+                if (toC) nh0 = head.getHeight() + panel.getPaddingTop() + panel.getPaddingBottom();
+                else {
+                    collapsed = false; fill(a, u, content);
+                    body.setVisibility(View.VISIBLE); body.setAlpha(0f);
+                    close.setVisibility(Con.inMatch ? View.VISIBLE : View.GONE);
+                    panel.measure(View.MeasureSpec.makeMeasureSpec(nw, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(H, View.MeasureSpec.AT_MOST));
+                    nh0 = panel.getMeasuredHeight();
+                }
+                final int nh = Math.max(u.dp(24), nh0);
+                final float cx = getX(panel) + ow / 2f, y0 = getY(panel);
+                android.animation.ValueAnimator va = android.animation.ValueAnimator.ofFloat(0f, 1f).setDuration(260);
+                va.setInterpolator(new android.view.animation.DecelerateInterpolator(1.8f));
+                va.addUpdateListener(av -> {
+                    float t = (float) av.getAnimatedValue();
+                    int w = Math.round(ow + (nw - ow) * t), h = Math.round(oh + (nh - oh) * t);
+                    ViewGroup.LayoutParams l = panel.getLayoutParams(); if (l == null) return;
+                    l.width = w; l.height = h;
+                    body.setAlpha(toC ? Math.max(0f, 1f - t * 1.6f) : Math.max(0f, t * 1.4f - 0.4f));
+                    if (l instanceof WindowManager.LayoutParams) {
+                        WindowManager.LayoutParams wl = (WindowManager.LayoutParams) l; wl.x = Math.round(cx - w / 2f); wl.y = Math.round(y0);
+                        try { if (panel.isAttachedToWindow()) pwm.updateViewLayout(panel, wl); } catch (Throwable ignored) {}
+                    } else { panel.setLayoutParams(l); panel.setX(cx - w / 2f); }
+                });
+                va.addListener(new android.animation.AnimatorListenerAdapter() {
+                    boolean cancelled;
+                    @Override public void onAnimationCancel(android.animation.Animator an) { cancelled = true; }
+                    @Override public void onAnimationEnd(android.animation.Animator an) {
+                        ViewGroup.LayoutParams l = panel.getLayoutParams();
+                        if (l != null) {
+                            l.height = ViewGroup.LayoutParams.WRAP_CONTENT; l.width = nw;
+                            if (l instanceof WindowManager.LayoutParams) { try { pwm.updateViewLayout(panel, l); } catch (Throwable ignored) {} } else panel.setLayoutParams(l);
+                        }
+                        body.setAlpha(1f);
+                        if (cancelled) return;
+                        collapsed = toC; px = getX(panel); apply.run();
+                    }
+                });
+                tgA[0] = va; va.start();
+            };
+            fold.setOnClickListener(v -> toggle.run());
 
             hookKeys(a, panel, u);
             if (px < 0) { px = (sw - (collapsed ? u.dp(150) : pw)) / 2f; py = u.dp(4); }   // v2.19 用户：默认放中上（以前偏左，容易点到电竞页）
@@ -261,7 +313,7 @@ public class GameOverlay {
                             if (Con.inMatch && moved && sy + (e.getRawY() - dy) < -u.dp(24)) { clamp(panel, decor, u); showPanel(panel, false, u); return true; }
                             clamp(panel, decor, u);
                             if (moved) { ux = px; uy = py; }
-                            if (!moved) { collapsed = !collapsed; apply.run(); if (!collapsed) fill(a, u, content); }
+                            if (!moved) toggle.run();   // v3.92 平滑过渡
                             return true;
                     }
                     return false;
@@ -959,7 +1011,7 @@ public class GameOverlay {
             case "20105000003": add(l, SMG_MZ, SC_MID); l.add(SMG_MAG); l.add(TAC); break;     // Vector
             case "20105000004": l.add("20501000004"); l.add("20502000001"); add(l, SC_CLOSE); l.add(SMG_MAG); break;   // 汤姆逊
             case "20103000001": case "20103000002": l.add("20501000011"); l.add("20505000004"); break;   // S1897、S686：收束器 + 子弹袋
-            case "20103000003": l.add("20501000011"); add(l, SC_CLOSE); l.add(AR_MAG); break;   // S12K
+            case "20103000003": l.add("20501000011"); add(l, AR_MZ, SC_CLOSE); l.add(AR_MAG); break;   // S12K（v3.92 加步枪枪口）
             case "20104000001": add(l, SR_MZ, SC_SR); l.add(CHEEK); l.add("20505000005"); break;   // 98K
             case "20104000002": case "20104000004": add(l, SR_MZ, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // AWM、M24
             case "20104000003": add(l, SR_MZ, GRIP, SC_SR); l.add(SR_MAG); l.add(CHEEK); break;   // SKS
@@ -1251,12 +1303,7 @@ public class GameOverlay {
             // v3.03 用户：飞天去掉（客户端本来就没有）。传送落地还用 Fly.softLand
             head(a, u, root, "传送");
             switchRow(a, u, root, "点地图标点自动传送", Ed.ED == 1 || Lan.role == 1 ? "标点后你先传过去慢慢落地，落地后加入的人全部传到你身边" : "在大地图上标点后，自动传到那个点的地面上。现在：" + MapMark.state, MapMark.autoTp, v -> { MapMark.save(v); MapMark.tpNow = v; MapMark.start(); return "ok"; });
-            if (Ed.ED == 0 && Lan.role == 0 && !Con.training) {   // v3.42 删「单机按联机方式进图」（伪装联机）；改成抛物线诊断。v3.46 训练营只留加速/高跳/标点传送
-                head(a, u, root, "诊断");
-                LinearLayout pr = row(a, root);
-                btn(a, u, pr, "手雷抛物线检查", () -> new Thread(() -> { Parabola.check(); AvatarLog.manual = true; try { toastAny(AvatarLog.export(a, "para-")); } finally { AvatarLog.manual = false; } }).start());
-                note(a, u, root, "手上拿着手雷（切到投掷物）再点，逐项记录画抛物线前的检查，自动上传诊断");
-            }
+            // v3.92 用户：抛物线已经正常，删掉「手雷抛物线检查」
         }
         if (Ed.ED != 2 && Lan.role != 2) gfxBlock(a, u, root);   // v3.58 训练营只有这一页，画面设置也放这
     }
@@ -1316,7 +1363,7 @@ public class GameOverlay {
         {"冲锋枪", "消音器:20501000004", "消焰器:20501000005", "补偿器:20501000006", "垂直握把:20502000001", "扩容弹匣:20504000004", "快速弹匣:20504000005", "快速扩容:20504000006", "战术枪托:20505000001", "UZI枪托:20505000002"},
         {"狙击枪", "消音器:20501000007", "消焰器:20501000008", "补偿器:20501000009", "扩容弹匣:20504000007", "快速弹匣:20504000008", "快速扩容:20504000009", "托腮板:20505000003", "98K子弹袋:20505000005"},
         {"连狙", "消音器:20501000007", "消焰器:20501000008", "补偿器:20501000009", "垂直握把:20502000001", "扩容弹匣:20504000007", "快速弹匣:20504000008", "快速扩容:20504000009", "托腮板:20505000003"},
-        {"霰弹枪", "收束器:20501000011", "霰弹子弹袋:20505000004"},
+        {"霰弹枪", "收束器:20501000011", "霰弹子弹袋:20505000004", "S12K消音器:20501000001", "S12K消焰器:20501000002", "S12K补偿器:20501000003", "S12K扩容弹匣:20504000001", "S12K快速弹匣:20504000002", "S12K快速扩容:20504000003"},   // v3.92 用户：霰弹枪只有 2 件、S12K 没配件 → 加 S12K 能装的步枪枪口和弹匣（游戏没有 S12K 专用弹匣蓝图）
         {"手枪", "手枪消音:20501000010", "扩容弹匣:20504000010", "快速弹匣:20504000011", "快速扩容:20504000012"},
         {"十字弩", "箭袋:20502000003", "弩瞄准镜:20503000007"},
         {"倍镜", "红点:20503000001", "全息:20503000002", "2倍镜:20503000003", "4倍镜:20503000004", "8倍镜:20503000005"},
@@ -1338,15 +1385,23 @@ public class GameOverlay {
             n++;
         }
         while (n % 4 != 0) { r.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); n++; }
-        head(a, u, root, "倍镜（点一下刷一个在脚下）");
+        head(a, u, root, Ed.ED == 1 ? "倍镜（点一下刷一个在脚下）" : "倍镜（点一下放进背包）");
         n = 0;
         for (String[] c : ATT_CATS) if (c[0].equals("倍镜")) for (int j = 1; j < c.length; j++) {
             final String[] it = c[j].split(":");
             if (n % 4 == 0) r = row(a, root);
-            btn(a, u, r, it[0], () -> giveGround(a, new String[] { it[1] }, it[0]));
+            btn(a, u, r, it[0], () -> giveBag(a, it[1], it[0]));
             n++;
         }
         while (n % 4 != 0) { r.addView(new View(a), new LinearLayout.LayoutParams(0, 1, 1)); n++; }
+    }
+    /** v3.92 用户：倍镜刷进背包（服务端版固定刷脚下；加入别人房间让房主代刷） */
+    static void giveBag(final Activity a, final String id, final String label) {
+        if (remote() || Ed.ED == 1) { giveGround(a, new String[] { id }, label); return; }
+        if (giveSt == 1 || giveSt == 3) { toast(a, "先在补丁更新里点「更新补丁」"); return; }
+        boolean g = onGround; onGround = false;
+        try { give(a, id, 1); } finally { onGround = g; }
+        toast(a, label + "：已放进背包");
     }
     /** v3.89：一组东西刷在脚下（不管当前是刷身上还是地上）；加入别人房间时让服务端代刷 */
     static void giveGround(final Activity a, final String[] ids, final String label) {
@@ -1476,7 +1531,17 @@ public class GameOverlay {
         {"jetpack", "喷气背包"}, {"flare", "信号枪"}, {"lift", "升降台"}, {"trampol", "弹射板"}, {"detect", "探测器"}, {"drone", "无人机"}, {"radar", "雷达"}, {"mine", "地雷"}, {"trap", "陷阱"},
         {"gas", "汽油桶"}, {"fuel", "汽油桶"}, {"556", "5.56 子弹"}, {"762", "7.62 子弹"}, {"9mm", "9mm 子弹"}, {"45acp", ".45 子弹"}, {"acp", ".45 子弹"}, {"12g", "12 号霰弹"}, {"gauge", "12 号霰弹"}, {"300", ".300 马格南"}, {"magnum", ".300 马格南"}};
     /** 枪名（M416 这种）在配件分类里 → 「M416 专用」+分类；枪本身保留型号（M416、AKM 本来就这么叫） */
+    /** v3.92 用户：战术道具按钮标出名字。名字按 pak 里游戏自己的蓝图名（Blueprints/.../40201xxxxxx_<名字>）翻译 */
+    static final java.util.Map<Long, String> TAC_CN = new java.util.HashMap<>();
+    static {
+        Object[][] t = { {40201000001L, "护盾"}, {40201000002L, "升降台"}, {40201000003L, "地雷"}, {40201000004L, "捕兽夹"},
+            {40201000005L, "伪装灌木"}, {40201000006L, "替身人偶"}, {40201000007L, "伪装石头"}, {40201000008L, "伪装树"},
+            {40201000009L, "诱饵假人"}, {40201000010L, "伪装箱子"}, {40201000012L, "侦察气球"}, {40201000014L, "弹射板"},
+            {40201000015L, "侦测手雷"}, {40200000001L, "汽油桶"} };
+        for (Object[] x : t) TAC_CN.put((Long) x[0], (String) x[1]);
+    }
     static String cnName(long id, String raw, String cat, int idx) {
+        String tc = TAC_CN.get(id); if (tc != null) return tc;
         String c3 = String.valueOf(id / 1000000);
         boolean att = c3.startsWith("205") || c3.startsWith("206");
         if (raw != null && !raw.isEmpty()) {
@@ -1604,8 +1669,7 @@ public class GameOverlay {
             btn(a, u, pr, (itemPage + 1) + " / " + pages, () -> {});
             btn(a, u, pr, "下一页", () -> { itemPage = (itemPage + 1) % pages; refreshAny(); });
         }
-        btn(a, u, pr, "重新读", () -> { items = null; loadItems(true); });
-        pad(a, pr, pages > 1 ? 4 : 1, 4);
+        if (pages > 1) pad(a, pr, 3, 4);   // v3.92 用户：删掉「重新读」
         note(a, u, root, itemState + "。刷不出来的会自动删掉。");
         // v2.50：模型/特效文件不在手机上的道具，游戏日志里有加载失败的路径，这里直接列出来（单机没有导出）
         String ps = Prop.on ? (Prop.fallbackUsed() ? "地上看不见的道具：已用替身模型显示" : "地上看不见的道具：替身已装，等第一个地上模型加载") : "地上替身：" + (Prop.state.isEmpty() ? "进对局后自动装" : Prop.state);
@@ -1806,7 +1870,7 @@ public class GameOverlay {
     /** v3.21 用户：单机版加入服务器后标题还是「单机版」。标题跟实际状态走：加入了别人的房间（Lan.role==2）= 联机版；
      *  在本机对局里 = 单机版；在大厅按菜单顶上的「单机 | 联机」选择。 */
     /** v3.65 训练场显示的分页：功能 刷枪 配件 特殊（含投掷物） 子弹 装备 */
-    static final java.util.Set<Integer> TRAIN_TABS = new java.util.HashSet<>(java.util.Arrays.asList(8, 3, 12, 9, 10, 4));
+    static final java.util.Set<Integer> TRAIN_TABS = new java.util.HashSet<>(java.util.Arrays.asList(8, 3, 12, 9, 10, 4, 1));   // v3.92 用户：训练场加「刷车」
     static String titleText() {
         if (Ed.single()) {
             if (Lan.role == 2) return "全军出击联机版";
@@ -1917,7 +1981,7 @@ public class GameOverlay {
      *  游戏自己的更新页（UNZUpdateUIView）在这个包里不会建出来（腾讯版本服务停了，v2.70 探测只有默认对象），
      *  所以在游戏加载页（StartupMap）上盖一层同样布局：上面「公告」= 仓库 core/notice.txt（拿不到就用包里自带的 NOTICE），
      *  下面进度条 = 我们从仓库下内核的进度。最新/失败 → 显示满 6 秒后关；下好了 → 2 秒后自动重启用新版。点一下就关，最多 40 秒。 */
-    static final String NOTICE = "v3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
+    static final String NOTICE = "v3.92 更新内容（只更新内核）\n· 菜单点标题展开、收起改成平滑过渡\n· 战术道具按钮显示名字（护盾、升降台、地雷等），删掉「重新读」\n· 删掉「手雷抛物线检查」\n· 倍镜改成放进背包\n· 霰弹枪配件补上 S12K 能装的枪口和弹匣（共 8 件）\n· 训练场菜单加「刷车」\n\nv3.91 更新内容（只更新内核）\n· 对局里脱下仓库衣服（风衣、裤子等）后身上不再还挂着：默认上衣和裤子一直放在出生默认衣服里，脱下时游戏能换回默认衣服\n\nv3.90 更新内容（只更新内核）\n· 刷车：点了马上出、马上提示，不再等十几秒才确认（以前这段时间再点没反应，还可能多刷一辆）\n· 去掉菜单里的「检查补丁中…」字样";
     static volatile String remoteNotice;
     static void fetchNotice() {
         new Thread(() -> {

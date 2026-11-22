@@ -1597,3 +1597,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 日志：11:30:02 Discard 30318000000（绝地风衣）成功后紧跟 NZBRCharacter.cpp:6836「[Pickup] DiscardInventory Give Default Apparel Fault.」→ 身上模型不换。11:30:07/08 丢 30310000006、30308000017 同样（截图：地上有深绿迷彩短裤、吃鸡MVP口罩，身上还戴着）。原因：syncWear 只把「穿着的」默认件放进出生默认列表（10200000000,30213000003,30306000000,30303000006），默认上衣 30301000001/裤子 30302000000 被风衣顶掉后不在列表，游戏脱下时找不到默认件。改：4 件默认衣服（30301000001,30302000000,30303000006,30306000000）始终放进出生列表（原版 DefaultRoleClotheDataTable 也全在）。
 - 喷气背包：11:29:37 穿上 30307000099 → InitJetpackBag ×2、OnRep_AvaRepInfo、SkeletalMeshComponent_0 注册、紧跟「LogRHI: Error: Unsupported EPixelFormat 28」×2；客户端 pak 里 Avatar/Common/Bagpack/30307000099/ Mesh/Huan/材质都在。原因未定，未改（可能和焊死的默认背包 30306000000 抢背包位，或贴图格式 28 不支持）。
 - P92 / 训练场闪退：那段（训练场）没有上传日志，ntfy 里搜不到 P92，仍待查。
+
+## v3.92（core293，2026-11-22 12:2x，只推内核，未实测）
+- 用户 12:09（v3.91 实测，7 图+视频）：训练场不闪退了 ✅；喷气背包截图里有模型了；抛物线正常（「注册了」=正常）。要求：战术道具标名字、删「重新读」、删「手雷抛物线检查」、视频里菜单展开/收起要丝滑过渡、倍镜刷进背包、霰弹枪配件只有 2 件且 S12K 没配件、继续修 P92、训练场菜单加刷车。12:13 补：扔烟雾弹显示的还是手雷那个标（未处理）。
+- 改：GameOverlay toggle：点标题展开/收起用 ValueAnimator 260ms 宽高一起插值、中心不动、body 淡入淡出（WindowManager 窗口逐帧 updateViewLayout，结束恢复 WRAP_CONTENT）；TAC_CN 名字表（按 pak 蓝图名：1 Shield 护盾/2 Lift 升降台/3 LandMine 地雷/4 Trap 捕兽夹/5 Shrub 伪装灌木/6 Chara 替身人偶/7 FakeRock 伪装石头/8 Tree 伪装树/9 Dummy 诱饵假人/10 Box 伪装箱子/12 ScoutBallon 侦察气球/14 LaunchPad 弹射板/15 ScanGrenade 侦测手雷，40200000001 汽油桶）；删重新读、删抛物线检查；倍镜 giveBag（单机强制进背包，服务端仍脚下）；霰弹枪组 8 件（加步枪枪口 3 + 步枪弹匣 3 给 S12K，pak 里没有 S12K 专用弹匣蓝图）、attFor S12K 加 AR_MZ；TRAIN_TABS 加 1（刷车）。
+- P92：客户端 pak cf1f20f5… 里 W202010001_P92 的 BP/1P_FPP/3P 模型/材质/贴图都在，设备上这个 pak 有挂载（11-15 日志）。静态看不出原因。加诊断：Con 收到含 P92 / SK_WP_ / Failed to load 的游戏日志记 60 条「P92诊断」。
