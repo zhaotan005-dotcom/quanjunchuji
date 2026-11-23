@@ -413,3 +413,4 @@
 - 依据（以前的样本，没新看日志）：服务端大厅每次都是 RSS ~1.0GB 被 SIGKILL，可用内存还有 1.7GB → 推断云手机按单进程内存上限杀；v3.83/v4.05/v4.12 都闪 → 不是某一版加的功能。
 - 改：Con.SRV_MEM 池 128→80、MipBias 2、r.SkeletalMeshLODBias 1、r.ViewDistanceScale 0.6；MemTrim 停用（换出 650MB 只降 35MB，还卡）。只影响服务端包（Ed.ED==1）。
 - 构建：build_all.sh 只跑 `for e in 1`（b0/b2 仍 316），底包 v4.15-单机。releases 保留 v4.16 服务端、v4.15、v4.14 服务端，git rm v4.12/v4.13。
+- v4.16 客户端（core317，00:0x）：用户要客户端也推服务端同版本试 → 同一份代码 `for e in 2` 打客户端，b2=317（单机 b0 仍 316）。
