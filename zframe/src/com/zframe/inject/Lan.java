@@ -99,7 +99,7 @@ final class Lan {
         String rl = Mods.write(RELOG, RELOG_O, RELOG_N, true);
         String g = Mods.write(NQ_CAVE, NQ_CAVE_O, NQ_CAVE_N, true);
         String car;
-        if (Ed.BUILD == 1) {
+        if (Ed.BUILD == 1 || Ed.MASK) {
             car = Mods.write(CARC, CARC_O, CARC_N, true);
             if ("ok".equals(car)) { car = Mods.write(CAR, CAR_O, CAR_H, true); if ("ok".equals(car)) car = "ok（服务端不能上车）"; }
             else car = "cave " + car + "，退回：" + Mods.write(CAR, CAR_O, CAR_N, true);

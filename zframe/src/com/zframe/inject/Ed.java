@@ -7,7 +7,9 @@ package com.zframe.inject;
 final class Ed {
     static final int BUILD = 1;
     // v3.13 用户：去掉单机/联机选择，客户端包也默认开自建服务端（ED 0：大厅自建服务端 + 仓库衣服），大厅里照样能加入别人
-    static volatile int ED = BUILD == 2 ? 0 : BUILD;
+    /** v4.16 用户：真手机测服务端代码会不会闪退 → 客户端槽（BUILD 2）里放服务端行为的内核（MASK=true 时 ED=1），过得了客户端的版本核对；平时 false */
+    static final boolean MASK = false;
+    static volatile int ED = BUILD == 2 ? (MASK ? 1 : 0) : BUILD;
     static volatile boolean chosen = true;
     static boolean single() { return ED == 0; }
     /** v4.08 用户规矩：单机/客户端不上传任何日志、不收集只为上传用的数据（心跳/步骤文件/闪退自动存），只有服务端（ED 1）上传。 */
