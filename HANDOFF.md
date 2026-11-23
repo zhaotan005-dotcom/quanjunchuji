@@ -425,3 +425,7 @@
 - 用户 00:24：v4.17 菜单还是刷不出车（v4.17 只开了训练台原生刷车，用户说偷换概念）；倒计时 29:33 卡一下，服务端不卡。
 - 分析：菜单刷车代码（Veh.spawnGroup/place）ED0/ED1 完全一样；真机跑服务端内核正常是走「联机训练营」= Lan.host open 训练岛 ?listen。客户端从游戏「开始」按钮 startGame(5) 是纯单机 open。
 - 改：Con.startGame 编号 5 在客户端包（BUILD 2）带 ?listen；单机包不变。推断，未实测。若仍不行，下一步让客户端训练场直接走 Lan.host 同一条路（含 MaxPlayers、Server.quiet、Bots.auto=false）。
+
+## 03:1x 投掷物图标/倒计时（只查没改，未实测）
+- UpdateThrowWeaponTexture 是原生空函数（vt+0x1c0=0xb63a30 bx lr），v3.69「蓝图选图标」说法错。图标：OnDrawThrowWeapon 0x17f12c8 → GetLastThrowWeapon 0xfe90e8（缓存 管理器+0x558）→ 0x17ea248 读 武器+0x2c0 InventoryIdName。倒计时：ThrowCountDownHUD NativeTick 0x17029e0 读 [[this+0x28]+0xdd0]。pak 默认值都对。三个嫌疑：实例 +0x2c0、管理器+0x558 旧手雷、+0xdd0 写入者。需真机只读诊断定位。详见 workspace work/re/throw_hud_findings.md。
+- build_all 底包要 v4.18-单机.apk，没有 → 下次发版先处理。
