@@ -17,6 +17,7 @@ final class MemTrim {
 
     static void start() {
         if (started || Ed.ED != 1) return; started = true;
+        if (true) { off = true; state = "内存换出：已停用（v4.16）"; return; }   // v4.16：v4.11 实测换出 650MB 只降 35MB，没用还卡（用户 14:53 说服务端卡）→ 停用
         new Thread(() -> {
             long last = 0; int rounds = 0;
             while (!off) {

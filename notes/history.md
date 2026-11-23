@@ -1779,3 +1779,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 刷车：Veh.place 5 点车位检查全不过时不再直接「没刷」，照 v4.10 以前办法刷在人前方（净空+1 米，落点射线地面 +1.5 米），只有前面是水才不刷。
 - 退出：常用页（funcPage）训练场里顶上加「退出训练场，回大厅」（Lan.leave）；Server 默认分支：训练场里任何 15xxx 请求都当退出（模式 600 下游戏退出可能发别的号，推断）。
 - 菜单：v4.09 世界状态那行（ww）隐藏；WorldWatch.shortText 去掉 ModeMap；TrainMode 不再每秒读模式编号。
+
+## v4.16（服务端 core317，2026-11-23 16:3x，未实测）
+- 用户 16:27「怎么服务端还是闪退」（v4.14 = v3.83 代码）。用户规则：不看日志、不回退。服务端 b1 改为仓库 src（v4.15 代码）编，Con.SRV_MEM 再压：r.Streaming.PoolSize 80、MipBias 2、SkeletalMeshLODBias 1、ViewDistanceScale 0.6；MemTrim.start 直接停用。推断根因：云手机单进程 ~1.0GB 上限（v4.00–4.06 心跳样本），未证实。若还闪：下一步考虑降渲染分辨率（r.MobileContentScaleFactor，需开机前设）。

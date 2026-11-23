@@ -183,7 +183,7 @@ public class Con {
      *  开机发一次、每次进图后再发、开房前也发（游戏 PreLoadMap 会按设置重设 sg.*，所以也把设置里的画质改成流畅） */
     static final String[] SRV_MEM = {"set NZSystemSettingData RenderQualityOption Low", "sg.TextureQuality 0", "sg.ViewDistanceQuality 0", "sg.FoliageQuality 0",
         "sg.EffectsQuality 0", "sg.ShadowQuality 0", "sg.PostProcessQuality 0", "r.ShadowQuality 0", "r.MobileMSAA 1", "r.DetailMode 0",
-        "r.Streaming.PoolSize 128", "r.Streaming.MipBias 1", "foliage.DensityScale 0", "grass.DensityScale 0"};   // v4.06：池 160→128、贴图少一级 mip（约省 3/4 流式贴图）
+        "r.Streaming.PoolSize 80", "r.Streaming.MipBias 2", "r.SkeletalMeshLODBias 1", "r.ViewDistanceScale 0.6", "foliage.DensityScale 0", "grass.DensityScale 0"};   // v4.06：池 160→128、少一级 mip；v4.16：池 128→80、少两级 mip、骨骼模型降一级 LOD、视距 0.6（云手机显存算进进程内存，推断）
     static void srvMem(String why) {
         if (Ed.ED != 1) return;
         int n = 0; for (String c : SRV_MEM) if (exec(c)) n++;
