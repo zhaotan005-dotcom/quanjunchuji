@@ -420,3 +420,8 @@
 ## v4.17（客户端 core319，2026-11-24 00:2x，未实测）
 - 用户 00:19：真手机跑服务端内核不闪退 → 服务端闪退是云手机的问题（用户结论）。服务端那套训练岛刷车（游戏自己的驾驶训练台 BP_VehiclePracticeBase 刷 12 辆，Island.vehPractice）好用，客户端要。
 - 改：Island 训练岛 vp = !Ed.single() || Ed.BUILD == 2 → 客户端包（ED 0）也跑 vehPractice；单机包（BUILD 0）照旧不刷。b2 恢复正常客户端（MASK=false）。b1 仍 318，b0 316。releases：v4.17 客户端、v4.16、v4.15（git rm v4.14）。
+
+## v4.18（客户端 core320，2026-11-24 00:2x，未实测）
+- 用户 00:24：v4.17 菜单还是刷不出车（v4.17 只开了训练台原生刷车，用户说偷换概念）；倒计时 29:33 卡一下，服务端不卡。
+- 分析：菜单刷车代码（Veh.spawnGroup/place）ED0/ED1 完全一样；真机跑服务端内核正常是走「联机训练营」= Lan.host open 训练岛 ?listen。客户端从游戏「开始」按钮 startGame(5) 是纯单机 open。
+- 改：Con.startGame 编号 5 在客户端包（BUILD 2）带 ?listen；单机包不变。推断，未实测。若仍不行，下一步让客户端训练场直接走 Lan.host 同一条路（含 MaxPlayers、Server.quiet、Bots.auto=false）。

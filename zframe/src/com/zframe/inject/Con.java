@@ -385,7 +385,7 @@ public class Con {
     static void startGame(final int id) {
         // v3.66 用户：雨林也用战术模式（和海岛一样能用战术道具）
         // v3.22 用户：单机新海岛也用战术模式（和联机服务端开房一样：?game=战术模式蓝图）
-        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE + "?game=" + ModeProbe.cache.get("Props") : id == 5 ? MAP_TRAINING : null;   // v3.33：5 训练场 = 训练岛默认模式
+        String m0 = id == 1 ? MAP_ERANGEL : id == 3 ? MAP_ERANGEL2 + "?game=" + ModeProbe.cache.get("Props") : id == 4 ? MAP_SAVAGE + "?game=" + ModeProbe.cache.get("Props") : id == 5 ? MAP_TRAINING + (Ed.BUILD == 2 ? "?listen" : "") : null;   // v3.33：5 训练场 = 训练岛默认模式；v4.18 用户：客户端训练场跟服务端一样（服务端「联机训练营」= open 训练岛 ?listen，菜单刷车、训练台刷车都正常、不卡）→ 客户端包进训练场也带 ?listen；单机包不变
         // v3.42 用户：删掉伪装联机（v3.25 加的单机 ?listen 进图；v3.31 起默认关），单机一律真单机进图
         final String m = m0;
         LogCap.note("游戏开始按钮: 地图编号 " + id + " → " + m);
