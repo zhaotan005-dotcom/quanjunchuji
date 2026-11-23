@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.12";
+    static final String VER = "v4.15";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -112,6 +112,7 @@ public class GameOverlay {
             panel.addView(ww, new LinearLayout.LayoutParams(-1, -2));
             final Runnable paintWw = () -> { try { ww.setText(WorldWatch.shortText()); } catch (Throwable ignored) {} };
             paintWw.run();
+            ww.setVisibility(View.GONE);   // v4.15 用户：菜单上面字太多 → 世界状态那行不显示
 
             // ---- 主体（可收起）：v1.99 左边一列分页（用户：菜单太复古、排版没逻辑），右边内容 ----
             final LinearLayout body = new LinearLayout(a);
@@ -1279,6 +1280,10 @@ public class GameOverlay {
     /** v2.19「功能」页：加速、高跳、标点传送（v3.46 删「动作放慢」，动作用游戏默认） */
     static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
         boolean cl = Lan.role == 2 || Ed.ED == 2;
+        if (Con.training && Con.inMatch) {   // v4.15 用户：训练场退不出来 → 菜单直接回大厅（不靠游戏设置里的退出）
+            LinearLayout xr = row(a, root);
+            fillBtn(a, u, xr, "退出训练场，回大厅", () -> toast(a, Lan.leave()));
+        }
         head(a, u, root, "跑跳");
         if (Ed.ED == 2 && Lan.role == 2) {
             // v2.92 用户：客户端也要加速 → 拉条发给服务端，服务端只给你一个人改，再同步回来

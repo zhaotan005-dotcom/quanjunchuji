@@ -388,7 +388,15 @@ public class Veh {
                     fx0 = x; fy0 = y; fz = z + sz.lift; how = i == 0 ? "前方地面" : "第 " + (i + 1) + " 个位置";
                     break;
                 }
-                if (Float.isNaN(fz)) return "没刷 " + label + "：附近没有能停车的平地（" + tried + "）。换到空旷平地再刷";
+                if (Float.isNaN(fz)) {
+                    // v4.15 用户：训练场刷不了车。5 点车位检查太严（训练场台子/斜坡/草都会被拒）→ 找不到「完美车位」时照 v4.10 以前的办法：
+                    //  人前方 (净空+1 米)，高度取那一点射线打到的地面（打不到就人物高度），再抬 1.5 米落下。只有前面是水才不刷
+                    fx0 = (float) (px + (clear + 100f) * fx); fy0 = (float) (py + (clear + 100f) * fy);
+                    Trace.Hit h = Trace.down(fx0, fy0, feet + 600f, feet - 1500f);
+                    if (h != null && !Float.isNaN(h.z) && isWater(h)) return "没刷 " + label + "：前面是水，转个方向再刷";
+                    fz = (h != null && !Float.isNaN(h.z) && Math.abs(h.z - feet) < 600f ? h.z : feet) + 150f + sz.lift;
+                    how = "人前方（没找到平整车位）";
+                }
             }
         }
         java.util.HashMap<Long, Long> before = snap;

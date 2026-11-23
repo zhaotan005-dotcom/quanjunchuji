@@ -404,6 +404,8 @@ public class Server {
                 if (lotLastNew) { push(13002, 0, false, depositProps()); saveProps(); } break; }
             case 51007: push(51008, seq, key, lotReset()); what = "军需重置"; break;
             default:
+                // v4.15 用户：训练场退不出来。训练营模式（600）下游戏的退出可能发别的 15xxx 请求 → 训练场里收到任何 15xxx（开始匹配 15001 除外）都当退出，回成功并回大厅
+                if (cmd / 1000 == 15 && Con.training && Con.inMatch) { push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "训练场 " + cmd + " 当退出（回成功）"; new Thread(() -> GameOverlay.toastAny(Lan.leave()), "zf-quit").start(); break; }
                 // v1.73：非关键消息也回空的成功包。之前 83001 不回，游戏一直等 83002，后面的穿/脱(13003/13005)全被卡住丢掉
                 push(cmd + 1, seq, key, new PB().u(1, 0).bytes()); what = "空的成功包";
         }

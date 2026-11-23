@@ -37,7 +37,7 @@ final class TrainMode {
                             else if (me != 0 && !NoFall.isChar(m, b, me)) me = 0;   // 死了/换人物：等复活后的新人物
                         } catch (Throwable ignored) {}
                     }
-                    state = "训练岛：人物 " + Long.toHexString(me) + "；" + ModeMap.shortText() + "；" + HpFloor.state;
+                    state = "训练岛：人物 " + Long.toHexString(me);   // v4.15：不再每秒读模式编号拼长字
                     Thread.sleep(1000);
                 }
             } catch (Throwable t) { state = "训练岛：出错 " + t; LogCap.note(state); }
