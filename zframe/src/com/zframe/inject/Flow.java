@@ -316,6 +316,7 @@ public class Flow {
     static java.nio.ByteBuffer tbuf; static long taddr;
     static synchronized String natInstall() {
         if (nat) return "ok";
+        if (true) return "停用（v4.12：这段空位放不下，让给训练岛防淹/炸死）";
         long b = Mods.base(); if (b == 0) return "找不到游戏库";
         String caveA = ZCA + Server.w32((int) (b + 0xd977f4L));
         byte[] body = Patches.hex("0000000000000000000000000000000000000000000000000000000000000000" + caveA + ZCB);

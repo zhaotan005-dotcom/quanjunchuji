@@ -21,6 +21,8 @@ final class Beat {
                     StringBuilder sb = new StringBuilder(df.format(new java.util.Date()));
                     sb.append(' ').append(grab("/proc/self/status", "VmRSS", "RssAnon", "RssFile", "RssShmem", "VmSwap", "Threads")).append(" oom=").append(Beat.one("/proc/self/oom_score")).append("/").append(Beat.one("/proc/self/oom_score_adj"));
                     sb.append(' ').append(grab("/proc/meminfo", "MemAvailable", "SwapFree"));
+                    if (++lowN % 5 == 1) lowS = low4g();
+                    sb.append(lowS);
                     sb.append(' ').append(cg(cgs));
                     StringBuilder zf = new StringBuilder();
                     for (Thread t : Thread.getAllStackTraces().keySet()) if (t.getName().startsWith("zf")) zf.append(t.getName()).append(',');
@@ -129,5 +131,25 @@ final class Beat {
         File sp = new File(c.getFilesDir(), "smaps-prev.txt");
         if (sp.exists()) try { sb.append("== 上次运行 smaps 汇总 ==\n").append(new String(java.nio.file.Files.readAllBytes(sp.toPath()), "UTF-8")); } catch (Throwable ignored) {}
         return sb.toString();
+    }
+
+    /** v4.12：游戏是 32 位库，跑在 64 位云手机上 → 能用的地址只有低 4GB。记低 4GB 里已映射多少、最大空洞多大（看大厅被杀是不是地址用光） */
+    static int lowN; static String lowS = "";
+    static String low4g() {
+        long used = 0, prev = 0x10000, hole = 0;
+        try (BufferedReader r = new BufferedReader(new FileReader("/proc/self/maps"), 1 << 16)) {
+            String l;
+            while ((l = r.readLine()) != null) {
+                int d = l.indexOf('-'), sp = l.indexOf(' ');
+                if (d < 0 || sp < 0) continue;
+                long s = Long.parseLong(l.substring(0, d), 16), e = Long.parseLong(l.substring(d + 1, sp), 16);
+                if (s >= 0x100000000L) break;
+                if (e > 0x100000000L) e = 0x100000000L;
+                if (s > prev) hole = Math.max(hole, s - prev);
+                used += e - s; prev = Math.max(prev, e);
+            }
+            if (0x100000000L > prev) hole = Math.max(hole, 0x100000000L - prev);
+        } catch (Throwable t) { return " 低4G=?"; }
+        return " 低4G=" + (used >> 20) + "M 最大空洞=" + (hole >> 20) + "M";
     }
 }

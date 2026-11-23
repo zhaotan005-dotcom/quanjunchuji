@@ -1765,3 +1765,11 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 未实测/风险：OnMatchBegin 事件在训练营模式会不会来（不来 → +0x350=0 → 不复活）；重生走 Practice ChoosePlayerStart（v3.33 时「level not prepared」崩过，后来 Island 修过空队伍）；MinHp 仍挡大部分伤害 → 实际只有车炸（InVehicleExplosion/VehicleExplosion）和淹水会真死。设 SubModeId 600 后其它按模式选行的表（GameStateCommonConfig 无 600 行 → Default，不变）。其它模式（经典 100、战术 505…）同样没给模式编号，这版没动。
 - pak 读取方式：pak 索引是加密的（footer 前一字节 bEncryptedIndex=1），但文件数据 encrypted=0（只是 zlib）。game/re/pakscan.py 直接扫 zlib 块解压、按 uasset 魔数分段，**不解密任何东西**；dtrows.py 读 DataTable 行。解出来的文件放沙盒项目 work/（不进仓库）。
 - 构建：/tmp/b.sh 4.10 4.11 311 312，core/b0-2.ver=312；releases 留 v4.09/4.10/4.11（git rm v4.08）。
+
+## v4.12（core313，2026-11-23 14:5x，全部未实测）训练岛防淹死/炸死 + 大厅闪退诊断
+- 用户 14:39：v4.11 服务端在大厅闪退；训练场会淹死和炸死，要修。
+- 训练岛：HpFloor.java（新）。人物扣血 0xbe0618 两处：A 0xbe0e48 `ldr r0,[r5,#0x5a0]; sub r0,r0,r1`（a00595e5010040e0）、B 0xbe0ed0 `ldr r1,[r5,#0x5a0]; sub r0,r1,r0`（a01595e5000041e0）→ 各改 `ldr pc,[pc,#-4]; .word cave`。cave 在 SLACK+0x990（A）/+0x9c0（B），各 0x30：原样算新血；[buf]+12 != 0 时 cmp r0,#1; movlt r0,#1；str [r5,#0x5a0]；跳回 A+0xc / B+0xc。buf = MinHp.addr，+12 = 训练岛标志（MinHp 线程进训练岛置 1，离开清 0）。所有人物都挡（训练岛没人机；服务端加入的人也不淹死/炸死）。ip 在两处都是空闲（A 后到 blx r6 不用，B 后到 blx r1 不用）。
+- Flow.natInstall 停用：ZS=SLACK+0x990，32+264+76 字节超出 SLACK_END（0xac0），一直「空位被占」，没生效过。
+- 大厅闪退：v4.11 上传 upd-1123-143655（启动）、lobbyop-1123-143718（进大厅，RSS 872→837MB 内存换出第 1 轮成功 62 次 650MB 只降 35MB）。之后没有新上传 → 闪退记录等下次启动。14:36:31 那次 kill（v4.05 → 更新到 312 重启）是更新重启。Beat 加 low4g()：低 4GB 已映射总量 + 最大空洞（每 5 拍算一次）。
+- 未实测/风险：车炸如果是直接判死（不走扣血）挡不住；血从 0 以下被抬成 1 的瞬间 HUD 是否正常。
+- 构建 build_all.sh 4.11 4.12 312 313；releases 留 v4.10/4.11/4.12（git rm v4.09）。

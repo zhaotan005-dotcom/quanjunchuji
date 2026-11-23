@@ -51,6 +51,7 @@ final class MinHp {
             try {
                 String r = install();
                 if (!"ok".equals(r)) { state = "训练场锁血：没装上，" + r; LogCap.note(state); return; }
+                try { HpFloor.set(true); LogCap.note(HpFloor.state); } catch (Throwable t) { LogCap.note("训练岛防淹/炸死：出错 " + t); }
                 int n = 0, last = 0;
                 while (Con.training && Con.inMatch) {
                     // v3.95 以前用缓存的人物（死了复活/再进训练场后是旧的）；v4.10：livePawn 在车上时是车 → 改用 TrainMode 认出的人物（不是车）
@@ -64,7 +65,7 @@ final class MinHp {
                 }
                 state = state + "；已离开训练岛，停";
             } catch (Throwable t) { state = "训练场锁血：出错 " + t; LogCap.note(state); }
-            finally { if (buf != null) buf.putInt(0, 0); running = false; }
+            finally { if (buf != null) buf.putInt(0, 0); try { HpFloor.set(false); } catch (Throwable ignored) {} running = false; }
         }, "zf-minhp").start();
     }
 }
