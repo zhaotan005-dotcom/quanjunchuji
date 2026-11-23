@@ -305,8 +305,11 @@ final class Island {
         // v3.61 训练岛刷车：游戏自己的驾驶训练台（LogicLevel 的 BP_VehiclePracticeBase）在它的 Tick 里按 VehicleSpawnInfoArray 的 12 个刷车点刷车，
         //   前提是「本训练位置有人」列表里有自己的位置号 —— 那是 AddPlayerToSlot 末尾广播 OnPlayerAddToSlot 给它的。单机里摆人比 LogicLevel 加载早，广播时训练台还不存在 → 永远不刷。
         // v3.85 用户：单机模式什么都不刷；服务端（开房）才刷，而且要游戏自己刷 → 单机不调训练台刷车，服务端照旧让游戏自己的驾驶训练台刷
-        if (Ed.single()) { vehicles = "训练岛刷车：单机不刷（v3.85 用户要求）"; guns = "训练桌：单机不刷"; gunTables = "训练岛枪桌：单机不刷"; note(vehicles); }
-        if (!GameOverlay.remote() && !Ed.single()) { final long fb = b, fgm = gm, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
+        // v4.17 用户（00:19）：服务端那套刷车（游戏自己的驾驶训练台刷 12 辆）很好，客户端也要 → 客户端包（BUILD 2，平时 ED 0）也让训练台刷；单机包（BUILD 0）照旧不刷
+        final boolean vp = !Ed.single() || Ed.BUILD == 2;
+        if (!vp) { vehicles = "训练岛刷车：单机不刷（v3.85 用户要求）"; note(vehicles); }
+        if (Ed.single()) { guns = "训练桌：单机不刷"; gunTables = "训练岛枪桌：单机不刷"; }
+        if (!GameOverlay.remote() && vp) { final long fb = b, fgm = gm, fpc = pc; final Veh.Names fnm = nm; new Thread(() -> {
             try { vehicles = vehPractice(fb, fnm, fgm, fpc); } catch (Throwable e) { vehicles = "训练岛刷车：出错 " + e; }
             note(vehicles);
         }, "zf-vehprac").start(); }

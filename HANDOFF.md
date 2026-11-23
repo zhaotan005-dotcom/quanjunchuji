@@ -416,3 +416,7 @@
 - v4.16 客户端（core317，00:0x）：用户要客户端也推服务端同版本试 → 同一份代码 `for e in 2` 打客户端，b2=317（单机 b0 仍 316）。
 - 00:1x core318：用户要「把服务端代码推到客户端」，测真手机（荣耀 X70）会不会闪退 → core/b2.dex = b1.dex（BUILD=1 服务端代码，CORE_VER 318），b1 也 318。客户端开机会更新成服务端内核（名字显示服务端、会上传日志）。测完要恢复客户端：重新 `for e in 2` 编、ver 要 >318。
 - 00:1x core318 客户端槽（b2）= 服务端行为内核：Ed.MASK=true（BUILD 仍 2，过 NetCore.check；ED=1 走服务端代码；uploads() 仍 false 不传日志；Lan 车补丁按服务端）。源码 MASK 已改回 false。用户真机测会不会闪退，不用装大包。恢复客户端：MASK=false 重编 `for e in 2`，ver >318。
+
+## v4.17（客户端 core319，2026-11-24 00:2x，未实测）
+- 用户 00:19：真手机跑服务端内核不闪退 → 服务端闪退是云手机的问题（用户结论）。服务端那套训练岛刷车（游戏自己的驾驶训练台 BP_VehiclePracticeBase 刷 12 辆，Island.vehPractice）好用，客户端要。
+- 改：Island 训练岛 vp = !Ed.single() || Ed.BUILD == 2 → 客户端包（ED 0）也跑 vehPractice；单机包（BUILD 0）照旧不刷。b2 恢复正常客户端（MASK=false）。b1 仍 318，b0 316。releases：v4.17 客户端、v4.16、v4.15（git rm v4.14）。

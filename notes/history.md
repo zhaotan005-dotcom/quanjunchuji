@@ -1782,3 +1782,6 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v4.16（服务端 core317，2026-11-23 16:3x，未实测）
 - 用户 16:27「怎么服务端还是闪退」（v4.14 = v3.83 代码）。用户规则：不看日志、不回退。服务端 b1 改为仓库 src（v4.15 代码）编，Con.SRV_MEM 再压：r.Streaming.PoolSize 80、MipBias 2、SkeletalMeshLODBias 1、ViewDistanceScale 0.6；MemTrim.start 直接停用。推断根因：云手机单进程 ~1.0GB 上限（v4.00–4.06 心跳样本），未证实。若还闪：下一步考虑降渲染分辨率（r.MobileContentScaleFactor，需开机前设）。
+
+## v4.17（客户端 core319，2026-11-24 00:2x，未实测）
+- 用户 00:19：X70 跑服务端内核（core318 MASK）不闪退 → 云手机问题。要把服务端的刷车（训练台原生刷 12 辆车）给客户端：Island vp 条件加 Ed.BUILD == 2。b2 恢复为客户端内核。
