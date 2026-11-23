@@ -414,3 +414,4 @@
 - 改：Con.SRV_MEM 池 128→80、MipBias 2、r.SkeletalMeshLODBias 1、r.ViewDistanceScale 0.6；MemTrim 停用（换出 650MB 只降 35MB，还卡）。只影响服务端包（Ed.ED==1）。
 - 构建：build_all.sh 只跑 `for e in 1`（b0/b2 仍 316），底包 v4.15-单机。releases 保留 v4.16 服务端、v4.15、v4.14 服务端，git rm v4.12/v4.13。
 - v4.16 客户端（core317，00:0x）：用户要客户端也推服务端同版本试 → 同一份代码 `for e in 2` 打客户端，b2=317（单机 b0 仍 316）。
+- 00:1x core318：用户要「把服务端代码推到客户端」，测真手机（荣耀 X70）会不会闪退 → core/b2.dex = b1.dex（BUILD=1 服务端代码，CORE_VER 318），b1 也 318。客户端开机会更新成服务端内核（名字显示服务端、会上传日志）。测完要恢复客户端：重新 `for e in 2` 编、ver 要 >318。
