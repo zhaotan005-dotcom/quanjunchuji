@@ -1841,3 +1841,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 用户 22:41：刷车还要等很久，是不是在搜东西；皮卡和大脚车填反了（截图：点「大脚车」编号 31 刷出皮卡）。
 - 皮卡/大脚车：v3.47 trucks() 用 kind() 在车表行内扫 0x200 字节找 MonsterTruck/PickUpTruck，会扫进下一行 → 认错并对调。用户实测 31=皮卡 → 不再自动对调，固定 31 皮卡 / 32 大脚车。
 - 慢的原因（静态）：① Trace.init 第一次要扫整张 GUObjectArray 找 LineTraceSingle/KismetSystemLibrary（几秒），以前第一次刷车时才扫 → 现在进对局读完车表就后台先扫（+preSnap）；② 每条射线/调用都是控制台命令→游戏线程往返，Java 50ms 轮询，落点 5 点检查×最多 7 个候选 → 改 10ms 轮询；③ 刷完 confirm() 3 次射线+0.75 秒而且误报 → 删掉。
+
+## v4.26（三槽 core328，2026-11-24 22:5x，只推内核，未实测）刷车不找落点
+- 用户 22:44：不用找落点，试过什么地方都能刷。
+- 改：Veh.place 不打射线、不挑车位、不判水面：人（或坐的车）前方 净空+1 米、人物高度 +1.5 米+车型抬高 落下。matchLoaded 不再预扫 Trace.init（v4.25 加的）。船也一样刷在前方。

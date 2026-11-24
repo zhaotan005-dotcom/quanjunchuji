@@ -360,55 +360,9 @@ public class Veh {
         float clear = (inVeh ? 450f : 250f) + sz.halfLen + 50f;   // 离人（或人坐的车）的净空
         float fx0 = 0, fy0 = 0, fz = Float.NaN; String how = "";
         StringBuilder tried = new StringBuilder();
-        boolean traceOk = Trace.init();
-        if (sz.boat) {
-            // 船：先看人前方，再绕一圈找水面
-            if (swim) { fx0 = (float) (px + clear * fx); fy0 = (float) (py + clear * fy); float w = waterAt(fx0, fy0, feet); fz = (Float.isNaN(w) ? (float) pz : w) + sz.lift; how = "人前方水面"; }
-            else if (traceOk) {
-                outer:
-                for (float d : new float[] { clear, clear + 400f, clear + 900f, 2500f }) for (int k = 0; k < 8; k++) {
-                    double a = r + (k == 0 ? 0 : ((k + 1) / 2) * Math.PI / 4 * ((k & 1) == 1 ? 1 : -1));
-                    float x = (float) (px + d * Math.cos(a)), y = (float) (py + d * Math.sin(a));
-                    float w = waterAt(x, y, feet);
-                    if (Float.isNaN(w) || useRecent && nearRecent(x, y, sz.halfLen * 2)) continue;
-                    // 船身两头也要是水
-                    float w1 = waterAt((float) (x + sz.halfLen * Math.cos(a)), (float) (y + sz.halfLen * Math.sin(a)), feet), w2 = waterAt((float) (x - sz.halfLen * Math.cos(a)), (float) (y - sz.halfLen * Math.sin(a)), feet);
-                    if (Float.isNaN(w1) || Float.isNaN(w2)) continue;
-                    fx0 = x; fy0 = y; fz = w + sz.lift; how = "水面（" + Math.round(d / 100) + " 米）"; yawDeg = Math.toDegrees(a); break outer;
-                }
-            }
-            if (Float.isNaN(fz)) return "没刷 " + label + "：船只能刷在水上，附近 25 米没找到水面（走到水边或下水再刷）";
-        } else {
-            if (swim) return "没刷 " + label + "：人在水里，先上岸再刷（车不刷进水里）";
-            if (!traceOk) {
-                // 射线用不了：退回旧办法（人前方、人物高度 +1.5 米），但离人更远
-                fx0 = (float) (px + (clear + 100f) * fx); fy0 = (float) (py + (clear + 100f) * fy); fz = (float) pz + 150f; how = "人物高度（地面射线用不了：" + Trace.state + "）";
-                if (useRecent && nearRecent(fx0, fy0, sz.halfLen * 2 + 150f)) return "没刷 " + label + "：前面刚刷过车，换个方向再刷（地面射线用不了，没法看落点）";
-            } else {
-                // 候选：{前方距离, 左右}；人在车上时放车两侧/后方更远
-                float[][] cand = inVeh
-                    ? new float[][] { {0, clear + 150f}, {0, -(clear + 150f)}, {-(clear + 300f), 0}, {clear + 600f, 0}, {-(clear + 300f), clear + 150f}, {-(clear + 300f), -(clear + 150f)} }
-                    : new float[][] { {clear, 0}, {clear + 350f, 0}, {clear + 100f, 2 * sz.halfW + 300f}, {clear + 100f, -(2 * sz.halfW + 300f)}, {clear + 700f, 0}, {0, clear + 150f}, {0, -(clear + 150f)} };
-                for (int i = 0; i < cand.length; i++) {
-                    float x = (float) (px + cand[i][0] * fx - cand[i][1] * fy), y = (float) (py + cand[i][0] * fy + cand[i][1] * fx);
-                    if (useRecent && nearRecent(x, y, sz.halfLen * 2 + 150f)) { tried.append(tried.length() == 0 ? "" : "；").append("位置").append(i + 1).append(" 刚刷过车"); continue; }
-                    StringBuilder why = new StringBuilder();
-                    float z = okFootprint(x, y, fx, fy, sz, feet, why);
-                    if (Float.isNaN(z)) { tried.append(tried.length() == 0 ? "" : "；").append("位置").append(i + 1).append(" ").append(why); continue; }
-                    fx0 = x; fy0 = y; fz = z + sz.lift; how = i == 0 ? "前方地面" : "第 " + (i + 1) + " 个位置";
-                    break;
-                }
-                if (Float.isNaN(fz)) {
-                    // v4.15 用户：训练场刷不了车。5 点车位检查太严（训练场台子/斜坡/草都会被拒）→ 找不到「完美车位」时照 v4.10 以前的办法：
-                    //  人前方 (净空+1 米)，高度取那一点射线打到的地面（打不到就人物高度），再抬 1.5 米落下。只有前面是水才不刷
-                    fx0 = (float) (px + (clear + 100f) * fx); fy0 = (float) (py + (clear + 100f) * fy);
-                    Trace.Hit h = Trace.down(fx0, fy0, feet + 600f, feet - 1500f);
-                    if (h != null && !Float.isNaN(h.z) && isWater(h)) return "没刷 " + label + "：前面是水，转个方向再刷";
-                    fz = (h != null && !Float.isNaN(h.z) && Math.abs(h.z - feet) < 600f ? h.z : feet) + 150f + sz.lift;
-                    how = "人前方（没找到平整车位）";
-                }
-            }
-        }
+        // v4.26 用户：不用找落点，哪里都能刷 → 不打射线、不挑车位：人（或人坐的车）前方净空 +1 米、人物高度抬 1.5 米落下
+        fx0 = (float) (px + (clear + 100f) * fx); fy0 = (float) (py + (clear + 100f) * fy); fz = (float) pz + 150f + sz.lift;
+        how = "人前方";
         java.util.HashMap<Long, Long> before = snap;
         final boolean fresh = before != null;
         if (before == null) before = new java.util.HashMap<>();
@@ -651,7 +605,6 @@ public class Veh {
                         try { e = loadTable(); } finally { busy = false; }
                         if (e == null && groups != null && !groups.isEmpty()) {
                             if (state.startsWith("刷车：正在读") || state.startsWith("刷车：已装")) state = "刷车：车表已自动读好（" + groups.size() + " 种车）";
-                            try { Trace.init(); } catch (Throwable ignored) {}   // v4.25：射线函数（要扫一遍对象表，几秒）进对局就先找好，第一次刷车不用等
                             preSnap();
                             GameOverlay.refreshAny(); return;
                         }
