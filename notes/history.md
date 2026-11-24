@@ -1826,3 +1826,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 查代码：Veh.spawnGroup 每种失败都有原因句（没刷…/刷车中…/还没有人物/这局没有车表/已刷但射线没确认），但走 GameOverlay.toastAny → toast → keepToast 只放行含「失败/出错/没反应/找不到…」的句子（v3.22 用户要删黑框提示）→ 除了「没反应/出错」以外全被吞掉；刷车页底下的提示也只认「没反应/出错/没有/没刷出来」，「没刷 X（…）」不显示。所以用户点了什么都看不到，原因也拿不到（客户端不传日志）。静态读 Veh/Trace/vcave 没找到必然失败的逻辑错误，根因还没定。
 - 改：GameOverlay.toastAlways（刷车结果一律弹，长提示）；Veh.spawnGroup 全部用它；刷车页底下一直显示「上一次：刷车：…」；cave 半路收尾（0x5b02）时 missing() 说具体缺哪样（人物 buf+8 / World +24 / GameMode +28 / 车辆管理器 GM+0x914 / 车表 +0x2c0）；去掉「刷车：刷车：」双前缀；busy 时提示「上一辆还在刷」。
 - 下一步：按用户截图里的那句话定根因再修。
+
+## v4.23（三槽 core325，2026-11-24 22:2x，只推内核，未实测）单机/客户端改回真单机进图
+- 用户 22:16：单机是用联机办法进的图（本机 ?listen 开服），手机日志关着刷车刷不出、开了日志一刷一个准；但这样开车没声音、下车卡住 → 要改成单机进游戏，刷车不读日志。
+- 内核本身 v4.07 起就不读日志（Veh 刷车走 AddAvaItem V… → vcave，不碰日志）；日志开关为什么影响 ?listen 下刷车没查清（推断在游戏内部），按用户要求直接不走 ?listen。
+- 改：Con.startGame 训练场撤回 v4.18 的 ?listen（BUILD 2 也真单机 open）；Room 15001/26011 在非服务端包（Ed.ED != 1）不再 launch（Lan.host/ModeProbe.host 本机开服）：15001 照旧走 Server.startPicked → Con.startGame，26011 回成功后 Con.startGame(房间地图)。服务端包（ED 1）不变。
+- 影响：手机上建的房间不再本机开服，别人进不来（v4.07 起开房地址固定艾挽服务器，手机开房本来也连不上）。

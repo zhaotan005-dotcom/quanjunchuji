@@ -142,6 +142,15 @@ final class Room {
             case 26011: case 15001: {   // 房主点开始
                 Info r = mine;
                 if (r == null) return null;   // 不在房间里的 15001 照旧走 Server
+                // v4.23 用户：单机/客户端包用联机办法（本机 ?listen 开服）进图 → 刷车刷不出、开车没声音、下车卡住。只有服务端包（ED 1）在房间里开服；
+                //   其它包的 15001 照旧走 Server（startPicked → Con.startGame 真单机进图），26011 回成功后也按真单机进房间选的图
+                if (Ed.ED != 1) {
+                    if (cmd == 15001) return null;
+                    Server.push(26012, seq, key, new PB().u(1, 0).u(2, r.id).u(3, 1).bytes(), "开始（单机进图）");
+                    final int mp = r.map == 3 || r.map == 4 || r.map == 5 ? r.map : 1;
+                    new Thread(() -> Con.startGame(mp), "zf-start").start();
+                    return "房间开始 → 单机进图 " + mp;
+                }
                 if (cmd == 26011) Server.push(26012, seq, key, new PB().u(1, 0).u(2, r.id).u(3, 1).bytes(), "开始");
                 else Server.push(15002, seq, key, new PB().u(1, 1).bytes(), "房间开始（本机开服）");
                 launch(r);
