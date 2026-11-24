@@ -445,3 +445,6 @@
 - 修：Air.java，CalcAirLineByRestrictedAreaInfo 0x118dc6c 入口 → cave 0x171eaf4，改游戏的输入（圈心地图正中、半径半边长×1.1、MaxDistToCenter 边长×0.1、两个框、Height 1500 米），游戏自己算线。Flow 起飞后改航线那段在 Air.on 时跳过。详见 history v4.21。
 - 用户若说航线还短：看诊断「航线：」行（Air.state / Flow.air）；「没装上」→ 空位/入口字节不符。
 - 用到的空位：0x171eaf4..0x171ebab（代码+数据）。0x171e88c（CloseGMPanel）还空。
+
+## v4.22（三槽 core324，2026-11-24 22:1x，未实测）刷车结果一律显示
+- v4.21 航线/高度用户确认正常。刷车全对局刷不出：发现失败原因被 keepToast 吞掉（只放行 失败/出错/没反应…），用户什么都看不到。现在刷车结果一律弹提示、刷车页一直显示「上一次：…」，0x5b02 时说具体缺哪样。根因待用户报那句话后定。

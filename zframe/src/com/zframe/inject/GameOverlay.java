@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.21";
+    static final String VER = "v4.22";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -534,6 +534,8 @@ public class GameOverlay {
     }
 
     static void toastAny(String msg) { Activity a = Con.act; if (a != null) a.runOnUiThread(() -> toast(a, msg)); }
+    /** v4.22 刷车结果一律显示（以前「没刷…」「刷车中…」「还没有人物」被 keepToast 过滤掉，点了没任何反应、看不出原因） */
+    static void toastAlways(String msg) { Activity a = Con.act; if (a == null || msg == null || msg.isEmpty()) return; LogCap.note("提示：" + msg); a.runOnUiThread(() -> Toast.makeText(a, msg, Toast.LENGTH_LONG).show()); }
     /** v3.22 用户：黑框提示直接删掉（不是精简），只有出错这类必须让人知道的才弹 */
     static boolean keepToast(String msg) {
         if (msg == null || msg.isEmpty()) return false;
@@ -1318,7 +1320,7 @@ public class GameOverlay {
             btn(a, u, vr, vg.get(i).label.replace("（试）", "").replace("(试)", ""), () -> { if (remote()) Give.askCar(gi, vg.get(gi).label); else Veh.spawnGroup(gi); });
         }
         pad(a, vr, i, 4);   // v3.89 用户：全部对齐（最后一行不够也不拉宽）
-        if (Veh.state.contains("没反应") || Veh.state.contains("出错") || Veh.state.contains("没有") || Veh.state.contains("没刷出来")) note(a, u, root, Veh.state);   // v3.47 刷车确认真生成，没生成写「没刷出来」
+        if (Veh.state.startsWith("刷车：") && !Veh.state.startsWith("刷车：已装")) note(a, u, root, "上一次：" + Veh.state);   // v4.22 上一次刷车结果一直显示在刷车页   // v3.47 刷车确认真生成，没生成写「没刷出来」
     }
     /** v1.93 人机页 */
     static void botPage(final Activity a, final Ui u, final LinearLayout root) {

@@ -1820,3 +1820,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 验证：game/re/air_cave.py（生成 + capstone）、game/re/emu_air.py（unicorn 跑真 0x118dc6c，60 局随机：8x8 长 8.8~9 公里、4x4 4.4 公里，离正中 ≤ 边长 10%，Z=1500 米，跳伞段在 ±0.45 边长内、约航线 10%~90%，飞机 Param 副本高度也是 1500 米，栈平衡，返回 1）。
 - 风险/待看：CalcAirLine 若在我们写数据前就跑了（游戏自己切图且 onBrowse 晚到）这一局还是原样；飞行时间：速度 100 米/秒，海岛约 90 秒；1500 米高流式加载远景是否吃力没上机看。
 - 构建：/tmp/core.sh（javac+d8，三槽 BUILD 0/1/2，结束还原 BUILD=1）；只推内核，没出 APK。JDK aarch64 jdk-21.0.13.1+2 在 /workspace/work/rkenv，build-tools r36 / platform-36 在 /workspace/work/tools。
+
+## v4.22（三槽 core324，2026-11-24 22:1x，只推内核，未实测）刷车失败原因看不见
+- 用户 21:58：v4.21 航线/高度「正常了」✅。刷车：全部对局点了都刷不出来，让看代码。
+- 查代码：Veh.spawnGroup 每种失败都有原因句（没刷…/刷车中…/还没有人物/这局没有车表/已刷但射线没确认），但走 GameOverlay.toastAny → toast → keepToast 只放行含「失败/出错/没反应/找不到…」的句子（v3.22 用户要删黑框提示）→ 除了「没反应/出错」以外全被吞掉；刷车页底下的提示也只认「没反应/出错/没有/没刷出来」，「没刷 X（…）」不显示。所以用户点了什么都看不到，原因也拿不到（客户端不传日志）。静态读 Veh/Trace/vcave 没找到必然失败的逻辑错误，根因还没定。
+- 改：GameOverlay.toastAlways（刷车结果一律弹，长提示）；Veh.spawnGroup 全部用它；刷车页底下一直显示「上一次：刷车：…」；cave 半路收尾（0x5b02）时 missing() 说具体缺哪样（人物 buf+8 / World +24 / GameMode +28 / 车辆管理器 GM+0x914 / 车表 +0x2c0）；去掉「刷车：刷车：」双前缀；busy 时提示「上一辆还在刷」。
+- 下一步：按用户截图里的那句话定根因再修。

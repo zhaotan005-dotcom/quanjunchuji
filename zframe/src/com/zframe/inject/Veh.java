@@ -181,6 +181,16 @@ public class Veh {
     static volatile boolean quickToast;
 
     /** 一次加锁：写落点和朝向，再调刷车。true = cave 调过了 0x1102ca4（不代表车一定生成了） */
+    /** v4.22 cave 半路收尾（0x5b02）时具体缺哪一样：buf+8 人物、+24 World、+28 GameMode、+32 车辆管理器（GM+0x914）、+36 车表（管理器+0x2c0） */
+    static String missing() {
+        ByteBuffer x = buf; if (x == null) return "没拿到缓冲区";
+        if (x.getInt(8) == 0) return "游戏里没拿到你的人物";
+        if (x.getInt(24) == 0) return "没拿到 World";
+        if (x.getInt(28) == 0) return "没拿到 GameMode（这台是加入别人的客户端？）";
+        if (x.getInt(32) == 0) return "GameMode 里没有车辆管理器（+0x914 空）";
+        if (x.getInt(36) == 0) return "车辆管理器里没有车表（+0x2c0 空）";
+        return "游戏刷车函数前一步收尾";
+    }
     static boolean spawnAt(long id, float x, float y, float z, float yaw) throws InterruptedException { return spawnCode(id, x, y, z, yaw) == 1; }
     /** v4.10：1 = cave 调完游戏刷车函数（0x5b03）；0 = cave 跑了但半路收尾（没人物/没 GameMode/没车辆管理器/没车表，0x5b02）；
      *  -1 = 10 秒内游戏线程没跑到 cave（命令没执行）；-2 = 进了 cave、10 秒还没出来（游戏在同步加载这辆车，车多半稍后会出来） */
@@ -404,7 +414,7 @@ public class Veh {
         if (before == null) before = new java.util.HashMap<>();
         int code = spawnCode(id, fx0, fy0, fz, (float) yawDeg);
         if (code == -1) return "没反应 " + label + "（编号 " + id + "，游戏 10 秒没执行刷车命令；进对局落地后再按）";
-        if (code == 0) return "没刷 " + label + "（编号 " + id + "，这局拿不到人物/车辆管理器/车表）";
+        if (code == 0) return "没刷 " + label + "（编号 " + id + "，" + missing() + "）";
         remember(fx0, fy0);
         if (code == -2) return "刷车中 " + label + "（编号 " + id + "，游戏还在加载这辆车，稍等几秒会出来；别连按）";
         long veh = confirm(fx0, fy0, fz);
@@ -652,18 +662,18 @@ public class Veh {
     /** 菜单按钮：读车表（读完菜单里出现每种车的按钮） */
     public static void spawnNext() { spawnGroup(-1); }
     public static void spawnGroup(final int gi) {
-        if (busy) { GameOverlay.toastAny(state); return; }
+        if (busy) { GameOverlay.toastAlways("刷车：上一辆还在刷，稍等"); return; }
         busy = true;
         new Thread(() -> {
             try {
                 // v3.47：不再 ahead() 写落点后另一次加锁再调（中间会被人机/传送改掉落点）；info() 读人物，place() 一次加锁写落点+调用，并确认真生成
                 double[] p = info();
-                if (p == null) { GameOverlay.toastAny(state = "刷车：" + (installed ? "还没有人物（进对局、落地后再按）" : state)); return; }
+                if (p == null) { GameOverlay.toastAlways(state = installed ? "刷车：还没有人物（进对局、落地后再按）" : state); return; }
                 long dt = buf.getInt(36) & 0xffffffffL;
-                if (dt == 0) { GameOverlay.toastAny(state = "刷车：这局没有车表"); return; }
+                if (dt == 0) { GameOverlay.toastAlways(state = "刷车：这局没有车表"); return; }
                 ArrayList<Group> gs = groups;
-                if (gs == null || gs.isEmpty()) { GameOverlay.toastAny(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
-                if (gi < 0) { GameOverlay.toastAny(state = "刷车：读到 " + gs.size() + " 种车，菜单里点车名刷"); return; }
+                if (gs == null || gs.isEmpty()) { GameOverlay.toastAlways(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
+                if (gi < 0) { GameOverlay.toastAlways(state = "刷车：读到 " + gs.size() + " 种车，菜单里点车名刷"); return; }
                 trucks(dt);
                 Group g = gs.get(gi % gs.size());
                 long id = g.ids.get(g.at++ % g.ids.size());
@@ -674,9 +684,9 @@ public class Veh {
                 String r = place(g.label, id, p[0], p[1], p[2], p[3], inVeh, !inVeh && swimming(pawn));
                 String s = "刷车：" + r;
                 note(s); state = s;
-                GameOverlay.toastAny(s);
+                GameOverlay.toastAlways(s);
                 quickToast = false;
-            } catch (Throwable e) { GameOverlay.toastAny(state = "刷车：出错 " + e); note(state); }
+            } catch (Throwable e) { GameOverlay.toastAlways(state = "刷车：出错 " + e); note(state); }
             finally { busy = false; GameOverlay.refreshAny(); }
         }, "zf-veh").start();
     }
