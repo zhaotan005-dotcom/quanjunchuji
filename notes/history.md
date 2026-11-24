@@ -1849,3 +1849,9 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v4.27（三槽 core329，2026-11-24 22:5x，只推内核，未实测）刷车不读车表 + 训练场删刷车页
 - 用户 22:45：不要读了，里面没有内置数据吗？→ 车编号 v1.93 起就写死在 Veh.fixed()（Veh.matchLoaded/loadTable 已经没人调）；只剩 trucks() 每局读车表核对 31/32，删掉调用。
 - 用户 22:46：训练场有自动刷的车 → 训练场（Con.training）菜单不显示「刷车」页，Veh.spawnGroup 在训练场直接不刷。
+
+## 2026-11-25 v4.28/core330 内核混淆（测试版，未实测）
+R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD（跨版本更新 ABI）。规则 tools/hostpatch/zf.pro，map 存 notes/obf-maps/。打了服务端/客户端混淆整包（各 1.76GB，v2+v3 签名）：
+- 服务端 md5 9264b45524b3d96f6a627afb0af9c0e9 → https://gofile.io/d/MYExuRfK
+- 客户端 md5 d45d0fc549849b064b1961a48485078d → https://gofile.io/d/nhOVOnUJ
+线上内核/源码 CORE_VER 仍停 329，待用户实测混淆包能进游戏后再推 330 到自动更新。commit 62de72e。
