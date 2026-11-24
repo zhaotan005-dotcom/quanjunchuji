@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.26";
+    static final String VER = "v4.27";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -127,11 +127,16 @@ public class GameOverlay {
             // v3.10 用户：客户端刷东西、画质、加速高跳都删掉（留给服务端），客户端只剩联机；服务端只留地图上没有的东西能刷（道具页只列战术道具 402）
             // v3.13：客户端包现在自建服务端 —— 没加入别人时按服务端的页；加入别人后只剩联机
             final boolean cliT = Ed.ED == 2 || Lan.role == 2, srvT = Ed.ED == 1 || Ed.BUILD == 2;
-            final String[] tabs = cliT ? new String[]{"联机"}
+            final String[] tabs0 = cliT ? new String[]{"联机"}
                 : srvT ? new String[]{"常用", "功能", "刷枪", "配件", "特殊", "子弹", "道具", "刷车", "衣服", "联机", "画面"}
                 : new String[]{"常用", "功能", "刷枪", "配件", "特殊", "子弹", "装备", "道具", "刷车", "衣服", "人机", "联机", "画面"};   // v3.65 用户：「武器」改「刷枪」（只刷枪+子弹），配件单独一页按枪种分区
-            final int[] map = cliT ? new int[]{6}
+            final int[] map0 = cliT ? new int[]{6}
                 : srvT ? new int[]{0, 8, 3, 12, 9, 10, 11, 1, 7, 6, 5} : new int[]{0, 8, 3, 12, 9, 10, 4, 11, 1, 7, 2, 6, 5};
+            // v4.27 用户：训练场有自动刷的车 → 训练场里不显示「刷车」页
+            final String[] tabs; final int[] map;
+            { java.util.ArrayList<String> tl = new java.util.ArrayList<>(); java.util.ArrayList<Integer> ml = new java.util.ArrayList<>();
+              for (int k = 0; k < tabs0.length; k++) if (!(Con.training && "刷车".equals(tabs0[k]))) { tl.add(tabs0[k]); ml.add(map0[k]); }
+              tabs = tl.toArray(new String[0]); map = new int[ml.size()]; for (int k = 0; k < map.length; k++) map[k] = ml.get(k); }
             { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = map[0]; }
             final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("道具", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];

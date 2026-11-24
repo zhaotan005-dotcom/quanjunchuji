@@ -158,7 +158,7 @@ public class Veh {
         if (dt == 0) return "这局没有车表";
         ArrayList<Group> gs = groups;
         if (gs == null || gs.isEmpty() || gi < 0) return "车表里没读到车编号";
-        trucks(dt);
+        // v4.27 用户：不读车表，用内置编号
         Group g = gs.get(gi % gs.size());
         long id = g.ids.get(g.at++ % g.ids.size());
         return place(g.label, id, x, y, z, 0);
@@ -617,6 +617,7 @@ public class Veh {
     /** 菜单按钮：读车表（读完菜单里出现每种车的按钮） */
     public static void spawnNext() { spawnGroup(-1); }
     public static void spawnGroup(final int gi) {
+        if (Con.training) { state = "刷车：训练场有自动刷的车，这里不刷"; GameOverlay.refreshAny(); return; }   // v4.27 用户：训练场的刷车删了
         if (busy) { GameOverlay.toastAlways("刷车：上一辆还在刷，稍等"); return; }
         busy = true;
         new Thread(() -> {
@@ -629,7 +630,7 @@ public class Veh {
                 ArrayList<Group> gs = groups;
                 if (gs == null || gs.isEmpty()) { GameOverlay.toastAlways(state = "刷车：车表里没读到车编号（" + tableInfo.split("：")[0] + "）"); return; }
                 if (gi < 0) { GameOverlay.toastAlways(state = "刷车：读到 " + gs.size() + " 种车，菜单里点车名刷"); return; }
-                trucks(dt);
+                // v4.27 用户：不读车表，直接用内置编号（fixed()）
                 Group g = gs.get(gi % gs.size());
                 long id = g.ids.get(g.at++ % g.ids.size());
                 // v4.10：人在车上（控制器的 Pawn 不是人物）→ 落点离车更远；人在游泳 → 只能刷船

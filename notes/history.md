@@ -1845,3 +1845,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v4.26（三槽 core328，2026-11-24 22:5x，只推内核，未实测）刷车不找落点
 - 用户 22:44：不用找落点，试过什么地方都能刷。
 - 改：Veh.place 不打射线、不挑车位、不判水面：人（或坐的车）前方 净空+1 米、人物高度 +1.5 米+车型抬高 落下。matchLoaded 不再预扫 Trace.init（v4.25 加的）。船也一样刷在前方。
+
+## v4.27（三槽 core329，2026-11-24 22:5x，只推内核，未实测）刷车不读车表 + 训练场删刷车页
+- 用户 22:45：不要读了，里面没有内置数据吗？→ 车编号 v1.93 起就写死在 Veh.fixed()（Veh.matchLoaded/loadTable 已经没人调）；只剩 trucks() 每局读车表核对 31/32，删掉调用。
+- 用户 22:46：训练场有自动刷的车 → 训练场（Con.training）菜单不显示「刷车」页，Veh.spawnGroup 在训练场直接不刷。
