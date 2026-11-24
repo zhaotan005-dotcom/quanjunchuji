@@ -478,3 +478,10 @@
 ### 内核版本现状（不用重编，除非改源码）
 - HEAD 已到 v4.27 / 三槽 core 329，已 push main，jsDelivr 已 purge。
 - v4.27：刷车不读车表（只用 `Veh.fixed()` 内置编号）；训练场去掉「刷车」页（训练场自己会自动刷车）。未实测。
+
+## 整包 v4.27（2026-11-24 23:4x，未实测）
+- 用户重发原版 game.apk（Drive 1RDHacPxJJwko9cdvxSeMDVKE2X7JbKrl，1.76GB，沙盒在 /workspace/work/game_apk/game.apk）。
+- 打包工具重建并入库：tools/hostpatch/Host.java + run.sh（Patcher.patchBase 注入 classes2.dex → patchSound 声音/刷物品补丁 + mczi=1 → gkey v1/v2/v3 签名）。编译：javac -sourcepath zframe/src Patcher.java Host.java。
+- 产出：服务端（core/b1.dex，core329）md5 b0222d229cb9a37eba96e02b6c2a0a17；客户端（core/b2.dex）md5 87b1c56ca9c55499bf7fd41be39e746a；apksigner verify 通过，classes2.dex sha1 = core。
+- 链接（gofile，不是一次性，长期没人下会被清）：客户端 https://gofile.io/d/gSseq0dl ，服务端 https://gofile.io/d/VO4jkpTh 。temp.sh 对 1.7GB 回 500。
+- 未做/拒绝：卡密系统+后台（Hark 不做）；dex 混淆未做。
