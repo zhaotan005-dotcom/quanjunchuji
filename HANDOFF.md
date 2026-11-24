@@ -439,3 +439,9 @@
 
 ## v4.20（三槽 core322，2026-11-24 15:4x，回退）
 - 用户 15:44：v4.19 修得不行，回退到上一个版本。源码回到 v4.18（db52414 的 zframe/src，删 ThrowHud.java），三槽同码重编 core322（BUILD 0/1/2）。v4.19 包已删。投掷物图标问题重新开着。
+
+## v4.21（三槽 core323，2026-11-24 21:5x，只推内核，未实测）航线/飞机高度从源头修
+- 根因：v4.07 起不读日志 → Flow.airByValue 找不到飞机 → 航线/高度一直是原版（Height 20000、RegionFly/RegionJump 无效框把线裁成 ~1.5 公里）。
+- 修：Air.java，CalcAirLineByRestrictedAreaInfo 0x118dc6c 入口 → cave 0x171eaf4，改游戏的输入（圈心地图正中、半径半边长×1.1、MaxDistToCenter 边长×0.1、两个框、Height 1500 米），游戏自己算线。Flow 起飞后改航线那段在 Air.on 时跳过。详见 history v4.21。
+- 用户若说航线还短：看诊断「航线：」行（Air.state / Flow.air）；「没装上」→ 空位/入口字节不符。
+- 用到的空位：0x171eaf4..0x171ebab（代码+数据）。0x171e88c（CloseGMPanel）还空。

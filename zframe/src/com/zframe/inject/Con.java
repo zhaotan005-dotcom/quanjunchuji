@@ -39,6 +39,7 @@ public class Con {
                 if (isLobby(t)) lobbyOpenAt = lastOpenAt;
                 int q = t.indexOf('?'); String mp = q > 0 ? t.substring(0, q) : t;
                 if (mp.startsWith("/Game/Maps/") && !isLobby(mp)) { natFor = mp; try { Flow.natPrepare(mp); } catch (Throwable ignored) {} }
+                if (mp.startsWith("/Game/Maps/") && !isLobby(mp)) { try { Air.prepare(mp); } catch (Throwable ignored) {} }   // v4.21：航线/飞机高度从源头改
                 try { ModeMap.beforeOpen(mp); } catch (Throwable ignored) {}   // v4.11：训练营模式编号 600（游戏自己的「死了 4 秒复活」规则），别的图改回
             }
             m.invoke(a, cmd);
@@ -429,7 +430,7 @@ public class Con {
         }
         Island.clearSeen();
         // 毒圈底层表要在对局开始前装：我们自己发 open 时已经装了（exec 里），游戏自己切的图这里补
-        if (m.startsWith("/Game/Maps/") && !lobby && !m.equals(natFor)) { natFor = m; Flow.natPrepare(m); }
+        if (m.startsWith("/Game/Maps/") && !lobby && !m.equals(natFor)) { natFor = m; Flow.natPrepare(m); try { Air.prepare(m); } catch (Throwable ignored) {} }
         if (m.startsWith("/Game/Maps/") && !lobby) Prop.matchLoad();
         Bots.newMatch(); Flow.newMatch(); Loot.newMatch();
         synchronized (serverLevels) { serverLevels.clear(); }

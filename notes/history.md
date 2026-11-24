@@ -1803,3 +1803,20 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 构建：build_all.sh 底包用 v4.18-客户端.apk 临时复制成 v4.18-单机.apk（构建后删，不提交）；4.18 4.19 320 321，三槽 b0/b1/b2 = 321（dex 里 CORE_VER 321、BUILD 0/1/2、MASK=false）。releases 留 v4.17/4.18/4.19（git rm v4.16），v4.19 只发客户端、服务端。
 
 - 11-24 15:4x v4.20（core322）：用户要求回退 v4.19 → 源码回到 v4.18（db52414），删 ThrowHud。三槽 322。投掷物图标/倒计时未修。
+
+
+## v4.21（三槽 core323，2026-11-24 21:5x，未实测）航线/飞机高度从源头修（Air.java）
+- 用户 21:41：继续交付，修上飞机的航线和跳伞高度，从根上修。
+- 为什么一直不对：Flow.airByValue（v1.94 起唯一真正改到飞机的路）靠游戏日志「CalcAirLineByRestrictedAreaInfo StartLoc…」坐标按值找飞机；v4.07 删掉读日志后 logAir 永远 null → 从 v4.07 起航线/高度一次都没改过。按偏移找（系统+0x304）那条 v1.93 就证实找不到。
+- RE（libUE4 从 git 历史 blob b68fd47 取回，game/x 不进库）：
+  - 调用链：exec thunk 0x11b8c4c/0x11b8b?? → 0x118c02c/0x118c050(系统, 配置)：Param = 配置+0xc，类型 = 配置+0x50（<2 走 0x118cb9c，≥2 复活运输机 0x118d0b4）→ 0x118cb9c：memcpy(飞机+0x2b8, Param, 0x45) → 0x118d5f0（取第一个安全区圈心/半径）→ CalcAirLineByRestrictedAreaInfo 0x118dc6c(系统, 飞机, &圈心, &半径, [sp]=Param)。另一个调用者 0x11b88b0（BP 直接调的 exec thunk）。
+  - Param：+0 Speed、+4 Height、+0xc RegionFly(FBox2D，+0x1c bIsValid)、+0x20 RegionJump(+0x30 bIsValid)、+0x34 CenterRadius、+0x38 MaxAirlineRadius、+0x3c JumpRadiusScale、+0x40 MaxDistToCenter、+0x44 AirlineType。C++ 默认（thunk 里局部初始化）：Speed 10000、Height 20000、CenterRadius 100000、MaxAirlineRadius 0、JumpRadiusScale 0.8、MaxDistToCenter -1。
+  - 算法：0xc3761c 在 min(半径, MaxDistToCenter) 圆内随机点 P（rand 0x8acef8、sinf 0x8ad234、cosf 0x8ad1ec）→ 方向 ⟂(P-圈心)（随机正负）→ 过 P 的弦，半长 sqrt(R²-d²) → 0x118e69c(框, 点, 方向, 出A, 出B) 求线和框的交点，近的那头裁 → 两头各延 MaxAirlineRadius → 写 StartLoc 0x300/EndLoc 0x30c/Dir 0x318/Total 0x324，Z=Height；跳伞段 = 弦×JumpRadiusScale 再用 RegionJump 裁 → 0x328/0x334/0x340。
+  - unicorn 跑原函数（这个包的数据：Height 20000、两个框全 0）：线被无效框裁成约 1.5 公里，Z 200 米 = 用户看到的现象。
+- 修：入口 0x118dc6c `push {r4-fp,lr}`(f04f2de9) → `b 0x171eaf4`(a04316ea)。cave 在 GM SwitchToAimSet 死函数（v4.19 ThrowHud 用过、v4.20 已回退空出），代码 0xa0 + 数据 0x18（R、H、D、F、J、JS）。R≠0 时：圈心=(0,0)、半径=半边长×1.1、MaxDistToCenter=边长×0.1、MaxAirlineRadius=0、RegionFly=±半边长×1.1、RegionJump=±半边长×0.9、Height=150000、JumpRadiusScale=0.8，Param 和飞机+0x2b8 副本都写，然后执行原 push 跳回 0x118dc70。R==0 → 完全原样。
+  - 高度 1500 米 = 跳伞组件 SkydivingStartHeight（构造 0x1121ed8 +0x2c0=150000），强制开伞比例 0.23 → 约 345 米开伞（v2.00 用的 1000 米改成游戏自己的设计值）。
+  - Air.prepare(地图)：Con.exec 发 open 对局图时、游戏自己切图（onBrowse）时写数据区；8x8 边长 816000、Savage/4x4 408000；训练岛写 0；客户端（Lan.role 2）不管（航线服务端算后复制）。
+  - Flow：Air.on 时不再起飞后找飞机改（airline/airAfter 跳过），毒圈逻辑不动。
+- 验证：game/re/air_cave.py（生成 + capstone）、game/re/emu_air.py（unicorn 跑真 0x118dc6c，60 局随机：8x8 长 8.8~9 公里、4x4 4.4 公里，离正中 ≤ 边长 10%，Z=1500 米，跳伞段在 ±0.45 边长内、约航线 10%~90%，飞机 Param 副本高度也是 1500 米，栈平衡，返回 1）。
+- 风险/待看：CalcAirLine 若在我们写数据前就跑了（游戏自己切图且 onBrowse 晚到）这一局还是原样；飞行时间：速度 100 米/秒，海岛约 90 秒；1500 米高流式加载远景是否吃力没上机看。
+- 构建：/tmp/core.sh（javac+d8，三槽 BUILD 0/1/2，结束还原 BUILD=1）；只推内核，没出 APK。JDK aarch64 jdk-21.0.13.1+2 在 /workspace/work/rkenv，build-tools r36 / platform-36 在 /workspace/work/tools。

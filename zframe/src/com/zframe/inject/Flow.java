@@ -83,6 +83,7 @@ public class Flow {
                     if (r != null) { circleDone = true; state = "毒圈（" + (small ? "4x4" : "8x8") + "）：" + r; Veh.note(state); }
                     else state = "毒圈：等游戏算好本局的圈";
                 }
+                if (!airDone && Air.on) { airDone = true; air = Air.state; }   // v4.21：航线在游戏算之前就改好了，不再起飞后找飞机改
                 if (!airDone) {
                     String r = airline(m, sys, side);
                     if (r != null) { airDone = true; air = "航线：" + r; Veh.note(air); }
@@ -185,6 +186,7 @@ public class Flow {
 
     /** v1.94：起飞后接着找航线（飞机对象起飞时才生），每 0.2 秒一次，找 25 秒 */
     static void airAfter(int g, double[] p) throws Exception {
+        if (Air.on) return;
         for (int i = 0; i < 125 && g == gen && Con.inMatch; i++) {
             long[] sys = systems((long) p[5]);
             if (sys != null) try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
