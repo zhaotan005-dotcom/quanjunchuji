@@ -148,7 +148,6 @@ final class Parabola {
     static void matchStart() {
         aimFix();
         crouchFix();
-        ThrowHud.install();   // v4.19 投掷物图标/倒计时跟手上那颗（各版本都装）
         if (watching) return; watching = true;
         new Thread(() -> {
             try {

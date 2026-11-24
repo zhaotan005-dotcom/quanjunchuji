@@ -1801,3 +1801,5 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 验证：game/re/throwhud_cave.py 生成 + capstone 反汇编；game/re/emu_throwhud.py unicorn 25 个用例全过（图标 7 种编号、倒计时 9 种、GetLastThrowWeapon 7 种 + 原函数接续）。
 - 残留风险：图标函数只在武器指针变化时刷新——旧手雷销毁后新雷正好分到同一地址时图标不刷新，这版没处理；cave 字节按 workspace 里的 libUE4 核对，若手机上的库不同会「空位字节不符」不装（不会乱写）。
 - 构建：build_all.sh 底包用 v4.18-客户端.apk 临时复制成 v4.18-单机.apk（构建后删，不提交）；4.18 4.19 320 321，三槽 b0/b1/b2 = 321（dex 里 CORE_VER 321、BUILD 0/1/2、MASK=false）。releases 留 v4.17/4.18/4.19（git rm v4.16），v4.19 只发客户端、服务端。
+
+- 11-24 15:4x v4.20（core322）：用户要求回退 v4.19 → 源码回到 v4.18（db52414），删 ThrowHud。三槽 322。投掷物图标/倒计时未修。
