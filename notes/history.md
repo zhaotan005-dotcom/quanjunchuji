@@ -1785,3 +1785,19 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 
 ## v4.17（客户端 core319，2026-11-24 00:2x，未实测）
 - 用户 00:19：X70 跑服务端内核（core318 MASK）不闪退 → 云手机问题。要把服务端的刷车（训练台原生刷 12 辆车）给客户端：Island vp 条件加 Ed.BUILD == 2。b2 恢复为客户端内核。
+
+## v4.19（全部三槽 core321，2026-11-24 15:4x，未实测）投掷物 HUD 三处防御修复
+- 用户：拿烟雾/震爆等非手雷投掷物时，HUD 显示手雷图标和手雷的捏雷倒计时。用户批准三个嫌疑都做防御修复，不做真机诊断，服务端不能用来测。
+- 先查 SetInventoryIdName 第三个调用 0xed0120（函数 0xecfee8）：r4 是 ANZWeaponBase（+0x44c 人物、+0x454 缓存的适配/皮肤挂件），按武器自己的对象名建挂件后把**武器自己的** InventoryIdName 抄给挂件 → 不会把手雷的名字写到别的雷上，排除。
+- 倒计时写入者（+0xdd0）：0xef9444/0xefa424/0xefb38c 写 -1.0（停），0xef9ac8 写 开火模式+0xa0（AutoFireDelay）；r4 = 投掷开火模式（反射 0x4c64460 ThrowableType +0x22 ENZThrowSubType、AutoFireDelay +0xa0、OwnerWeapon +0x1c），r5 = 武器 vt+0x430 的人物；条件 ThrowableType-1 ≤ 2。
+  pak BP_FireMode_*：手雷 ThrowableType=Frag AutoFireDelay 8.0、震爆 Stun 5.5、烟雾 Smoke 7.0，bAutoCountdownFireTime 三个都是 1。
+  → **原生本意：手雷/震爆/烟雾都显示倒计时，各用自己的时长**（不是「只有手雷」）。所以这版不屏蔽非手雷，只保证倒计时来自手上那颗。若用户要非手雷不显示：cave 里 `cmp r0,#2` 改 `cmp r0,#0`。
+- 管理器：HUD+0x120 = 人物+0x838（0xcc8274）。GetLastThrowWeapon 用 vt+0x388 = +0x55c；+0x55c 只由 WeaponManager 换枪（0xe2b798/0xe2c1e4 存 +0x2d8 后）调 SetCurrentWeapon（vt+0x414 = 0xfe91f4）顺带写，管理器取不到就不写。管理器+0x390 = 人物（自校验 人物+0x838 == 管理器）。
+- IsThrowableWeapon 0xcc93d0：编号 = +0x2cc×10000 + +0x2d0（0xce0280 同算法），unicorn 测 204xxxxxxxx 全为真、其它类为假。InventoryId 由 0xcc82a4 从 InventoryIdName 字符串解析。
+- 修（ThrowHud.java，Parabola.matchStart 里装，各版本都装；cave 在死掉的 GM 面板函数里，静态字节，同库相对跳转；写前核对 cave 空位原字节和钩子原字节）：
+  1. 管理器+0x558：0xfe90e8 入口 `push {r4,r5,fp,lr}`(30482de9) → `b 0x171e88c`（GM CloseGMPanel，0x84 字节）：人物 WeaponManager(+0x888)+0x2d8 有效、无 PendingKill、IsThrowableWeapon → 存 +0x558 并返回；否则跳回原函数 0xfe90ec。
+  2. 图标名：0x17ea2a4 `bl 0x1a8e880`(75910aeb) → `bl 0x171eaf4`：武器 InventoryId 在 [20400000000, 20500000000) 就 FString::Printf(0x1936cfc, L"%llu" 0x48e7e98, 编号) 当图标名，否则照原样 FName::ToString。
+  3. 倒计时：0xef9ab8 `ldrb r0,[r4,#0x22]`(2200d4e5) → `b 0x171eb78`：ThrowableType 1..3 且 OwnerWeapon == 人物 WeaponManager+0x2d8 才写 +0xdd0（WeaponManager 为空照原生写），回 0xef9acc。
+- 验证：game/re/throwhud_cave.py 生成 + capstone 反汇编；game/re/emu_throwhud.py unicorn 25 个用例全过（图标 7 种编号、倒计时 9 种、GetLastThrowWeapon 7 种 + 原函数接续）。
+- 残留风险：图标函数只在武器指针变化时刷新——旧手雷销毁后新雷正好分到同一地址时图标不刷新，这版没处理；cave 字节按 workspace 里的 libUE4 核对，若手机上的库不同会「空位字节不符」不装（不会乱写）。
+- 构建：build_all.sh 底包用 v4.18-客户端.apk 临时复制成 v4.18-单机.apk（构建后删，不提交）；4.18 4.19 320 321，三槽 b0/b1/b2 = 321（dex 里 CORE_VER 321、BUILD 0/1/2、MASK=false）。releases 留 v4.17/4.18/4.19（git rm v4.16），v4.19 只发客户端、服务端。

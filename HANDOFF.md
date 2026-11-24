@@ -429,3 +429,10 @@
 ## 03:1x 投掷物图标/倒计时（只查没改，未实测）
 - UpdateThrowWeaponTexture 是原生空函数（vt+0x1c0=0xb63a30 bx lr），v3.69「蓝图选图标」说法错。图标：OnDrawThrowWeapon 0x17f12c8 → GetLastThrowWeapon 0xfe90e8（缓存 管理器+0x558）→ 0x17ea248 读 武器+0x2c0 InventoryIdName。倒计时：ThrowCountDownHUD NativeTick 0x17029e0 读 [[this+0x28]+0xdd0]。pak 默认值都对。三个嫌疑：实例 +0x2c0、管理器+0x558 旧手雷、+0xdd0 写入者。需真机只读诊断定位。详见 workspace work/re/throw_hud_findings.md。
 - build_all 底包要 v4.18-单机.apk，没有 → 下次发版先处理。
+
+## v4.19（core321，三槽 b0/b1/b2，2026-11-24 15:4x，未实测）投掷物图标/倒计时防御修复。详见 history v4.19
+- 0xed0120 排除（武器把自己的名字抄给自己的皮肤挂件）。倒计时原生本意：手雷 8.0 / 震爆 5.5 / 烟雾 7.0 都有倒计时（ThrowableType 1..3，pak bAutoCountdownFireTime 全 1），所以不屏蔽非手雷，只保证来自手上那颗。
+- ThrowHud.java（对局开始装，全版本）：① GetLastThrowWeapon 0xfe90e8 → cave 0x171e88c：先取人物 WeaponManager+0x2d8（手上那把），是投掷物就缓存到管理器+0x558；② 图标 0x17ea2a4 → cave 0x171eaf4：投掷物用武器自己的 InventoryId "%llu" 当图标名；③ 倒计时 0xef9ab8 → cave 0x171eb78：只有手上那颗的开火模式能写 人物+0xdd0。
+- 工具：game/re/throwhud_cave.py（生成/反汇编）、emu_throwhud.py（unicorn，全过）。状态串 ThrowHud.state（只进诊断导出，导出本身受 Ed.uploads() 限制）。
+- 用户若仍看到手雷图标：可能是武器指针复用（图标函数只比指针）——下一步在 0x17ea25c 比较处加「名字也比」。若用户要非手雷不显示倒计时：cave 里 cmp r0,#2 → #0。
+- 构建底包：没有 v4.18-单机.apk，临时复制 v4.18-客户端.apk 当底包，构建后删除（未提交）。releases：v4.19 客户端/服务端、v4.18 客户端、v4.17 客户端（git rm v4.16）。
