@@ -1836,3 +1836,8 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 ## v4.24（三槽 core326，2026-11-24 22:4x，只推内核，未实测）删刷车黑框
 - 用户 22:35：v4.23 真单机刷车能刷出来了（截图：大脚车/皮卡出来，提示「已刷…射线没确认到车」——射线确认是误报）；第一次要等很久，之后一刷一个准（推断：每种车第一次刷游戏要同步加载资源，之后有缓存）。要求删刷车黑框。
 - 改：GameOverlay.toastAlways 不再弹 Toast，只 LogCap.note + refreshAny；刷车页底下「上一次：…」保留。
+
+## v4.25（三槽 core327，2026-11-24 22:5x，只推内核，未实测）刷车慢 + 皮卡/大脚车反了
+- 用户 22:41：刷车还要等很久，是不是在搜东西；皮卡和大脚车填反了（截图：点「大脚车」编号 31 刷出皮卡）。
+- 皮卡/大脚车：v3.47 trucks() 用 kind() 在车表行内扫 0x200 字节找 MonsterTruck/PickUpTruck，会扫进下一行 → 认错并对调。用户实测 31=皮卡 → 不再自动对调，固定 31 皮卡 / 32 大脚车。
+- 慢的原因（静态）：① Trace.init 第一次要扫整张 GUObjectArray 找 LineTraceSingle/KismetSystemLibrary（几秒），以前第一次刷车时才扫 → 现在进对局读完车表就后台先扫（+preSnap）；② 每条射线/调用都是控制台命令→游戏线程往返，Java 50ms 轮询，落点 5 点检查×最多 7 个候选 → 改 10ms 轮询；③ 刷完 confirm() 3 次射线+0.75 秒而且误报 → 删掉。

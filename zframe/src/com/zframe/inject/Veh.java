@@ -89,8 +89,8 @@ public class Veh {
         if (item != 0 && pos != null) for (int k = 0; k < 6; k++) ubuf.putFloat(40 + 4 * k, pos[k]);
         Activity a = Con.act; if (a == null) return new long[] { 0, 0 };
         a.runOnUiThread(() -> Con.exec("AddAvaItem U"));
-        for (int i = 0; i < 40; i++) {
-            Thread.sleep(50);
+        for (int i = 0; i < 200; i++) {   // v4.25：每 10 毫秒看一次（以前 50 毫秒，一次刷车要几十次往返，攒起来就慢）
+            Thread.sleep(10);
             int mg = ubuf.getInt(0);
             if (mg == 0x5b0e || mg == 0x5b0f) return new long[] { mg, ubuf.getInt(24) & 0xffffffffL };
         }
@@ -105,14 +105,14 @@ public class Veh {
     static synchronized boolean call(char k, long id, int timeoutMs) throws InterruptedException {
         if (buf == null) { buf = ByteBuffer.allocateDirect(256).order(ByteOrder.LITTLE_ENDIAN); addr = GameOverlay.bufAddr(buf); }
         if (addr <= 0 || addr > 0xffffffffL) return false;
-        while (staleUntil > System.currentTimeMillis() && buf.getInt(0) == 0x5b01) Thread.sleep(50);
+        while (staleUntil > System.currentTimeMillis() && buf.getInt(0) == 0x5b01) Thread.sleep(10);
         staleUntil = 0;
         buf.putInt(0, 0);
         final String c = "AddAvaItem " + k + id + "x" + addr;
         Activity a = Con.act; if (a == null) return false;
         a.runOnUiThread(() -> Con.exec(c));
-        for (int i = 0, n = Math.max(1, timeoutMs / 50); i < n; i++) {
-            Thread.sleep(50);
+        for (int i = 0, n = Math.max(1, timeoutMs / 10); i < n; i++) {   // v4.25：10 毫秒轮询
+            Thread.sleep(10);
             int mg = buf.getInt(0);
             if (mg >= 0x5b02 && mg <= 0x5b0d) { lastTimeoutMark = -1; return true; }
         }
@@ -417,7 +417,7 @@ public class Veh {
         if (code == 0) return "没刷 " + label + "（编号 " + id + "，" + missing() + "）";
         remember(fx0, fy0);
         if (code == -2) return "刷车中 " + label + "（编号 " + id + "，游戏还在加载这辆车，稍等几秒会出来；别连按）";
-        long veh = confirm(fx0, fy0, fz);
+        // v4.25 用户：刷车要等很久。射线确认（最多 3 次射线 + 0.75 秒）会误报「没确认到车」（车其实出来了），去掉；满油照旧在后台找新车
         final java.util.HashMap<Long, Long> bf = before; final float cx = fx0, cy = fy0; final String lb = label;
         new Thread(() -> {
             try {
@@ -426,7 +426,6 @@ public class Veh {
                 carCheck();
             } catch (Throwable ignored) {}
         }, "zf-vfuel").start();
-        if (veh == 0) return "已刷 " + label + "（编号 " + id + "，" + how + "；射线没确认到车，前面没看到车就换个空地再刷，别连按）";
         return "已刷 " + label + "（编号 " + id + "，" + how + "）";
     }
 
@@ -440,7 +439,8 @@ public class Veh {
             Names n = Names.get();
             if (n == null) { truckInfo = "皮卡/大脚车：名字表没找到，按 31 皮卡、32 大脚车"; return; }
             String k31 = kind(m, dt, 31, n), k32 = kind(m, dt, 32, n);
-            boolean swap = "大脚车".equals(k31) || "皮卡".equals(k32);
+            // v4.25 用户：皮卡和大脚车填反了（实测 31 是皮卡）。kind() 在行内扫 0x200 字节会扫到下一行的路径 → 认错、对调错。不再自动对调，固定 31 皮卡 / 32 大脚车
+            boolean swap = false;
             if (swap) for (Group g : groups) { if ("皮卡".equals(g.label)) { g.ids.clear(); g.ids.add(32L); g.at = 0; } else if ("大脚车".equals(g.label)) { g.ids.clear(); g.ids.add(31L); g.at = 0; } }
             truckInfo = "皮卡/大脚车：车表 31=" + (k31 == null ? "没认出" : k31) + "，32=" + (k32 == null ? "没认出" : k32) + (swap ? "，已对调" : "");
         } catch (Throwable e) { truckInfo = "皮卡/大脚车：核对出错 " + e; }
@@ -651,6 +651,8 @@ public class Veh {
                         try { e = loadTable(); } finally { busy = false; }
                         if (e == null && groups != null && !groups.isEmpty()) {
                             if (state.startsWith("刷车：正在读") || state.startsWith("刷车：已装")) state = "刷车：车表已自动读好（" + groups.size() + " 种车）";
+                            try { Trace.init(); } catch (Throwable ignored) {}   // v4.25：射线函数（要扫一遍对象表，几秒）进对局就先找好，第一次刷车不用等
+                            preSnap();
                             GameOverlay.refreshAny(); return;
                         }
                     }
