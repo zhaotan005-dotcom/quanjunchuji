@@ -1832,3 +1832,7 @@ See project skill v27 text (archived below in summary). Key RE facts live in /wo
 - 内核本身 v4.07 起就不读日志（Veh 刷车走 AddAvaItem V… → vcave，不碰日志）；日志开关为什么影响 ?listen 下刷车没查清（推断在游戏内部），按用户要求直接不走 ?listen。
 - 改：Con.startGame 训练场撤回 v4.18 的 ?listen（BUILD 2 也真单机 open）；Room 15001/26011 在非服务端包（Ed.ED != 1）不再 launch（Lan.host/ModeProbe.host 本机开服）：15001 照旧走 Server.startPicked → Con.startGame，26011 回成功后 Con.startGame(房间地图)。服务端包（ED 1）不变。
 - 影响：手机上建的房间不再本机开服，别人进不来（v4.07 起开房地址固定艾挽服务器，手机开房本来也连不上）。
+
+## v4.24（三槽 core326，2026-11-24 22:4x，只推内核，未实测）删刷车黑框
+- 用户 22:35：v4.23 真单机刷车能刷出来了（截图：大脚车/皮卡出来，提示「已刷…射线没确认到车」——射线确认是误报）；第一次要等很久，之后一刷一个准（推断：每种车第一次刷游戏要同步加载资源，之后有缓存）。要求删刷车黑框。
+- 改：GameOverlay.toastAlways 不再弹 Toast，只 LogCap.note + refreshAny；刷车页底下「上一次：…」保留。

@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.23";
+    static final String VER = "v4.24";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -535,7 +535,8 @@ public class GameOverlay {
 
     static void toastAny(String msg) { Activity a = Con.act; if (a != null) a.runOnUiThread(() -> toast(a, msg)); }
     /** v4.22 刷车结果一律显示（以前「没刷…」「刷车中…」「还没有人物」被 keepToast 过滤掉，点了没任何反应、看不出原因） */
-    static void toastAlways(String msg) { Activity a = Con.act; if (a == null || msg == null || msg.isEmpty()) return; LogCap.note("提示：" + msg); a.runOnUiThread(() -> Toast.makeText(a, msg, Toast.LENGTH_LONG).show()); }
+    /** v4.24 用户：刷车的黑框没用，删掉 → 不再弹，只记在内存、刷新菜单（刷车页底下「上一次：…」照旧显示） */
+    static void toastAlways(String msg) { if (msg == null || msg.isEmpty()) return; LogCap.note("提示：" + msg); refreshAny(); }
     /** v3.22 用户：黑框提示直接删掉（不是精简），只有出错这类必须让人知道的才弹 */
     static boolean keepToast(String msg) {
         if (msg == null || msg.isEmpty()) return false;
