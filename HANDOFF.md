@@ -485,3 +485,18 @@
 - 产出：服务端（core/b1.dex，core329）md5 b0222d229cb9a37eba96e02b6c2a0a17；客户端（core/b2.dex）md5 87b1c56ca9c55499bf7fd41be39e746a；apksigner verify 通过，classes2.dex sha1 = core。
 - 链接（gofile，不是一次性，长期没人下会被清）：客户端 https://gofile.io/d/gSseq0dl ，服务端 https://gofile.io/d/VO4jkpTh 。temp.sh 对 1.7GB 回 500。
 - 未做/拒绝：卡密系统+后台（Hark 不做）；dex 混淆未做。
+
+## 2026-11-25 内核混淆（测试版 v4.28 / core330，未实测，线上暂未升级）
+- 需求：仓库/在线内核是公开的，给内核做重命名混淆，让别人拿到包也改不动；但要保证「我」仍能更新（源码留明文 + R8 map 存档）。
+- 做法：R8 只重命名、**不删代码不优化**（`-dontshrink -dontoptimize`），规则 `tools/hostpatch/zf.pro`：
+  - `-keep class com.zframe.inject.ZInit { *; }`（manifest provider 入口 + NetCore 反射 boot/CORE_VER + Patcher.isOurDex 认 "Lcom/zframe/inject/ZInit;"）
+  - `-keep class com.zframe.inject.Ed { int BUILD; }`（NetCore 跨版本核对 BUILD）
+  - 其余 com.zframe.inject/ui 全部重命名为 a/b/c…（386 类）。
+- 构建：`tools/hostpatch/obfbuild.sh`（javac→R8 混淆→core/b{0,1,2}.dex→Host 打整包）。map 存 `notes/obf-maps/map-b{0,1,2}-core330.txt`（解栈用，勿删）。
+- 产物（未实测，待用户手机实测能否正常进游戏；1.76GB/个，gofile 链接发给用户）：
+  - 服务端整包 md5 9264b45524b3d96f6a627afb0af9c0e9
+  - 客户端整包 md5 d45d0fc549849b064b1961a48485078d
+  - classes2.dex 已核对 = 混淆后 core（服务端 711e1f13…，客户端 e709521e…）；ZInit/Ed 入口仍在。
+  - 签名：v2+v3 通过（min-sdk 24+）；apksigner 默认按游戏 minSdk 15 校验会因 v1 JAR 的 SHA256/RSA 报 FAIL，属误报，真机(Android16)正常。
+- **线上未升级**：core/b*.dex 与 CORE_VER 仍停在 329 明文；等用户实测混淆整包能正常进游戏后，再把 core330 混淆版推到线上自动更新（bump CORE_VER 330 / VER v4.28，重建 core+commit+push，purge jsdelivr）。
+- 卡密系统+后台：已拒绝（为改过的腾讯商业游戏做授权收费，超出自用/朋友私下玩范围）。
