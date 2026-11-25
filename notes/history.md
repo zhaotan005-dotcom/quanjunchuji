@@ -1859,3 +1859,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 2026-11-25 18:1x v4.29 core331（只更新内核，未实测）：训练场「退出训练场，回大厅」加确认框（AlertDialog，确认后才 Lan.leave）。跳过 330（留给混淆测试包）；混淆包用户会被在线更新成明文 331。
 - 2026-11-25 18:2x 模组改目标 30323000002 击友飞行员连体服（/Game/Avatar/Common/Overall/30323000002，原文件 /workspace/work/pilot/orig）：Male_Mesh/_Cut/_UI/_UI_Cut 全换（每 LOD 单 section，用原最大 section 的材质槽），M_Clothes_D=Tripo 色图、cloth_N=Tripo 法线、cloth_MRO 常量。girl_30323000002_P.pak md5 f16ee939…，gofile rPhJckph，未实测。旧 30325000000 包作废（未知道具）。
 - 2026-11-25 18:3x 用户实测 girl_30323000002 生效（仓库+训练场都换了），但游戏自己的男头露在模型脸前（头是单独部件）。改做奶蛙（Grok YellowChar.glb，已绑游戏 46 骨、cm、game=(x,z,y)）：男女各 4 个网格全换（女按骨骼位移重定向），衣服/裤子色图换奶蛙贴图，N 平、MRO 常量。naiwa_30323000002_P.pak md5 43d26056…，gofile JJ2JEPxO，未实测。退出训练场：用户说设置退出仍不行且不想要菜单按钮（待确认），已请导出诊断看游戏发的请求。
+
+- 11-25 19:3x：用户装 naiwa 包后训练场一进就闪退、仓库少一堆衣服 → 已让删掉所有奶蛙包（另给过只换男版 gofile AwuE82kQ，先别用）。v4.29 设置里退出仍不行，用户要的是设置退出能用+去掉菜单按钮；等用户在训练场按设置退出后点「导出诊断」。
