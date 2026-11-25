@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.32";
+    static final String VER = "v4.33";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -27,10 +27,10 @@ public class GameOverlay {
     // v2.64 用户：v2.63 太丑、GPT 那个也不要 → 简约：近黑半透明底、白字、没有边框和渐变，选中=白底黑字，开关绿色
     // v2.65 用户：喜欢白底黑字，要通透的模块，左边分页和右边按钮不能一个样 →
     //   白色半透明底；左边分页是一条浅灰「轨道」、选中=黑底白字胶囊；右边内容放在半透明浅灰卡片里，按钮是白色描边块
-    // v4.32 用户：优化 UI 美术 → 照游戏自己的「提示」框：深色半透明底、金色强调、细金边、白字
-    static final int PANEL = 0xF0181B22, CARD = 0x12FFFFFF, CARD2 = 0xFF262A34, LINE = 0x1AFFFFFF,
-            TXT = 0xFFF1F2F5, SUBT = 0x99E6E8EE, ACC = 0xFFF2B33A, ON_BG = 0xFFF2B33A, ON_TXT = 0xFF17191F,
-            ORANGE = 0xFFFF9500, CHIP = 0x14FFFFFF, GREEN = 0xFFF2B33A, TRACK = 0x33FFFFFF, PURPLE = 0xFFF2B33A, STROKE = 0x40C9A34A, RAIL = 0x33000000;
+    // v4.33 用户：不要照游戏的样子，自己设计 → ZFrame 自己的风格（和 App 启动器同一套）：深蓝玻璃底、青色强调、紫色点缀、圆角
+    static final int PANEL = 0xEE0B1026, CARD = 0x14A9B8FF, CARD2 = 0xFF1A2244, LINE = 0x1F8C96C8,
+            TXT = 0xFFE8ECFF, SUBT = 0xFF8C96C8, ACC = 0xFF2EE6F0, ON_BG = 0xFF2EE6F0, ON_TXT = 0xFF0A0E24,
+            ORANGE = 0xFFFF9500, CHIP = 0x1A9B5CFF, GREEN = 0xFF3BE38A, TRACK = 0x338C96C8, PURPLE = 0xFF9B5CFF, STROKE = 0x404A5BFF, RAIL = 0x40070B1E;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -74,7 +74,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, 0x66C9A34A, u.dp(10), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
+            panel.setBackground(boxLine(PANEL, 0x662EE6F0, u.dp(18), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
