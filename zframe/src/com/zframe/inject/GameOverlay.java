@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.33";
+    static final String VER = "v4.34";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -27,10 +27,10 @@ public class GameOverlay {
     // v2.64 用户：v2.63 太丑、GPT 那个也不要 → 简约：近黑半透明底、白字、没有边框和渐变，选中=白底黑字，开关绿色
     // v2.65 用户：喜欢白底黑字，要通透的模块，左边分页和右边按钮不能一个样 →
     //   白色半透明底；左边分页是一条浅灰「轨道」、选中=黑底白字胶囊；右边内容放在半透明浅灰卡片里，按钮是白色描边块
-    // v4.33 用户：不要照游戏的样子，自己设计 → ZFrame 自己的风格（和 App 启动器同一套）：深蓝玻璃底、青色强调、紫色点缀、圆角
-    static final int PANEL = 0xEE0B1026, CARD = 0x14A9B8FF, CARD2 = 0xFF1A2244, LINE = 0x1F8C96C8,
-            TXT = 0xFFE8ECFF, SUBT = 0xFF8C96C8, ACC = 0xFF2EE6F0, ON_BG = 0xFF2EE6F0, ON_TXT = 0xFF0A0E24,
-            ORANGE = 0xFFFF9500, CHIP = 0x1A9B5CFF, GREEN = 0xFF3BE38A, TRACK = 0x338C96C8, PURPLE = 0xFF9B5CFF, STROKE = 0x404A5BFF, RAIL = 0x40070B1E;
+    // v4.34 用户：改回苹果那种简约浅色风格（v4.32/4.33 深色撤掉）
+    static final int PANEL = 0xEBFAFAFB, CARD = 0x0A000000, CARD2 = 0xFFFFFFFF, LINE = 0x14000000,
+            TXT = 0xFF141414, SUBT = 0x8C000000, ACC = 0xFF141414, ON_BG = 0xFF141414, ON_TXT = 0xFFFFFFFF,
+            ORANGE = 0xFFFF9500, CHIP = 0x0D000000, GREEN = 0xFF34C759, TRACK = 0x24000000, PURPLE = 0xFF141414, STROKE = 0x1F000000, RAIL = 0x0F000000;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -74,7 +74,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, 0x662EE6F0, u.dp(18), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
+            panel.setBackground(boxLine(PANEL, 0x14000000, u.dp(14), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
@@ -139,7 +139,7 @@ public class GameOverlay {
               for (int k = 0; k < tabs0.length; k++) if (!(Con.training && "刷车".equals(tabs0[k]))) { tl.add(tabs0[k]); ml.add(map0[k]); }
               tabs = tl.toArray(new String[0]); map = new int[ml.size()]; for (int k = 0; k < map.length; k++) map[k] = ml.get(k); }
             { boolean ok = false; for (int x : map) if (x == tab) ok = true; if (!ok) tab = map[0]; }
-            final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("道具", "刷车", "联机"));   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
+            final java.util.Set<String> groupStart = new java.util.HashSet<>(java.util.Arrays.asList("刷车", "联机"));   // v4.34 用户：道具那栏不要隔开   // v2.19：常用下面加「功能」页（加速/高跳/动作放慢）   // 显示顺序 → 原来的页号（fill 按页号填）
             final TextView[] tv = new TextView[tabs.length];
             final java.util.HashMap<TextView, View> tabSep = new java.util.HashMap<>();
             final ScrollView sv = new ScrollView(a);
@@ -1353,24 +1353,9 @@ public class GameOverlay {
     }
 
     static void weaponPage(final Activity a, final Ui u, final LinearLayout root) {
-        HorizontalScrollView hs = new HorizontalScrollView(a); hs.setHorizontalScrollBarEnabled(false);
-        LinearLayout cr = new LinearLayout(a); cr.setOrientation(LinearLayout.HORIZONTAL);
-        if (weapCat >= GUN_CATS) weapCat = 0;
-        for (int k = 0; k < GUN_CATS; k++) {
-            final int idx = k;
-            TextView t = new TextView(a);
-            t.setText(CATS[k][0]); t.setTextSize(11.5f);
-            t.setTextColor(k == weapCat ? ON_TXT : SUBT);
-            t.setBackground(k == weapCat ? grad(u.dp(14)) : boxLine(0, LINE, u.dp(14), 1));
-            t.setPadding(u.dp(11), u.dp(5), u.dp(11), u.dp(5));
-            t.setOnClickListener(v -> { weapCat = idx; fill(a, u, root); });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = u.dp(6);
-            cr.addView(t, lp);
-        }
-        hs.addView(cr);
-        root.addView(hs, new LinearLayout.LayoutParams(-1, -2));
-        head(a, u, root, onGround || remote() ? "点一下刷在脚下（带子弹）" : "点一下放进背包（带子弹）");   // v3.65 用户：刷枪就是刷枪，配件去「配件」页按需刷
-        gunGrid(a, u, root, weapCat);
+        // v4.34 用户：刷枪菜单竖着排 → 不再用横向分类条，各枪种从上到下依次列出
+        head(a, u, root, onGround || remote() ? "点一下刷在脚下（带子弹）" : "点一下放进背包（带子弹）");
+        for (int k = 0; k < GUN_CATS; k++) { head(a, u, root, CATS[k][0]); gunGrid(a, u, root, k); }
         giveHint(a, root);
     }
     /** v3.65 用户：配件按枪种分区（步枪/冲锋枪/狙击枪/连狙/霰弹枪/手枪/十字弩），倍镜单独一区；点哪件刷哪件。编号按 pak 拾取物蓝图名核对（见 attFor） */
