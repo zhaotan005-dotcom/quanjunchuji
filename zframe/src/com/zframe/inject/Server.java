@@ -608,7 +608,7 @@ public class Server {
             for (int pass = 0; pass < 3; pass++)
                 for (long[] p : props.values()) {
                     if (p[2] != 0 || p[1] == 0 || l.contains(p[0])) continue;
-                    int k = def.contains(p[0]) ? 2 : (p[0] / 1000000 % 1000 == 113 || p[0] / 1000000 % 1000 == 213) ? 1 : 0;
+                    int k = p[0] / 1000000 % 1000 == 325 ? 0 : def.contains(p[0]) ? 2 : (p[0] / 1000000 % 1000 == 113 || p[0] / 1000000 % 1000 == 213) ? 1 : 0;
                     if (k == pass) l.add(p[0]);
                 }
             // v1.97：用户说以前对局里仓库衣服能脱、能捡。塞进「默认衣服」列表的东西是焊在身上的，
@@ -616,7 +616,7 @@ public class Server {
             ArrayList<Long> base = new ArrayList<>(), own = new ArrayList<>();
             for (int i = 0; i < l.size(); i++) {
                 long id = l.get(i); int cat = (int) (id / 1000000 % 1000);
-                if (i == 0 || cat == 113 || cat == 213 || def.contains(id)) base.add(id); else own.add(id);
+                if (i == 0 || cat == 113 || cat == 213 || cat == 325 || def.contains(id)) base.add(id); else own.add(id);   // v4.37 用户：全身装(325)进局没穿上 → 放进出生列表，一出生就穿
             }
             // v3.91：日志 11:30:02 脱风衣 30318000000 → NZBRCharacter.cpp:6836「DiscardInventory Give Default Apparel Fault」，
             //   身上还显示风衣。原因：默认衣服列表只放了「穿着的」默认件，上衣 30301000001/裤子 30302000000 被风衣顶掉后不在列表里，

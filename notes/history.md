@@ -1875,3 +1875,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 11-26 01:1x v4.35 core337（未实测）：Grok 的 ArcherGirl_30325000002_P.pak（改 CommonItemDataTable 30323000004 行→30325000002，换 WholeBody/30325000002/Female_Mesh）。Server.archerGirl()：BAD 去掉 30325000002；仓库第一次加它并穿上（槽 325），脱 30323000002 和全部发型（113/213）；只做一次。内核从不动 Saved/Paks。
 
 - 11-26 01:2x v4.36 core338（未实测）：用户说训练场设置退出仍不行。读码发现 QuitWatch.start 在 Island 里很靠后，没找到地块管理器/ensureSetup 失败等都会提前 return → 根本没开。挪到拿到控制器后立刻开；看 PC+0x55c/0x55d 两位；跟随 Veh.lastPc 换控制器。
+
+- 11-26 01:3x v4.37 core339（未实测）：用户实测 v4.35 大厅穿上 30325000002，训练场里没穿（白T+马尾）；设置弹的是「确定要退出演习？」，确认后无反应（视频可能是 v4.36 生效前）。改：syncWear 把 325 全身装放进出生列表首位。libUE4 里有 SendPlayerLeavePractice / LeavePracticeArea，退出演习可能不走 QueryQuitMatch，待查。
