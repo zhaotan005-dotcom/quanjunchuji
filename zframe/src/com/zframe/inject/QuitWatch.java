@@ -9,22 +9,27 @@ final class QuitWatch {
     static volatile boolean running;
     static volatile String state = "训练场设置退出：没开";
 
-    static void start(final long pc) {
-        if (running || pc == 0) return;
+    /** v4.36 用户：还是退不出。改：拿到控制器就开；0x55c/0x55d 两位都看；控制器换了就跟着换（Veh.lastPc） */
+    static void start(final long pc0) {
+        if (running || pc0 == 0) return;
         running = true;
         new Thread(() -> {
             try {
-                long b = Mods.base();
+                long b = Mods.base(), pc = 0;
                 try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-                    if (!Mods.isObj(m, b, pc)) { state = "训练场设置退出：控制器不对 " + Long.toHexString(pc); return; }
-                    m.seek(pc + 0x55d); if (m.read() != 0) { m.seek(pc + 0x55d); m.write(0); }
-                    state = "训练场设置退出：在看（控制器 " + Long.toHexString(pc) + "）";
-                    while (Con.training && Con.inMatch) {
+                    long cand = pc0;
+                    while (Con.inMatch) {
+                        long lp = Veh.lastPc(); if (lp >= 0x10000 && lp != pc && Mods.isObj(m, b, lp)) cand = lp;
+                        if (cand != pc && Mods.isObj(m, b, cand)) {   // 新控制器：先清零当基准
+                            pc = cand; m.seek(pc + 0x55c); m.write(new byte[] { 0, 0 });
+                            state = "训练场设置退出：在看（控制器 " + Long.toHexString(pc) + "）";
+                        }
                         Thread.sleep(300);
-                        if (!Mods.isObj(m, b, pc)) { state = "训练场设置退出：控制器没了"; break; }
-                        m.seek(pc + 0x55d);
-                        if (m.read() != 0) {
-                            m.seek(pc + 0x55d); m.write(0);
+                        if (pc == 0 || !Con.training) continue;
+                        if (!Mods.isObj(m, b, pc)) { pc = 0; cand = 0; state = "训练场设置退出：控制器没了，再找"; continue; }
+                        byte[] f = new byte[2]; m.seek(pc + 0x55c); m.readFully(f);
+                        if (f[0] != 0 || f[1] != 0) {
+                            m.seek(pc + 0x55c); m.write(new byte[] { 0, 0 });
                             state = "训练场设置退出：收到，回大厅";
                             LogCap.note(state);
                             GameOverlay.toastAny(Lan.leave());

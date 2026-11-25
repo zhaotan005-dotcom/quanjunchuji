@@ -1873,3 +1873,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 11-25 22:3x v4.34 core336（未实测）：用户要改回苹果简约浅色（还原 v4.31 调色）；分页「道具」前不加分隔；刷枪页去掉横向分类条，各枪种竖排依次列出。
 
 - 11-26 01:1x v4.35 core337（未实测）：Grok 的 ArcherGirl_30325000002_P.pak（改 CommonItemDataTable 30323000004 行→30325000002，换 WholeBody/30325000002/Female_Mesh）。Server.archerGirl()：BAD 去掉 30325000002；仓库第一次加它并穿上（槽 325），脱 30323000002 和全部发型（113/213）；只做一次。内核从不动 Saved/Paks。
+
+- 11-26 01:2x v4.36 core338（未实测）：用户说训练场设置退出仍不行。读码发现 QuitWatch.start 在 Island 里很靠后，没找到地块管理器/ensureSetup 失败等都会提前 return → 根本没开。挪到拿到控制器后立刻开；看 PC+0x55c/0x55d 两位；跟随 Veh.lastPc 换控制器。
