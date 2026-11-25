@@ -1865,3 +1865,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 11-25 19:5x v4.30 core332（只更新内核，未实测）：训练场设置退出修复。RE：PC::QueryQuitMatch 0xd777f8 在 NetMode 0/3 时 strb #1,[PC,#0x55d]（bHasRequestQuitMatchOnClient，SetBit 0xe7b5ac；+0x55c bHasQuitMatchOnServer 0xe7b5b8），再调 vtable+0xb04 ServerQueryQuitMatch。新 QuitWatch：训练场里每 0.3 秒看 Veh.lastPc()+0x55d，0→1 清零并 Lan.leave()。菜单「退出训练场，回大厅」按用户要求删除。房主（NetMode 2）不置此位，未处理。
 
 - 11-25 19:5x v4.31 core333（只更新内核，未实测）：训练场菜单刷车页删掉（TRAIN_TABS 去掉 1）；用户：游戏自己刷的车保留。
+
+- 11-25 19:5x v4.32 core334（只更新内核，未实测）：用户「优化UI美术，你自己设计」→ GameOverlay 调色板改深色半透明+金色强调+细金边（照 GameDlg），开关开启色改金色。

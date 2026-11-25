@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.31";
+    static final String VER = "v4.32";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -27,9 +27,10 @@ public class GameOverlay {
     // v2.64 用户：v2.63 太丑、GPT 那个也不要 → 简约：近黑半透明底、白字、没有边框和渐变，选中=白底黑字，开关绿色
     // v2.65 用户：喜欢白底黑字，要通透的模块，左边分页和右边按钮不能一个样 →
     //   白色半透明底；左边分页是一条浅灰「轨道」、选中=黑底白字胶囊；右边内容放在半透明浅灰卡片里，按钮是白色描边块
-    static final int PANEL = 0xEBFAFAFB, CARD = 0x0A000000, CARD2 = 0xFFFFFFFF, LINE = 0x14000000,
-            TXT = 0xFF141414, SUBT = 0x8C000000, ACC = 0xFF141414, ON_BG = 0xFF141414, ON_TXT = 0xFFFFFFFF,
-            ORANGE = 0xFFFF9500, CHIP = 0x0D000000, GREEN = 0xFF34C759, TRACK = 0x24000000, PURPLE = 0xFF141414, STROKE = 0x1F000000, RAIL = 0x0F000000;
+    // v4.32 用户：优化 UI 美术 → 照游戏自己的「提示」框：深色半透明底、金色强调、细金边、白字
+    static final int PANEL = 0xF0181B22, CARD = 0x12FFFFFF, CARD2 = 0xFF262A34, LINE = 0x1AFFFFFF,
+            TXT = 0xFFF1F2F5, SUBT = 0x99E6E8EE, ACC = 0xFFF2B33A, ON_BG = 0xFFF2B33A, ON_TXT = 0xFF17191F,
+            ORANGE = 0xFFFF9500, CHIP = 0x14FFFFFF, GREEN = 0xFFF2B33A, TRACK = 0x33FFFFFF, PURPLE = 0xFFF2B33A, STROKE = 0x40C9A34A, RAIL = 0x33000000;
 
     static GradientDrawable box(int color, float r) {
         GradientDrawable g = new GradientDrawable();
@@ -73,7 +74,7 @@ public class GameOverlay {
             final LinearLayout panel = new LinearLayout(a);
             panel.setTag("zframe_panel");
             panel.setOrientation(LinearLayout.VERTICAL);
-            panel.setBackground(boxLine(PANEL, 0x14000000, u.dp(14), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
+            panel.setBackground(boxLine(PANEL, 0x66C9A34A, u.dp(10), Math.max(1, u.dp(1))));   // v2.08 ImGui 浅色风：小圆角 + 细边框
             panel.setElevation(u.dp(8));
             panel.setClipToOutline(true);
 
