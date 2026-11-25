@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.27";
+    static final String VER = "v4.29";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1285,12 +1285,24 @@ public class GameOverlay {
         switchRow(a, u, gc, "聚点", "子弹不散开，打得更准", Mods.noShake, v -> { Mods.setGun(Mods.noRecoil, v, Mods.infAmmo); return "ok"; });
         switchRow(a, u, gc, "无限子弹", "子弹一直是 999 发", Mods.infAmmo, v -> { Mods.setGun(Mods.noRecoil, Mods.noShake, v); return "ok"; });
     }
+    /** v4.29：退出训练场先弹确认框（取消 = 不退） */
+    static void confirmLeave(final Activity a) {
+        a.runOnUiThread(() -> {
+            try {
+                new android.app.AlertDialog.Builder(a, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("退出训练场？").setMessage("确定要退出训练场，回到大厅吗？")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("确认退出", (d, w) -> toast(a, Lan.leave()))
+                    .show();
+            } catch (Throwable t) { toast(a, "确认框打不开：" + t); }
+        });
+    }
     /** v2.19「功能」页：加速、高跳、标点传送（v3.46 删「动作放慢」，动作用游戏默认） */
     static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
         boolean cl = Lan.role == 2 || Ed.ED == 2;
         if (Con.training && Con.inMatch) {   // v4.15 用户：训练场退不出来 → 菜单直接回大厅（不靠游戏设置里的退出）
             LinearLayout xr = row(a, root);
-            fillBtn(a, u, xr, "退出训练场，回大厅", () -> toast(a, Lan.leave()));
+            fillBtn(a, u, xr, "退出训练场，回大厅", () -> confirmLeave(a));   // v4.29 用户：点了先弹确认，确认后才退
         }
         head(a, u, root, "跑跳");
         if (Ed.ED == 2 && Lan.role == 2) {

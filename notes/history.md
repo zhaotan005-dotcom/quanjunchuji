@@ -1855,3 +1855,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 服务端 md5 9264b45524b3d96f6a627afb0af9c0e9 → https://gofile.io/d/MYExuRfK
 - 客户端 md5 d45d0fc549849b064b1961a48485078d → https://gofile.io/d/nhOVOnUJ
 线上内核/源码 CORE_VER 仍停 329，待用户实测混淆包能进游戏后再推 330 到自动更新。commit 62de72e。
+- 2026-11-25 18:07 模组 girl_30325000000_P.pak 用户放 /sdcard/UE4Game/PUBGM/PUBGM/Saved/Paks 无效果。原因：30325000000 是游戏未知道具（Server.BAD），穿不上，目标选错。已问用户换能穿的连体服（建议击友飞行员连体服），等物品 ID+原文件夹重做。挂载是否成功未确认。
+- 2026-11-25 18:1x v4.29 core331（只更新内核，未实测）：训练场「退出训练场，回大厅」加确认框（AlertDialog，确认后才 Lan.leave）。跳过 330（留给混淆测试包）；混淆包用户会被在线更新成明文 331。
