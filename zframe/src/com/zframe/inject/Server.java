@@ -564,6 +564,7 @@ public class Server {
             // v1.80：v1.79 按名字找口罩找错了（名字是分类标签），放进去的 30325 整套等游戏不认的编号清掉
             for (long b : BAD) props.values().removeIf(p -> p[0] == b && p[1] == 0);
             java.io.File mf = maskFile(); if (mf != null) mf.delete();
+            archerGirl();
             return;
         }
         boolean male = Mods.male;
@@ -574,6 +575,21 @@ public class Server {
                           { 30213000003L, male ? 0 : 213 } };
         long gid = 1001;
         for (long[] w : wear) props.put(gid++, new long[] { w[0], w[1], 0 });
+        archerGirl();
+    }
+    /** v4.35 用户（ArcherGirl_30325000002_P.pak）：仓库加 30325000002 全身装并默认穿上；脱下击友服 30323000002 免叠穿；
+     *  不再带发型（全身装会藏头，默认头发会穿出来）。只在第一次加进仓库时做一次，之后用户在大厅自己换的照存档。 */
+    static final long ARCHER = 30325000002L;
+    static void archerGirl() {
+        for (long[] p : props.values()) if (p[0] == ARCHER) return;
+        long gid = 1001; while (props.containsKey(gid)) gid++;
+        props.put(gid, new long[] { ARCHER, slotOf(ARCHER), 0 });
+        for (long[] p : props.values()) {
+            if (p[2] != 0) continue;
+            int c = (int) (p[0] / 1000000 % 1000);
+            if (p[0] == 30323000002L || c == 113 || c == 213) p[1] = 0;
+        }
+        saveProps();
     }
     // v1.73：仓库存到 filesDir/zf_props.txt，重启游戏还在。一行：gid 编号 位置 性别
     static java.io.File propsFile() {
@@ -947,7 +963,7 @@ public class Server {
     // ---------------- v1.73 全部皮肤入库 ----------------
     // 游戏在大厅已把物品表读进内存。扫可写内存里 8 字节对齐的 64 位数，取 301xx/302xx/303xx 开头的服装编号（301 男款、302 女款、303 通用），
     // 去掉头盔 30304、护甲 30305（对局装备）和已知游戏不认的编号。物品表里一个编号通常出现多次，要求至少出现 2 次，减少误报。
-    static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000002L, 30325000003L, 30325000004L, 30325000005L };
+    static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000003L, 30325000004L, 30325000005L };
     static java.util.TreeMap<Long, Integer> scanSkins() throws java.io.IOException {
         java.util.TreeMap<Long, Integer> hit = new java.util.TreeMap<>();
         other.clear(); nameHits.clear(); maskCand.clear();
