@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.30";
+    static final String VER = "v4.31";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1885,7 +1885,7 @@ public class GameOverlay {
     /** v3.21 用户：单机版加入服务器后标题还是「单机版」。标题跟实际状态走：加入了别人的房间（Lan.role==2）= 联机版；
      *  在本机对局里 = 单机版；在大厅按菜单顶上的「单机 | 联机」选择。 */
     /** v3.65 训练场显示的分页：功能 刷枪 配件 特殊（含投掷物） 子弹 装备 */
-    static final java.util.Set<Integer> TRAIN_TABS = new java.util.HashSet<>(java.util.Arrays.asList(8, 3, 12, 9, 10, 4, 1));   // v3.92 用户：训练场加「刷车」
+    static final java.util.Set<Integer> TRAIN_TABS = new java.util.HashSet<>(java.util.Arrays.asList(8, 3, 12, 9, 10, 4));   // v4.31 用户：训练场菜单的刷车删掉（游戏自己刷的车保留）；v3.92 用户：训练场加「刷车」
     static String titleText() {
         if (Ed.single()) {
             if (Lan.role == 2) return "全军出击联机版";
