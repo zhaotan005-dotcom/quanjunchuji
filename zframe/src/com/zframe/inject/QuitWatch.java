@@ -9,31 +9,40 @@ final class QuitWatch {
     static volatile boolean running;
     static volatile String state = "训练场设置退出：没开";
 
-    /** v4.36 用户：还是退不出。改：拿到控制器就开；0x55c/0x55d 两位都看；控制器换了就跟着换（Veh.lastPc） */
+    /** v4.38 用户：菜单的回大厅能退，设置里的退出还是不行 → 回大厅本身没问题，是没认出「确认退出」。
+     *  控制器不再只信 Veh.lastPc：同时看自己人物身上的控制器（人物+0x2d0），两个都盯 0x55c/0x55d。 */
     static void start(final long pc0) {
-        if (running || pc0 == 0) return;
+        if (running) return;
         running = true;
         new Thread(() -> {
             try {
-                long b = Mods.base(), pc = 0;
+                long b = Mods.base();
+                java.util.LinkedHashSet<Long> pcs = new java.util.LinkedHashSet<>();
                 try (RandomAccessFile m = new RandomAccessFile("/proc/self/mem", "rw")) {
-                    long cand = pc0;
+                    int t = 0;
                     while (Con.inMatch) {
-                        long lp = Veh.lastPc(); if (lp >= 0x10000 && lp != pc && Mods.isObj(m, b, lp)) cand = lp;
-                        if (cand != pc && Mods.isObj(m, b, cand)) {   // 新控制器：先清零当基准
-                            pc = cand; m.seek(pc + 0x55c); m.write(new byte[] { 0, 0 });
-                            state = "训练场设置退出：在看（控制器 " + Long.toHexString(pc) + "）";
+                        if (t++ % 7 == 0) {   // 约 2 秒找一次控制器
+                            java.util.ArrayList<Long> c = new java.util.ArrayList<>();
+                            c.add(pc0); c.add(Veh.lastPc());
+                            try { double[] q = Veh.info(); if (q != null && q.length > 6 && (long) q[6] >= 0x10000) c.add(Server.rd(m, (long) q[6] + 0x2d0)); } catch (Throwable ignored) {}
+                            long pa = GameOverlay.pawnAddr(); if (pa >= 0x10000) c.add(Server.rd(m, pa + 0x2d0));
+                            for (long x : c) if (x >= 0x10000 && !pcs.contains(x) && Mods.isObj(m, b, x)) {
+                                pcs.add(x); m.seek(x + 0x55c); m.write(new byte[] { 0, 0 });
+                            }
+                            pcs.removeIf(x -> { try { return !Mods.isObj(m, b, x); } catch (Throwable e) { return true; } });
+                            state = "训练场设置退出：在看 " + pcs.size() + " 个控制器";
                         }
                         Thread.sleep(300);
-                        if (pc == 0 || !Con.training) continue;
-                        if (!Mods.isObj(m, b, pc)) { pc = 0; cand = 0; state = "训练场设置退出：控制器没了，再找"; continue; }
-                        byte[] f = new byte[2]; m.seek(pc + 0x55c); m.readFully(f);
-                        if (f[0] != 0 || f[1] != 0) {
-                            m.seek(pc + 0x55c); m.write(new byte[] { 0, 0 });
-                            state = "训练场设置退出：收到，回大厅";
-                            LogCap.note(state);
-                            GameOverlay.toastAny(Lan.leave());
-                            break;
+                        if (!Con.training) continue;
+                        for (long x : pcs) {
+                            byte[] f = new byte[2]; m.seek(x + 0x55c); m.readFully(f);
+                            if (f[0] != 0 || f[1] != 0) {
+                                m.seek(x + 0x55c); m.write(new byte[] { 0, 0 });
+                                state = "训练场设置退出：收到，回大厅";
+                                LogCap.note(state);
+                                GameOverlay.toastAny(Lan.leave());
+                                return;
+                            }
                         }
                     }
                 }

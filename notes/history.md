@@ -1877,3 +1877,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 11-26 01:2x v4.36 core338（未实测）：用户说训练场设置退出仍不行。读码发现 QuitWatch.start 在 Island 里很靠后，没找到地块管理器/ensureSetup 失败等都会提前 return → 根本没开。挪到拿到控制器后立刻开；看 PC+0x55c/0x55d 两位；跟随 Veh.lastPc 换控制器。
 
 - 11-26 01:3x v4.37 core339（未实测）：用户实测 v4.35 大厅穿上 30325000002，训练场里没穿（白T+马尾）；设置弹的是「确定要退出演习？」，确认后无反应（视频可能是 v4.36 生效前）。改：syncWear 把 325 全身装放进出生列表首位。libUE4 里有 SendPlayerLeavePractice / LeavePracticeArea，退出演习可能不走 QueryQuitMatch，待查。
+
+- 11-26 01:4x v4.38 core340（未实测）：用户确认 v4.36 已更新仍退不出；菜单按钮（Lan.leave）以前能退。推断 Veh.lastPc 不是本机控制器 → QuitWatch 同时盯 pc0、lastPc、人物+0x2d0 的控制器（Veh.info q[6] 与 pawnAddr），0x55c/0x55d 任一置位就 Lan.leave。备选线索：libUE4 SendPlayerLeavePractice（exec 0x11fd6a0→0x102f108，GameMode 侧，NetMode==3 分支）。
