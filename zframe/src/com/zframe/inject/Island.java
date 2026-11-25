@@ -301,6 +301,7 @@ final class Island {
         // v3.62 训练岛防摔（单机/服务端，见 NoFall）
         NoFall.start();
         MinHp.start();   // v3.68 训练场锁血（剩 1 血不再掉）
+        QuitWatch.start(pc);   // v4.30 游戏设置里的退出
         if (!GameOverlay.remote()) { try { logic = alwaysLoad(b, nm, mgr, pc); } catch (Throwable e) { logic = "常驻层 AlwaysLoad：出错 " + e; } note(logic); }
         // v3.61 训练岛刷车：游戏自己的驾驶训练台（LogicLevel 的 BP_VehiclePracticeBase）在它的 Tick 里按 VehicleSpawnInfoArray 的 12 个刷车点刷车，
         //   前提是「本训练位置有人」列表里有自己的位置号 —— 那是 AddPlayerToSlot 末尾广播 OnPlayerAddToSlot 给它的。单机里摆人比 LogicLevel 加载早，广播时训练台还不存在 → 永远不刷。

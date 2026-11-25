@@ -18,7 +18,7 @@ import com.zframe.ui.Ui;
  */
 public class GameOverlay {
     static float px = -1, py = -1;
-    static final String VER = "v4.29";
+    static final String VER = "v4.30";
     static boolean collapsed = true;   // v2.06 用户：一进去先看到角色，菜单默认收起
     static int tab = 0, weapCat = 0;
 
@@ -1300,10 +1300,7 @@ public class GameOverlay {
     /** v2.19「功能」页：加速、高跳、标点传送（v3.46 删「动作放慢」，动作用游戏默认） */
     static void funcPage(final Activity a, final Ui u, final LinearLayout root) {
         boolean cl = Lan.role == 2 || Ed.ED == 2;
-        if (Con.training && Con.inMatch) {   // v4.15 用户：训练场退不出来 → 菜单直接回大厅（不靠游戏设置里的退出）
-            LinearLayout xr = row(a, root);
-            fillBtn(a, u, xr, "退出训练场，回大厅", () -> confirmLeave(a));   // v4.29 用户：点了先弹确认，确认后才退
-        }
+        // v4.30 用户：训练场菜单的「退出训练场，回大厅」删掉，改由游戏设置里的退出（QuitWatch）
         head(a, u, root, "跑跳");
         if (Ed.ED == 2 && Lan.role == 2) {
             // v2.92 用户：客户端也要加速 → 拉条发给服务端，服务端只给你一个人改，再同步回来

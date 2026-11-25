@@ -1861,3 +1861,5 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 2026-11-25 18:3x 用户实测 girl_30323000002 生效（仓库+训练场都换了），但游戏自己的男头露在模型脸前（头是单独部件）。改做奶蛙（Grok YellowChar.glb，已绑游戏 46 骨、cm、game=(x,z,y)）：男女各 4 个网格全换（女按骨骼位移重定向），衣服/裤子色图换奶蛙贴图，N 平、MRO 常量。naiwa_30323000002_P.pak md5 43d26056…，gofile JJ2JEPxO，未实测。退出训练场：用户说设置退出仍不行且不想要菜单按钮（待确认），已请导出诊断看游戏发的请求。
 
 - 11-25 19:3x：用户装 naiwa 包后训练场一进就闪退、仓库少一堆衣服 → 已让删掉所有奶蛙包（另给过只换男版 gofile AwuE82kQ，先别用）。v4.29 设置里退出仍不行，用户要的是设置退出能用+去掉菜单按钮；等用户在训练场按设置退出后点「导出诊断」。
+
+- 11-25 19:5x v4.30 core332（只更新内核，未实测）：训练场设置退出修复。RE：PC::QueryQuitMatch 0xd777f8 在 NetMode 0/3 时 strb #1,[PC,#0x55d]（bHasRequestQuitMatchOnClient，SetBit 0xe7b5ac；+0x55c bHasQuitMatchOnServer 0xe7b5b8），再调 vtable+0xb04 ServerQueryQuitMatch。新 QuitWatch：训练场里每 0.3 秒看 Veh.lastPc()+0x55d，0→1 清零并 Lan.leave()。菜单「退出训练场，回大厅」按用户要求删除。房主（NetMode 2）不置此位，未处理。
