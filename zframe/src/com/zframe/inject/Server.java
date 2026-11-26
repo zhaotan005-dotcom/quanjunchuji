@@ -581,6 +581,9 @@ public class Server {
      *  不再带发型（全身装会藏头，默认头发会穿出来）。只在第一次加进仓库时做一次，之后用户在大厅自己换的照存档。 */
     static final long ARCHER = 30325000002L;
     static void archerGirl() {
+        // v4.39 用户：奶蛙用 30325000003（借隐藏的木乃伊连体衣），也放进仓库，不默认穿
+        boolean naiwa = false; for (long[] p : props.values()) if (p[0] == 30325000003L) naiwa = true;
+        if (!naiwa) { long g = 1001; while (props.containsKey(g)) g++; props.put(g, new long[] { 30325000003L, 0, 0 }); saveProps(); }
         for (long[] p : props.values()) if (p[0] == ARCHER) return;
         long gid = 1001; while (props.containsKey(gid)) gid++;
         props.put(gid, new long[] { ARCHER, slotOf(ARCHER), 0 });
@@ -963,7 +966,7 @@ public class Server {
     // ---------------- v1.73 全部皮肤入库 ----------------
     // 游戏在大厅已把物品表读进内存。扫可写内存里 8 字节对齐的 64 位数，取 301xx/302xx/303xx 开头的服装编号（301 男款、302 女款、303 通用），
     // 去掉头盔 30304、护甲 30305（对局装备）和已知游戏不认的编号。物品表里一个编号通常出现多次，要求至少出现 2 次，减少误报。
-    static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000003L, 30325000004L, 30325000005L };
+    static final long[] BAD = { 30213000001L, 30213000002L, 30325000000L, 30325000001L, 30325000004L, 30325000005L };
     static java.util.TreeMap<Long, Integer> scanSkins() throws java.io.IOException {
         java.util.TreeMap<Long, Integer> hit = new java.util.TreeMap<>();
         other.clear(); nameHits.clear(); maskCand.clear();
