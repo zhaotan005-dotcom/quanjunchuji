@@ -1881,3 +1881,4 @@ R8 重命名内核（-dontshrink -dontoptimize），保留 ZInit{*}、Ed.BUILD�
 - 11-26 01:4x v4.38 core340（未实测）：用户确认 v4.36 已更新仍退不出；菜单按钮（Lan.leave）以前能退。推断 Veh.lastPc 不是本机控制器 → QuitWatch 同时盯 pc0、lastPc、人物+0x2d0 的控制器（Veh.info q[6] 与 pawnAddr），0x55c/0x55d 任一置位就 Lan.leave。备选线索：libUE4 SendPlayerLeavePractice（exec 0x11fd6a0→0x102f108，GameMode 侧，NetMode==3 分支）。
 
 - 11-26 11:2x v4.39 core341（未实测）：设置退出根因（读码）：确认→PC ManualQuitMatch(vt+0xb08)。普通 PC vtable(0x4c91d64 起)里 b08=0xd77c2c 转 b00 QueryQuitMatch；某 PC 子类(vtable 0x4c98758 附近)重写为 0x1086910（蓝图事件 0x11e6f10 + 地块逻辑 +0xbd4），不走 QueryQuitMatch → 0x55d 不置位。训练场里把 0x1086910 前 12 字节换成 0xd77c2c 的 3 条（ldr r2,[r0]; ldr r2,[r2,#0xb00]; bx r2），QuitWatch 盯 0x55d → Lan.leave。仓库加 30325000003（奶蛙，不穿），BAD 去掉它。
+- 11-26 15:5x v4.40 core342（未实测）：用户说不穿衣服也是弓箭手角色（对局）→ 撤回 v4.37 的 cat 325 进出生 base 列表（焊身上，同 v1.97 教训）。脚连一起=Grok 网格问题。
